@@ -5,4 +5,4 @@ branches:
   only:
   - develop
 script:
-  - mvn -s settings.xml -f pom.xml -P${TRAVIS_BRANCH} clean install deploy
+  - mvn -s ./settings.xml -f pom.xml -P${TRAVIS_BRANCH} clean install deploy
