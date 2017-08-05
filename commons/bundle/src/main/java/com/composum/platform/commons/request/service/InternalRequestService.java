@@ -9,6 +9,7 @@ import org.apache.sling.servlethelpers.MockRequestPathInfo;
 import org.apache.sling.servlethelpers.MockSlingHttpServletRequest;
 import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
 
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.security.Principal;
@@ -17,11 +18,20 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * simulates a request to a resource to provide internal content rendering
+ */
 public interface InternalRequestService {
 
+    /** the URL pattern to check the URL and separate the path info and query */
     Pattern URL_PATTERN = Pattern.compile("^((https?)://([^/:]+)(:[0-9]+)?)?(/[^?]*)(\\?(.*))?$");
+
+    /** the URI pattern to separate path, selectors, extension and suffix */
     Pattern URI_PATTERN = Pattern.compile("^((/[^.]*)(\\.(.+))?\\.([^.]+))(/.*)?$");
 
+    /**
+     * the requests PathInfo simulation mock
+     */
     class PathInfo extends MockRequestPathInfo {
 
         protected ResourceResolver resolver;
@@ -45,6 +55,10 @@ public interface InternalRequestService {
             this.resolver = resolver;
         }
 
+        /**
+         * defines the 'URL' for the internal request; the URL is deconstructed into the path info elements
+         * the path info part is used to find the referenced resource and determine the selectors and the suffix
+         */
         public void setUrl(String url) {
             Matcher matcher = URL_PATTERN.matcher(url);
             if (!matcher.matches()) {
@@ -71,11 +85,14 @@ public interface InternalRequestService {
                 if ("".equals(basePath)) {
                     throw new IllegalArgumentException("not a valid URI: '" + pathInfo + "'");
                 }
+                // return with the current state (from the last try)
                 return;
             }
+            // check for an existing resource
             String resPath = basePath + emptyOrFilled(matcher.group(2));
             Resource res = resolver.getResource(resPath);
             if (res == null) {
+                // the resources name contains probably the extension (asset file)
                 String ext = emptyOrFilled(matcher.group(5));
                 res = (resolver.getResource(resPath + "." + ext));
                 if (res != null) {
@@ -83,6 +100,7 @@ public interface InternalRequestService {
                 }
             }
             if (res != null || "".equals(basePath)) {
+                // use the current deconstruction
                 requestUri = emptyOrFilled(matcher.group(1));
                 setSelectorString(emptyOrFilled(matcher.group(4)));
                 setExtension(emptyOrFilled(matcher.group(5)));
@@ -90,6 +108,7 @@ public interface InternalRequestService {
                 setResourcePath(resPath);
                 resource = res;
             }
+            // try to find a better match...
             findResource(matcher.group(1), emptyOrFilled(matcher.group(6)));
         }
 
@@ -163,6 +182,7 @@ public interface InternalRequestService {
 
         // wrapped context request
 
+        @Nonnull
         @Override
         public RequestProgressTracker getRequestProgressTracker() {
             return contextRequest.getRequestProgressTracker();
@@ -203,6 +223,7 @@ public interface InternalRequestService {
             return contextRequest.isRequestedSessionIdFromURL();
         }
 
+        @SuppressWarnings("deprecation")
         @Override
         public boolean isRequestedSessionIdFromUrl() {
             return contextRequest.isRequestedSessionIdFromUrl();
@@ -242,9 +263,23 @@ public interface InternalRequestService {
     class SlingResponse extends MockSlingHttpServletResponse {
     }
 
-    String getString(SlingHttpServletRequest contextRequest, PathInfo pathInfo)
+    /**
+     * returns the result of the internal request as string
+     *
+     * @param contextRequest the 'original' rendering request
+     * @param pathInfo       the prepared path info object for the internal request
+     */
+    @Nonnull
+    String getString(@Nonnull SlingHttpServletRequest contextRequest, @Nonnull PathInfo pathInfo)
             throws ServletException, IOException;
 
-    byte[] getBytes(SlingHttpServletRequest contextRequest, PathInfo pathInfo)
+    /**
+     * returns the result of the internal request as binary data
+     *
+     * @param contextRequest the 'original' rendering request
+     * @param pathInfo       the prepared path info object for the internal request
+     */
+    @Nonnull
+    byte[] getBytes(@Nonnull SlingHttpServletRequest contextRequest, @Nonnull PathInfo pathInfo)
             throws ServletException, IOException;
 }
