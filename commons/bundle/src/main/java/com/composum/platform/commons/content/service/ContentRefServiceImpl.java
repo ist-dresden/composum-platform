@@ -13,10 +13,12 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.jcr.Binary;
 import javax.servlet.ServletException;
 import java.io.IOException;
 
+@SuppressWarnings("deprecation")
 @Component(
         label = "Composum Platform Content Reference Service",
         description = "retrieves the content of referenced resources"
@@ -29,7 +31,9 @@ public class ContentRefServiceImpl implements ContentRefService {
     @Reference
     protected InternalRequestService internalRequestService;
 
-    public String getReferencedContent(ResourceResolver resolver, String path) {
+    @Override
+    @Nonnull
+    public String getReferencedContent(@Nonnull ResourceResolver resolver, String path) {
         String content = "";
         if (StringUtils.isNotBlank(path)) {
             Resource resource = resolver.getResource(path);
@@ -47,14 +51,16 @@ public class ContentRefServiceImpl implements ContentRefService {
         return content;
     }
 
-    public String getRenderedContent(SlingHttpServletRequest contextRequest, String url, boolean emptyLines) {
+    @Override
+    @Nonnull
+    public String getRenderedContent(@Nonnull SlingHttpServletRequest contextRequest, String url, boolean emptyLines) {
         String content = "";
         if (StringUtils.isNotBlank(url)) {
             try {
                 InternalRequestService.PathInfo pathInfo =
                         new InternalRequestService.PathInfo(contextRequest.getResourceResolver(), url);
                 content = internalRequestService.getString(contextRequest, pathInfo);
-                if (!emptyLines && content != null) {
+                if (!emptyLines) {
                     content = content.replaceAll("(?m)^\\s+$", ""); // remove empty lines
                 }
             } catch (ServletException | IOException ex) {

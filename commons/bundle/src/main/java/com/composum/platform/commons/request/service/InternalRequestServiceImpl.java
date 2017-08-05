@@ -10,9 +10,11 @@ import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.IOException;
 
+@SuppressWarnings("deprecation")
 @Component(
         label = "Composum Platform Commons Internal Request Service",
         description = "performs requests to repository resources internal"
@@ -26,20 +28,28 @@ public class InternalRequestServiceImpl implements InternalRequestService {
     protected SlingRequestProcessor slingRequestProcessor;
 
     @Override
-    public String getString(SlingHttpServletRequest contextRequest, PathInfo pathInfo)
+    @Nonnull
+    public String getString(@Nonnull SlingHttpServletRequest contextRequest, @Nonnull PathInfo pathInfo)
             throws ServletException, IOException {
         MockSlingHttpServletResponse response = doGet(contextRequest, pathInfo);
-        return response.getOutputAsString();
+        return response != null ? response.getOutputAsString() : "";
     }
 
     @Override
-    public byte[] getBytes(SlingHttpServletRequest contextRequest, PathInfo pathInfo)
+    @Nonnull
+    public byte[] getBytes(@Nonnull SlingHttpServletRequest contextRequest, @Nonnull PathInfo pathInfo)
             throws ServletException, IOException {
         MockSlingHttpServletResponse response = doGet(contextRequest, pathInfo);
-        return response.getOutput();
+        return response != null ? response.getOutput() : new byte[0];
     }
 
-    protected SlingResponse doGet(SlingHttpServletRequest contextRequest, PathInfo pathInfo)
+    /**
+     * gets the response of the internal request
+     *
+     * @param contextRequest the 'original' rendering request
+     * @param pathInfo       the prepared path info object for the internal request
+     */
+    protected SlingResponse doGet(@Nonnull SlingHttpServletRequest contextRequest, @Nonnull PathInfo pathInfo)
             throws ServletException, IOException {
         SlingResponse response = null;
         if (StringUtils.isNotBlank(pathInfo.getResourcePath())) {
