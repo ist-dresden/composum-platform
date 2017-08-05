@@ -99,6 +99,7 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.2</version>
                     <configuration>
+                        <encoding>${source.encoding}</encoding>
                         <source>${java.source}</source>
                         <target>${java.target}</target>
                     </configuration>
@@ -136,6 +137,12 @@
                         <failOnError>false</failOnError>
                         <quiet>true</quiet>
                     </configuration>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.0.0</version>
                 </plugin>
 
                 <plugin>
@@ -228,17 +235,6 @@
                     <groupId>org.apache.sling</groupId>
                     <artifactId>maven-sling-plugin</artifactId>
                     <version>2.1.0</version>
-                </plugin>
-
-                <plugin>
-                    <groupId>org.apache.sling</groupId>
-                    <artifactId>slingstart-maven-plugin</artifactId>
-                    <version>1.3.6</version>
-                </plugin>
-
-                <plugin>
-                    <groupId>org.apache.sling</groupId>
-                    <artifactId>maven-sling-plugin</artifactId>
                     <configuration>
                         <skip>true</skip>
                         <slingUrl>${sling.scheme}://${sling.host}:${sling.port}${sling.context}/system/console/install</slingUrl>
@@ -255,6 +251,12 @@
                             </goals>
                         </execution>
                     </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.sling</groupId>
+                    <artifactId>slingstart-maven-plugin</artifactId>
+                    <version>1.3.6</version>
                 </plugin>
 
                 <plugin>
@@ -297,6 +299,17 @@
                         <password>${sling.password}</password>
                         <useProxy>false</useProxy>
                         <failOnMissingEmbed>true</failOnMissingEmbed>
+                    </configuration>
+                </plugin>
+
+                <plugin>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>2.12.4</version>
+                    <configuration>
+                        <systemProperties>
+                            <org.slf4j.simpleLogger.log.com.composum>DEBUG</org.slf4j.simpleLogger.log.com.composum>
+                            <org.slf4j.simpleLogger.showDateTime>true</org.slf4j.simpleLogger.showDateTime>
+                        </systemProperties>
                     </configuration>
                 </plugin>
 
