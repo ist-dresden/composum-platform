@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jcr:root xmlns:jcr="http://www.jcp.org/jcr/1.0" xmlns:rep="internal"
+        jcr:primaryType="rep:ACL">
+    <allow-admins
+            jcr:primaryType="rep:GrantACE"
+            rep:principalName="administrators"
+            rep:privileges="{Name}[jcr:all]">
+    </allow-admins>
+    <allow-everyone
+            jcr:primaryType="rep:GrantACE"
+            rep:principalName="everyone"
+            rep:privileges="{Name}[jcr:read]">
+        <rep:restrictions
+                jcr:primaryType="rep:Restrictions"
+                rep:glob=""/>
+    </allow-everyone>
+</jcr:root>

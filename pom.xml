@@ -78,7 +78,7 @@
 
     <modules>
         <module>commons</module>
-        <!--module>services</module-->
+        <module>services</module>
     </modules>
 
     <build>
