@@ -226,7 +226,8 @@ public class QueryConditionDsl {
         }
 
         /**
-         * The selected node contains a property with the search expression.
+         * The selected node contains a property with the search expression. You might want to
+         * {@link Query#orderBy(String)} {@link org.apache.jackrabbit.JcrConstants#JCR_SCORE} {@link Query#descending()}.
          *
          * @param fulltextSearchExpression The fulltext search expression. A term not preceded with “-” (minus sign) is
          *                                 satisfied only if the value contains that term. A term preceded with “-”
@@ -241,7 +242,8 @@ public class QueryConditionDsl {
         }
 
         /**
-         * The selected node contains a property with the search expression.
+         * The selected node contains a property with the search expression. You might want to
+         * {@link Query#orderBy(String)} {@link org.apache.jackrabbit.JcrConstants#JCR_SCORE} {@link Query#descending()}.
          *
          * @param fulltextSearchExpression The fulltext search expression. A term not preceded with “-” (minus sign) is
          *                                 satisfied only if the value contains that term. A term preceded with “-”
