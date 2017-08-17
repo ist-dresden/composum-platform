@@ -1,9 +1,12 @@
 package com.composum.sling.platform.staging.query;
 
 import com.composum.sling.core.CoreAdapterFactory;
+import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.platform.staging.AbstractStagingTest;
 import com.composum.sling.platform.staging.StagingResourceResolver;
 import org.apache.commons.collections4.IterableUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
@@ -19,9 +22,10 @@ import javax.jcr.Workspace;
 import javax.jcr.query.QueryManager;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
+import static com.composum.sling.platform.staging.query.Query.*;
 import static java.util.Arrays.*;
 import static org.apache.sling.api.resource.ResourceUtil.getParent;
 import static org.hamcrest.Matchers.*;
@@ -133,15 +137,53 @@ public class QueryTest extends AbstractStagingTest {
     @Test
     public void queryBuilderOnPlainResolver() throws Exception {
         Query q = context.resourceResolver().adaptTo(QueryBuilder.class).createQuery();
-        q.path(folder).element("something").type(SELECTED_NODETYPE);
+        q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(JcrConstants.JCR_CREATED);
         assertResults(q, node1current, node2oldandnew, node2new, unreleasedNode, unversionedNode);
     }
 
     @Test
     public void queryBuilder() throws RepositoryException, IOException {
         Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
-        q.path(folder).element("something").type(SELECTED_NODETYPE);
+        q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(JcrConstants.JCR_CREATED);
         assertResults(q, node2oldandnew, node1version, unversionedNode);
+    }
+
+    @Test
+    public void selectAndExecute() throws RepositoryException {
+        for (ResourceResolver resolver : Arrays.asList(context.resourceResolver(), this.stagingResourceResolver)) {
+            LOG.info("Running with " + resolver);
+            Query q = resolver.adaptTo(QueryBuilder.class).createQuery();
+            q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(JcrConstants.JCR_CREATED);
+            q.condition(q.conditionBuilder().contains(".").or().isNotNull(PROP_PRIMARY_TYPE));
+            String[] selectedColumns = new String[]{"unused", PROP_CREATED, COLUMN_EXCERPT,
+                    COLUMN_PATH, COLUMN_SCORE};
+            Iterable<QueryValueMap> res = q.selectAndExecute(selectedColumns);
+            int resultCount = 0;
+            for (QueryValueMap valueMap : res) {
+                resultCount++;
+                Resource resource = valueMap.getResource();
+                assertTrue(ResourceHandle.isValid(resource));
+
+                for (String column : selectedColumns) {
+                    Object objectValue = valueMap.get(column);
+                    String stringValue = valueMap.get(column, String.class);
+                    // contains doesn't work in oak-mock , just in jcr_mock, so some values are null,
+                    // but accessing the results should work, anyway.
+                    if ("unused".equals(column) || COLUMN_EXCERPT.equals(column) || COLUMN_SCORE.equals(column)) {
+                        assertNull(column, objectValue);
+                        assertNull(column, stringValue);
+                    } else {
+                        assertNotNull(column, objectValue);
+                        assertTrue(column, StringUtils.isNotBlank(stringValue));
+                    }
+                }
+
+                assertNotNull(valueMap.get(PROP_CREATED, Calendar.class));
+                assertNotNull(valueMap.get(PROP_CREATED, Date.class));
+                assertEquals(resource.getPath(), valueMap.get(COLUMN_PATH, String.class));
+            }
+            assertTrue(resultCount > 0);
+        }
     }
 
     @Test

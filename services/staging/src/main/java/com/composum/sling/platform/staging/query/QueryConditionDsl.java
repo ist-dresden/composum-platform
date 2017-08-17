@@ -21,7 +21,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
 
 /**
- * Domain specific language to create the {@link Query}s conditions.
+ * Domain specific language to create the {@link Query}s conditions in fluent API style.
  * It closely resembles the constraintStart from the JCR-SQL2 language, except that we use casts as needed but we don't
  * expose this construct explicitly.
  * This immediately creates the needed JCR SQL2-representation.
@@ -48,7 +48,7 @@ public class QueryConditionDsl {
 
     private final ComparisonStart comparisonStart = new ComparisonStart();
     private final QueryCondition queryCondition = new QueryCondition();
-    private final ConstraintStart constraintStart = new ConstraintStart();
+    private final QueryConditionBuilder constraintStart = new QueryConditionBuilder();
     private final ComparisonOperator comparisonOperator = new ComparisonOperator();
     private final ConditionStaticValue conditionStaticValue = new ConditionStaticValue();
 
@@ -58,7 +58,7 @@ public class QueryConditionDsl {
     }
 
     /** Entry point: start building a queryCondition. */
-    public static ConstraintStart builder() {
+    public static QueryConditionBuilder builder() {
         return new QueryConditionDsl().constraintStart;
     }
 
@@ -180,17 +180,17 @@ public class QueryConditionDsl {
         }
     }
 
-    /** Start of a constraintStart with a queryCondition. */
-    public class ConstraintStart extends ComparisonStart {
+    /** Builder for a {@link QueryCondition} in fluent API style. Now we start a constraint with a queryCondition. */
+    public class QueryConditionBuilder extends ComparisonStart {
         /** Starts a group of conditions with an opening parenthesis. */
-        public ConstraintStart startGroup() {
+        public QueryConditionBuilder startGroup() {
             append("( ");
             parenthesesNestingLevel++;
             return constraintStart;
         }
 
         /** Negates the following constraintStart. */
-        public ConstraintStart not() {
+        public QueryConditionBuilder not() {
             append("NOT ");
             return this;
         }
@@ -267,7 +267,7 @@ public class QueryConditionDsl {
         /** The selected node's property is one of the given values. (Extension over JCR-SQL2). */
         public QueryCondition in(String property, Collection<String> values) {
             if (null == values || values.isEmpty()) return isNull(property);
-            ConstraintStart cond = this.startGroup();
+            QueryConditionBuilder cond = this.startGroup();
             QueryCondition res = null;
             for(String value: values) {
                 if (null != res) cond = res.or();
@@ -389,12 +389,12 @@ public class QueryConditionDsl {
      * be used or extended with AND, OR, or closing parenthesis.
      */
     public class QueryCondition {
-        public ConstraintStart and() {
+        public QueryConditionBuilder and() {
             append("AND ");
             return constraintStart;
         }
 
-        public ConstraintStart or() {
+        public QueryConditionBuilder or() {
             append("OR ");
             return constraintStart;
         }

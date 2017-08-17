@@ -10,6 +10,7 @@ import org.apache.commons.collections4.Predicate;
 import org.apache.commons.collections4.Transformer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -33,7 +34,26 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.slf4j.LoggerFactory.getLogger;
 
+/**
+ * Allows querying resources with a fluent API , transparently supporting querying the released versions of resources
+ * when used on a {@link StagingResourceResolver}.
+ */
 public class Query {
+
+    /** Pseudo-column that returns the path of the resource for {@link #selectAndExecute(String...)}. */
+    public static final String COLUMN_PATH = JcrConstants.JCR_PATH;
+
+    /** Pseudo-column that returns the score of the resource for {@link #selectAndExecute(String...)}. */
+    public static final String COLUMN_SCORE = JcrConstants.JCR_SCORE;
+
+    /**
+     * Pseudo-column that returns the excerpt of the resource for {@link #selectAndExecute(String...)} according to
+     * fulltext searches.
+     *
+     * @see QueryConditionDsl.QueryConditionBuilder#contains(String)
+     * @see QueryConditionDsl.QueryConditionBuilder#contains(String, String)
+     */
+    public static final String COLUMN_EXCERPT = "rep:excerpt";
 
     protected static final Logger LOG = getLogger(Query.class);
 
@@ -41,7 +61,8 @@ public class Query {
     protected final String releasedLabel;
     @Nullable
     protected final ReleaseMapper releaseMapper;
-
+    @Nonnull
+    protected final ResourceResolver resourceResolver;
     @CheckForNull
     protected QueryConditionDsl.QueryCondition queryCondition;
     protected String path;
@@ -51,9 +72,11 @@ public class Query {
     protected String orderBy;
     @CheckForNull
     protected String typeConstraint;
+    @CheckForNull
+    protected String[] selectColumns;
     protected boolean ascending = true;
 
-    protected final ResourceResolver resourceResolver;
+    protected final Map<String, Boolean> matchesTypeConstraintCache = new HashMap<>();
 
     /**
      * Constructor called by {@link QueryBuilder}. We use {@link StagingResourceResolver#adaptTo(Class)} to find out
@@ -64,6 +87,16 @@ public class Query {
         StagingResourceResolver stagingResolver = resourceResolver.adaptTo(StagingResourceResolver.class);
         this.releasedLabel = null != stagingResolver ? stagingResolver.getReleasedLabel() : null;
         this.releaseMapper = null != stagingResolver ? stagingResolver.getReleaseMapper() : null;
+    }
+
+    @Nonnull
+    protected static List<String> readRowIterator(RowIterator rowIterator, String columnName) throws
+            RepositoryException {
+        List<String> res = new ArrayList<>();
+        while (rowIterator.hasNext()) {
+            res.add(rowIterator.nextRow().getValue(columnName).getString());
+        }
+        return res;
     }
 
     /**
@@ -90,9 +123,10 @@ public class Query {
     }
 
     /**
-     * Sets the condition that restricts the found nodes. The condition is created with a builder
-     * {@link #conditionBuilder()}.
+     * Sets the condition that restricts the found nodes. The condition is created with a builder {@link
+     * #conditionBuilder()}.
      *
+     * @param condition the result of building a condition, started from a {@link #conditionBuilder()}.
      * @return this for chaining calls in builder-style
      * @see #conditionBuilder()
      */
@@ -104,10 +138,12 @@ public class Query {
     /**
      * Returns a builder that can be used to create the condition for
      * {@link #condition(QueryConditionDsl.QueryCondition)}.
+     * The created condition is reuseable independently of this {@link Query} (but not unmodifiable), and has an effect
+     * on the Query only when you call {@link #condition(QueryConditionDsl.QueryCondition)} with it.
      *
      * @see QueryConditionDsl#builder()
      */
-    public QueryConditionDsl.ConstraintStart conditionBuilder() {
+    public QueryConditionDsl.QueryConditionBuilder conditionBuilder() {
         return QueryConditionDsl.builder();
     }
 
@@ -156,24 +192,43 @@ public class Query {
         Validate.notNull(path, "path is required");
     }
 
+    /** Executes the query and returns the results as Resources. */
+    @Nonnull
     public Iterable<Resource> execute() throws RepositoryException {
+        selectColumns = null;
+        return asIterable(extractResources(executeInternal()));
+    }
+
+    /**
+     * Executes the query and returns only the given columns of the node. It can return various pseudo-columns .
+     *
+     * @param columns property names of the searched nodes or pseudo-columns
+     * @return not null
+     * @see #COLUMN_PATH
+     * @see #COLUMN_SCORE
+     * @see #COLUMN_EXCERPT
+     */
+    @Nonnull
+    public Iterable<QueryValueMap> selectAndExecute(String... columns) throws RepositoryException {
+        this.selectColumns = columns;
+        return asIterable(extractColumns(executeInternal(), columns));
+    }
+
+    protected Iterator<Row> executeInternal() throws RepositoryException {
+        Iterator<Row> rows;
         validate();
         final Session session = resourceResolver.adaptTo(Session.class);
         final Workspace workspace = session.getWorkspace();
         final QueryManager queryManager = workspace.getQueryManager();
 
-        Iterable<Resource> result;
         if (isBlank(releasedLabel)) {
-
             String statement = buildSQL24();
             LOG.debug("JCR-SQL2:\n{}", statement);
             javax.jcr.query.Query query = queryManager.createQuery(statement, JCR_SQL2);
             if (null != queryCondition) queryCondition.applyBindingValues(query, resourceResolver);
             QueryResult queryResult = query.execute();
-            result = asIterable(extractResources(queryResult.getRows()));
-
+            rows = queryResult.getRows();
         } else {
-
             // first check if the path is in the version storage
             String pathToUse = searchpathForPathPrefixInVersionStorage(queryManager);
 
@@ -181,22 +236,22 @@ public class Query {
             LOG.debug("JCR-SQL2 versioned:\n{}", statement);
             javax.jcr.query.Query query = queryManager.createQuery(statement, JCR_SQL2);
             if (null != queryCondition) queryCondition.applyBindingValues(query, resourceResolver);
-            Iterator<Row> rowsFromVersionStorage = query.execute().getRows();
+            QueryResult queryResult = query.execute();
+            Iterator<Row> rowsFromVersionStorage = queryResult.getRows();
             rowsFromVersionStorage = filterOnlyReleaseMappedAndByType(rowsFromVersionStorage);
 
             statement = buildSQL24WithVersioncheck();
             LOG.debug("JCR-SQL2 versioned:\n{}", statement);
             query = queryManager.createQuery(statement, JCR_SQL2);
             if (null != queryCondition) queryCondition.applyBindingValues(query, resourceResolver);
-            Iterator<Row> rowsOutsideVersionStorage = query.execute().getRows();
+            queryResult = query.execute();
+            Iterator<Row> rowsOutsideVersionStorage = queryResult.getRows();
             rowsOutsideVersionStorage = filterNotReleaseMappedOrUnversioned(rowsOutsideVersionStorage);
 
-            Iterator<Row> rows;
             if (null == orderBy) rows = chainedIterator(rowsOutsideVersionStorage, rowsFromVersionStorage);
             else rows = collatedIterator(orderByRowComparator(), rowsOutsideVersionStorage, rowsFromVersionStorage);
-            return asIterable(extractResources(rows));
         }
-        return result;
+        return rows;
     }
 
     /** The current version of a resource is used if it is not versioned, or if it is not releasemapped. */
@@ -204,9 +259,9 @@ public class Query {
         Predicate<Row> filter = new Predicate<Row>() {
             @Override
             public boolean evaluate(Row row) {
-                boolean isVersioned = isNotBlank(getString(row, "versionMarker1")) || isNotBlank(getString(row,
-                        "versionMarker2"));
-                return !isVersioned || !releaseMapper.releaseMappingAllowed(getString(row, "path"));
+                boolean isVersioned = isNotBlank(getString(row, "query:versionMarker1")) || isNotBlank(getString(row,
+                        "query:versionMarker2"));
+                return !isVersioned || !releaseMapper.releaseMappingAllowed(getString(row, "n.jcr:path"));
             }
         };
         return IteratorUtils.filteredIterator(rowsOutsideVersionStorage, filter);
@@ -217,14 +272,15 @@ public class Query {
         Predicate<Row> filter = new Predicate<Row>() {
             @Override
             public boolean evaluate(Row row) {
-                String frozenPath = getString(row, "path");
-                String originalPath = getString(row, "originalPath");
+                String frozenPath = getString(row, "n.jcr:path");
+                String originalPath = getString(row, "query:originalPath");
                 String path = originalPath +
-                        frozenPath.substring(frozenPath.indexOf("jcr:frozenNode") + 14);
+                        frozenPath.substring(frozenPath.indexOf("jcr:frozenNode") + "jcr:frozenNode".length());
                 if (!releaseMapper.releaseMappingAllowed(path)) return false;
                 if (null == typeConstraint) return true;
                 try {
-                    return hasAppropriateType(frozenPath, getString(row, "type"), getString(row, "mixin"));
+                    return hasAppropriateType(frozenPath, getString(row, "query:type"),
+                            getString(row, "query:mixin"));
                 } catch (RepositoryException e) {
                     throw new StagingException(e);
                 }
@@ -248,8 +304,6 @@ public class Query {
         return false;
     }
 
-    protected Map<String, Boolean> matchesTypeConstraintCache = new HashMap<>();
-
     protected boolean matchesTypeConstraint(String type) throws RepositoryException {
         Boolean result = matchesTypeConstraintCache.get(type);
         if (null == result) {
@@ -272,7 +326,7 @@ public class Query {
             @Override
             public Value transform(Row row) {
                 try {
-                    return row.getValue("orderBy");
+                    return row.getValue("query:orderBy");
                 } catch (RepositoryException e) {
                     throw new StagingException(e);
                 }
@@ -295,8 +349,10 @@ public class Query {
     @Nonnull
     protected String buildSQL24() {
         String type = StringUtils.defaultString(typeConstraint, "nt:base");
-        return "SELECT n.[jcr:path] AS path \n" +
-                "FROM [" + type + "] as n \n" +
+        return "SELECT n.[jcr:path] \n" +
+                orderBySelector() + "\n" +
+                additionalSelectors() + "\n" +
+                "FROM [" + type + "] AS n \n" +
                 "WHERE ISDESCENDANTNODE(n, '" + path + "') \n" +
                 elementConstraint() +
                 propertyConstraint(false) +
@@ -311,10 +367,12 @@ public class Query {
     @Nonnull
     protected String buildSQL24WithVersioncheck() {
         String type = StringUtils.defaultString(typeConstraint, "nt:base");
-        return "SELECT n.[jcr:path] AS path, " +
-                "n.[jcr:versionHistory] AS versionMarker1, versioned.[jcr:primaryType] AS versionMarker2 " +
+        return "SELECT n.[jcr:path], " +
+                "n.[jcr:versionHistory] AS [query:versionMarker1], " +
+                "versioned.[jcr:primaryType] AS [query:versionMarker2] " +
                 orderBySelector() + "\n" +
-                "FROM [" + type + "] as n \n" +
+                additionalSelectors() + "\n" +
+                "FROM [" + type + "] AS n \n" +
                 "LEFT OUTER JOIN [mix:versionable] AS versioned ON ISDESCENDANTNODE(n, versioned) \n" +
                 "WHERE ISDESCENDANTNODE(n, '" + path + "') " +
                 elementConstraint() +
@@ -329,10 +387,11 @@ public class Query {
      */
     @Nonnull
     protected String buildSQL24Version() {
-        return "SELECT n.[jcr:path] AS path, history.[default] AS originalPath, " +
-                "n.[jcr:frozenPrimaryType] AS type, n.[jcr:frozenMixinTypes] as mixin" +
-                orderBySelector() + " \n" +
-                "FROM [nt:versionHistory] as history \n" +
+        return "SELECT n.[jcr:path], history.[default] AS [query:originalPath], " +
+                "n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] as [query:mixin]" +
+                orderBySelector() + "\n" +
+                additionalSelectors() + "\n" +
+                "FROM [nt:versionHistory] AS history \n" +
                 "INNER JOIN [nt:version] AS version ON ISCHILDNODE(version, history) \n" +
                 "INNER JOIN [nt:versionLabels] AS labels ON version.[jcr:uuid] = labels.[" + releasedLabel + "] \n" +
                 "INNER JOIN [nt:frozenNode] AS release ON ISCHILDNODE(release, version) \n" +
@@ -352,9 +411,10 @@ public class Query {
      */
     @Nonnull
     protected String buildSQL24SingleVersion(String pathInsideVersion) {
-        return "SELECT n.[jcr:path] AS path, history.[default] AS originalPath, " +
-                "n.[jcr:frozenPrimaryType] AS type, n.[jcr:frozenMixinTypes] as mixin" +
-                orderBySelector() + " \n" +
+        return "SELECT n.[jcr:path], history.[default] AS [query:originalPath], " +
+                "n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] as [query:mixin]" +
+                orderBySelector() + "\n" +
+                additionalSelectors() + "\n" +
                 "FROM [nt:frozenNode] AS n \n" +
                 "INNER JOIN [nt:versionHistory] as history ON ISDESCENDANTNODE(n, history) \n" +
                 "WHERE ISDESCENDANTNODE(n, '" + pathInsideVersion + "') \n" +
@@ -365,9 +425,9 @@ public class Query {
     }
 
     /**
-     * Searches for prefixes of the given path that are / have been in version storage and have something for the
-     * given release. If we find something, this is the single repository we have to query, and we return
-     * the absolute path that is the search root for our query, otherwise null .
+     * Searches for prefixes of the given path that are / have been in version storage and have something for the given
+     * release. If we find something, this is the single repository we have to query, and we return the absolute path
+     * that is the search root for our query, otherwise null .
      */
     @CheckForNull
     protected String searchpathForPathPrefixInVersionStorage(QueryManager queryManager)
@@ -401,16 +461,6 @@ public class Query {
     }
 
     @Nonnull
-    protected static List<String> readRowIterator(RowIterator rowIterator, String columnName) throws
-            RepositoryException {
-        List<String> res = new ArrayList<>();
-        while (rowIterator.hasNext()) {
-            res.add(rowIterator.nextRow().getValue(columnName).getString());
-        }
-        return res;
-    }
-
-    @Nonnull
     protected String propertyConstraint(boolean isInVersionSpace) {
         if (queryCondition != null) {
             String sql2 = isInVersionSpace ? queryCondition.getVersionedSQL2() : queryCondition.getSQL2();
@@ -422,7 +472,7 @@ public class Query {
 
     @Nonnull
     protected String elementConstraint() {
-        return isBlank(element) ? "" : "AND NAME(n) = '" + element + "'";
+        return isBlank(element) ? "" : "AND NAME(n) = '" + element + "' ";
     }
 
     @Nonnull
@@ -432,30 +482,76 @@ public class Query {
 
     @Nonnull
     protected String orderBySelector() {
-        return isBlank(orderBy) ? "" : ", n.[" + orderBy + "] AS orderBy ";
+        return isBlank(orderBy) ? "" : ", n.[" + orderBy + "] AS [query:orderBy] ";
     }
+
+    @Nonnull
+    protected String additionalSelectors() {
+        if (null == selectColumns) return "";
+        StringBuilder buf = new StringBuilder();
+        for (String column : selectColumns) {
+            if (COLUMN_PATH.equals(column)) continue;
+            buf.append(", ");
+            if (COLUMN_EXCERPT.equals(column)) buf.append("excerpt(n)");
+            else buf.append("n.[").append(column).append("]");
+            buf.append(" ");
+        }
+        return buf.toString();
+    }
+
 
     protected Iterator<Resource> extractResources(Iterator<Row> rows) throws RepositoryException {
         Transformer<Row, Resource> transformer = new Transformer<Row, Resource>() {
             @Override
             public Resource transform(Row input) {
-                try {
-                    final String path = input.getValue("path").getString();
-                    if (resourceResolver instanceof StagingResourceResolver) {
-                        // for speed, skips various checks by the resolver that aren't needed here
-                        StagingResourceResolver stagingResolver = (StagingResourceResolver) resourceResolver;
-                        final Resource resource;
-                        resource = stagingResolver.getDelegateeResourceResolver().getResource(path);
-                        return StagingResource.wrap(resource, stagingResolver);
-                    } else {
-                        return resourceResolver.getResource(path);
-                    }
-                } catch (RepositoryException e) {
-                    throw new StagingException(e);
-                }
+                return getResource(input);
             }
         };
         return IteratorUtils.transformedIterator(rows, transformer);
+    }
+
+    protected Iterator<QueryValueMap> extractColumns(Iterator<Row> rows, final String[] columns) {
+        Transformer<Row, QueryValueMap> transformer = new Transformer<Row, QueryValueMap>() {
+            @Override
+            public QueryValueMap transform(Row input) {
+                return new QueryValueMap(Query.this, input, columns);
+            }
+        };
+        return IteratorUtils.transformedIterator(rows, transformer);
+    }
+
+    /**
+     * Shortcut to create the resource that skips several here unnecessary steps in {@link
+     * StagingResourceResolver#getResource(String)}.
+     */
+    protected Resource getResource(Row input) {
+        try {
+            final String path = input.getValue("n.jcr:path").getString();
+            if (resourceResolver instanceof StagingResourceResolver) {
+                // for speed, skips various checks by the resolver that aren't needed here
+                StagingResourceResolver stagingResolver = (StagingResourceResolver) resourceResolver;
+                final Resource resource;
+                resource = stagingResolver.getDelegateeResourceResolver().getResource(path);
+                return StagingResource.wrap(resource, stagingResolver);
+            } else {
+                return resourceResolver.getResource(path);
+            }
+        } catch (RepositoryException e) {
+            throw new StagingException(e);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+                .append("releasedLabel", releasedLabel)
+                .append("queryCondition", queryCondition)
+                .append("path", path)
+                .append("element", element)
+                .append("orderBy", orderBy)
+                .append("typeConstraint", typeConstraint)
+                .append("ascending", ascending)
+                .toString();
     }
 
 }
