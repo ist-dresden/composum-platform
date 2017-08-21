@@ -21,10 +21,9 @@ import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
 
 /**
- * Domain specific language to create the {@link Query}s conditions in fluent API style.
- * It closely resembles the constraintStart from the JCR-SQL2 language, except that we use casts as needed but we don't
- * expose this construct explicitly.
- * This immediately creates the needed JCR SQL2-representation.
+ * Domain specific language to create the {@link Query}s conditions in fluent API style. It closely resembles the
+ * constraintStart from the JCR-SQL2 language, except that we use casts as needed but we don't expose this construct
+ * explicitly. This immediately creates the needed JCR SQL2-representation.
  * <p>
  * <p> The general rule is that a complete SQL2 word gets a space appended.
  *
@@ -143,7 +142,13 @@ public class QueryConditionDsl {
             return comparisonOperator;
         }
 
-        /** Starts a comparison of the JCR name of the node to something. */
+        /**
+         * Starts a comparison of the JCR name of the node to something.
+         * <p>
+         * Limitation: this won't work right on the topmost versioned node (often jcr:content) since that is renamed to
+         * jcr:frozenNode in the version storage. Please consider using {@link Query#element} if you make a simple
+         * equality comparison, which can take this into account.
+         */
         public ComparisonOperator name() {
             append("NAME(n) ");
             return comparisonOperator;
@@ -152,6 +157,10 @@ public class QueryConditionDsl {
         /**
          * Starts a comparison of the JCR local name (i.e., without the namespace) of a property of the node to
          * something.
+         * <p>
+         * Limitation: this won't work right on the topmost versioned node (often jcr:content) since that is renamed to
+         * jcr:frozenNode in the version storage. Please consider using {@link Query#element} if you make a simple
+         * equality comparison, which can take this into account.
          */
         public ComparisonOperator localName() {
             append("LOCALNAME(n) ");
@@ -226,8 +235,8 @@ public class QueryConditionDsl {
         }
 
         /**
-         * The selected node contains a property with the search expression. You might want to
-         * {@link Query#orderBy(String)} {@link org.apache.jackrabbit.JcrConstants#JCR_SCORE} {@link Query#descending()}.
+         * The selected node contains a property with the search expression. You might want to {@link
+         * Query#orderBy(String)} {@link org.apache.jackrabbit.JcrConstants#JCR_SCORE} {@link Query#descending()}.
          *
          * @param fulltextSearchExpression The fulltext search expression. A term not preceded with “-” (minus sign) is
          *                                 satisfied only if the value contains that term. A term preceded with “-”
@@ -242,8 +251,8 @@ public class QueryConditionDsl {
         }
 
         /**
-         * The selected node contains a property with the search expression. You might want to
-         * {@link Query#orderBy(String)} {@link org.apache.jackrabbit.JcrConstants#JCR_SCORE} {@link Query#descending()}.
+         * The selected node contains a property with the search expression. You might want to {@link
+         * Query#orderBy(String)} {@link org.apache.jackrabbit.JcrConstants#JCR_SCORE} {@link Query#descending()}.
          *
          * @param fulltextSearchExpression The fulltext search expression. A term not preceded with “-” (minus sign) is
          *                                 satisfied only if the value contains that term. A term preceded with “-”
@@ -269,7 +278,7 @@ public class QueryConditionDsl {
             if (null == values || values.isEmpty()) return isNull(property);
             QueryConditionBuilder cond = this.startGroup();
             QueryCondition res = null;
-            for(String value: values) {
+            for (String value : values) {
                 if (null != res) cond = res.or();
                 res = cond.property(property).eq().val(value);
             }

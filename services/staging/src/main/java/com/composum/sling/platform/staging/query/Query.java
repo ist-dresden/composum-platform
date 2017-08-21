@@ -349,12 +349,10 @@ public class Query {
     @Nonnull
     protected String buildSQL24() {
         String type = StringUtils.defaultString(typeConstraint, "nt:base");
-        return "SELECT n.[jcr:path] \n" +
-                orderBySelector() + "\n" +
-                additionalSelectors() + "\n" +
+        return "SELECT n.[jcr:path] " + orderBySelector() + additionalSelectors() + "\n" +
                 "FROM [" + type + "] AS n \n" +
                 "WHERE ISDESCENDANTNODE(n, '" + path + "') \n" +
-                elementConstraint() +
+                elementConstraint(false) +
                 propertyConstraint(false) +
                 orderByClause();
     }
@@ -370,12 +368,11 @@ public class Query {
         return "SELECT n.[jcr:path], " +
                 "n.[jcr:versionHistory] AS [query:versionMarker1], " +
                 "versioned.[jcr:primaryType] AS [query:versionMarker2] " +
-                orderBySelector() + "\n" +
-                additionalSelectors() + "\n" +
+                orderBySelector() + additionalSelectors() + "\n" +
                 "FROM [" + type + "] AS n \n" +
                 "LEFT OUTER JOIN [mix:versionable] AS versioned ON ISDESCENDANTNODE(n, versioned) \n" +
                 "WHERE ISDESCENDANTNODE(n, '" + path + "') " +
-                elementConstraint() +
+                elementConstraint(false) +
                 propertyConstraint(false) +
                 orderByClause();
     }
@@ -388,17 +385,15 @@ public class Query {
     @Nonnull
     protected String buildSQL24Version() {
         return "SELECT n.[jcr:path], history.[default] AS [query:originalPath], " +
-                "n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] as [query:mixin]" +
-                orderBySelector() + "\n" +
-                additionalSelectors() + "\n" +
+                "n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] " +
+                orderBySelector() + additionalSelectors() + "\n" +
                 "FROM [nt:versionHistory] AS history \n" +
                 "INNER JOIN [nt:version] AS version ON ISCHILDNODE(version, history) \n" +
                 "INNER JOIN [nt:versionLabels] AS labels ON version.[jcr:uuid] = labels.[" + releasedLabel + "] \n" +
-                "INNER JOIN [nt:frozenNode] AS release ON ISCHILDNODE(release, version) \n" +
-                "INNER JOIN [nt:frozenNode] AS n ON ISDESCENDANTNODE(n, release) \n" +
+                "INNER JOIN [nt:frozenNode] AS n ON ISDESCENDANTNODE(n, version) \n" +
                 "WHERE ISDESCENDANTNODE(history, '/jcr:system/jcr:versionStorage') \n" +
-                "AND history.[default] like '" + path + "/%" + "' AND NAME(release)='jcr:frozenNode' \n" +
-                elementConstraint() +
+                "AND history.[default] like '" + path + "/%" + "' \n" +
+                elementConstraint(true) +
                 // deliberately no typeConstraint() since we need to check for subtypes, too
                 propertyConstraint(true) +
                 orderByClause();
@@ -412,13 +407,12 @@ public class Query {
     @Nonnull
     protected String buildSQL24SingleVersion(String pathInsideVersion) {
         return "SELECT n.[jcr:path], history.[default] AS [query:originalPath], " +
-                "n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] as [query:mixin]" +
-                orderBySelector() + "\n" +
-                additionalSelectors() + "\n" +
+                "n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] " +
+                orderBySelector() + additionalSelectors() + "\n" +
                 "FROM [nt:frozenNode] AS n \n" +
                 "INNER JOIN [nt:versionHistory] as history ON ISDESCENDANTNODE(n, history) \n" +
                 "WHERE ISDESCENDANTNODE(n, '" + pathInsideVersion + "') \n" +
-                elementConstraint() +
+                elementConstraint(true) +
                 // deliberately no typeConstraint() since we need to check for subtypes, too
                 propertyConstraint(true) +
                 orderByClause();
@@ -471,8 +465,11 @@ public class Query {
     }
 
     @Nonnull
-    protected String elementConstraint() {
-        return isBlank(element) ? "" : "AND NAME(n) = '" + element + "' ";
+    protected String elementConstraint(boolean versioned) {
+        if (isBlank(element)) return "";
+        if (versioned) return "AND (NAME(n) = '" + element + "' OR " +
+                "(NAME(n) = 'jcr:frozenNode' AND history.default LIKE '%/" + element + "')) ";
+        else return "AND NAME(n) = '" + element + "' ";
     }
 
     @Nonnull
