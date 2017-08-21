@@ -27,6 +27,7 @@ import java.util.*;
 import static com.composum.sling.core.util.ResourceUtil.*;
 import static com.composum.sling.platform.staging.query.Query.*;
 import static java.util.Arrays.*;
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.sling.api.resource.ResourceUtil.getParent;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
@@ -286,6 +287,59 @@ public class QueryTest extends AbstractStagingTest {
         assertEquals(3, IterableUtils.size(q.execute()));
     }
 
+    @Test
+    public void joinVersioned() throws RepositoryException, IOException {
+        Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
+        QueryConditionDsl.QueryCondition join = q.joinConditionBuilder().isNotNull(PROP_CREATED);
+        q.path(folder).element(PROP_JCR_CONTENT).type(TYPE_UNSTRUCTURED).orderBy(JcrConstants.JCR_CREATED);
+        q.join(JoinType.Inner, JoinCondition.Descendant, SELECTED_NODETYPE, join);
+        assertResults(q, document1 + "/" + PROP_JCR_CONTENT, document2 + "/" + PROP_JCR_CONTENT,
+                unversionedDocument + "/" + PROP_JCR_CONTENT);
+    }
+
+    @Test
+    public void joinUnversioned() throws RepositoryException, IOException {
+        Query q = context.resourceResolver().adaptTo(QueryBuilder.class).createQuery();
+        QueryConditionDsl.QueryCondition join = q.joinConditionBuilder().isNotNull(PROP_CREATED);
+        q.path(folder).element(PROP_JCR_CONTENT).type(TYPE_UNSTRUCTURED).orderBy(JcrConstants.JCR_CREATED);
+        q.join(JoinType.Inner, JoinCondition.Descendant, SELECTED_NODETYPE, join);
+        assertResults(q, document1 + "/" + PROP_JCR_CONTENT,
+                document2 + "/" + PROP_JCR_CONTENT, document2 + "/" + PROP_JCR_CONTENT, // twice due to join
+                unversionedDocument + "/" + PROP_JCR_CONTENT, unreleasedDocument + "/" + PROP_JCR_CONTENT);
+    }
+
+    @Test
+    public void joinWithSelects() throws RepositoryException, IOException {
+        Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
+        QueryConditionDsl.QueryCondition join = q.joinConditionBuilder().isNotNull(PROP_CREATED);
+        q.path(folder).element(PROP_JCR_CONTENT).type(TYPE_UNSTRUCTURED).orderBy(JcrConstants.JCR_CREATED);
+        q.join(JoinType.Inner, JoinCondition.Descendant, SELECTED_NODETYPE, join);
+
+        String joinPathSelector = join.joinSelector(COLUMN_PATH);
+        String joinCreatedSelector = join.joinSelector(JcrConstants.JCR_CREATED);
+        String[] selectedColumns = new String[]{COLUMN_PATH, joinPathSelector, joinCreatedSelector};
+        Iterable<QueryValueMap> res = q.selectAndExecute(selectedColumns);
+
+        int resultCount = 0;
+        for (QueryValueMap valueMap : res) {
+            resultCount++;
+            Resource resource = valueMap.getResource();
+            assertTrue(ResourceHandle.isValid(resource));
+            assertEquals(resource.getPath(), valueMap.get(COLUMN_PATH));
+            assertFalse(valueMap.get(COLUMN_PATH, String.class).startsWith("/jcr:system"));
+            assertEquals(JCR_CONTENT, resource.getName());
+
+            assertNotNull(valueMap.get(joinCreatedSelector));
+
+            String joinPath = valueMap.get(joinPathSelector, String.class);
+            assertFalse(joinPath.startsWith("/jcr:system"));
+            assertFalse(joinPath.endsWith(JCR_CONTENT));
+            assertEquals(valueMap.getJoinResource(join.getSelector()).getPath(), joinPath);
+        }
+        assertEquals(3, resultCount);
+    }
+
+
     protected void assertResults(Query q, String... expected) throws RepositoryException {
         assertResults(IterableUtils.toList(q.execute()), expected);
     }
@@ -293,8 +347,9 @@ public class QueryTest extends AbstractStagingTest {
     protected void assertResults(List<Resource> results, String... expected) {
         List<String> resultPaths = new ArrayList<>();
         for (Resource r : results) resultPaths.add(r.getPath());
-        assertThat(resultPaths, both(everyItem(isIn(asList(expected)))).and(containsInAnyOrder(expected)));
-        assertEquals(expected.length, results.size());
+        assertThat("In results: " + resultPaths, resultPaths,
+                both(everyItem(isIn(asList(expected)))).and(containsInAnyOrder(expected)));
+        assertEquals("In results: " + resultPaths, expected.length, results.size());
     }
 
 }

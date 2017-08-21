@@ -7,9 +7,12 @@ import org.apache.sling.api.resource.ValueMap;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Row;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Encapsulates the result of a query for specific properties and pseudo-properties. This contains only the queried
@@ -20,6 +23,9 @@ import java.util.*;
  */
 public class QueryValueMap extends AbstractMap<String, Object> implements ValueMap {
 
+    /** An explicit selector that still contains the quoting characters. */
+    protected final Pattern UNNORMALIZEDKEY = Pattern.compile("(\\w+)\\.\\[([\\w:]+)\\]");
+
     private final Query query;
     private final Row row;
     private final List<String> columns;
@@ -29,7 +35,12 @@ public class QueryValueMap extends AbstractMap<String, Object> implements ValueM
     QueryValueMap(Query query, Row row, String... columns) {
         this.query = query;
         this.row = row;
-        this.columns = Arrays.asList(columns);
+        this.columns = new ArrayList<>();
+        for (String column : columns) {
+            this.columns.add(column);
+            String normalized = normalizeKey(column);
+            if (!normalized.equals(column)) this.columns.add(normalized);
+        }
     }
 
     @Override
@@ -37,11 +48,26 @@ public class QueryValueMap extends AbstractMap<String, Object> implements ValueM
         if (entries == null) {
             entries = new LinkedHashMap<>();
             for (String column : columns) {
-                Object value = get(column, Object.class);
-                if (null != value) entries.put(column, value);
+                String normalizedColumn = normalizeKey(column);
+                Object value = get(normalizedColumn, Object.class);
+                if (null != value) {
+                    entries.put(column, value);
+                    if (!normalizedColumn.equals(column)) entries.put(normalizedColumn, value);
+                }
             }
         }
         return entries.entrySet();
+    }
+
+    /**
+     * Normalizes keys like "m.[jcr:path]" to "m.jcr:path", as returned in the {@link javax.jcr.query.Query} results .
+     */
+    protected String normalizeKey(String key) {
+        Matcher m = UNNORMALIZEDKEY.matcher(key);
+        if (m.matches()) {
+            return m.group(1) + "." + m.group(2);
+        }
+        return key;
     }
 
     /**
@@ -54,13 +80,13 @@ public class QueryValueMap extends AbstractMap<String, Object> implements ValueM
     public <T> T get(@Nonnull String name, @Nonnull Class<T> type) throws IllegalArgumentException {
         if (!columns.contains(name))
             throw new IllegalArgumentException("Trying to access column " + name + " that was not selected.");
-        String columnname = "n." + name;
+        String normalized = normalizeKey(name);
+        String columnname = normalized.contains(".") ? normalized : "n." + name;
         if (Query.COLUMN_EXCERPT.equals(name)) columnname = name;
-
-        if (Query.COLUMN_PATH.equals(name)) {
+        if (Query.COLUMN_PATH.equals(name) || columnname.endsWith("." + Query.COLUMN_PATH)) {
             Validate.isTrue(String.class.equals(type) || Object.class.equals(type),
                     "For " + name + " only type String is supported.");
-            String path = query.getString(row, "n.jcr:path");
+            String path = query.getString(row, columnname);
             if (path.startsWith("/jcr:system/jcr:versionStorage") && null != query.releasedLabel && !query.path
                     .startsWith("/jcr:system/jcr:versionStorage")) {
                 // create real historical path for something contained in a release
@@ -83,9 +109,14 @@ public class QueryValueMap extends AbstractMap<String, Object> implements ValueM
         return null != realValue ? realValue : defaultValue;
     }
 
-    /** Returns the found resource the values are from. */
+    /** Returns the found resource the values are from. Could be null in case of right outer join. */
     public Resource getResource() {
-        return resource = null == resource ? query.getResource(row) : resource;
+        return resource = null == resource ? getJoinResource("n") : resource;
+    }
+
+    /** In case of a join, returns the found resource for the given join selector. */
+    public Resource getJoinResource(String selector) {
+        return query.getResource(row, selector);
     }
 
 }

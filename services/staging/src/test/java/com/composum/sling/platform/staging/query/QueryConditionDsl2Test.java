@@ -22,16 +22,14 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 
-import static com.composum.sling.platform.staging.query.QueryConditionDsl.builder;
 import static javax.jcr.query.Query.JCR_SQL2;
 import static org.apache.jackrabbit.JcrConstants.JCR_PATH;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.junit.Assert.*;
 
 /**
- * Tests for {@link QueryConditionDsl}.
- * TODO: check variable ranges; check whether = '' is the same as is null.
- * check null binding values - are they bound?
+ * Tests for {@link QueryConditionDsl}. TODO: check variable ranges; check whether = '' is the same as is null. check
+ * null binding values - are they bound?
  */
 @RunWith(Parameterized.class)
 public class QueryConditionDsl2Test {
@@ -46,7 +44,7 @@ public class QueryConditionDsl2Test {
                         "n.[bla] = $val1 AND ( LOWER( n.[bla] ) = $val2 ) "},
                 {builder().lower().localName().eq().val("lcl"), "LOWER( LOCALNAME(n) ) = $val1 "},
                 {builder().contains("test").and().score().gt().val(3),
-                        "CONTAINS(n.[*] , $val1 ) AND SCORE() > $val2 "},
+                        "CONTAINS(n.* , $val1 ) AND SCORE(n) > $val2 "},
                 {builder().contains("prop", "test").or().upper().name().neq().val("node"),
                         "CONTAINS(n.[prop] , $val1 ) OR UPPER( NAME(n) ) <> $val2 "},
                 {builder().not().isNotNull("ha").or().not().startGroup().isChildOf("/somewhere"),
@@ -74,8 +72,14 @@ public class QueryConditionDsl2Test {
                                 "AND LOWER ( LOCALNAME(n) ) = 'bar' " +
                                 "OR n.[jcr:created] > CAST('2008-01-01T00:00:00.000Z' AS DATE) "},
                 {builder().in("prop", "hu", "ha", "ho"),
-                        "( n.[prop] = $val1 OR n.[prop] = $val2 OR n.[prop] = $val3 ) "}
+                        "( n.[prop] = $val1 OR n.[prop] = $val2 OR n.[prop] = $val3 ) "},
+                {builder().property("a").eq().val("x").and().selector("m").localName().gt().val("b")
+                        .or().property("y").neq().val("c"), "n.[a] = $val1 AND LOCALNAME(m) > $val2 OR n.[y] <> $val3 "}
         });
+    }
+
+    private static QueryConditionDsl.QueryConditionBuilder builder() {
+        return new QueryConditionDsl("n").builder();
     }
 
     @Parameterized.Parameter(0)
@@ -91,12 +95,14 @@ public class QueryConditionDsl2Test {
     @Test
     public void checkTranslationAndCompileability() throws Exception {
         // check that there are no compile errors from these. We don't expect any results.
-        String testQuery = "SELECT n.* FROM [nt:file] AS n WHERE " + queryCondition.getSQL2();
+        String testQuery = "SELECT n.* FROM [nt:file] AS n INNER JOIN [nt:base] AS m ON ISSAMENODE(m,n) " +
+                "WHERE " + queryCondition.getSQL2();
         javax.jcr.query.Query query = queryManager.createQuery(testQuery, JCR_SQL2);
         queryCondition.applyBindingValues(query, context.resourceResolver());
         query.execute();
 
-        testQuery = "SELECT n.* FROM [nt:file] AS n WHERE " + queryCondition.getVersionedSQL2();
+        testQuery = "SELECT n.* FROM [nt:file] AS n INNER JOIN [nt:base] AS m ON ISSAMENODE(m,n) " +
+                "WHERE " + queryCondition.getVersionedSQL2();
         query = queryManager.createQuery(testQuery, JCR_SQL2);
         queryCondition.applyBindingValues(query, context.resourceResolver());
         query.execute();

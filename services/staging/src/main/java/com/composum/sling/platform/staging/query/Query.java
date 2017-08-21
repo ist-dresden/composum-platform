@@ -30,8 +30,10 @@ import java.util.*;
 
 import static javax.jcr.query.Query.JCR_SQL2;
 import static org.apache.commons.collections4.IteratorUtils.*;
+import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.jackrabbit.JcrConstants.*;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -63,6 +65,7 @@ public class Query {
     protected final ReleaseMapper releaseMapper;
     @Nonnull
     protected final ResourceResolver resourceResolver;
+    protected final Map<String, Boolean> matchesTypeConstraintCache = new HashMap<>();
     @CheckForNull
     protected QueryConditionDsl.QueryCondition queryCondition;
     protected String path;
@@ -75,8 +78,8 @@ public class Query {
     @CheckForNull
     protected String[] selectColumns;
     protected boolean ascending = true;
-
-    protected final Map<String, Boolean> matchesTypeConstraintCache = new HashMap<>();
+    protected char nextJoinSelector = 'o';
+    protected List<JoinData> joins = new ArrayList<>();
 
     /**
      * Constructor called by {@link QueryBuilder}. We use {@link StagingResourceResolver#adaptTo(Class)} to find out
@@ -144,7 +147,60 @@ public class Query {
      * @see QueryConditionDsl#builder()
      */
     public QueryConditionDsl.QueryConditionBuilder conditionBuilder() {
-        return QueryConditionDsl.builder();
+        return new QueryConditionDsl("n").builder();
+    }
+
+    /**
+     * Sets a condition that restricts the found nodes via a join. There are only joins from the found nodes to children
+     * or descendants of the found node supported.
+     * <p>
+     * Caution: when specifying a exactPrimaryType, this needs to match exactly the jcr:primaryType of the joined nodes.
+     * Subtypes or nodes with this as a mixin cannot be supported with sensible cost on releases (that is, frozen
+     * nodes), and cannot easily be filtered afterwards from the result set since it would be difficult to keep the
+     * semantics of outer joins.
+     *
+     * @param type                the type of join
+     * @param joinCondition       the join condition: join on descendants or children
+     * @param exactPrimaryType    optional, the exact primary type of the joined nodes. Subtypes / mixins will not be
+     *                            found - please leave empty if there are various types possible.
+     * @param joinSelectCondition the join select condition created with {@link #joinConditionBuilder()} - once for each
+     *                            join
+     * @return this for chaining calls in builder-style
+     */
+    public Query join(JoinType type, JoinCondition joinCondition, String exactPrimaryType,
+                      QueryConditionDsl.QueryCondition joinSelectCondition) {
+        for (JoinData data : joins)
+            Validate.isTrue(!data.joinSelectCondition.getSelector().equals(joinSelectCondition.getSelector()),
+                    "Join condition was already added to this query.");
+        joins.add(new JoinData(type, joinCondition, exactPrimaryType, joinSelectCondition));
+        return this;
+    }
+
+    /**
+     * Sets a condition that restricts the found nodes via a join. There are only joins from the found nodes to children
+     * or descendants of the found node supported.
+     *
+     * @param type                the type of join
+     * @param joinCondition       the join condition: join on descendants or children
+     * @param joinSelectCondition the join select condition created with {@link #joinConditionBuilder()} - once for each
+     *                            join
+     * @return this for chaining calls in builder-style
+     */
+    public Query join(JoinType type, JoinCondition joinCondition,
+                      QueryConditionDsl.QueryCondition joinSelectCondition) {
+        return join(type, joinCondition, null, joinSelectCondition);
+    }
+
+    /**
+     * Returns a builder that can be used to create the condition for
+     * {@link #condition(QueryConditionDsl.QueryCondition)}.
+     * The created condition should be used exactly once with {@link #join(JoinType, JoinCondition, String,
+     * QueryConditionDsl.QueryCondition)} .
+     *
+     * @see QueryConditionDsl#builder()
+     */
+    public QueryConditionDsl.QueryConditionBuilder joinConditionBuilder() {
+        return new QueryConditionDsl(String.valueOf(nextJoinSelector++)).builder();
     }
 
     /**
@@ -188,15 +244,15 @@ public class Query {
         return this;
     }
 
-    protected void validate() {
-        Validate.notNull(path, "path is required");
-    }
-
     /** Executes the query and returns the results as Resources. */
     @Nonnull
     public Iterable<Resource> execute() throws RepositoryException {
         selectColumns = null;
         return asIterable(extractResources(executeInternal()));
+    }
+
+    protected void validate() {
+        Validate.notNull(path, "path is required");
     }
 
     /**
@@ -241,7 +297,7 @@ public class Query {
             rowsFromVersionStorage = filterOnlyReleaseMappedAndByType(rowsFromVersionStorage);
 
             statement = buildSQL24WithVersioncheck();
-            LOG.debug("JCR-SQL2 versioned:\n{}", statement);
+            LOG.debug("JCR-SQL2 unversioned:\n{}", statement);
             query = queryManager.createQuery(statement, JCR_SQL2);
             if (null != queryCondition) queryCondition.applyBindingValues(query, resourceResolver);
             queryResult = query.execute();
@@ -289,7 +345,7 @@ public class Query {
         return IteratorUtils.filteredIterator(rowsFromVersionStorage, filter);
     }
 
-    private boolean hasAppropriateType(String frozenPath, String type, String mixin) throws RepositoryException {
+    protected boolean hasAppropriateType(String frozenPath, String type, String mixin) throws RepositoryException {
         if (matchesTypeConstraint(type)) return true;
         if (null != mixin) {
             if (matchesTypeConstraint(mixin)) return true;
@@ -349,11 +405,13 @@ public class Query {
     @Nonnull
     protected String buildSQL24() {
         String type = StringUtils.defaultString(typeConstraint, "nt:base");
-        return "SELECT n.[jcr:path] " + orderBySelector() + additionalSelectors() + "\n" +
+        return "SELECT n.[jcr:path] " + orderBySelect() + additionalSelect() + joinSelects(false) + "\n" +
                 "FROM [" + type + "] AS n \n" +
+                joins(false) +
                 "WHERE ISDESCENDANTNODE(n, '" + path + "') \n" +
                 elementConstraint(false) +
                 propertyConstraint(false) +
+                joinSelectConditions(false) +
                 orderByClause();
     }
 
@@ -368,12 +426,14 @@ public class Query {
         return "SELECT n.[jcr:path], " +
                 "n.[jcr:versionHistory] AS [query:versionMarker1], " +
                 "versioned.[jcr:primaryType] AS [query:versionMarker2] " +
-                orderBySelector() + additionalSelectors() + "\n" +
+                orderBySelect() + additionalSelect() + joinSelects(false) + "\n" +
                 "FROM [" + type + "] AS n \n" +
                 "LEFT OUTER JOIN [mix:versionable] AS versioned ON ISDESCENDANTNODE(n, versioned) \n" +
+                joins(false) +
                 "WHERE ISDESCENDANTNODE(n, '" + path + "') " +
                 elementConstraint(false) +
                 propertyConstraint(false) +
+                joinSelectConditions(false) +
                 orderByClause();
     }
 
@@ -386,16 +446,18 @@ public class Query {
     protected String buildSQL24Version() {
         return "SELECT n.[jcr:path], history.[default] AS [query:originalPath], " +
                 "n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] " +
-                orderBySelector() + additionalSelectors() + "\n" +
+                orderBySelect() + additionalSelect() + joinSelects(true) + "\n" +
                 "FROM [nt:versionHistory] AS history \n" +
                 "INNER JOIN [nt:version] AS version ON ISCHILDNODE(version, history) \n" +
                 "INNER JOIN [nt:versionLabels] AS labels ON version.[jcr:uuid] = labels.[" + releasedLabel + "] \n" +
                 "INNER JOIN [nt:frozenNode] AS n ON ISDESCENDANTNODE(n, version) \n" +
+                joins(true) +
                 "WHERE ISDESCENDANTNODE(history, '/jcr:system/jcr:versionStorage') \n" +
                 "AND history.[default] like '" + path + "/%" + "' \n" +
                 elementConstraint(true) +
                 // deliberately no typeConstraint() since we need to check for subtypes, too
                 propertyConstraint(true) +
+                joinSelectConditions(true) +
                 orderByClause();
     }
 
@@ -408,7 +470,7 @@ public class Query {
     protected String buildSQL24SingleVersion(String pathInsideVersion) {
         return "SELECT n.[jcr:path], history.[default] AS [query:originalPath], " +
                 "n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] " +
-                orderBySelector() + additionalSelectors() + "\n" +
+                orderBySelect() + additionalSelect() + "\n" +
                 "FROM [nt:frozenNode] AS n \n" +
                 "INNER JOIN [nt:versionHistory] as history ON ISDESCENDANTNODE(n, history) \n" +
                 "WHERE ISDESCENDANTNODE(n, '" + pathInsideVersion + "') \n" +
@@ -478,30 +540,30 @@ public class Query {
     }
 
     @Nonnull
-    protected String orderBySelector() {
+    protected String orderBySelect() {
         return isBlank(orderBy) ? "" : ", n.[" + orderBy + "] AS [query:orderBy] ";
     }
 
     @Nonnull
-    protected String additionalSelectors() {
+    protected String additionalSelect() {
         if (null == selectColumns) return "";
         StringBuilder buf = new StringBuilder();
         for (String column : selectColumns) {
-            if (COLUMN_PATH.equals(column)) continue;
+            if (COLUMN_PATH.equals(column) || column.endsWith(".jcr:path") || column.endsWith(".[jcr:path]")) continue;
             buf.append(", ");
             if (COLUMN_EXCERPT.equals(column)) buf.append("excerpt(n)");
+            else if (column.contains(".[")) buf.append(column);
             else buf.append("n.[").append(column).append("]");
             buf.append(" ");
         }
         return buf.toString();
     }
 
-
     protected Iterator<Resource> extractResources(Iterator<Row> rows) throws RepositoryException {
         Transformer<Row, Resource> transformer = new Transformer<Row, Resource>() {
             @Override
             public Resource transform(Row input) {
-                return getResource(input);
+                return getResource(input, "n");
             }
         };
         return IteratorUtils.transformedIterator(rows, transformer);
@@ -521,9 +583,11 @@ public class Query {
      * Shortcut to create the resource that skips several here unnecessary steps in {@link
      * StagingResourceResolver#getResource(String)}.
      */
-    protected Resource getResource(Row input) {
+    protected Resource getResource(Row input, String selector) {
         try {
-            final String path = input.getValue("n.jcr:path").getString();
+            Value value = input.getValue(selector + ".jcr:path");
+            if (null == value) return null;
+            final String path = value.getString();
             if (resourceResolver instanceof StagingResourceResolver) {
                 // for speed, skips various checks by the resolver that aren't needed here
                 StagingResourceResolver stagingResolver = (StagingResourceResolver) resourceResolver;
@@ -548,7 +612,93 @@ public class Query {
                 .append("orderBy", orderBy)
                 .append("typeConstraint", typeConstraint)
                 .append("ascending", ascending)
+                .append("joins", joins)
                 .toString();
+    }
+
+    public enum JoinType {Inner, LeftOuter, RightOuter}
+
+    public enum JoinCondition {Descendant, Child}
+
+    protected String joinSelects(boolean versioned) {
+        if (joins.isEmpty()) return "";
+        StringBuilder buf = new StringBuilder();
+        for (JoinData join : joins) {
+            buf.append(", ").append(join.getSelector()).append(".[").append(JCR_PATH).append("] ");
+        }
+        return buf.toString();
+    }
+
+    protected String joins(boolean versioned) {
+        if (joins.isEmpty()) return "";
+        StringBuilder buf = new StringBuilder();
+        for (JoinData join : joins) {
+            buf.append(join.join(versioned));
+        }
+        return buf.toString();
+    }
+
+    protected String joinSelectConditions(boolean versioned) {
+        StringBuilder buf = new StringBuilder();
+        for (JoinData join : joins) {
+            buf.append(join.primaryTypeCondition(versioned));
+            buf.append("AND (").append(join.selectCondition(versioned)).append(") ");
+        }
+        return buf.toString();
+    }
+
+    protected class JoinData {
+        final JoinType type;
+        final JoinCondition joinCondition;
+        final QueryConditionDsl.QueryCondition joinSelectCondition;
+        final String exactPrimaryType;
+
+        public JoinData(JoinType type, JoinCondition joinCondition, String exactPrimaryType,
+                        QueryConditionDsl.QueryCondition joinSelectCondition) {
+            this.type = type;
+            this.joinCondition = joinCondition;
+            this.joinSelectCondition = joinSelectCondition;
+            this.exactPrimaryType = exactPrimaryType;
+        }
+
+        public String getSelector() {
+            return joinSelectCondition.getSelector();
+        }
+
+        public String join(boolean versioned) {
+            StringBuilder buf = new StringBuilder();
+            if (JoinType.Inner == type) buf.append("INNER JOIN");
+            if (JoinType.RightOuter == type) buf.append("RIGHT OUTER JOIN");
+            if (JoinType.LeftOuter == type) buf.append("LEFT OUTER JOIN");
+            buf.append(" [");
+            buf.append(versioned ? JcrConstants.NT_FROZENNODE : defaultIfBlank(exactPrimaryType, NT_BASE));
+            buf.append("] AS ").append(joinSelectCondition.getSelector()).append(" ON ");
+            if (JoinCondition.Descendant == joinCondition) buf.append("ISDESCENDANTNODE");
+            if (JoinCondition.Child == joinCondition) buf.append("ISCHILDNODE");
+            buf.append("(").append(getSelector()).append(", n)\n");
+            return buf.toString();
+        }
+
+        public String primaryTypeCondition(boolean versioned) {
+            if (isBlank(exactPrimaryType)) return "";
+            if (versioned) return "AND " + getSelector() + ".[" + JCR_FROZENPRIMARYTYPE + "]='" + exactPrimaryType +
+                    "' ";
+            else return "AND " + getSelector() + ".[" + JCR_PRIMARYTYPE + "]='" + exactPrimaryType + "' ";
+        }
+
+        public String selectCondition(boolean versioned) {
+            return versioned ? joinSelectCondition.getVersionedSQL2() : joinSelectCondition.getSQL2();
+        }
+
+        @Override
+        public String toString() {
+            return new ToStringBuilder(this)
+                    .append("type", type)
+                    .append("joinCondition", joinCondition)
+                    .append("datatype", exactPrimaryType)
+                    .append("joinSelectCondition", joinSelectCondition)
+                    .toString();
+        }
     }
 
 }
