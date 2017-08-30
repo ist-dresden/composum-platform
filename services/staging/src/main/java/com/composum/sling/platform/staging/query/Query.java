@@ -29,27 +29,28 @@ import javax.jcr.query.RowIterator;
 import java.util.*;
 
 import static javax.jcr.query.Query.JCR_SQL2;
+import static org.apache.commons.collections4.ComparatorUtils.*;
 import static org.apache.commons.collections4.IteratorUtils.*;
-import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
-import static org.apache.commons.lang3.StringUtils.isBlank;
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.commons.lang3.StringUtils.*;
 import static org.apache.jackrabbit.JcrConstants.*;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Allows querying resources with a fluent API , transparently supporting querying the released versions of resources
  * when used on a {@link StagingResourceResolver}.
+ *
+ * @author Hans-Peter Stoerr
  */
 public class Query {
 
-    /** Pseudo-column that returns the path of the resource for {@link #selectAndExecute(String...)}. */
+    /** Virtual column that returns the path of the resource for {@link #selectAndExecute(String...)}. */
     public static final String COLUMN_PATH = JcrConstants.JCR_PATH;
 
-    /** Pseudo-column that returns the score of the resource for {@link #selectAndExecute(String...)}. */
+    /** Virtual column that returns the score of the resource for {@link #selectAndExecute(String...)}. */
     public static final String COLUMN_SCORE = JcrConstants.JCR_SCORE;
 
     /**
-     * Pseudo-column that returns the excerpt of the resource for {@link #selectAndExecute(String...)} according to
+     * Virtual column that returns the excerpt of the resource for {@link #selectAndExecute(String...)} according to
      * fulltext searches.
      *
      * @see QueryConditionDsl.QueryConditionBuilder#contains(String)
@@ -80,6 +81,8 @@ public class Query {
     protected boolean ascending = true;
     protected char nextJoinSelector = 'o';
     protected List<JoinData> joins = new ArrayList<>();
+    protected long limit = Long.MAX_VALUE;
+    protected long offset = 0;
 
     /**
      * Constructor called by {@link QueryBuilder}. We use {@link StagingResourceResolver#adaptTo(Class)} to find out
@@ -244,6 +247,31 @@ public class Query {
         return this;
     }
 
+    /**
+     * Sets the maximum size of the result set to <code>limit</code>.
+     *
+     * @param limit a <code>long</code>
+     * @return this for chaining calls in builder-style
+     */
+    public Query limit(long limit) {
+        Validate.isTrue(limit >= 0, "The limit should be nonnegative, but was %d", limit);
+        this.limit = limit;
+        return this;
+    }
+
+    /**
+     * Sets the start offset of the result set to <code>offset</code>.
+     *
+     * @param offset a <code>long</code>
+     * @return this for chaining calls in builder-style
+     */
+    public Query offset(long offset) {
+        Validate.isTrue(limit >= 0, "The limit should be nonnegative, but was %d", limit);
+        this.offset = offset;
+        return this;
+    }
+
+
     /** Executes the query and returns the results as Resources. */
     @Nonnull
     public Iterable<Resource> execute() throws RepositoryException {
@@ -271,6 +299,8 @@ public class Query {
     }
 
     protected Iterator<Row> executeInternal() throws RepositoryException {
+        if (0 == limit) return emptyIterator();
+
         Iterator<Row> rows;
         validate();
         final Session session = resourceResolver.adaptTo(Session.class);
@@ -280,8 +310,9 @@ public class Query {
         if (isBlank(releasedLabel)) {
             String statement = buildSQL24();
             LOG.debug("JCR-SQL2:\n{}", statement);
-            javax.jcr.query.Query query = queryManager.createQuery(statement, JCR_SQL2);
-            if (null != queryCondition) queryCondition.applyBindingValues(query, resourceResolver);
+            javax.jcr.query.Query query = initJcrQuery(queryManager, statement);
+            query.setOffset(offset);
+            if (0 < limit && Long.MAX_VALUE != limit) query.setLimit(limit);
             QueryResult queryResult = query.execute();
             rows = queryResult.getRows();
         } else {
@@ -290,24 +321,41 @@ public class Query {
 
             String statement = null != pathToUse ? buildSQL24SingleVersion(pathToUse) : buildSQL24Version();
             LOG.debug("JCR-SQL2 versioned:\n{}", statement);
-            javax.jcr.query.Query query = queryManager.createQuery(statement, JCR_SQL2);
-            if (null != queryCondition) queryCondition.applyBindingValues(query, resourceResolver);
+            javax.jcr.query.Query query = initJcrQuery(queryManager, statement);
+            if (0 <= limit && Long.MAX_VALUE != limit) query.setLimit(offset + limit);
             QueryResult queryResult = query.execute();
             Iterator<Row> rowsFromVersionStorage = queryResult.getRows();
             rowsFromVersionStorage = filterOnlyReleaseMappedAndByType(rowsFromVersionStorage);
 
             statement = buildSQL24WithVersioncheck();
             LOG.debug("JCR-SQL2 unversioned:\n{}", statement);
-            query = queryManager.createQuery(statement, JCR_SQL2);
-            if (null != queryCondition) queryCondition.applyBindingValues(query, resourceResolver);
+            query = initJcrQuery(queryManager, statement);
+            if (0 <= limit && Long.MAX_VALUE != limit) query.setLimit(offset + limit);
             queryResult = query.execute();
             Iterator<Row> rowsOutsideVersionStorage = queryResult.getRows();
             rowsOutsideVersionStorage = filterNotReleaseMappedOrUnversioned(rowsOutsideVersionStorage);
 
             if (null == orderBy) rows = chainedIterator(rowsOutsideVersionStorage, rowsFromVersionStorage);
             else rows = collatedIterator(orderByRowComparator(), rowsOutsideVersionStorage, rowsFromVersionStorage);
+            rows = ensureLimitAndOffset(rows);
         }
         return rows;
+    }
+
+    /**
+     * For queries within releases the results of two iterators are joined together. Thus, we have to observe offset and
+     * limit afterwards.
+     */
+    protected Iterator<Row> ensureLimitAndOffset(Iterator<Row> rows) {
+        return 0 < offset ? boundedIterator(rows, offset, limit) : boundedIterator(rows, limit);
+    }
+
+    protected javax.jcr.query.Query initJcrQuery(QueryManager queryManager, String statement)
+            throws RepositoryException {
+        javax.jcr.query.Query query = queryManager.createQuery(statement, JCR_SQL2);
+        if (null != queryCondition) queryCondition.applyBindingValues(query, resourceResolver);
+        for (JoinData join : joins) join.joinSelectCondition.applyBindingValues(query, resourceResolver);
+        return query;
     }
 
     /** The current version of a resource is used if it is not versioned, or if it is not releasemapped. */
@@ -331,7 +379,7 @@ public class Query {
                 String frozenPath = getString(row, "n.jcr:path");
                 String originalPath = getString(row, "query:originalPath");
                 String path = originalPath +
-                        frozenPath.substring(frozenPath.indexOf("jcr:frozenNode") + "jcr:frozenNode".length());
+                        frozenPath.substring(frozenPath.indexOf(JCR_FROZENNODE) + JCR_FROZENNODE.length());
                 if (!releaseMapper.releaseMappingAllowed(path)) return false;
                 if (null == typeConstraint) return true;
                 try {
@@ -378,6 +426,8 @@ public class Query {
 
     /** Mimics the JCR Query orderBy comparison. */
     protected Comparator<Row> orderByRowComparator() {
+        if (COLUMN_PATH.equals(orderBy)) return pathComparator();
+
         Transformer<Row, Value> extractOrderBy = new Transformer<Row, Value>() {
             @Override
             public Value transform(Row row) {
@@ -388,7 +438,32 @@ public class Query {
                 }
             }
         };
-        return ComparatorUtils.transformedComparator(ValueComparatorFactory.makeComparator(ascending), extractOrderBy);
+        return transformedComparator(ValueComparatorFactory.makeComparator(ascending), extractOrderBy);
+    }
+
+    protected Comparator<Row> pathComparator() {
+        Transformer<Row, String> extractPath = new Transformer<Row, String>() {
+            @Override
+            public String transform(Row row) {
+                try {
+                    String path = row.getValue("n.jcr:path").getString();
+                    try {
+                        String originalPath = row.getValue("query:originalPath").getString();
+                        path = originalPath +
+                                path.substring(path.indexOf(JCR_FROZENNODE) + JCR_FROZENNODE.length());
+                    } catch (RepositoryException e) {
+                        // OK, row is not from versioned query
+                    }
+                    return path;
+                } catch (RepositoryException e) {
+                    throw new StagingException(e);
+                }
+            }
+        };
+        Comparator<Row> comparator = nullHighComparator(
+                transformedComparator(ComparatorUtils.<String>naturalComparator(), extractPath));
+        if (!ascending) comparator = reversedComparator(comparator);
+        return comparator;
     }
 
     protected String getString(Row row, String columnname) {
@@ -412,7 +487,7 @@ public class Query {
                 elementConstraint(false) +
                 propertyConstraint(false) +
                 joinSelectConditions(false) +
-                orderByClause();
+                orderByClause(false);
     }
 
     /**
@@ -434,7 +509,7 @@ public class Query {
                 elementConstraint(false) +
                 propertyConstraint(false) +
                 joinSelectConditions(false) +
-                orderByClause();
+                orderByClause(false);
     }
 
     /**
@@ -458,7 +533,7 @@ public class Query {
                 // deliberately no typeConstraint() since we need to check for subtypes, too
                 propertyConstraint(true) +
                 joinSelectConditions(true) +
-                orderByClause();
+                orderByClause(true);
     }
 
     /**
@@ -477,7 +552,7 @@ public class Query {
                 elementConstraint(true) +
                 // deliberately no typeConstraint() since we need to check for subtypes, too
                 propertyConstraint(true) +
-                orderByClause();
+                orderByClause(true);
     }
 
     /**
@@ -510,7 +585,7 @@ public class Query {
         String versionUuid = row.getValue("uuid").getString();
         Node node = resourceResolver.adaptTo(Session.class).getNodeByIdentifier(versionUuid);
         String versionPath = node.getPath();
-        String pathToSearch = versionPath + "/" + JcrConstants.JCR_FROZENNODE + path.substring(pathPrefix.length());
+        String pathToSearch = versionPath + "/" + JCR_FROZENNODE + path.substring(pathPrefix.length());
         if (rowIterator.hasNext()) LOG.warn("Unsupported: several prefixes of {} are versioned: {}",
                 pathToTest, Arrays.asList(pathPrefix, rowIterator.nextRow().getPath("default")));
         return pathToSearch;
@@ -535,8 +610,12 @@ public class Query {
     }
 
     @Nonnull
-    protected String orderByClause() {
-        return isBlank(orderBy) ? "" : "ORDER BY n.[" + orderBy + "] " + (ascending ? "ASC" : "DESC") + " \n";
+    protected String orderByClause(boolean versioned) {
+        if (isBlank(orderBy)) return "";
+        String direction = ascending ? "ASC" : "DESC";
+        if (COLUMN_PATH.equals(orderBy) && versioned)
+            return "ORDER BY history.[default] " + direction + ", n.[" + orderBy + "] " + direction + " \n";
+        return "ORDER BY n.[" + orderBy + "] " + direction + " \n";
     }
 
     @Nonnull

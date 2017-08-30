@@ -36,6 +36,8 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Tests for {@link StagingResourceResolver}.
+ *
+ * @author Hans-Peter Stoerr
  */
 public class QueryTest extends AbstractStagingTest {
 
@@ -159,6 +161,34 @@ public class QueryTest extends AbstractStagingTest {
         Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
         q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(JcrConstants.JCR_CREATED);
         assertResults(q, node2oldandnew, node1version, unversionedNode);
+    }
+
+    @Test
+    public void limitsOnPlainResolver() throws Exception {
+        Query q = context.resourceResolver().adaptTo(QueryBuilder.class).createQuery();
+        q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(COLUMN_PATH);
+        assertResults(q, node1current, node2new, node2oldandnew, unreleasedNode, unversionedNode);
+
+        q.offset(2);
+        assertResults(q, node2oldandnew, unreleasedNode, unversionedNode);
+        q.offset(2).limit(2);
+        assertResults(q, node2oldandnew, unreleasedNode);
+        q.offset(0).limit(2);
+        assertResults(q, node1current, node2new);
+    }
+
+    @Test
+    public void limitsOnStagingResolver() throws RepositoryException, IOException {
+        Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
+        q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(COLUMN_PATH);
+        assertResults(q, node1version, node2oldandnew, unversionedNode);
+
+        q.offset(1);
+        assertResults(q, node2oldandnew, unversionedNode);
+        q.limit(1).offset(1);
+        assertResults(q, node2oldandnew);
+        q.offset(0).limit(1);
+        assertResults(q, node1version);
     }
 
     @Test
@@ -347,8 +377,8 @@ public class QueryTest extends AbstractStagingTest {
     protected void assertResults(List<Resource> results, String... expected) {
         List<String> resultPaths = new ArrayList<>();
         for (Resource r : results) resultPaths.add(r.getPath());
-        assertThat("In results: " + resultPaths, resultPaths,
-                both(everyItem(isIn(asList(expected)))).and(containsInAnyOrder(expected)));
+        assertThat("In results: " + resultPaths, resultPaths, everyItem(isIn(asList(expected))));
+        assertThat("In results: " + resultPaths, resultPaths, containsInAnyOrder(expected));
         assertEquals("In results: " + resultPaths, expected.length, results.size());
     }
 

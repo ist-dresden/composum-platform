@@ -30,6 +30,8 @@ import static org.junit.Assert.*;
 /**
  * Tests for {@link QueryConditionDsl}. TODO: check variable ranges; check whether = '' is the same as is null. check
  * null binding values - are they bound?
+ *
+ * @author Hans-Peter Stoerr
  */
 @RunWith(Parameterized.class)
 public class QueryConditionDsl2Test {
@@ -41,30 +43,31 @@ public class QueryConditionDsl2Test {
         return Arrays.asList(new Object[][]{
                 {builder().property("bla").eq().val("hallo").and()
                         .startGroup().lower().property("bla").eq().val(17).endGroup(),
-                        "n.[bla] = $val1 AND ( LOWER( n.[bla] ) = $val2 ) "},
-                {builder().lower().localName().eq().val("lcl"), "LOWER( LOCALNAME(n) ) = $val1 "},
+                        "n.[bla] = $nval1 AND ( LOWER( n.[bla] ) = $nval2 ) "},
+                {builder().lower().localName().eq().val("lcl"), "LOWER( LOCALNAME(n) ) = $nval1 "},
                 {builder().contains("test").and().score().gt().val(3),
-                        "CONTAINS(n.* , $val1 ) AND SCORE(n) > $val2 "},
+                        "CONTAINS(n.* , $nval1 ) AND SCORE(n) > $nval2 "},
                 {builder().contains("prop", "test").or().upper().name().neq().val("node"),
-                        "CONTAINS(n.[prop] , $val1 ) OR UPPER( NAME(n) ) <> $val2 "},
+                        "CONTAINS(n.[prop] , $nval1 ) OR UPPER( NAME(n) ) <> $nval2 "},
                 {builder().not().isNotNull("ha").or().not().startGroup().isChildOf("/somewhere"),
                         "NOT n.[ha] IS NOT NULL OR NOT ( ISCHILDNODE(n,'/somewhere' ) ) "},
                 {builder().isDescendantOf("/what").and().startGroup().isSameNodeAs("/where"),
                         "ISDESCENDANTNODE(n,'/what' ) AND ( ISSAMENODE(n,'/where' ) ) "},
                 {builder().isNull("that").and().startGroup().length("what").geq().val(17),
-                        "n.[that] IS NULL AND ( LENGTH(n.[what] ) >= $val1 ) "},
+                        "n.[that] IS NULL AND ( LENGTH(n.[what] ) >= $nval1 ) "},
                 {builder().property("that").gt().val(Double.MAX_VALUE).and().property("what").geq().val(Long.MAX_VALUE)
                         .and().property(JCR_PATH).like().val("/bla/%").and().property("p4").lt().val(Long.MIN_VALUE)
                         .and().property("p5").leq().val(Double.MIN_NORMAL)
                         .and().property("p6").eq().val(Calendar.getInstance())
                         .and().property("p7").neq().val(new URI("http://www.example.net/"))
-                        , "n.[that] > $val1 AND n.[what] >= $val2 AND n.[jcr:path] LIKE $val3 AND n.[p4] < $val4 AND " +
+                        , "n.[that] > $nval1 AND n.[what] >= $nval2 AND n.[jcr:path] LIKE $nval3 AND n.[p4] < $nval4 " +
+                        "AND " +
                         "n" +
-                        ".[p5] <= $val5 AND n.[p6] = $val6 AND n.[p7] <> $val7 "},
+                        ".[p5] <= $nval5 AND n.[p6] = $nval6 AND n.[p7] <> $nval7 "},
                 {builder().property("g1").eq().val(true).and().property("g2").neq().pathOf(resource)
                         .and().property("g3").gt().val(new BigDecimal(17))
                         .and().property("g4").eq().uuidOf(resource),
-                        "n.[g1] = $val1 AND n.[g2] <> $val2 AND n.[g3] > $val3 AND n.[g4] = $val4 "},
+                        "n.[g1] = $nval1 AND n.[g2] <> $nval2 AND n.[g3] > $nval3 AND n.[g4] = $nval4 "},
                 {QueryConditionDsl.fromString("CONTAINS(n.[*] , 'foo' ) AND ISCHILDNODE(n,'/somewhere' ) " +
                         "AND LOWER ( LOCALNAME(n) ) = 'bar' " +
                         "OR n.[jcr:created] > CAST('2008-01-01T00:00:00.000Z' AS DATE) "),
@@ -72,9 +75,10 @@ public class QueryConditionDsl2Test {
                                 "AND LOWER ( LOCALNAME(n) ) = 'bar' " +
                                 "OR n.[jcr:created] > CAST('2008-01-01T00:00:00.000Z' AS DATE) "},
                 {builder().in("prop", "hu", "ha", "ho"),
-                        "( n.[prop] = $val1 OR n.[prop] = $val2 OR n.[prop] = $val3 ) "},
+                        "( n.[prop] = $nval1 OR n.[prop] = $nval2 OR n.[prop] = $nval3 ) "},
                 {builder().property("a").eq().val("x").and().selector("m").localName().gt().val("b")
-                        .or().property("y").neq().val("c"), "n.[a] = $val1 AND LOCALNAME(m) > $val2 OR n.[y] <> $val3 "}
+                        .or().property("y").neq().val("c"), "n.[a] = $nval1 AND LOCALNAME(m) > $nval2 OR n.[y] <> " +
+                        "$nval3 "}
         });
     }
 

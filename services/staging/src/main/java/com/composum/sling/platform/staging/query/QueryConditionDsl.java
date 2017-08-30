@@ -28,6 +28,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
  * <p>
  * <p> The general rule is that a complete SQL2 word gets a space appended.
  *
+ * @author Hans-Peter Stoerr
  * @see "http://www.h2database.com/jcr/grammar.html#condition"
  * @see "https://docs.adobe.com/docs/en/spec/jcr/2.0/6_Query.html"
  */
@@ -113,7 +114,7 @@ public class QueryConditionDsl {
     /** Inserts a binding variable into the SQL and saves the value. */
     protected QueryConditionDsl appendValue(Object value) {
         if (null == value) throw new IllegalArgumentException("Argument value is null - please use isNull instead.");
-        String bindingVariable = "val" + nextBindingVarNumber;
+        String bindingVariable = selector + "val" + nextBindingVarNumber;
         nextBindingVarNumber++;
         bindingVariables.put(bindingVariable, value);
         append("$").append(bindingVariable).append(" ");
