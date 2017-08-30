@@ -2,6 +2,7 @@
 .crossref-*
 .local-*
 local-*
+Local_*
 !.content.xml
 # IntelliJ
 .idea
