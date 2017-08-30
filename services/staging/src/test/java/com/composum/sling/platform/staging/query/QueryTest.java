@@ -1,9 +1,12 @@
 package com.composum.sling.platform.staging.query;
 
 import com.composum.sling.core.CoreAdapterFactory;
+import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.platform.staging.AbstractStagingTest;
 import com.composum.sling.platform.staging.StagingResourceResolver;
 import org.apache.commons.collections4.IterableUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
@@ -19,10 +22,12 @@ import javax.jcr.Workspace;
 import javax.jcr.query.QueryManager;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
+import static com.composum.sling.platform.staging.query.Query.*;
 import static java.util.Arrays.*;
+import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.sling.api.resource.ResourceUtil.getParent;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
@@ -31,6 +36,8 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Tests for {@link StagingResourceResolver}.
+ *
+ * @author Hans-Peter Stoerr
  */
 public class QueryTest extends AbstractStagingTest {
 
@@ -50,6 +57,7 @@ public class QueryTest extends AbstractStagingTest {
     protected String unversionedNode;
     protected QueryManager queryManager;
     protected String unreleasedDocument;
+    protected String unversionedDocument;
 
     @Before
     public void setUpServices() throws Exception {
@@ -75,6 +83,7 @@ public class QueryTest extends AbstractStagingTest {
                 SELECTED_NODE_MIXINS).commit();
         unreleasedDocument = folder + "/" + "unreleasedDocument";
         unreleasedNode = makeNode(builderAtFolder, "unreleasedDocument", "un/something", true, false, "4");
+        unversionedDocument = folder + "/" + "unversionedDocument";
         unversionedNode = makeNode(builderAtFolder, "unversionedDocument", "uv/something", false, false, "1 first " +
                 "title");
 
@@ -89,6 +98,16 @@ public class QueryTest extends AbstractStagingTest {
         resolver.commit();
         assertNotNull(resolver.getResource(node1current));
         assertNull(resolver.getResource(node1version));
+    }
+
+    @Test
+    public void findTopmostVersionedNodeByName() throws RepositoryException, IOException {
+        Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
+        q.path(folder).element(PROP_JCR_CONTENT).orderBy(JcrConstants.JCR_CREATED);
+        // TODO: this doesn't work right, but would be very hard to fix:
+        // q.condition(q.conditionBuilder().name().eq().val(PROP_JCR_CONTENT));
+        assertResults(q, document1 + "/" + PROP_JCR_CONTENT, document2 + "/" + PROP_JCR_CONTENT,
+                unversionedDocument + "/" + PROP_JCR_CONTENT);
     }
 
     @Test
@@ -126,22 +145,88 @@ public class QueryTest extends AbstractStagingTest {
         String prefix = q.searchpathForPathPrefixInVersionStorage(queryManager);
         // for example /jcr:system/jcr:versionStorage/73/ae/3b/73ae3bf3-c829-4b07-a217-fabe19b95a40/1.0/jcr
         // :frozenNode/n2/some/kind/of/hierarchy/something
-        assertEquals("/jcr:system/jcr:versionStorage/X/X/X/X/1.0/jcr:frozenNoX/n2/some/kind/of/hierarchy/something",
-                prefix.replaceAll("[a-f0-9-]{2,}", "X"));
+        assertEquals("/jcr:system/jcr:versionStorage/X/X/X/X/1.0/jcr:frozenNode/n2/some/kind/of/hierarchy/something",
+                prefix.replaceAll("/[a-f0-9-]{2,}", "/X"));
     }
 
     @Test
     public void queryBuilderOnPlainResolver() throws Exception {
         Query q = context.resourceResolver().adaptTo(QueryBuilder.class).createQuery();
-        q.path(folder).element("something").type(SELECTED_NODETYPE);
+        q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(JcrConstants.JCR_CREATED);
         assertResults(q, node1current, node2oldandnew, node2new, unreleasedNode, unversionedNode);
     }
 
     @Test
     public void queryBuilder() throws RepositoryException, IOException {
         Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
-        q.path(folder).element("something").type(SELECTED_NODETYPE);
+        q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(JcrConstants.JCR_CREATED);
         assertResults(q, node2oldandnew, node1version, unversionedNode);
+    }
+
+    @Test
+    public void limitsOnPlainResolver() throws Exception {
+        Query q = context.resourceResolver().adaptTo(QueryBuilder.class).createQuery();
+        q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(COLUMN_PATH);
+        assertResults(q, node1current, node2new, node2oldandnew, unreleasedNode, unversionedNode);
+
+        q.offset(2);
+        assertResults(q, node2oldandnew, unreleasedNode, unversionedNode);
+        q.offset(2).limit(2);
+        assertResults(q, node2oldandnew, unreleasedNode);
+        q.offset(0).limit(2);
+        assertResults(q, node1current, node2new);
+    }
+
+    @Test
+    public void limitsOnStagingResolver() throws RepositoryException, IOException {
+        Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
+        q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(COLUMN_PATH);
+        assertResults(q, node1version, node2oldandnew, unversionedNode);
+
+        q.offset(1);
+        assertResults(q, node2oldandnew, unversionedNode);
+        q.limit(1).offset(1);
+        assertResults(q, node2oldandnew);
+        q.offset(0).limit(1);
+        assertResults(q, node1version);
+    }
+
+    @Test
+    public void selectAndExecute() throws RepositoryException {
+        for (ResourceResolver resolver : Arrays.asList(context.resourceResolver(), this.stagingResourceResolver)) {
+            LOG.info("Running with " + resolver);
+            Query q = resolver.adaptTo(QueryBuilder.class).createQuery();
+            q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(JcrConstants.JCR_CREATED);
+            q.condition(q.conditionBuilder().contains(".").or().isNotNull(PROP_PRIMARY_TYPE));
+            String[] selectedColumns = new String[]{"unused", PROP_CREATED, COLUMN_EXCERPT,
+                    COLUMN_PATH, COLUMN_SCORE};
+            Iterable<QueryValueMap> res = q.selectAndExecute(selectedColumns);
+            int resultCount = 0;
+            for (QueryValueMap valueMap : res) {
+                resultCount++;
+                Resource resource = valueMap.getResource();
+                assertTrue(ResourceHandle.isValid(resource));
+
+                for (String column : selectedColumns) {
+                    Object objectValue = valueMap.get(column);
+                    String stringValue = valueMap.get(column, String.class);
+                    // contains doesn't work in oak-mock , just in jcr_mock, so some values are null,
+                    // but accessing the results should work, anyway.
+                    if ("unused".equals(column) || COLUMN_EXCERPT.equals(column) || COLUMN_SCORE.equals(column)) {
+                        assertNull(column, objectValue);
+                        assertNull(column, stringValue);
+                    } else {
+                        assertNotNull(column, objectValue);
+                        assertTrue(column, StringUtils.isNotBlank(stringValue));
+                    }
+                }
+
+                assertNotNull(valueMap.get(PROP_CREATED, Calendar.class));
+                assertNotNull(valueMap.get(PROP_CREATED, Date.class));
+                assertEquals(resource.getPath(), valueMap.get(COLUMN_PATH, String.class));
+            }
+            assertTrue(resultCount > 0);
+        }
     }
 
     @Test
@@ -232,6 +317,59 @@ public class QueryTest extends AbstractStagingTest {
         assertEquals(3, IterableUtils.size(q.execute()));
     }
 
+    @Test
+    public void joinVersioned() throws RepositoryException, IOException {
+        Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
+        QueryConditionDsl.QueryCondition join = q.joinConditionBuilder().isNotNull(PROP_CREATED);
+        q.path(folder).element(PROP_JCR_CONTENT).type(TYPE_UNSTRUCTURED).orderBy(JcrConstants.JCR_CREATED);
+        q.join(JoinType.Inner, JoinCondition.Descendant, SELECTED_NODETYPE, join);
+        assertResults(q, document1 + "/" + PROP_JCR_CONTENT, document2 + "/" + PROP_JCR_CONTENT,
+                unversionedDocument + "/" + PROP_JCR_CONTENT);
+    }
+
+    @Test
+    public void joinUnversioned() throws RepositoryException, IOException {
+        Query q = context.resourceResolver().adaptTo(QueryBuilder.class).createQuery();
+        QueryConditionDsl.QueryCondition join = q.joinConditionBuilder().isNotNull(PROP_CREATED);
+        q.path(folder).element(PROP_JCR_CONTENT).type(TYPE_UNSTRUCTURED).orderBy(JcrConstants.JCR_CREATED);
+        q.join(JoinType.Inner, JoinCondition.Descendant, SELECTED_NODETYPE, join);
+        assertResults(q, document1 + "/" + PROP_JCR_CONTENT,
+                document2 + "/" + PROP_JCR_CONTENT, document2 + "/" + PROP_JCR_CONTENT, // twice due to join
+                unversionedDocument + "/" + PROP_JCR_CONTENT, unreleasedDocument + "/" + PROP_JCR_CONTENT);
+    }
+
+    @Test
+    public void joinWithSelects() throws RepositoryException, IOException {
+        Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
+        QueryConditionDsl.QueryCondition join = q.joinConditionBuilder().isNotNull(PROP_CREATED);
+        q.path(folder).element(PROP_JCR_CONTENT).type(TYPE_UNSTRUCTURED).orderBy(JcrConstants.JCR_CREATED);
+        q.join(JoinType.Inner, JoinCondition.Descendant, SELECTED_NODETYPE, join);
+
+        String joinPathSelector = join.joinSelector(COLUMN_PATH);
+        String joinCreatedSelector = join.joinSelector(JcrConstants.JCR_CREATED);
+        String[] selectedColumns = new String[]{COLUMN_PATH, joinPathSelector, joinCreatedSelector};
+        Iterable<QueryValueMap> res = q.selectAndExecute(selectedColumns);
+
+        int resultCount = 0;
+        for (QueryValueMap valueMap : res) {
+            resultCount++;
+            Resource resource = valueMap.getResource();
+            assertTrue(ResourceHandle.isValid(resource));
+            assertEquals(resource.getPath(), valueMap.get(COLUMN_PATH));
+            assertFalse(valueMap.get(COLUMN_PATH, String.class).startsWith("/jcr:system"));
+            assertEquals(JCR_CONTENT, resource.getName());
+
+            assertNotNull(valueMap.get(joinCreatedSelector));
+
+            String joinPath = valueMap.get(joinPathSelector, String.class);
+            assertFalse(joinPath.startsWith("/jcr:system"));
+            assertFalse(joinPath.endsWith(JCR_CONTENT));
+            assertEquals(valueMap.getJoinResource(join.getSelector()).getPath(), joinPath);
+        }
+        assertEquals(3, resultCount);
+    }
+
+
     protected void assertResults(Query q, String... expected) throws RepositoryException {
         assertResults(IterableUtils.toList(q.execute()), expected);
     }
@@ -239,9 +377,9 @@ public class QueryTest extends AbstractStagingTest {
     protected void assertResults(List<Resource> results, String... expected) {
         List<String> resultPaths = new ArrayList<>();
         for (Resource r : results) resultPaths.add(r.getPath());
-        assertThat("Result missing in " + resultPaths, asList(expected), everyItem(isIn(resultPaths)));
-        assertThat("Unexpected result in " + resultPaths, resultPaths, everyItem(isIn(asList(expected))));
-        assertEquals(expected.length, results.size());
+        assertThat("In results: " + resultPaths, resultPaths, everyItem(isIn(asList(expected))));
+        assertThat("In results: " + resultPaths, resultPaths, containsInAnyOrder(expected));
+        assertEquals("In results: " + resultPaths, expected.length, results.size());
     }
 
 }

@@ -17,49 +17,50 @@ import static com.composum.sling.core.util.ResourceUtil.PROP_PRIMARY_TYPE;
 import static com.composum.sling.core.util.ResourceUtil.PROP_UUID;
 import static java.util.regex.Matcher.quoteReplacement;
 import static java.util.regex.Pattern.quote;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
 
 /**
- * Domain specific language to create the {@link Query}s conditions.
- * It closely resembles the constraintStart from the JCR-SQL2 language, except that we use casts as needed but we don't
- * expose this construct explicitly.
- * This immediately creates the needed JCR SQL2-representation.
+ * Domain specific language to create the {@link Query}s conditions in fluent API style. It closely resembles the
+ * constraintStart from the JCR-SQL2 language, except that we use casts as needed but we don't expose this construct
+ * explicitly. This immediately creates the needed JCR SQL2-representation.
  * <p>
  * <p> The general rule is that a complete SQL2 word gets a space appended.
  *
+ * @author Hans-Peter Stoerr
  * @see "http://www.h2database.com/jcr/grammar.html#condition"
  * @see "https://docs.adobe.com/docs/en/spec/jcr/2.0/6_Query.html"
  */
 public class QueryConditionDsl {
 
-    private StringBuilder unversionedQuery = new StringBuilder();
-    private StringBuilder versionedQuery = new StringBuilder();
+    protected final String selector;
+
+    protected StringBuilder unversionedQuery = new StringBuilder();
+    protected StringBuilder versionedQuery = new StringBuilder();
 
     /** Nesting level of parentheses. >=0 */
-    private int parenthesesNestingLevel;
+    protected int parenthesesNestingLevel;
 
     /** Number of needed closing parentheses (after lower / upper) before the comparison operator can start. */
-    private int closeParensBeforeComparison;
+    protected int closeParensBeforeComparison;
 
-    private int nextBindingVarNumber = 1;
+    protected int nextBindingVarNumber = 1;
     /** Maps val1, val2, ... to the values bound */
-    private Map<String, Object> bindingVariables = new LinkedHashMap<>();
+    protected Map<String, Object> bindingVariables = new LinkedHashMap<>();
 
-    private final ComparisonStart comparisonStart = new ComparisonStart();
-    private final QueryCondition queryCondition = new QueryCondition();
-    private final ConstraintStart constraintStart = new ConstraintStart();
-    private final ComparisonOperator comparisonOperator = new ComparisonOperator();
-    private final ConditionStaticValue conditionStaticValue = new ConditionStaticValue();
+    protected final QueryCondition queryCondition = new QueryCondition();
+    protected final ComparisonOperator comparisonOperator = new ComparisonOperator();
+    protected final ConditionStaticValue conditionStaticValue = new ConditionStaticValue();
 
-    /** Prevent instantiation - use */
-    protected QueryConditionDsl() {
-        // empty
+    /** Use {@link Query#conditionBuilder()} or {@link Query#joinConditionBuilder()}. */
+    protected QueryConditionDsl(String selector) {
+        this.selector = selector;
     }
 
-    /** Entry point: start building a queryCondition. */
-    public static ConstraintStart builder() {
-        return new QueryConditionDsl().constraintStart;
+    /** Entry point. */
+    public QueryConditionBuilder builder() {
+        return new QueryConditionBuilder(selector);
     }
 
     /**
@@ -78,7 +79,7 @@ public class QueryConditionDsl {
      * <code>n.[jcr:uuid]</code> will be replaced by <code>n.[jcr:frozenUuid]</code>.
      */
     public static QueryCondition fromString(String sql2) {
-        QueryConditionDsl res = new QueryConditionDsl();
+        QueryConditionDsl res = new QueryConditionDsl("n");
         res.unversionedQuery.append(sql2);
         String versionedSql2 = sql2.replaceAll(quote("n.[" + PROP_PRIMARY_TYPE + "]"),
                 quoteReplacement("n.[" + JCR_FROZENPRIMARYTYPE + "]"));
@@ -89,26 +90,31 @@ public class QueryConditionDsl {
     }
 
     /** Appends some SQL2 fragment */
-    private QueryConditionDsl append(String fragment) {
+    protected QueryConditionDsl append(String fragment) {
         unversionedQuery.append(fragment);
         versionedQuery.append(fragment);
         return this;
     }
 
     /** Appends a reference to a property of the selected node. */
-    private QueryConditionDsl appendPropertyReference(String propertyName) {
-        unversionedQuery.append("n.[").append(propertyName).append("] ");
+    protected QueryConditionDsl appendPropertyReference(String theSelector, String propertyName) {
+        if ("*".equals(propertyName)) {
+            unversionedQuery.append(theSelector + ".").append(propertyName).append(" ");
+            versionedQuery.append(theSelector).append(".").append(propertyName).append(" ");
+            return this;
+        }
+        unversionedQuery.append(theSelector + ".[").append(propertyName).append("] ");
         String versionedPropertyName = propertyName;
         if (PROP_PRIMARY_TYPE.equals(propertyName)) versionedPropertyName = JCR_FROZENPRIMARYTYPE;
         if (PROP_UUID.equals(propertyName)) versionedPropertyName = JCR_FROZENUUID;
-        versionedQuery.append("n.[").append(versionedPropertyName).append("] ");
+        versionedQuery.append(theSelector).append(".[").append(versionedPropertyName).append("] ");
         return this;
     }
 
     /** Inserts a binding variable into the SQL and saves the value. */
-    private QueryConditionDsl appendValue(Object value) {
+    protected QueryConditionDsl appendValue(Object value) {
         if (null == value) throw new IllegalArgumentException("Argument value is null - please use isNull instead.");
-        String bindingVariable = "val" + nextBindingVarNumber;
+        String bindingVariable = selector + "val" + nextBindingVarNumber;
         nextBindingVarNumber++;
         bindingVariables.put(bindingVariable, value);
         append("$").append(bindingVariable).append(" ");
@@ -116,9 +122,8 @@ public class QueryConditionDsl {
     }
 
     /** Appends a string value, applying quoting. */
-    private QueryConditionDsl appendString(@Nonnull String value) {
+    protected QueryConditionDsl appendString(@Nonnull String value) {
         if (null == value) append("'' ");
-        else if ("*".equals(value)) append("n.* ");
         else append("'").append(value.replaceAll("'", "''")).append("' ");
         return this;
     }
@@ -131,37 +136,53 @@ public class QueryConditionDsl {
 
     /** Start of a comparison with a dynamic operand. */
     public class ComparisonStart {
+        protected String nextSelector;
+
+        protected ComparisonStart(String nextSelector) {
+            this.nextSelector = nextSelector;
+        }
+
         /** Starts a comparison of a property of the node to something. */
         public ComparisonOperator property(String property) {
-            appendPropertyReference(property);
+            appendPropertyReference(nextSelector, property);
             return comparisonOperator;
         }
 
         /** Starts a comparison of the length of a property of the node to something. */
         public ComparisonOperator length(String property) {
-            append("LENGTH(").appendPropertyReference(property).append(") ");
+            append("LENGTH(").appendPropertyReference(nextSelector, property).append(") ");
             return comparisonOperator;
         }
 
-        /** Starts a comparison of the JCR name of the node to something. */
+        /**
+         * Starts a comparison of the JCR name of the node to something.
+         * <p>
+         * Limitation: this won't work right on the topmost versioned node (often jcr:content) since that is renamed to
+         * jcr:frozenNode in the version storage. Please consider using {@link Query#element} if you make a simple
+         * equality comparison, which can take this into account.
+         */
         public ComparisonOperator name() {
-            append("NAME(n) ");
+            append("NAME(" + nextSelector + ") ");
             return comparisonOperator;
         }
 
         /**
          * Starts a comparison of the JCR local name (i.e., without the namespace) of a property of the node to
          * something.
+         * <p>
+         * Limitation: this won't work right on the topmost versioned node (often jcr:content) since that is renamed to
+         * jcr:frozenNode in the version storage. Please consider using {@link Query#element} if you make a simple
+         * equality comparison, which can take this into account.
          */
         public ComparisonOperator localName() {
-            append("LOCALNAME(n) ");
+            append("LOCALNAME(" + nextSelector + ") ");
             return comparisonOperator;
         }
 
 
         /** Starts a comparison of the score of the full-text search score of a node to something. */
         public ComparisonOperator score() {
-            append("SCORE() ");
+            append("SCORE(" + nextSelector + ") ");
             return comparisonOperator;
         }
 
@@ -169,68 +190,90 @@ public class QueryConditionDsl {
         public ComparisonStart lower() {
             append("LOWER( ");
             closeParensBeforeComparison++;
-            return comparisonStart;
+            return this;
         }
 
         /** Applies UPPER (uppercase) to the following dynamic operand. */
         public ComparisonStart upper() {
             append("UPPER( ");
             closeParensBeforeComparison++;
-            return comparisonStart;
+            return this;
+        }
+
+        /**
+         * Use the specified selector for (only) the next condition - for use with complicated joins. Normally just use
+         * the condition in {@link Query#join(Query.JoinType, Query.JoinCondition, String, QueryCondition)}.
+         *
+         * @see Query#join(Query.JoinType, Query.JoinCondition, String, QueryCondition)
+         * @see Query#joinConditionBuilder()
+         */
+        public ComparisonStart selector(String nextSelector) {
+            return new ComparisonStart(nextSelector);
         }
     }
 
-    /** Start of a constraintStart with a queryCondition. */
-    public class ConstraintStart extends ComparisonStart {
+    /** Builder for a {@link QueryCondition} in fluent API style. Now we start a constraint with a queryCondition. */
+    public class QueryConditionBuilder extends ComparisonStart {
+        protected QueryConditionBuilder(String nextSelector) {
+            super(nextSelector);
+        }
+
         /** Starts a group of conditions with an opening parenthesis. */
-        public ConstraintStart startGroup() {
+        public QueryConditionBuilder startGroup() {
             append("( ");
             parenthesesNestingLevel++;
-            return constraintStart;
+            return this;
         }
 
         /** Negates the following constraintStart. */
-        public ConstraintStart not() {
+        public QueryConditionBuilder not() {
             append("NOT ");
             return this;
         }
 
         /** The selected node is exactly the node with the given path. */
         public QueryCondition isSameNodeAs(@Nonnull String path) {
-            append("ISSAMENODE(n,").appendString(path).append(") ");
+            append("ISSAMENODE(" + nextSelector + ",").appendString(path).append(") ");
+            nextSelector = null;
             return queryCondition;
         }
 
         /** The selected node is the child of the node with the given path. */
         public QueryCondition isChildOf(@Nonnull String path) {
-            append("ISCHILDNODE(n,").appendString(path).append(") ");
+            append("ISCHILDNODE(" + nextSelector + ",").appendString(path).append(") ");
+            nextSelector = null;
             return queryCondition;
         }
 
         /** The selected node is the child of the node with the given path. */
         public QueryCondition isDescendantOf(@Nonnull String path) {
-            append("ISDESCENDANTNODE(n,").appendString(path).append(") ");
+            append("ISDESCENDANTNODE(" + nextSelector + ",").appendString(path).append(") ");
+            nextSelector = null;
             return queryCondition;
         }
 
         /** QueryCondition that the given property is not null. */
         public QueryCondition isNotNull(String property) {
-            appendPropertyReference(property).append("IS NOT NULL ");
+            appendPropertyReference(nextSelector, property).append("IS NOT NULL ");
+            nextSelector = null;
             return queryCondition;
         }
 
         /** QueryCondition that the given property is null. */
         public QueryCondition isNull(String property) {
-            appendPropertyReference(property).append("IS NULL ");
+            appendPropertyReference(nextSelector, property).append("IS NULL ");
+            nextSelector = null;
             return queryCondition;
         }
 
         /**
-         * The selected node contains a property with the search expression.
+         * The selected node contains a property with the search expression. You might want to {@link
+         * Query#orderBy(String)} {@link org.apache.jackrabbit.JcrConstants#JCR_SCORE} {@link Query#descending()}.
          *
          * @param fulltextSearchExpression The fulltext search expression. A term not preceded with “-” (minus sign) is
          *                                 satisfied only if the value contains that term. A term preceded with “-”
-         *                                 (minus sign) is satisfied only if the value does not contain that term. Terms
+         *                                 (minus sign) is satisfied only if the value does not contain that term. A
+         *                                 phrase can be formed by enclosing several words in double quotes. Terms
          *                                 separated by whitespace are implicitly “ANDed”. Terms separated by “OR” are
          *                                 “ORed”. “AND” has higher precedence than “OR”. Within a term, each “"”
          *                                 (double quote), “-” (minus sign), and “\” (backslash) must be escaped by a
@@ -241,19 +284,22 @@ public class QueryConditionDsl {
         }
 
         /**
-         * The selected node contains a property with the search expression.
+         * The selected node contains a property with the search expression. You might want to {@link
+         * Query#orderBy(String)} {@link org.apache.jackrabbit.JcrConstants#JCR_SCORE} {@link Query#descending()}.
          *
          * @param fulltextSearchExpression The fulltext search expression. A term not preceded with “-” (minus sign) is
          *                                 satisfied only if the value contains that term. A term preceded with “-”
-         *                                 (minus sign) is satisfied only if the value does not contain that term. Terms
+         *                                 (minus sign) is satisfied only if the value does not contain that term. A
+         *                                 phrase can be formed by enclosing several words in double quotes. Terms
          *                                 separated by whitespace are implicitly “ANDed”. Terms separated by “OR” are
          *                                 “ORed”. “AND” has higher precedence than “OR”. Within a term, each “"”
          *                                 (double quote), “-” (minus sign), and “\” (backslash) must be escaped by a
          *                                 preceding “\”.
          */
         public QueryCondition contains(String property, String fulltextSearchExpression) {
-            append("CONTAINS(").appendPropertyReference(property).append(", ")
+            append("CONTAINS(").appendPropertyReference(nextSelector, property).append(", ")
                     .appendValue(fulltextSearchExpression).append(") ");
+            nextSelector = null;
             return queryCondition;
         }
 
@@ -265,12 +311,13 @@ public class QueryConditionDsl {
         /** The selected node's property is one of the given values. (Extension over JCR-SQL2). */
         public QueryCondition in(String property, Collection<String> values) {
             if (null == values || values.isEmpty()) return isNull(property);
-            ConstraintStart cond = this.startGroup();
+            QueryConditionBuilder cond = this.startGroup();
             QueryCondition res = null;
-            for(String value: values) {
+            for (String value : values) {
                 if (null != res) cond = res.or();
                 res = cond.property(property).eq().val(value);
             }
+            nextSelector = null;
             return res.endGroup();
         }
     }
@@ -278,7 +325,7 @@ public class QueryConditionDsl {
     /** Within a comparison in a queryCondition - the dynamic operant has been given, now expecting an operator. */
     public class ComparisonOperator {
         /** Close parentheses after previous lower / upper */
-        private void closeParentheses() {
+        protected void closeParentheses() {
             while (closeParensBeforeComparison > 0) {
                 append(") ");
                 closeParensBeforeComparison--;
@@ -387,18 +434,19 @@ public class QueryConditionDsl {
      * be used or extended with AND, OR, or closing parenthesis.
      */
     public class QueryCondition {
-        public ConstraintStart and() {
+        public QueryConditionBuilder and() {
             append("AND ");
-            return constraintStart;
+            return new QueryConditionBuilder(selector);
         }
 
-        public ConstraintStart or() {
+        public QueryConditionBuilder or() {
             append("OR ");
-            return constraintStart;
+            return new QueryConditionBuilder(selector);
         }
 
         /** Finishes a group of conditions with a closing parenthesis. */
-        public QueryCondition endGroup() {
+        public @Nonnull
+        QueryCondition endGroup() {
             if (parenthesesNestingLevel <= 0) throw new IllegalStateException("There is no group to close left.");
             append(") ");
             parenthesesNestingLevel--;
@@ -450,6 +498,22 @@ public class QueryConditionDsl {
         @Override
         public String toString() {
             return QueryConditionDsl.this.toString();
+        }
+
+        /**
+         * The selector of the condition. A query can contain other selectors, too, when temporarily overridden within
+         * the query with {@link ComparisonStart#selector(String)}.
+         */
+        public String getSelector() {
+            return selector;
+        }
+
+        /** A selector for the join described with this condition for the given property. */
+
+        public String joinSelector(String property) {
+            Validate.isTrue(isNotBlank(property));
+            Validate.isTrue(!"*".equals(property), "Can't select all properties in a join");
+            return getSelector() + ".[" + property + "]";
         }
     }
 }

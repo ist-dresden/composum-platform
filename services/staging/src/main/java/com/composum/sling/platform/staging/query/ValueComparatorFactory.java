@@ -1,23 +1,19 @@
 package com.composum.sling.platform.staging.query;
 
-import org.apache.commons.collections4.ComparatorUtils;
-import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.slf4j.Logger;
 
-import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import java.util.Comparator;
 
-import static org.apache.commons.collections4.ComparatorUtils.naturalComparator;
-import static org.apache.commons.collections4.ComparatorUtils.nullLowComparator;
-import static org.apache.commons.collections4.ComparatorUtils.reversedComparator;
-import static org.slf4j.LoggerFactory.getLogger;
-
 import static javax.jcr.PropertyType.*;
+import static org.apache.commons.collections4.ComparatorUtils.*;
+import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Compares {@link javax.jcr.Value} as JCR Query does.
+ *
+ * @author Hans-Peter Stoerr
  */
 public class ValueComparatorFactory {
 
