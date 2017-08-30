@@ -25,6 +25,23 @@
         <java.target>1.7</java.target>
     </properties>
 
+    <scm>
+        <connection>scm:git:https://bitbucket.org/ist-software/composum.git</connection>
+        <developerConnection>scm:git:https://bitbucket.org/ist-software/composum.git</developerConnection>
+        <url>https://bitbucket.org/ist-software/composum.git</url>
+    </scm>
+
+    <distributionManagement>
+        <repository>
+            <id>archiva</id>
+            <url>https://build.ist-software.com/archiva/repository/releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>archiva</id>
+            <url>https://build.ist-software.com/archiva/repository/snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <build>
         <plugins>
 
