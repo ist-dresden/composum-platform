@@ -169,11 +169,11 @@ public class QueryTest extends AbstractStagingTest {
         q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(COLUMN_PATH);
         assertResults(q, node1current, node2new, node2oldandnew, unreleasedNode, unversionedNode);
 
-        q.offset(2);
+        q.setOffset(2);
         assertResults(q, node2oldandnew, unreleasedNode, unversionedNode);
-        q.offset(2).limit(2);
+        q.setLimit(2);
         assertResults(q, node2oldandnew, unreleasedNode);
-        q.offset(0).limit(2);
+        q.setOffset(0); // limit still 2
         assertResults(q, node1current, node2new);
     }
 
@@ -183,11 +183,11 @@ public class QueryTest extends AbstractStagingTest {
         q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(COLUMN_PATH);
         assertResults(q, node1version, node2oldandnew, unversionedNode);
 
-        q.offset(1);
+        q.setOffset(1);
         assertResults(q, node2oldandnew, unversionedNode);
-        q.limit(1).offset(1);
+        q.setLimit(1);
         assertResults(q, node2oldandnew);
-        q.offset(0).limit(1);
+        q.setOffset(0); // limit still 1
         assertResults(q, node1version);
     }
 
