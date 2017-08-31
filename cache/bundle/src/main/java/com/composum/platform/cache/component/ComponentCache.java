@@ -38,19 +38,30 @@ public interface ComponentCache {
     )
     @interface Config {
 
-        @AttributeDefinition()
+        @AttributeDefinition(
+                description = "the general on/off switch for this service"
+        )
         boolean enabled() default false;
 
-        @AttributeDefinition()
+        @AttributeDefinition(
+                description = "eanbles the filter debug feature (selector 'cache.debug') if 'true' (selected)"
+        )
         boolean debug() default false;
 
-        @AttributeDefinition()
+        @AttributeDefinition(
+                description = "the cache service instance key to cache component content during Sling include"
+        )
         String includeCache() default "componentIncludeCache";
 
-        @AttributeDefinition()
+        @AttributeDefinition(
+                description = "the set of ResourceFilter rule strings, e.g. 'ResourceType(and{+'^myapp/components/.*',-'.*/[^/]*page[^/]*$'})'"
+                        + " - cache all 'myapp' (whitelist: +'...') components except 'page' components (blacklist: -'...')"
+        )
         String[] resourceFilterAlways() default {};
 
-        @AttributeDefinition()
+        @AttributeDefinition(
+                description = "the set of ResourceFilter rule strings for all components which should be cached only if request is not probably personalized"
+        )
         String[] resourceFilterAnonOnly() default {};
     }
 
