@@ -48,9 +48,17 @@ public class ComponentCacheService implements ComponentCache {
         if (config.enabled()) {
             resourceFilterAlways = new ResourceFilter.FilterSet(ResourceFilter.FilterSet.Rule.or, config.resourceFilterAlways());
             resourceFilterAnonOnly = new ResourceFilter.FilterSet(ResourceFilter.FilterSet.Rule.or, config.resourceFilterAnonOnly());
-            includeCacheService = cacheManager.getCache(config.includeCache(), String.class);
+            getIncludeCacheService();
         }
-        LOG.info("enabled: {}, includeCache: {} ...", config.enabled(), includeCacheService);
+        LOG.info("activate.enabled: {} ...", config.enabled());
+    }
+
+    protected CacheService<String> getIncludeCacheService() {
+        if (includeCacheService == null) {
+            includeCacheService = cacheManager.getCache(config.includeCache(), String.class);
+            LOG.info("cacheService: {}", includeCacheService);
+        }
+        return includeCacheService;
     }
 
     @Override
@@ -60,7 +68,7 @@ public class ComponentCacheService implements ComponentCache {
 
     @Override
     public boolean isIncludeCacheEnabled(ServletRequest request, ServletResponse response) {
-        return !isComponentCacheDisabled(request) && includeCacheService != null &&
+        return !isComponentCacheDisabled(request) && getIncludeCacheService() != null &&
                 request instanceof SlingHttpServletRequest && response instanceof SlingHttpServletResponse &&
                 "html".equals(((SlingHttpServletRequest) request).getRequestPathInfo().getExtension());
     }
@@ -95,12 +103,12 @@ public class ComponentCacheService implements ComponentCache {
 
     @Override
     public String getIncludeCacheContent(Serializable key) {
-        return includeCacheService.get(key);
+        return getIncludeCacheService().get(key);
     }
 
     @Override
     public void setIncludeCacheContent(Serializable key, String content) {
-        includeCacheService.put(key, content);
+        getIncludeCacheService().put(key, content);
     }
 
     @Override
