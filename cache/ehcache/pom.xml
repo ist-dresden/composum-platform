@@ -26,9 +26,9 @@
     </properties>
 
     <scm>
-        <connection>scm:git:https://bitbucket.org/ist-software/composum.git</connection>
-        <developerConnection>scm:git:https://bitbucket.org/ist-software/composum.git</developerConnection>
-        <url>https://bitbucket.org/ist-software/composum.git</url>
+        <connection>scm:git:https://github.com/ist-dresden/composum-platform.git</connection>
+        <developerConnection>scm:git:https://github.com/ist-dresden/composum-platform.git</developerConnection>
+        <url>https://github.com/ist-dresden/composum-platform.git</url>
     </scm>
 
     <distributionManagement>
