@@ -4,12 +4,14 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import java.io.Serializable;
 
 /**
- * the service interface for the component cache service
+ * the service interface for the component cache service; used by the IncludeCacheFilter
  */
 public interface ComponentCache {
 
@@ -65,15 +67,36 @@ public interface ComponentCache {
         String[] resourceFilterAnonOnly() default {};
     }
 
+    /**
+     * makes the configuration accessible for service consumers
+     */
+    @Nonnull
     Config getConfig();
 
+    /**
+     * returns 'true' if the caching is enabled in a current requests context and all preconditions are complied with
+     */
     boolean isIncludeCacheEnabled(ServletRequest request, ServletResponse response);
 
+    /**
+     * get the cache element referenced by the key if such an element is available in the cache
+     */
+    @Nullable
     String getIncludeCacheContent(Serializable key);
 
+    /**
+     * stores an element in the cache, it the value is 'null' an probably existing cache element is removed
+     */
     void setIncludeCacheContent(Serializable key, String content);
 
+    /**
+     * returns the caching rule for the requested resource in the current context
+     */
+    @Nonnull
     CachePolicy getCachePolicy(SlingHttpServletRequest request);
 
+    /**
+     * returns 'true' if a cache debugging request is detected (debug enabled + selector 'cache.debug')
+     */
     boolean isDebugRequest(SlingHttpServletRequest request);
 }

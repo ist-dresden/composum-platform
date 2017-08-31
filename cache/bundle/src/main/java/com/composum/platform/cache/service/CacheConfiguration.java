@@ -11,21 +11,33 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 )
 public @interface CacheConfiguration {
 
-	@AttributeDefinition()
+	@AttributeDefinition(
+			description = "the general on/off switch for this service"
+	)
 	boolean enabled() default true;
 
-	@AttributeDefinition()
+	@AttributeDefinition(
+			description = "the name (cache key) of the service"
+	)
 	String name();
 
-	@AttributeDefinition()
+	@AttributeDefinition(
+			description = "the type (Java class name) of the cached values"
+	)
 	String contentType() default "java.lang.String";
 
-	@AttributeDefinition()
+	@AttributeDefinition(
+			description = "the count maximum of values stored in the cache"
+	)
 	int maxElementsInMemory() default 1000;
 
-	@AttributeDefinition()
-	int timeToLiveSeconds() default 600;
+	@AttributeDefinition(
+			description = "the validity period maximum in seconds"
+	)
+	int timeToLiveSeconds() default 1200;
 
-	@AttributeDefinition()
-	int timeToIdleSeconds() default 300;
+	@AttributeDefinition(
+			description = "the validity period after last access in seconds"
+	)
+	int timeToIdleSeconds() default 600;
 }

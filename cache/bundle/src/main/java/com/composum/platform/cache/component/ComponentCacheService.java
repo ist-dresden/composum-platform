@@ -15,6 +15,8 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import java.io.Serializable;
@@ -48,13 +50,14 @@ public class ComponentCacheService implements ComponentCache {
         if (config.enabled()) {
             resourceFilterAlways = new ResourceFilter.FilterSet(ResourceFilter.FilterSet.Rule.or, config.resourceFilterAlways());
             resourceFilterAnonOnly = new ResourceFilter.FilterSet(ResourceFilter.FilterSet.Rule.or, config.resourceFilterAnonOnly());
-            getIncludeCacheService();
         }
         LOG.info("activate.enabled: {} ...", config.enabled());
     }
 
+    @Nullable
     protected CacheService<String> getIncludeCacheService() {
-        if (includeCacheService == null) {
+        if (includeCacheService == null && config.enabled()) {
+            // it's possible that the cache is not registered at activation of this service, we try it on demand
             includeCacheService = cacheManager.getCache(config.includeCache(), String.class);
             LOG.info("cacheService: {}", includeCacheService);
         }
@@ -62,23 +65,36 @@ public class ComponentCacheService implements ComponentCache {
     }
 
     @Override
+    @Nonnull
     public Config getConfig() {
         return config;
     }
 
+    /**
+     * returns true if the debug feature is enabled by request and by service configuration
+     * (or cache feature debug 'on' in the service configuration) and the cache service is
+     * available and it is an 'HTML' request
+     */
     @Override
     public boolean isIncludeCacheEnabled(ServletRequest request, ServletResponse response) {
-        return !isComponentCacheDisabled(request) && getIncludeCacheService() != null &&
+        return !isComponentCacheDisabled(request) && (config.debug() || getIncludeCacheService() != null) &&
                 request instanceof SlingHttpServletRequest && response instanceof SlingHttpServletResponse &&
                 "html".equals(((SlingHttpServletRequest) request).getRequestPathInfo().getExtension());
     }
 
+    /**
+     * checks the request attribute 'ComponentCache.ATTR_CACHE_DISABLED' (controlled by another filter)
+     */
     protected boolean isComponentCacheDisabled(ServletRequest request) {
         Boolean disabled = (Boolean) request.getAttribute(ATTR_CACHE_DISABLED);
         return disabled != null && disabled;
     }
 
+    /**
+     * returns the cache rule for the resource to include currently
+     */
     @Override
+    @Nonnull
     public CachePolicy getCachePolicy(SlingHttpServletRequest request) {
         CachePolicy embedState;
         if ((embedState = (CachePolicy) request.getAttribute(ATTR_IS_EMBEDDING)) != null) {
@@ -93,21 +109,30 @@ public class ComponentCacheService implements ComponentCache {
         return CachePolicy.noCache;
     }
 
+    /**
+     * check resource by the 'always' filter set
+     */
     protected boolean acceptedByAlwaysFilter(Resource resource) {
         return resourceFilterAlways.getSet().size() > 0 && resourceFilterAlways.accept(resource);
     }
 
+    /**
+     * check resource by the 'anonymous only' filter set
+     */
     protected boolean acceptedByAnonOnlyFilter(Resource resource) {
         return resourceFilterAnonOnly.getSet().size() > 0 && resourceFilterAnonOnly.accept(resource);
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Override
-    public String getIncludeCacheContent(Serializable key) {
+    @Nullable
+    public String getIncludeCacheContent(@Nonnull Serializable key) {
         return getIncludeCacheService().get(key);
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Override
-    public void setIncludeCacheContent(Serializable key, String content) {
+    public void setIncludeCacheContent(@Nonnull Serializable key, @Nullable String content) {
         getIncludeCacheService().put(key, content);
     }
 

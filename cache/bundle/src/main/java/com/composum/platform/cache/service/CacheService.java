@@ -1,5 +1,7 @@
 package com.composum.platform.cache.service;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.Serializable;
 
 /**
@@ -7,9 +9,20 @@ import java.io.Serializable;
  */
 public interface CacheService<T extends Serializable> {
 
+	/**
+	 * return the key of the service and of the cache
+	 */
+	@Nonnull
 	String getName();
 
-	T get(Serializable key);
+	/**
+	 * returns a cached value
+	 */
+	@Nullable
+	T get(@Nonnull Serializable key);
 
-	void put(Serializable key, T value);
+	/**
+	 * sets a cache value; removes a cache entry if value is 'null'
+	 */
+	void put(@Nonnull Serializable key, @Nullable T value);
 }

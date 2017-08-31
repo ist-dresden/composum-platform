@@ -58,8 +58,10 @@ public class RequestCacheFilter implements Filter {
             final List<String> selectors = Arrays.asList(pathInfo.getSelectors());
             final boolean isDebug = "html".equals(pathInfo.getExtension()) &&
                     selectors.contains("cache") && selectors.contains("debug");
+            // debug detection done with the 'isDebug' result for further processing
             request.setAttribute(ComponentCache.ATTR_IS_DEBUG_REQUEST, isDebug);
             if (isDebug) {
+                // debug request detected: set up the debug info writer and drop the normal response output
                 if (LOG.isInfoEnabled()) {
                     LOG.info("cache.debug...");
                 }

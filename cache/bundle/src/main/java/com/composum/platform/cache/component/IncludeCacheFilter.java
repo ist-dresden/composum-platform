@@ -22,6 +22,12 @@ import java.io.IOException;
 
 /**
  * the include filter to use a component cache during Sling include
+ * <p>
+ * If the caching is enabled by the cache service configuration for the resource to include
+ * the rendering result is delivered from the cache if available in the cache
+ * otherwise the rendering result of the resource is built in a buffer,
+ * stored in the cache for further requests and delivered finally.
+ * </p>
  */
 @Component(
         service = {Filter.class},
@@ -60,6 +66,7 @@ public class IncludeCacheFilter implements Filter {
 
             boolean isDebug = service.isDebugRequest(slingRequest);
             if (isDebug) {
+                // open debug output for the current resource and write the debug info
                 JsonWriter writer = (JsonWriter) slingRequest.getAttribute(ComponentCache.ATTR_DEBUG_WRITER);
                 writer.beginObject();
                 writer.name("path").value(resource.getPath());
@@ -75,6 +82,7 @@ public class IncludeCacheFilter implements Filter {
                     case anonOnly:
                         ResourceResolver resolver = slingRequest.getResourceResolver();
                         if (!"anonymous".equals(slingRequest.getUserPrincipal().getName())) {
+                            // don't cache if a real user is logged in
                             if (LOG.isDebugEnabled()) {
                                 LOG.debug("doFilter -- personalized: " + resourcePath);
                             }
@@ -86,9 +94,10 @@ public class IncludeCacheFilter implements Filter {
                     case always:
 
                         String content = service.getIncludeCacheContent(resourcePath);
+                        // set the request flag that all resources included in the current resource are cached implicit
                         request.setAttribute(ComponentCache.ATTR_IS_EMBEDDING, content != null
-                                ? ComponentCache.CachePolicy.embedded
-                                : ComponentCache.CachePolicy.embedding);
+                                ? ComponentCache.CachePolicy.embedded       // always cached or
+                                : ComponentCache.CachePolicy.embedding);    // stored in the content buffer
 
                         if (content == null) {
 
@@ -99,8 +108,10 @@ public class IncludeCacheFilter implements Filter {
                             final SlingHttpServletResponse slingResponse = (SlingHttpServletResponse) response;
                             final TextBufferResponseWrapper responseWrapper = new TextBufferResponseWrapper(slingResponse);
 
+                            // render it into the buffer and cache it...
                             chain.doFilter(request, responseWrapper);
                             content = responseWrapper.toString();
+
                             service.setIncludeCacheContent(resourcePath, content);
 
                         } else {
@@ -108,19 +119,19 @@ public class IncludeCacheFilter implements Filter {
                                 LOG.debug("doFilter << fromCache: " + resourcePath);
                             }
                             if (isDebug) {
-                                if (LOG.isDebugEnabled()) {
-                                    LOG.debug("doFilter ?? debug: " + resourcePath);
-                                }
+                                // always in cache but trace it in case of a debug request
                                 chain.doFilter(request, response);
                             }
                         }
 
                         response.getWriter().write(content);
 
+                        // remove the flag for the implicit caching after cache object is built
                         request.removeAttribute(ComponentCache.ATTR_IS_EMBEDDING);
                         break;
 
                     case embedding:
+                        // the cache object has to be built and this resource is included
                         if (LOG.isDebugEnabled()) {
                             LOG.debug("doFilter ++ embedding: " + resourcePath);
                         }
@@ -129,14 +140,13 @@ public class IncludeCacheFilter implements Filter {
 
                     case embedded:
                         if (isDebug) {
-                            if (LOG.isDebugEnabled()) {
-                                LOG.debug("doFilter ++ embedded: " + resourcePath);
-                            }
+                            // always in cache but trace it in case of a debug request
                             chain.doFilter(request, response);
                         }
                         break;
 
                     default:
+                        // no caching
                         if (LOG.isDebugEnabled()) {
                             LOG.debug("doFilter -- noCache: " + resourcePath);
                         }
@@ -144,6 +154,7 @@ public class IncludeCacheFilter implements Filter {
                         break;
                 }
             } else {
+                // caching filter disabled but probably a cache debug request
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("doFilter .. disabled: " + resourcePath);
                 }
@@ -151,12 +162,14 @@ public class IncludeCacheFilter implements Filter {
             }
 
             if (isDebug) {
+                // close debug output for the current resource
                 JsonWriter writer = (JsonWriter) slingRequest.getAttribute(ComponentCache.ATTR_DEBUG_WRITER);
                 writer.endArray();
                 writer.endObject();
             }
 
         } else {
+            // caching feature disabled for this request
             if (LOG.isDebugEnabled()) {
                 LOG.debug("doDefaultFilterChain...");
             }
