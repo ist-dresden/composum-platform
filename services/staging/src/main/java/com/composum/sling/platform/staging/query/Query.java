@@ -253,7 +253,7 @@ public class Query {
      * @param limit a <code>long</code>
      * @return this for chaining calls in builder-style
      */
-    public Query setLimit(long limit) {
+    public Query limit(long limit) {
         Validate.isTrue(limit >= 0, "The limit should be nonnegative, but was %d", limit);
         this.limit = limit;
         return this;
@@ -265,7 +265,7 @@ public class Query {
      * @param offset a <code>long</code>
      * @return this for chaining calls in builder-style
      */
-    public Query setOffset(long offset) {
+    public Query offset(long offset) {
         Validate.isTrue(limit >= 0, "The limit should be nonnegative, but was %d", limit);
         this.offset = offset;
         return this;
