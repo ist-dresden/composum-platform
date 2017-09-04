@@ -23,16 +23,28 @@ public interface ComponentCache {
      */
     String ATTR_CACHE_DISABLED = ATTR_BASE + "cacheDisabled";
 
+    /**
+     * Saves the {@link CachePolicy} during processing of a cached request to be used in processing of embedded
+     * requests.
+     */
     String ATTR_IS_EMBEDDING = ATTR_BASE + "isEmbedding";
+    /** Boolean marker attribute that this request is for debugging of the caching. */
     String ATTR_IS_DEBUG_REQUEST = ATTR_BASE + "isDebugRequest";
+    /** In case of debugging, a JsonWriter to write the debugging values to. */
     String ATTR_DEBUG_WRITER = ATTR_BASE + "debugWriter";
 
     enum CachePolicy {
-        noCache,    // caching not enabled for this resource
-        always,     // cache this resource always if rendered
-        anonOnly,   // cache this resource only if request is not probably personalized
-        embedding,  // this resource has to be rendered for the cache content (on cache building)
-        embedded    // this resource is embedded in a cached object (used on debug rendering)
+        /** caching not enabled for this resource */
+        noCache,
+        /** cache this resource always if rendered */
+        always,
+        /** cache this resource only if request is probably not personalized (i.e., user is not logged in) */
+        anonOnly,
+        /** this resource has to be rendered for the cache content (on cache building) */
+        embedding,
+        /** this resource is embedded in a cached object (used on debug rendering - the resources are then rendered for
+         * debugging output, but not put into the cache) */
+        embedded
     }
 
     @ObjectClassDefinition(
@@ -46,7 +58,7 @@ public interface ComponentCache {
         boolean enabled() default false;
 
         @AttributeDefinition(
-                description = "eanbles the filter debug feature (selector 'cache.debug') if 'true' (selected)"
+                description = "enables the filter debug feature (selector 'cache.debug') if 'true' (selected)"
         )
         boolean debug() default false;
 
@@ -62,7 +74,7 @@ public interface ComponentCache {
         String[] resourceFilterAlways() default {};
 
         @AttributeDefinition(
-                description = "the set of ResourceFilter rule strings for all components which should be cached only if request is not probably personalized"
+                description = "the set of ResourceFilter rule strings for all components which should be cached only if request is probably not personalized"
         )
         String[] resourceFilterAnonOnly() default {};
     }

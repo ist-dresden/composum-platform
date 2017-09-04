@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,7 +37,7 @@ public class CacheManagerImpl implements CacheManager {
     private static final Logger LOG = LoggerFactory.getLogger(CacheManagerImpl.class);
 
     protected org.ehcache.CacheManager ehCacheManager;
-    protected Map<String, CacheService> instances = new HashMap<>();
+    protected Map<String, CacheService> instances = Collections.synchronizedMap(new HashMap<String, CacheService>());
 
     @SuppressWarnings("unchecked")
     @Override
@@ -61,12 +62,12 @@ public class CacheManagerImpl implements CacheManager {
     }
 
     @Reference(service = CacheService.class, policy = ReferencePolicy.DYNAMIC, cardinality = ReferenceCardinality.MULTIPLE)
-    protected synchronized void addCacheService(@Nonnull final CacheService service) {
+    protected void addCacheService(@Nonnull final CacheService service) {
         LOG.info("addCacheService: {}", service.getName());
         instances.put(service.getName(), service);
     }
 
-    protected synchronized void removeCacheService(@Nonnull final CacheService service) {
+    protected void removeCacheService(@Nonnull final CacheService service) {
         LOG.info("removeCacheService: {}", service.getName());
         instances.remove(service.getName());
     }

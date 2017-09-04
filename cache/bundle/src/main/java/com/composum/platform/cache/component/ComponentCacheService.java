@@ -7,10 +7,7 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.Resource;
 import org.osgi.framework.Constants;
-import org.osgi.service.component.annotations.Activate;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Modified;
-import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.*;
 import org.osgi.service.metatype.annotations.Designate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,11 +44,14 @@ public class ComponentCacheService implements ComponentCache {
     @Modified
     protected void activate(final ComponentCacheService.Config config) {
         this.config = config;
-        if (config.enabled()) {
-            resourceFilterAlways = new ResourceFilter.FilterSet(ResourceFilter.FilterSet.Rule.or, config.resourceFilterAlways());
-            resourceFilterAnonOnly = new ResourceFilter.FilterSet(ResourceFilter.FilterSet.Rule.or, config.resourceFilterAnonOnly());
-        }
+        resourceFilterAlways = new ResourceFilter.FilterSet(ResourceFilter.FilterSet.Rule.or, config.resourceFilterAlways());
+        resourceFilterAnonOnly = new ResourceFilter.FilterSet(ResourceFilter.FilterSet.Rule.or, config.resourceFilterAnonOnly());
         LOG.info("activate.enabled: {} ...", config.enabled());
+    }
+
+    @Deactivate
+    protected void deactivate() {
+        includeCacheService = null;
     }
 
     @Nullable
@@ -74,6 +74,9 @@ public class ComponentCacheService implements ComponentCache {
      * returns true if the debug feature is enabled by request and by service configuration
      * (or cache feature debug 'on' in the service configuration) and the cache service is
      * available and it is an 'HTML' request
+     * <p>
+     * This is intentionally enabled when config.enabled() is false but config.debug() is true
+     * to allow debugging before switching it on.
      */
     @Override
     public boolean isIncludeCacheEnabled(ServletRequest request, ServletResponse response) {
