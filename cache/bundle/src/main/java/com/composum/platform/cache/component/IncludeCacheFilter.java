@@ -21,7 +21,7 @@ import javax.servlet.ServletResponse;
 import java.io.IOException;
 
 /**
- * the include filter to use a component cache during Sling include
+ * the include filter to use a {@link ComponentCache} during Sling include
  * <p>
  * If the caching is enabled by the cache service configuration for the resource to include
  * the rendering result is delivered from the cache if available in the cache
@@ -89,7 +89,7 @@ public class IncludeCacheFilter implements Filter {
                             chain.doFilter(request, response);
                             break;
                         }
-                        // continue witch caching...
+                        // fall through: continue witch caching...
 
                     case always:
 

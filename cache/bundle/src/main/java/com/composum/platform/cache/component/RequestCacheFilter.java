@@ -22,7 +22,9 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * the request filter to initialize the include filter debug feature
+ * the request filter to initialize the {@link IncludeCacheFilter} debug feature.
+ * If enabled and the request contains the selectors cache.debug, the normal output is dropped and replaced by
+ * debugging output on {@link ComponentCache#ATTR_DEBUG_WRITER}.
  */
 @Component(
         service = {Filter.class},
