@@ -1,6 +1,5 @@
 package com.composum.sling.platform.staging.query;
 
-import com.composum.sling.core.CoreAdapterFactory;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.platform.staging.AbstractStagingTest;
 import com.composum.sling.platform.staging.StagingResourceResolver;
@@ -65,7 +64,6 @@ public class QueryTest extends AbstractStagingTest {
         final Workspace workspace = session.getWorkspace();
         queryManager = workspace.getQueryManager();
         context.registerInjectActivateService(new QueryBuilderAdapterFactory());
-        context.registerInjectActivateService(new CoreAdapterFactory());
     }
 
     @Before
