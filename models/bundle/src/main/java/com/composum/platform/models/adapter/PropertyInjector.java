@@ -4,6 +4,7 @@ package com.composum.platform.models.adapter;
 import com.composum.platform.models.annotations.DetermineResourceStategy;
 import com.composum.platform.models.annotations.InternationalizationStrategy;
 import com.composum.platform.models.annotations.Property;
+import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.ResourceHandle;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.felix.scr.annotations.Component;
@@ -71,7 +72,8 @@ public class PropertyInjector implements Injector, StaticInjectAnnotationProcess
             Class<?> clazz = (Class<?>) type;
             try {
                 InternationalizationStrategy i18nStrategy = annotation.i18nStrategy().newInstance();
-                return i18nStrategy.getInternationalized(handle, attribute, clazz, preparedValues.request,
+                return i18nStrategy.getInternationalized(handle, attribute, clazz, preparedValues.getBeanContext(),
+                        preparedValues.request,
                         preparedValues.locale, annotation);
             } catch (InstantiationException | IllegalAccessException e) {
                 LOG.error("Can't instantiate " + annotation.i18nStrategy(), e);
@@ -90,6 +92,7 @@ public class PropertyInjector implements Injector, StaticInjectAnnotationProcess
     }
 
     protected static class PreparedValues {
+        protected BeanContext beanContext;
         protected SlingHttpServletRequest request;
         protected Locale locale;
         protected Resource resource;
@@ -110,6 +113,7 @@ public class PropertyInjector implements Injector, StaticInjectAnnotationProcess
                 res.request = a.adaptTo(SlingHttpServletRequest.class);
                 res.resource = a.adaptTo(Resource.class);
                 res.locale = a.adaptTo(Locale.class);
+                res.beanContext = a.adaptTo(BeanContext.class);
                 if (null == res.locale && null != res.request) res.locale = res.request.getLocale();
             } else return null;
             return res;
@@ -121,7 +125,7 @@ public class PropertyInjector implements Injector, StaticInjectAnnotationProcess
                 if (null == strategy || DetermineResourceStategy.OriginalResourceStrategy.class == strategy) {
                     res = ResourceHandle.use(resource);
                 } else try {
-                    res = ResourceHandle.use(strategy.newInstance().determineResource(resource));
+                    res = ResourceHandle.use(strategy.newInstance().determineResource(beanContext, resource));
                 } catch (InstantiationException | IllegalAccessException e) {
                     LOG.error("Can't instantiate " + strategy, e);
                     return null; // somewhat doubtable, but the general convention in sling-models
@@ -129,6 +133,10 @@ public class PropertyInjector implements Injector, StaticInjectAnnotationProcess
                 determinedResources.put(strategy, res);
             }
             return res;
+        }
+
+        public BeanContext getBeanContext() {
+            return beanContext;
         }
     }
 

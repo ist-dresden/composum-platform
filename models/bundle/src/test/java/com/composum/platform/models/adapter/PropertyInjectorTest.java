@@ -18,8 +18,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
 import java.util.Locale;
 
 import static com.composum.sling.core.util.ResourceUtil.CONTENT_NODE;
@@ -150,7 +148,7 @@ public class PropertyInjectorTest {
 
     protected static class GetConfig implements DetermineResourceStategy {
         @Override
-        public Resource determineResource(Resource requestResource) {
+        public Resource determineResource(BeanContext beanContext, Resource requestResource) {
             return requestResource.getChild("config");
         }
     }

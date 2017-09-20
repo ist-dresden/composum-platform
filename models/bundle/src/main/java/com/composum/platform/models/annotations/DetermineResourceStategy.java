@@ -1,5 +1,6 @@
 package com.composum.platform.models.annotations;
 
+import com.composum.sling.core.BeanContext;
 import org.apache.sling.api.resource.Resource;
 
 /**
@@ -10,13 +11,19 @@ import org.apache.sling.api.resource.Resource;
  */
 public interface DetermineResourceStategy {
 
-    /** Determines the resource the properties of the model should be initialized from. */
-    Resource determineResource(Resource requestResource);
+    /**
+     * Determines the resource the properties of the model should be initialized from.
+     *
+     * @param beanContext     used to look up services, if neccesary.
+     * @param requestResource the resource for which we determine the resource, nullable
+     * @return nullable
+     */
+    Resource determineResource(BeanContext beanContext, Resource requestResource);
 
     /** Default: just returns the original resource unchanged. */
     class OriginalResourceStrategy implements DetermineResourceStategy {
         @Override
-        public Resource determineResource(Resource requestResource) {
+        public Resource determineResource(BeanContext beanContext, Resource requestResource) {
             return requestResource;
         }
     }

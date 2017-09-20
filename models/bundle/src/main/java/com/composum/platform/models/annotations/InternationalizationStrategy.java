@@ -1,5 +1,6 @@
 package com.composum.platform.models.annotations;
 
+import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.ResourceHandle;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -24,18 +25,19 @@ public interface InternationalizationStrategy {
      * @param resource   the resource for which the properties are wanted, not null
      * @param name       the name of the property - may be a relative path as well
      * @param valueClass the class the value is to be converted into, not null
+     * @param beanContext if available, the {@link BeanContext}
      * @param request    if available, the request one could get the locale from
      * @param locale     if available, the locale
      * @param parameters the annotation parameters about the value
      * @return the value or null
      */
-    <T> T getInternationalized(Resource resource, String name, Class<T> valueClass,
+    <T> T getInternationalized(Resource resource, String name, Class<T> valueClass, BeanContext beanContext,
                                SlingHttpServletRequest request, Locale locale, Property parameters);
 
     /** No internationalization - just uses the attributes. */
     class NONE implements InternationalizationStrategy {
         @Override
-        public <T> T getInternationalized(Resource resource, String name, Class<T> valueClass,
+        public <T> T getInternationalized(Resource resource, String name, Class<T> valueClass, BeanContext beanContext,
                                           SlingHttpServletRequest request, Locale locale, Property parameters) {
             if (parameters.inherited()) return ResourceHandle.use(resource).getInherited(name, valueClass);
             else return ResourceHandle.use(resource).getProperty(name, valueClass);
@@ -49,7 +51,7 @@ public interface InternationalizationStrategy {
     class USEDEFAULT implements InternationalizationStrategy {
         /** Throws an exception. */
         @Override
-        public <T> T getInternationalized(Resource resource, String name, Class<T> valueClass,
+        public <T> T getInternationalized(Resource resource, String name, Class<T> valueClass, BeanContext beanContext,
                                           SlingHttpServletRequest request, Locale locale, Property parameters) {
             throw new UnsupportedOperationException("Bug: this should never be actually called.");
         }
@@ -80,12 +82,11 @@ public interface InternationalizationStrategy {
          * @see I18NFOLDER
          */
         @Override
-        public <T> T getInternationalized(Resource resource, String name, Class<T> valueClass,
+        public <T> T getInternationalized(Resource resource, String name, Class<T> valueClass, BeanContext beanContext,
                                           SlingHttpServletRequest request, Locale locale, Property parameters) {
-            Locale usedLocale = locale;
-            if (null == locale && null != request) usedLocale = request.getLocale();
+            Locale usedLocale = getLocale(beanContext, request, locale);
             if (!parameters.i18n() || null == usedLocale)
-                return super.getInternationalized(resource, name, valueClass, request, locale, parameters);
+                return super.getInternationalized(resource, name, valueClass, beanContext, request, locale, parameters);
             ResourceHandle handle = ResourceHandle.use(resource);
             List<String> i18npaths = getI18nPaths(usedLocale);
             for (String i18npath : i18npaths) {
@@ -97,6 +98,13 @@ public interface InternationalizationStrategy {
                 if (null != value) return value;
             }
             return null;
+        }
+
+        protected Locale getLocale(BeanContext beanContext, SlingHttpServletRequest request, Locale locale) {
+            Locale usedLocale = locale;
+            if (null == locale && null != beanContext) usedLocale = beanContext.getLocale();
+            if (null == locale && null != request) usedLocale = request.getLocale();
+            return usedLocale;
         }
 
         /**

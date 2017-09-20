@@ -28,7 +28,4 @@ public @interface PropertyDefaults {
     /** Default for {@link Property#i18nStrategy()} for fields/methods/constructors defined in subclasses. */
     Class<? extends InternationalizationStrategy> i18nStrategy() default InternationalizationStrategy.NONE.class;
 
-    Class<? extends DetermineResourceStategy> determineResourceStrategy()
-            default DetermineResourceStategy.OriginalResourceStrategy.class;
-
 }
