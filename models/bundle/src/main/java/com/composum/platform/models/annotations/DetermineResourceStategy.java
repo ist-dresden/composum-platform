@@ -21,15 +21,4 @@ public interface DetermineResourceStategy {
         }
     }
 
-    /**
-     * Signifies the use of a default {@link DetermineResourceStategy} - for use as "no value" in annotations. Don't use
-     * this otherwise; calling it throws exceptions.
-     */
-    class DefaultDetermineResourceStrategy implements DetermineResourceStategy {
-        /** Throws an exeption - don't use it. */
-        @Override
-        public Resource determineResource(Resource requestResource) {
-            throw new UnsupportedOperationException("Bug: this should never be actually called.");
-        }
-    }
 }

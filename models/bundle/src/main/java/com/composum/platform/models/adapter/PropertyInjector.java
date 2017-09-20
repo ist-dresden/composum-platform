@@ -4,10 +4,8 @@ package com.composum.platform.models.adapter;
 import com.composum.platform.models.annotations.DetermineResourceStategy;
 import com.composum.platform.models.annotations.InternationalizationStrategy;
 import com.composum.platform.models.annotations.Property;
-import com.composum.sling.core.InheritedValues;
 import com.composum.sling.core.ResourceHandle;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -60,10 +58,10 @@ public class PropertyInjector implements Injector, StaticInjectAnnotationProcess
     public Object getValue(@Nonnull Object adaptable, String name, @Nonnull Type type,
                            @Nonnull AnnotatedElement element, @Nonnull DisposalCallbackRegistry callbackRegistry) {
 
-        Property annotation = annotation = PropertyJoinedWithDefaultsWrapper.getWithDefaults(element);
+        PropertyJoinedWithDefaultsWrapper annotation = PropertyJoinedWithDefaultsWrapper.getWithDefaults(element);
         if (null == annotation) return null;
         PreparedValues preparedValues = PreparedValues.make(adaptable);
-        ResourceHandle handle = preparedValues.determineResource(annotation.determineResourceStrategy());
+        ResourceHandle handle = preparedValues.determineResource(annotation.value());
         if (null == handle || !handle.isValid()) return null;
 
         String attribute = defaultIfBlank(annotation.name(), name);
@@ -120,7 +118,9 @@ public class PropertyInjector implements Injector, StaticInjectAnnotationProcess
         public ResourceHandle determineResource(@Nonnull Class<? extends DetermineResourceStategy> strategy) {
             ResourceHandle res = determinedResources.get(strategy);
             if (null == res) {
-                try {
+                if (null == strategy || DetermineResourceStategy.OriginalResourceStrategy.class == strategy) {
+                    res = ResourceHandle.use(resource);
+                } else try {
                     res = ResourceHandle.use(strategy.newInstance().determineResource(resource));
                 } catch (InstantiationException | IllegalAccessException e) {
                     LOG.error("Can't instantiate " + strategy, e);

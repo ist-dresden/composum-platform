@@ -66,10 +66,6 @@ public @interface Property {
     Class<? extends InternationalizationStrategy> i18nStrategy()
             default InternationalizationStrategy.USEDEFAULT.class;
 
-    /** Strategy to determine the resource the properties of the model should be initialized from. */
-    Class<? extends DetermineResourceStategy> determineResourceStrategy()
-            default DetermineResourceStategy.DefaultDetermineResourceStrategy.class;
-
     /** Name of the injector that works on this. */
     public static final String INJECTORNAME = "valuemap-at-path";
 }

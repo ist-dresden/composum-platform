@@ -1,9 +1,6 @@
 package com.composum.platform.models.adapter;
 
-import com.composum.platform.models.annotations.InternationalizationStrategy;
-import com.composum.platform.models.annotations.DescendantPath;
-import com.composum.platform.models.annotations.Property;
-import com.composum.platform.models.annotations.PropertyDefaults;
+import com.composum.platform.models.annotations.*;
 import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.ResourceHandle;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -70,6 +67,7 @@ public class PropertyInjectorTest {
         context.request().setLocale(Locale.UK);
         beanContext = new BeanContext.Servlet(null, context.bundleContext(),
                 context.request(), context.response());
+        beanContext.setAttribute(BeanContext.ATTR_LOCALE, Locale.GERMANY, BeanContext.Scope.request);
         assertEquals(Locale.GERMANY, beanContext.getLocale());
 
         ResourceHandle handle = ResourceHandle.use(resource); // check behaviour of inherited
@@ -88,6 +86,7 @@ public class PropertyInjectorTest {
         assertEquals(7, model.thedefault);
         assertNull(model.doesntexist);
         assertEquals(21, model.props.avalue());
+        assertEquals(21, model.propsDetresource.avalue());
         return model;
     }
 
@@ -133,6 +132,27 @@ public class PropertyInjectorTest {
             String i18nizedcfg();
         }
 
+        @Self
+        MyPropsWithDetermineResource propsDetresource;
+
+        @Model(adaptables = {Resource.class, SlingHttpServletRequest.class, BeanContext.class})
+        @PropertyDetermineResourceStrategy(GetConfig.class)
+        private interface MyPropsWithDetermineResource{
+            @Property(name = "test/avalue")
+            int avalue();
+
+            @Property(i18n = true)
+            @Optional
+            String i18nizedcfg();
+        }
+
+    }
+
+    protected static class GetConfig implements DetermineResourceStategy {
+        @Override
+        public Resource determineResource(Resource requestResource) {
+            return requestResource.getChild("config");
+        }
     }
 
     @Test
@@ -140,6 +160,7 @@ public class PropertyInjectorTest {
         TestingPropertyAtPath model = verify(resource.adaptTo(TestingPropertyAtPath.class));
         assertNull(model.i18nized);
         assertEquals("cfgdefault", model.props.i18nizedcfg());
+        assertEquals("cfgdefault", model.propsDetresource.i18nizedcfg());
     }
 
     @Test
@@ -147,6 +168,7 @@ public class PropertyInjectorTest {
         TestingPropertyAtPath model = verify(context.request().adaptTo(TestingPropertyAtPath.class));
         assertEquals("englishized", model.i18nized);
         assertEquals("cfgen", model.props.i18nizedcfg());
+        assertEquals("cfgen", model.propsDetresource.i18nizedcfg());
     }
 
     @Test
@@ -154,6 +176,7 @@ public class PropertyInjectorTest {
         TestingPropertyAtPath model = verify(beanContext.adaptTo(TestingPropertyAtPath.class));
         assertEquals("germanized", model.i18nized);
         assertEquals("cfgde", model.props.i18nizedcfg());
+        assertEquals("cfgde", model.propsDetresource.i18nizedcfg());
     }
 
 }

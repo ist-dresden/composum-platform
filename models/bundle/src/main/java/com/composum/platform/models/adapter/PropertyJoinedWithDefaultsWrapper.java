@@ -1,9 +1,6 @@
 package com.composum.platform.models.adapter;
 
-import com.composum.platform.models.annotations.DetermineResourceStategy;
-import com.composum.platform.models.annotations.InternationalizationStrategy;
-import com.composum.platform.models.annotations.Property;
-import com.composum.platform.models.annotations.PropertyDefaults;
+import com.composum.platform.models.annotations.*;
 import com.composum.sling.core.InheritedValues;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.apache.sling.models.annotations.injectorspecific.InjectionStrategy;
@@ -12,7 +9,6 @@ import org.slf4j.Logger;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Member;
-import java.lang.reflect.Method;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -24,7 +20,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  * @since 09/2017
  */
 @SuppressWarnings("ClassExplicitlyAnnotation")
-class PropertyJoinedWithDefaultsWrapper implements Property {
+class PropertyJoinedWithDefaultsWrapper implements Property, PropertyDetermineResourceStrategy {
 
     private static final Logger LOG = getLogger(PropertyJoinedWithDefaultsWrapper.class);
     protected static PropertyDefaults defaultForPropertyDefaults =
@@ -42,21 +38,25 @@ class PropertyJoinedWithDefaultsWrapper implements Property {
 
     private final Property propertyAnnotation;
     private final PropertyDefaults propertyDefaultsAnnotation;
+    private final PropertyDetermineResourceStrategy determineResourceStrategy;
 
-    protected PropertyJoinedWithDefaultsWrapper(Property propertyAnnotation, PropertyDefaults propertyDefaultsAnnotation) {
+    protected PropertyJoinedWithDefaultsWrapper(Property propertyAnnotation, PropertyDefaults
+            propertyDefaultsAnnotation, PropertyDetermineResourceStrategy determineResourceStrategy) {
         this.propertyAnnotation = propertyAnnotation;
         this.propertyDefaultsAnnotation = null != propertyDefaultsAnnotation ? propertyDefaultsAnnotation :
                 defaultForPropertyDefaults;
+        this.determineResourceStrategy = determineResourceStrategy;
     }
 
     /**
-     * Returns an instance of the {@link Property} annotation that supplements values with the defaults of a {@link
-     * PropertyDefaults} annotation found at the class where element is declared or its superclasses.
+     * Returns a wrapper that is instance of the {@link Property} annotation that supplements values with the defaults
+     * of a {@link PropertyDefaults} annotation found at the class where element is declared or its superclasses, as
+     * well as an instance of {@link PropertyDetermineResourceStrategy} found similarly.
      *
      * @param element the element
      * @return the with defaults, or null if there is no {@link Property} annotation
      */
-    public static Property getWithDefaults(@NotNull AnnotatedElement element) {
+    public static PropertyJoinedWithDefaultsWrapper getWithDefaults(@NotNull AnnotatedElement element) {
         Property propertyAnnotation = element.getAnnotation(Property.class);
         if (null == propertyAnnotation) return null;
         Class<?> declaringClass = null;
@@ -66,14 +66,14 @@ class PropertyJoinedWithDefaultsWrapper implements Property {
             LOG.warn("Bug: Couldn't determine declaring class for {}, skipping PropertyDefaults.", element.getClass());
         }
         PropertyDefaults propertyDefaults = null;
-        if (null != declaringClass) {
-            propertyDefaults = declaringClass.getAnnotation(PropertyDefaults.class);
-            while (null == propertyDefaults && null != declaringClass.getDeclaringClass()) {
-                declaringClass = declaringClass.getDeclaringClass();
-                propertyDefaults = declaringClass.getAnnotation(PropertyDefaults.class);
-            }
+        PropertyDetermineResourceStrategy determineResourceStrategy = null;
+        while (null != declaringClass) { // go to parents in case of inner classes
+            if (null == propertyDefaults) propertyDefaults = declaringClass.getAnnotation(PropertyDefaults.class);
+            if (null == determineResourceStrategy) determineResourceStrategy =
+                    declaringClass.getAnnotation(PropertyDetermineResourceStrategy.class);
+            declaringClass = declaringClass.getDeclaringClass();
         }
-        return new PropertyJoinedWithDefaultsWrapper(propertyAnnotation, propertyDefaults);
+        return new PropertyJoinedWithDefaultsWrapper(propertyAnnotation, propertyDefaults, determineResourceStrategy);
     }
 
     @Override
@@ -119,10 +119,9 @@ class PropertyJoinedWithDefaultsWrapper implements Property {
     }
 
     @Override
-    public Class<? extends DetermineResourceStategy> determineResourceStrategy() {
-        return propertyAnnotation.determineResourceStrategy() != defaultForProperty.determineResourceStrategy() ?
-                propertyAnnotation.determineResourceStrategy() :
-                propertyDefaultsAnnotation.determineResourceStrategy();
+    public Class<? extends DetermineResourceStategy> value() {
+        return null != determineResourceStrategy ? determineResourceStrategy.value() :
+                DetermineResourceStategy.OriginalResourceStrategy.class;
     }
 
     @Override
