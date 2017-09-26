@@ -10,6 +10,10 @@ the central services to set up an Apache Sling based application platform
 
 ### see also
 
+#### [Composum Pages](https://github.com/ist-dresden/composum-pages)
+
+* [Composum Pages Wiki](https://ist-software.atlassian.net/wiki/display/CMP/Composum+Pages)
+
 #### [Composum Assets](https://github.com/ist-dresden/composum-assets)
 
 * [Composum Assets Wiki](https://ist-software.atlassian.net/wiki/display/CMP/Composum+Assets)
