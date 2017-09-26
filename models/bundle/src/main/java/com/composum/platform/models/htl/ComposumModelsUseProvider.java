@@ -84,14 +84,10 @@ public class ComposumModelsUseProvider implements UseProvider {
         }
 
         Bindings globalBindings = renderContext.getBindings();
-        BeanContext beanContext = new BeanContext.Map(globalBindings);
-        beanContext.setAttribute(SlingBindings.class.getName(), makeSlingBindings(globalBindings),
-                BeanContext.Scope.page);
-        beanContext.setAttribute(BeanContext.ATTR_RESOLVER, globalBindings.get(SlingBindings.RESOLVER),
-                BeanContext.Scope.page);
+        BeanContext beanContext = new BeanContext.Page(new HtlPageContext(globalBindings));
 
         Map<String, Object> originalRequestAttributes = new HashMap<>();
-        SlingHttpServletRequest request = (SlingHttpServletRequest) globalBindings.get(SlingBindings.REQUEST);
+        SlingHttpServletRequest request = beanContext.getRequest();
         for (Map.Entry<String, Object> entry : arguments.entrySet()) {
             // set args as request attributes, compatible to SlingModelsUseProvider
             originalRequestAttributes.put(entry.getKey(), request.getAttribute(entry.getKey()));
@@ -123,12 +119,6 @@ public class ComposumModelsUseProvider implements UseProvider {
             for (Map.Entry<String, Object> entry : originalRequestAttributes.entrySet())
                 request.setAttribute(entry.getKey(), entry.getValue());
         }
-    }
-
-    protected SlingBindings makeSlingBindings(Bindings globalBindings) {
-        SlingBindings res = new SlingBindings();
-        res.putAll(globalBindings);
-        return res;
     }
 
 }
