@@ -1,0 +1,125 @@
+<!--/*
+    cpnl : a collection of universal Sling related tags *
+    (generated with generateHtlTld.groovy from cpnl.tld . CAUTION: largely untested yet)
+/-->
+
+<template data-sly-template.startBundle="${@ basename}"><!--/*
+    the tag to declare a resource bundle (I18N)
+        basename (required=true, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.sling.cpnl.BundleTag', basename=basename}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endBundle><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.sling.cpnl.BundleTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.startComponent="${@ id, type, scope, replace}"><!--/*
+    Creates a component model from a given className
+        id (required=true, String)
+        type (required=true, String)
+        scope (required=false, String)
+        replace (required=false, Boolean)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.sling.cpnl.ComponentTag', id=id, type=type, scope=scope, replace=replace}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endComponent><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.sling.cpnl.ComponentTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.startClientlib="${@ path, category, type}"><!--/*
+    Includes a clientlib reference (JS, CSS etc).
+            Client libraries are folders of sling:resourceType composum/nodes/commons/clientlib containing
+            subfolders for each type, and declare dependencies to other client libraries. The tag can reference
+            multiple client libraries if they are referenced by category, and if the client library/-ies have dependencies
+            to other client libraries / resources. Thus, the tag can render as several link / script / img tags.
+        path (required=false, String) Path to the client library - folder of sling:resourceType composum/nodes/commons/clientlib. One of path or category is required.
+        category (required=false, String) Category of client libraries to be included. One of path or category is required.
+        type (required=false, String) Type of rendered resources: css, js, link, img, png, jpg. Default: link .
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.sling.cpnl.ClientlibTag', path=path, category=category, type=type}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endClientlib><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.sling.cpnl.ClientlibTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.startImage="${@ src, tagName, urlAttr, map, role, classes}"><!--/*
+    Generates image elements with mapped source URLs
+        src (required=true, String)
+        tagName (required=false, String)
+        urlAttr (required=false, String)
+        map (required=false, Boolean)
+        role (required=false, String)
+        classes (required=false, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.sling.cpnl.ImageTag', src=src, tagName=tagName, urlAttr=urlAttr, map=map, role=role, classes=classes}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endImage><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.sling.cpnl.ImageTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.startLink="${@ href, tagName, urlAttr, map, role, classes}"><!--/*
+    Generates link elements with mapped URLs
+        href (required=true, String)
+        tagName (required=false, String)
+        urlAttr (required=false, String)
+        map (required=false, Boolean)
+        role (required=false, String)
+        classes (required=false, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.sling.cpnl.LinkTag', href=href, tagName=tagName, urlAttr=urlAttr, map=map, role=role, classes=classes}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endLink><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.sling.cpnl.LinkTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.startForm="${@ action, role, classes, charset, enctype, method}"><!--/*
+    Generates form elements with mapped action URLs
+        action (required=true, String)
+        role (required=false, String)
+        classes (required=false, String)
+        charset (required=false, String)
+        enctype (required=false, String)
+        method (required=false, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.sling.cpnl.FormTag', action=action, role=role, classes=classes, charset=charset, enctype=enctype, method=method}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endForm><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.sling.cpnl.FormTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.startTable="${@ path, role, classes, toolbar}"><!--/*
+    Generates a bootstrap table element with mapped AJAX URLs
+        path (required=true, String)
+        role (required=false, String)
+        classes (required=false, String)
+        toolbar (required=false, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.sling.cpnl.TableTag', path=path, role=role, classes=classes, toolbar=toolbar}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endTable><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.sling.cpnl.TableTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.startText="${@ type, value, property, escape, i18n, format, tagName, tagClass}"><!--/*
+    renders text values with optional tag and class, formatting and with escaping (XSS prevention)
+        type (required=false, String)
+        value (required=false, String)
+        property (required=false, String)
+        escape (required=false, Boolean)
+        i18n (required=false, Boolean)
+        format (required=false, String)
+        tagName (required=false, String)
+        tagClass (required=false, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.sling.cpnl.TextTag', type=type, value=value, property=property, escape=escape, i18n=i18n, format=format, tagName=tagName, tagClass=tagClass}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endText><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.sling.cpnl.TextTag'}">${adapter.doEnd}</sly></template>

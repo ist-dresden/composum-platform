@@ -55,7 +55,7 @@
                             *;scope=compile|runtime
                         </Embed-Dependency>
                         <Sling-Model-Packages>
-                            com.composum.platform.models.model
+                            com.composum.platform.models
                         </Sling-Model-Packages>
                     </instructions>
                 </configuration>
@@ -75,6 +75,10 @@
         <dependency>
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.sling</groupId>
+            <artifactId>org.apache.sling.scripting.jsp</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.sling</groupId>
@@ -154,6 +158,10 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
         </dependency>
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+        </dependency>
 
         <!-- OSGi, Felix -->
         <dependency>
@@ -174,6 +182,10 @@
         </dependency>
 
         <!-- Web Application API -->
+        <dependency>
+            <groupId>javax.servlet.jsp</groupId>
+            <artifactId>jsp-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
@@ -212,7 +224,6 @@
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.testing.logging-mock</artifactId>
         </dependency>
-
     </dependencies>
     <profiles>
 
