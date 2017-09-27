@@ -57,7 +57,7 @@ public class DescendantPathViaProvider implements ViaProvider {
         } else if (original instanceof BeanContext) {
             BeanContext beanContext = (BeanContext) original;
             if (null != beanContext.getResource()) {
-                result = beanContext.cloneWith(beanContext.getResource().getChild(value));
+                result = beanContext.withResource(beanContext.getResource().getChild(value));
             } else result = ORIGINAL; // no change when no resource, anyway.
         } else if (original instanceof Adaptable) {
             Resource resource = ((Adaptable) original).adaptTo(Resource.class);
