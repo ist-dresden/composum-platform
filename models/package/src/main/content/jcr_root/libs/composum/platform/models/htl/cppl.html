@@ -1,0 +1,284 @@
+<!--/*
+    cppl : a collection of universal CMS related tags
+    (generated with generateHtlTld.groovy from cppl.tld . CAUTION: largely untested yet)
+*/-->
+
+<template data-sly-template.token="${@ test}"><!--/*
+    the tag to reder a token request (image)
+        test (required=false, Object)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.TokenTag', test=test}"
+>${adapter.doStartAndEnd}</sly></template>
+
+
+<template data-sly-template.startContainer="${@ var, type, scope, replace, test, mode, tagId, tagName, cssBase, cssSet, cssAdd, cssClasses}"><!--/*
+    the tag to render a Pages Sling container
+        var (required=true, String)
+        type (required=true, String)
+        scope (required=false, String)
+        replace (required=false, Boolean)
+        test (required=false, Object)
+        mode (required=false, String)
+        tagId (required=false, String)
+        tagName (required=false, String)
+        cssBase (required=false, String)
+        cssSet (required=false, String)
+        cssAdd (required=false, String)
+        cssClasses (required=false, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.ContainerTag', var=var, type=type, scope=scope, replace=replace, test=test, mode=mode, tagId=tagId, tagName=tagName, cssBase=cssBase, cssSet=cssSet, cssAdd=cssAdd, cssClasses=cssClasses}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endContainer><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.ContainerTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.startElement="${@ var, type, scope, replace, test, mode, tagId, tagName, cssBase, cssSet,
+ cssAdd, cssClasses, varScope}"><!--/*
+    the tag to render a Pages Sling element
+        var (required=true, String)
+        type (required=false, String)
+        scope (required=false, String)
+        replace (required=false, Boolean)
+        test (required=false, Object)
+        mode (required=false, String)
+        tagId (required=false, String)
+        tagName (required=false, String)
+        cssBase (required=false, String)
+        cssSet (required=false, String)
+        cssAdd (required=false, String)
+        cssClasses (required=false, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.ElementTag', var=var, type=type, scope=scope,
+        varScope=varScope, replace=replace, test=test, mode=mode, tagId=tagId, tagName=tagName, cssBase=cssBase,
+        cssSet=cssSet, cssAdd=cssAdd, cssClasses=cssClasses}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endElement><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.ElementTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.startModel="${@ var, type, scope, replace, cssBase}"><!--/*
+    a tag to instantiate a model object
+        var (required=true, String)
+        type (required=true, String)
+        scope (required=false, String)
+        replace (required=false, Boolean)
+        cssBase (required=false, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.ModelTag', var=var, type=type, scope=scope, replace=replace, cssBase=cssBase}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endModel><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.ModelTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.startProperty="${@ var, type, scope, replace, property, i18n, cssBase}"><!--/*
+    a tag to instantiate a property model object
+        var (required=true, String)
+        type (required=true, String)
+        scope (required=false, String)
+        replace (required=false, Boolean)
+        property (required=true, String)
+        i18n (required=false, Boolean)
+        cssBase (required=false, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.PropertyTag', var=var, type=type, scope=scope, replace=replace, property=property, i18n=i18n, cssBase=cssBase}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endProperty><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.PropertyTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.include="${@ flush, path, resourceType, resource, addSelectors, replaceSelectors, replaceSuffix, var, scope, dynamic, mode, subtype, test}"><!--/*
+    Extends the sling:include Tag options.
+        flush (required=false, Boolean) Whether to flush the output before including the target
+        path (required=false, ) The path to the resource object to include in the current
+                request processing. If this path is relative it is
+                appended to the path of the current resource whose
+                script is including the given resource. Either resource
+                or path must be specified. If both are specified, the
+                resource takes precedences.
+        resourceType (required=false, ) The resource type of a resource to include. If the resource
+                to be included is specified with the path attribute,
+                which cannot be resolved to a resource, the tag may
+                create a synthetic resource object out of the path and
+                this resource type. If the resource type is set the path
+                must be the exact path to a resource object. That is,
+                adding parameters, selectors and extensions to the path
+                is not supported if the resource type is set.
+        resource (required=false, org.apache.sling.api.resource.Resource) The resource object to include in the current request
+                processing. Either resource or path must be specified. If
+                both are specified, the resource takes precedences.
+        addSelectors (required=false, ) Works like addSelectors from sling:include
+        replaceSelectors (required=false, ) Works like replaceSelectors from sling:include
+        replaceSuffix (required=false, ) Works like replaceSuffix from sling:include
+        var (required=false, ) the name of an attribute which should be filled with the include content
+        scope (required=false, ) the scope of the 'var' attribute
+        dynamic (required=false, Boolean) Whether to force dynamic include as a separate request depending on the server settings.
+                Handle with care: on SSI include, some parameters are not effective anymore
+        mode (required=false, ) the optional display mode for the include (Pages editing mode), or "request" to take the mode from the
+                request itself (to reset overrides).
+        subtype (required=false, ) an optional subtype to include editing components of a component
+        test (required=false, Object)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.IncludeTag', flush=flush, path=path, resourceType=resourceType, resource=resource, addSelectors=addSelectors, replaceSelectors=replaceSelectors, replaceSuffix=replaceSuffix, var=var, scope=scope, dynamic=dynamic, mode=mode, subtype=subtype, test=test}"
+>${adapter.doStartAndEnd}</sly></template>
+
+
+<template data-sly-template.startBody="${@ tagId, data, cssBase, cssSet, cssAdd, cssClasses}"><!--/*
+    the wrapper for the HTML BODY tag
+        tagId (required=false, String) the optional element id for the BODY DOM element
+        data (required=false, String)
+        cssBase (required=false, String)
+        cssSet (required=false, String)
+        cssAdd (required=false, String)
+        cssClasses (required=false, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.PageBodyTag', tagId=tagId, data=data, cssBase=cssBase, cssSet=cssSet, cssAdd=cssAdd, cssClasses=cssClasses}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endBody><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.PageBodyTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.startHead><!--/*
+    the wrapper for the HTML HEAD tag
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.PageHeadTag'}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endHead><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.PageHeadTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.startEditDialog="${@ var, type, scope, replace, tagId, title, languageContext, resourceType, primaryType, selector, cssBase, cssSet, cssAdd, cssClasses}"><!--/*
+    the wrapper for the edit dialog tag
+        var (required=true, String)
+        type (required=true, String)
+        scope (required=false, String)
+        replace (required=false, Boolean)
+        tagId (required=false, String)
+        title (required=true, String)
+        languageContext (required=false, Boolean)
+        resourceType (required=false, String)
+        primaryType (required=false, String)
+        selector (required=false, String)
+        cssBase (required=false, String)
+        cssSet (required=false, String)
+        cssAdd (required=false, String)
+        cssClasses (required=false, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.EditDialogTag', var=var, type=type, scope=scope, replace=replace, tagId=tagId, title=title, languageContext=languageContext, resourceType=resourceType, primaryType=primaryType, selector=selector, cssBase=cssBase, cssSet=cssSet, cssAdd=cssAdd, cssClasses=cssClasses}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endEditDialog><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.EditDialogTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.startEditDialogTab="${@ tabId, label}"><!--/*
+    the wrapper for an edit dialog tab
+        tabId (required=true, String)
+        label (required=true, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.EditDialogTabTag', tabId=tabId, label=label}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endEditDialogTab><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.EditDialogTabTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.startEditDialogGroup="${@ groupId, label, expanded}"><!--/*
+    the wrapper for an edit dialog group
+        groupId (required=false, String)
+        label (required=true, String)
+        expanded (required=false, Boolean)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.EditDialogGroupTag', groupId=groupId, label=label, expanded=expanded}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endEditDialogGroup><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.EditDialogGroupTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.widget="${@ type, label, property, name, value, i18n, multi, hint, disabled, placeholder, modelClass}"><!--/*
+    the dialog widget rendering tag
+        type (required=true, String)
+        label (required=false, String)
+        property (required=false, String)
+        name (required=false, String)
+        value (required=false, Object)
+        i18n (required=false, Boolean)
+        multi (required=false, Boolean)
+        hint (required=false, String)
+        disabled (required=false, Boolean)
+        placeholder (required=false, String)
+        modelClass (required=false, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.EditWidgetTag', type=type, label=label, property=property, name=name, value=value, i18n=i18n, multi=multi, hint=hint, disabled=disabled, placeholder=placeholder, modelClass=modelClass}"
+>${adapter.doStartAndEnd}</sly></template>
+
+
+<template data-sly-template.startMultiwidget="${@ label, property, i18n, var, modelClass, cssBase, cssSet, cssAdd}"><!--/*
+    the widget rendering tag for structured multi value properties
+        label (required=true, String)
+        property (required=true, String)
+        i18n (required=false, Boolean)
+        var (required=true, String)
+        modelClass (required=false, String)
+        cssBase (required=false, String)
+        cssSet (required=false, String)
+        cssAdd (required=false, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.EditMultiWidgetTag', label=label, property=property, i18n=i18n, var=var, modelClass=modelClass, cssBase=cssBase, cssSet=cssSet, cssAdd=cssAdd}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endMultiwidget><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.EditMultiWidgetTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.startEditToolbar="${@ var, type, scope, replace, tagId, cssBase, cssSet, cssAdd, cssClasses}"><!--/*
+    the wrapper for the edit toolbar tag
+        var (required=true, String)
+        type (required=true, String)
+        scope (required=false, String)
+        replace (required=false, Boolean)
+        tagId (required=false, String)
+        cssBase (required=false, String)
+        cssSet (required=false, String)
+        cssAdd (required=false, String)
+        cssClasses (required=false, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.EditToolbarTag', var=var, type=type, scope=scope, replace=replace, tagId=tagId, cssBase=cssBase, cssSet=cssSet, cssAdd=cssAdd, cssClasses=cssClasses}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endEditToolbar><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.EditToolbarTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.startEditAction="${@ icon, label, action, title}"><!--/*
+    the action tag for the edit toolbars
+        icon (required=true, String)
+        label (required=true, String)
+        action (required=true, String)
+        title (required=false, String)
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.EditActionTag', icon=icon, label=label, action=action, title=title}"
+>${adapter.doStart}</sly></template>
+
+<template data-sly-template.endEditAction><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.EditActionTag'}">${adapter.doEnd}</sly></template>
+
+
+<template data-sly-template.defineObjects><!--/*
+    the extended define objects tag
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.DefineObjectsTag'}"
+>${adapter.doStartAndEnd}</sly></template>
+
+
+<template data-sly-template.defineFrameObjects><!--/*
+    the extended define objects tag for edit frame components
+ */--><sly data-sly-use.adapter="${'com.composum.platform.models.htl.TagHtlAdapter' @
+        adapterTagClass='com.composum.pages.commons.taglib.DefineFrameObjectsTag'}"
+>${adapter.doStartAndEnd}</sly></template>
