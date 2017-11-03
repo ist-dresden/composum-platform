@@ -144,6 +144,12 @@
                                 <include>.*/rep:policy(/.*)?</include>
                             </includes>
                         </filter>
+                        <filter>
+                            <root>/var</root>
+                            <includes>
+                                <include>.*/rep:policy(/.*)?</include>
+                            </includes>
+                        </filter>
                     </filters>
 
                     <embeddeds>

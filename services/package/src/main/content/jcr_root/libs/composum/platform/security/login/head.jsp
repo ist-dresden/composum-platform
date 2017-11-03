@@ -7,6 +7,4 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<link rel="stylesheet" href="${slingRequest.contextPath}/libs/jslibs/bootstrap/3.3.7/css/bootstrap.css" />
-<link rel="stylesheet" href="${slingRequest.contextPath}/libs/fonts/roboto/2014/roboto.css" />
-<link rel="stylesheet" href="${slingRequest.contextPath}/libs/composum/platform/security/login/login.css" />
+<cpn:clientlib type="css" path="/libs/composum/platform/security/login/clientlib"/>
