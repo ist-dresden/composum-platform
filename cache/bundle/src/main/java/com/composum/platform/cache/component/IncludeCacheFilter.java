@@ -2,8 +2,10 @@ package com.composum.platform.cache.component;
 
 import com.composum.platform.commons.response.TextBufferResponseWrapper;
 import com.google.gson.stream.JsonWriter;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.osgi.framework.Constants;
@@ -92,8 +94,9 @@ public class IncludeCacheFilter implements Filter {
                         // fall through: continue witch caching...
 
                     case always:
+                        final String cacheKey = buildCacheKey(slingRequest, resourcePath);
 
-                        String content = service.getIncludeCacheContent(resourcePath);
+                        String content = service.getIncludeCacheContent(cacheKey);
                         // set the request flag that all resources included in the current resource are cached implicit
                         request.setAttribute(ComponentCache.ATTR_IS_EMBEDDING, content != null
                                 ? ComponentCache.CachePolicy.embedded       // always cached or
@@ -112,7 +115,7 @@ public class IncludeCacheFilter implements Filter {
                             chain.doFilter(request, responseWrapper);
                             content = responseWrapper.toString();
 
-                            service.setIncludeCacheContent(resourcePath, content);
+                            service.setIncludeCacheContent(cacheKey, content);
 
                         } else {
                             if (LOG.isDebugEnabled()) {
@@ -175,5 +178,21 @@ public class IncludeCacheFilter implements Filter {
             }
             chain.doFilter(request, response);
         }
+    }
+
+    protected String buildCacheKey(SlingHttpServletRequest request, String resourcePath) {
+        StringBuilder cacheKeyBuilder = new StringBuilder(resourcePath);
+
+        // build the cache key using relevant request modifiers
+        RequestPathInfo pathInfo = request.getRequestPathInfo();
+        String value;
+        if (StringUtils.isNotBlank(value = pathInfo.getSelectorString())) {
+            cacheKeyBuilder.append('@').append(value);
+        }
+        if (StringUtils.isNotBlank(value = pathInfo.getSuffix())) {
+            cacheKeyBuilder.append('#').append(value);
+        }
+
+        return cacheKeyBuilder.toString();
     }
 }
