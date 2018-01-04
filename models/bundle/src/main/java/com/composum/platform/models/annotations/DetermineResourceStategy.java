@@ -13,6 +13,7 @@ public interface DetermineResourceStategy {
 
     /**
      * Determines the resource the properties of the model should be initialized from.
+     * <b>CAUTION</b>: must be idempotent: if called twice, the second call must return the same resource.
      *
      * @param beanContext     used to look up services, if neccesary.
      * @param requestResource the resource for which we determine the resource, nullable
