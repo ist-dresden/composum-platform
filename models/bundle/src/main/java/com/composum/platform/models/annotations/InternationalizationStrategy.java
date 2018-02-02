@@ -62,9 +62,9 @@ public interface InternationalizationStrategy {
      * Class)} to retrieve inherited values and retrieves internationalized properties from locale dependent folders
      * below i18n/ at the current resource. When a i18n-able property name is stored at a resource at path, it is looked
      * up at the following paths, in that order (the examples refer to a hypothetical locale with language=de,
-     * country=DE, variant=EURO_DE_EURO):
+     * country=DE, variant=SN):
      * <p>
-     * <ol> <li>path/i18n/language_country_variant/name, for example path/i18n/de_DE_EURO/name</li>
+     * <ol> <li>path/i18n/language_country_variant/name, for example path/i18n/de_DE_SN/name</li>
      * <li>path/i18n/language_country/name, for example path/i18n/de_DE/name</li> <li>path/i18n/language/name, for
      * example path/i18n/de/name</li> <li>path/name, for example path/name</li> </ol>
      * <p>
@@ -108,8 +108,8 @@ public interface InternationalizationStrategy {
         }
 
         /**
-         * Calculates the paths to look at for internationalized values. For a locale de_DE_EURO that would be:
-         * [i18n/de_DE_EURO, i18n/de_DE, i18n/de, .]
+         * Calculates the paths to look at for internationalized values. For a locale de_DE_SN that would be:
+         * [i18n/de_DE_SN, i18n/de_DE, i18n/de, .]
          *
          * @param locale the locale, nullable
          * @return the i18n paths, not null
