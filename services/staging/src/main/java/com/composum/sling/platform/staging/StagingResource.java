@@ -1,5 +1,6 @@
 package com.composum.sling.platform.staging;
 
+import com.composum.sling.core.JcrResource;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -32,7 +33,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.sling.jcr.resource.api.JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY;
 
 /** Provides a view of a frozen node as if it was a normal resource. */
-public class StagingResource implements Resource {
+public class StagingResource implements JcrResource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(StagingResource.class);
 
@@ -65,6 +66,12 @@ public class StagingResource implements Resource {
      */
     @Nonnull
     private final String originalName;
+
+    /**
+     * The original node type of the resource. If it is a resource inside the version storage, it is the content of is
+     * the value from the 'jcr:frozenPrimaryType'.
+     */
+    private final String originalPrimaryType;
 
     /**
      * The original type of the resource. If it is a resource inside the version storage, it is the content of is
@@ -138,8 +145,30 @@ public class StagingResource implements Resource {
         this.resourceResolver = stagingResourceResolver;
         this.originalResourcePath = calculatePath();
         this.originalName = calculateName();
+        this.originalPrimaryType = calculatePrimaryType();
         this.originalResourceType = calculateResourceType();
         this.request = request;
+    }
+
+    /**
+     * Gets the JCR primary type of the resource.
+     *
+     * @return the ResourceTyp
+     */
+    @Nonnull
+    private String calculatePrimaryType() {
+        if (isPropertyResource(frozenResource)) {
+            final String parentResourceType = StagingResource.wrap(frozenResource.getParent(), resourceResolver).getResourceType();
+            return "jcr:property";
+        } else {
+            if (isInVersionStorage(frozenResource)) {
+                // if in version storage, the primary type is stored in jcr:frozenPrimaryType
+                return frozenResource.getValueMap().get(JCR_FROZENPRIMARYTYPE, String.class);
+            } else {
+                // else use jcr:primaryType
+                return frozenResource.getValueMap().get(JCR_PRIMARYTYPE, String.class);
+            }
+        }
     }
 
     /**
@@ -157,13 +186,7 @@ public class StagingResource implements Resource {
         } else {
             final String slingResourceType = frozenResource.getValueMap().get(SLING_RESOURCE_TYPE_PROPERTY, String.class);
             if (StringUtils.isBlank(slingResourceType)) {
-                if (isInVersionStorage(frozenResource)) {
-                    // if in version storage, the primary type is stored in jcr:frozenPrimaryType
-                    return frozenResource.getValueMap().get(JCR_FROZENPRIMARYTYPE, String.class);
-                } else {
-                    // else use jcr:primaryType
-                    return frozenResource.getValueMap().get(JCR_PRIMARYTYPE, String.class);
-                }
+                return calculatePrimaryType();
             }
             return slingResourceType;
         }
@@ -320,6 +343,12 @@ public class StagingResource implements Resource {
                 ? frozenResource.getChild(relPath)
                 : resourceResolver.getResource(frozenResource, relPath);
         return child == null ? null : StagingResource.wrap(child, resourceResolver);
+    }
+
+    @Nonnull
+    public String getPrimaryType() {
+        LOGGER.debug("getPrimaryType(): {}", originalPrimaryType);
+        return originalPrimaryType;
     }
 
     @Override

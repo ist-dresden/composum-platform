@@ -7,7 +7,12 @@ import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.sling.api.SlingException;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.LoginException;
-import org.apache.sling.api.resource.*;
+import org.apache.sling.api.resource.NonExistingResource;
+import org.apache.sling.api.resource.PersistenceException;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.api.resource.ResourceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,18 +20,28 @@ import javax.annotation.CheckForNull;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.*;
+import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.version.Version;
-import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Iterator;
 import java.util.Map;
 
-import static com.composum.sling.platform.staging.StagingUtils.*;
+import static com.composum.sling.platform.staging.StagingUtils.isInVersionStorage;
+import static com.composum.sling.platform.staging.StagingUtils.isRoot;
+import static com.composum.sling.platform.staging.StagingUtils.isUnderVersionControl;
+import static com.composum.sling.platform.staging.StagingUtils.isVersionable;
 import static javax.jcr.query.Query.XPATH;
-import static org.apache.jackrabbit.JcrConstants.*;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENNODE;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONLABELS;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONSTORAGE;
+import static org.apache.jackrabbit.JcrConstants.NT_VERSIONHISTORY;
 
 /** Resolver that provides a view to the frozen nodes of a release as if they were the original resources. */
 public class StagingResourceResolver implements ResourceResolver {
@@ -147,7 +162,7 @@ public class StagingResourceResolver implements ResourceResolver {
                 if (null == frozenNodePath) return new NonExistingResource(this, resource.getPath());
                 final Resource frozenResource = resourceResolver.getResource(frozenNodePath);
                 return frozenResource == null
-                        ? new NonExistingResource(this, frozenNodePath)
+                        ? new NonExistingResource(this, resource.getPath())
                         : StagingResource.wrap(request, frozenResource, this);
             }
 
