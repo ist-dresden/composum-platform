@@ -3,4 +3,4 @@
         jcr:primaryType="sling:OrderedFolder"
         embed="[jslibs/bootstrap/3.3.7/css/bootstrap.css,
                 fonts/roboto/2014/roboto.css,
-                composum/platform/security/login/login.css]"/>
+                composum/platform/security/login/css/login.css]"/>
