@@ -8,6 +8,7 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
@@ -30,7 +31,8 @@ import java.util.Map;
         property = {
                 Constants.SERVICE_DESCRIPTION + "=Cache Services Manager"
         },
-        immediate = true
+        immediate = true,
+        configurationPolicy = ConfigurationPolicy.REQUIRE
 )
 public class CacheManagerImpl implements CacheManager {
 

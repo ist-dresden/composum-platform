@@ -182,6 +182,7 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
         return releaseMappingAllowed(path, true, allowPathPatterns, denyPathPatterns);
     }
 
+    @SuppressWarnings("Duplicates")
     private boolean releaseMappingAllowed(String path, boolean defaultValue,
                                           List<Pattern> allow, List<Pattern> deny) {
         if (StringUtils.isNotBlank(path)) {

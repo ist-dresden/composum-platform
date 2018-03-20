@@ -53,7 +53,7 @@ public class RequestCacheFilter implements Filter {
     public final void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
-        if (service.getConfig().debug()) {
+        if (service != null && service.getConfig().debug()) {
             final SlingHttpServletRequest slingRequest = (SlingHttpServletRequest) request;
             final SlingHttpServletResponse slingResponse = (SlingHttpServletResponse) response;
             final RequestPathInfo pathInfo = slingRequest.getRequestPathInfo();

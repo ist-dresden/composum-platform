@@ -24,7 +24,8 @@ import java.io.Serializable;
 @Component(
         property = {
                 Constants.SERVICE_DESCRIPTION + "=Component Cache"
-        }
+        },
+        configurationPolicy = ConfigurationPolicy.REQUIRE
 )
 @Designate(ocd = ComponentCacheService.Config.class)
 public class ComponentCacheService implements ComponentCache {

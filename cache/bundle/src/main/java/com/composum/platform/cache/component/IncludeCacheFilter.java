@@ -58,7 +58,7 @@ public class IncludeCacheFilter implements Filter {
     public final void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
-        if (service.isIncludeCacheEnabled(request, response)) {
+        if (service != null && service.isIncludeCacheEnabled(request, response)) {
             SlingHttpServletRequest slingRequest = (SlingHttpServletRequest) request;
 
             final ComponentCache.Config config = service.getConfig();

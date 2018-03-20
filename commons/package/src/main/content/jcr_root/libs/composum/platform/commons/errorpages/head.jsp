@@ -8,4 +8,4 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <link rel="stylesheet" href="${cpn:url(slingRequest,'/libs/jslibs/bootstrap/3.3.7/css/bootstrap.css')}"/>
-<link rel="stylesheet" href="${cpn:url(slingRequest,'/libs/composum/platform/commons/errorhandler/page.css')}"/>
+<link rel="stylesheet" href="${cpn:url(slingRequest,'/libs/composum/platform/commons/errorpages/page.css')}"/>
