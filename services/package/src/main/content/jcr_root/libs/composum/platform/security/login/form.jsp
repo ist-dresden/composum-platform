@@ -9,9 +9,7 @@
             <div class="alert alert-hidden" role="alert"></div>
 
             <input type="hidden" name="_charset_" value="UTF-8"/>
-            <input type="hidden" name="selectedAuthType" value="form"/>
-            <input type="hidden" name="accessmode" value=""/>
-            <input type="hidden" name="resource" value=""/>
+            <input type="hidden" name="j_validate" value="true"/>
 
             <div class="form-group">
                 <label for="j_username" class="control-label">${cpn:i18n(slingRequest,'Username')}</label>

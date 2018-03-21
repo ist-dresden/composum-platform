@@ -148,7 +148,8 @@ public class PlatformAccessFilter implements Filter {
         String[] publicAllowUriPatterns() default {
                 "^/robots\\.txt$",
                 "^/sitemap\\.xml$",
-                "^/favicon\\.ico$"
+                "^/favicon\\.ico$",
+                "^/bin/cpm/nodes/clientlibs\\.(min\\.)?(css|js)(/.*)?$"
         };
 
         @AttributeDefinition(
