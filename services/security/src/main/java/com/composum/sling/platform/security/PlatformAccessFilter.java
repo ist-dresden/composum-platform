@@ -109,7 +109,7 @@ public class PlatformAccessFilter implements Filter {
         )
         String[] authorAllowAnonUriPatterns() default {
                 "^/apps/.*\\.(css|js)$",
-                "^/bin/cpm/nodes/clientlibs\\.(min\\.)?(css|js)(/.*)?$",
+                "^/bin/public/clientlibs\\.(min\\.)?(css|js)(/.*)?$",
                 "^/libs(/jslibs)?/.*\\.(js|css|map)$",
                 "^/(libs/)?fonts/.*\\.(css|eot|svg|ttf|woff2?)$",
                 "^/libs(/composum/platform/security)?/login.*\\.(html|css|js|png)$",
@@ -149,7 +149,7 @@ public class PlatformAccessFilter implements Filter {
                 "^/robots\\.txt$",
                 "^/sitemap\\.xml$",
                 "^/favicon\\.ico$",
-                "^/bin/cpm/nodes/clientlibs\\.(min\\.)?(css|js)(/.*)?$"
+                "^/bin/public/clientlibs\\.(min\\.)?(css|js)(/.*)?$"
         };
 
         @AttributeDefinition(
@@ -267,8 +267,11 @@ public class PlatformAccessFilter implements Filter {
                     }
                 }
 
-                request.setAttribute(LinkMapper.LINK_MAPPER_REQUEST_ATTRIBUTE,
-                        config.enableAuthorMapping() ? LinkMapper.RESOLVER : LinkMapper.CONTEXT);
+                LinkMapper mapper = config.enableAuthorMapping() ? LinkMapper.RESOLVER : LinkMapper.CONTEXT;
+                request.setAttribute(LinkMapper.LINK_MAPPER_REQUEST_ATTRIBUTE, mapper);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("author: '{}' ({})", uri, path);
+                }
 
             } else {
 
@@ -282,6 +285,10 @@ public class PlatformAccessFilter implements Filter {
                     LOG.warn("REJECT(URI): '" + uri + "' by public URI patterns!");
                     sendError(slingResponse, SlingHttpServletResponse.SC_NOT_FOUND);
                     return;
+                }
+
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("public: '{}' ({})", uri, path);
                 }
             }
         }
