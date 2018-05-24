@@ -23,6 +23,8 @@ import java.util.regex.Pattern;
  */
 public interface InternalRequestService {
 
+    String RA_IS_INTERNAL_REQUEST = "composum.platform.isInternalRequest";
+
     /** the URL pattern to check the URL and separate the path info and query */
     Pattern URL_PATTERN = Pattern.compile("^((https?)://([^/:]+)(:[0-9]+)?)?(/[^?]*)(\\?(.*))?$");
 

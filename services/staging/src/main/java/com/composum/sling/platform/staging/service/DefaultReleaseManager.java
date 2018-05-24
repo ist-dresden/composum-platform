@@ -4,6 +4,7 @@ import com.composum.sling.core.util.ResourceUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 
@@ -163,10 +164,7 @@ public class DefaultReleaseManager implements ReleaseManager {
                     versionHistory.addVersionLabel(currentVersion.getName(), releaseLabel, true);
                 }
             } else {
-                final Resource child = resource.getChild("jcr:content");
-                if (child != null) {
-                    createRelease(resolver, child, releaseLabel);
-                }
+                createRelease(resolver, resource.getChild(JcrConstants.JCR_CONTENT), releaseLabel);
             }
         }
     }
@@ -252,7 +250,6 @@ public class DefaultReleaseManager implements ReleaseManager {
         return node.isCheckedOut();
     }
 
-    @CheckReturnValue
     protected String adjustReleaseLabel(String releaseLabel) {
         if (!releaseLabel.startsWith(RELEASE_LABEL_PREFIX)) {
             releaseLabel = RELEASE_LABEL_PREFIX + releaseLabel;

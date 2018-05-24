@@ -49,13 +49,15 @@ public class PlatformAccessFilter implements Filter {
 
     private static final Logger LOG = LoggerFactory.getLogger(PlatformAccessFilter.class);
 
+    public static final String RA_IS_INTERNAL_REQUEST = "composum.platform.isInternalRequest";
+
     // access filter keys
     public static final String ACCESS_MODE_PARAM = "cpm.access";
     public static final String ACCESS_MODE_KEY = "composum-platform-access-mode";
 
     public enum AccessMode {
 
-        AUTHOR, PUBLIC;
+        AUTHOR, PREVIEW, PUBLIC;
 
         public static AccessMode accessModeValue(Object value) {
             AccessMode mode = null;
@@ -239,7 +241,29 @@ public class PlatformAccessFilter implements Filter {
                         + ", secure: " + request.isSecure() + ", SSL?: " + slingRequest.getHeader(LinkUtil.FORWARDED_SSL_HEADER) + ")");
             }
 
-            if (accessMode == AccessMode.AUTHOR) {
+            if (accessMode == AccessMode.PUBLIC) {
+
+                Boolean isInternalRequest = (Boolean) request.getAttribute(RA_IS_INTERNAL_REQUEST);
+                if (isInternalRequest == null || !isInternalRequest) {
+
+                    if (isAccessDenied(path, true, publicAllowPathPatterns, publicDenyPathPatterns)) {
+                        LOG.warn("REJECT(path): '" + path + "' by public path patterns!");
+                        sendError(slingResponse, SlingHttpServletResponse.SC_NOT_FOUND);
+                        return;
+                    }
+
+                    if (isAccessDenied(uri, true, publicAllowUriPatterns, publicDenyUriPatterns)) {
+                        LOG.warn("REJECT(URI): '" + uri + "' by public URI patterns!");
+                        sendError(slingResponse, SlingHttpServletResponse.SC_NOT_FOUND);
+                        return;
+                    }
+                }
+
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("public: '{}' ({})", uri, path);
+                }
+
+            } else {
 
                 if (isAccessDenied(path, true, authorAllowPathPatterns, authorDenyPathPatterns)) {
                     LOG.warn("REJECT(path): '" + path + "' by author path patterns!");
@@ -253,7 +277,7 @@ public class PlatformAccessFilter implements Filter {
                     return;
                 }
 
-                // for authoring access the user must be authenticated
+                // for authoring pr preview access the user must be authenticated
 
                 Session session = resolver.adaptTo(Session.class);
                 String userId = session.getUserID();
@@ -271,24 +295,6 @@ public class PlatformAccessFilter implements Filter {
                 request.setAttribute(LinkMapper.LINK_MAPPER_REQUEST_ATTRIBUTE, mapper);
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("author: '{}' ({})", uri, path);
-                }
-
-            } else {
-
-                if (isAccessDenied(path, true, publicAllowPathPatterns, publicDenyPathPatterns)) {
-                    LOG.warn("REJECT(path): '" + path + "' by public path patterns!");
-                    sendError(slingResponse, SlingHttpServletResponse.SC_NOT_FOUND);
-                    return;
-                }
-
-                if (isAccessDenied(uri, true, publicAllowUriPatterns, publicDenyUriPatterns)) {
-                    LOG.warn("REJECT(URI): '" + uri + "' by public URI patterns!");
-                    sendError(slingResponse, SlingHttpServletResponse.SC_NOT_FOUND);
-                    return;
-                }
-
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("public: '{}' ({})", uri, path);
                 }
             }
         }
@@ -309,19 +315,11 @@ public class PlatformAccessFilter implements Filter {
         if (value != null) {
             if (isAuthorHost(request)) {
                 accessMode = value;
-                HttpSession httpSession = request.getSession(false);
+                HttpSession httpSession = request.getSession(true);
                 if (httpSession != null) {
                     httpSession.setAttribute(ACCESS_MODE_KEY, accessMode);
                     if (LOG.isInfoEnabled()) {
                         LOG.info("session access mode (" + ACCESS_MODE_KEY + ") set to: " + accessMode);
-                    }
-                } else {
-                    Cookie cookie = new Cookie(ACCESS_MODE_KEY, accessMode.name());
-                    cookie.setMaxAge(24 * 60 * 60);
-                    cookie.setPath("/");
-                    response.addCookie(cookie);
-                    if (LOG.isInfoEnabled()) {
-                        LOG.info("access mode cookie (" + cookie.getName() + ") set to: " + cookie.getValue());
                     }
                 }
             }

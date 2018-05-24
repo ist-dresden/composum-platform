@@ -216,9 +216,9 @@ public class StagingResourceResolver implements ResourceResolver {
                 final Version released = versionHistory.getVersionByLabel(releasedLabel);
                 return released.getFrozenNode().getPath();
             }
-        } catch (PathNotFoundException pnfE) {
+        } catch (PathNotFoundException | IllegalArgumentException ex) {
             // this exception is thrown if the node is not existing or only exists in the version storage
-            LOGGER.debug("No versionhistory for path {} : {}", resource.getPath(), pnfE);
+            LOGGER.debug("No versionhistory for path {} : {}", resource.getPath(), ex);
         }
 
         final Iterator<Resource> versionHistoryResources = findVersionHistoriesForPathAndRelease(resource.getPath(),

@@ -52,8 +52,13 @@ public class InternalRequestServiceImpl implements InternalRequestService {
     protected SlingResponse doGet(@Nonnull SlingHttpServletRequest contextRequest, @Nonnull PathInfo pathInfo)
             throws ServletException, IOException {
         SlingResponse response = null;
-        if (StringUtils.isNotBlank(pathInfo.getResourcePath())) {
+        String path = pathInfo.getResourcePath();
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("doGet({})", path);
+        }
+        if (StringUtils.isNotBlank(path)) {
             SlingRequest request = new SlingRequest(contextRequest, pathInfo);
+            request.setAttribute(RA_IS_INTERNAL_REQUEST, Boolean.TRUE);
             response = new SlingResponse();
             slingRequestProcessor.processRequest(request, response, contextRequest.getResourceResolver());
         }

@@ -46,6 +46,8 @@ public class ContentRefServiceImpl implements ContentRefService {
                 } finally {
                     binary.dispose();
                 }
+            } else {
+                LOG.warn("resource not found or not a file '{}'", path);
             }
         }
         return content;
