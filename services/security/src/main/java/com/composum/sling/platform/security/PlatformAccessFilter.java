@@ -55,6 +55,11 @@ public class PlatformAccessFilter implements Filter {
     public static final String ACCESS_MODE_PARAM = "cpm.access";
     public static final String ACCESS_MODE_KEY = "composum-platform-access-mode";
 
+    // access filter values
+    public static final String ACCESS_MODE_AUTHOR = "AUTHOR";
+    public static final String ACCESS_MODE_PREVIEW = "PREVIEW";
+    public static final String ACCESS_MODE_PUBLIC = "PUBLIC";
+
     public enum AccessMode {
 
         AUTHOR, PREVIEW, PUBLIC;
