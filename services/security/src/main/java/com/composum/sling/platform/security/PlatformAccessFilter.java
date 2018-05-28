@@ -26,7 +26,6 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
@@ -53,11 +52,6 @@ public class PlatformAccessFilter implements Filter {
     // access filter keys
     public static final String ACCESS_MODE_PARAM = "cpm.access";
     public static final String ACCESS_MODE_KEY = "composum-platform-access-mode";
-
-    // access filter values
-    public static final String ACCESS_MODE_AUTHOR = "AUTHOR";
-    public static final String ACCESS_MODE_PREVIEW = "PREVIEW";
-    public static final String ACCESS_MODE_PUBLIC = "PUBLIC";
 
     @ObjectClassDefinition(
             name = "Composum Platform Access Filter Configuration"
@@ -312,16 +306,6 @@ public class PlatformAccessFilter implements Filter {
             HttpSession httpSession = request.getSession(false);
             if (httpSession != null) {
                 value = AccessMode.accessModeValue(httpSession.getAttribute(ACCESS_MODE_KEY));
-                if (value != null && isAuthorHost(request)) {
-                    accessMode = value;
-                }
-            }
-        }
-
-        if (accessMode == null) {
-            Cookie cookie = request.getCookie(ACCESS_MODE_KEY);
-            if (cookie != null) {
-                value = AccessMode.accessModeValue(cookie.getValue());
                 if (value != null && isAuthorHost(request)) {
                     accessMode = value;
                 }

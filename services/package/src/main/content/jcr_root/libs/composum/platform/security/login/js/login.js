@@ -48,7 +48,7 @@
                     contentType: false,
                     processData: false,
                     complete: _.bind(function (result, statusText, thrownError) {
-                        if (result.status == 0 // FIXME: interim fix for the insecure redirect
+                        if (result.status === 0 // FIXME: interim fix for the insecure redirect
                             || (result.status >= 200 && result.status < 400)) {
                             this.alert();
                             var target = this.resource ? this.resource : '/';

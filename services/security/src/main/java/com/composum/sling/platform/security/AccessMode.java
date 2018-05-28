@@ -25,4 +25,9 @@ public enum AccessMode {
     public static AccessMode requestMode(HttpServletRequest request) {
         return accessModeValue(request.getAttribute(PlatformAccessFilter.ACCESS_MODE_KEY));
     }
+
+    // access mode string values
+    public static final String ACCESS_MODE_AUTHOR = AccessMode.AUTHOR.name();
+    public static final String ACCESS_MODE_PREVIEW = AccessMode.PREVIEW.name();
+    public static final String ACCESS_MODE_PUBLIC = AccessMode.PUBLIC.name();
 }
