@@ -6,7 +6,7 @@ public enum AccessMode {
 
     AUTHOR, PREVIEW, PUBLIC;
 
-    public static AccessMode accessModeValue(Object value) {
+    public static AccessMode accessModeValue(Object value, AccessMode defaultValue) {
         AccessMode mode = null;
         if (value != null) {
             try {
@@ -15,7 +15,11 @@ public enum AccessMode {
                 // ok, null...
             }
         }
-        return mode;
+        return mode != null ? mode : defaultValue;
+    }
+
+    public static AccessMode accessModeValue(Object value) {
+        return accessModeValue(value, null);
     }
 
     public static AccessMode requestMode(HttpServletRequest request) {
