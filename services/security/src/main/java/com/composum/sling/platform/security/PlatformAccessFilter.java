@@ -27,7 +27,6 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
@@ -59,27 +58,6 @@ public class PlatformAccessFilter implements Filter {
     public static final String ACCESS_MODE_AUTHOR = "AUTHOR";
     public static final String ACCESS_MODE_PREVIEW = "PREVIEW";
     public static final String ACCESS_MODE_PUBLIC = "PUBLIC";
-
-    public enum AccessMode {
-
-        AUTHOR, PREVIEW, PUBLIC;
-
-        public static AccessMode accessModeValue(Object value) {
-            AccessMode mode = null;
-            if (value != null) {
-                try {
-                    mode = Enum.valueOf(AccessMode.class, value.toString().trim().toUpperCase());
-                } catch (IllegalArgumentException iaex) {
-                    // ok, null...
-                }
-            }
-            return mode;
-        }
-
-        public static AccessMode requestMode(HttpServletRequest request) {
-            return accessModeValue(request.getAttribute(ACCESS_MODE_KEY));
-        }
-    }
 
     @ObjectClassDefinition(
             name = "Composum Platform Access Filter Configuration"
