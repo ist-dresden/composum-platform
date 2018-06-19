@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Component(service = CacheService.class, scope = ServiceScope.PROTOTYPE)
 @Designate(ocd = CacheConfiguration.class, factory = true)
-public class CacheServiceImpl<T extends Serializable> implements CacheService<T> {
+public class CacheServiceImpl<T> implements CacheService<T> {
 
     private static final Logger LOG = LoggerFactory.getLogger(CacheServiceImpl.class);
 
@@ -40,27 +40,39 @@ public class CacheServiceImpl<T extends Serializable> implements CacheService<T>
 
     @Activate
     @Modified
-    public void activate(final CacheConfiguration config) {
+    protected void activate(final CacheConfiguration config) {
         this.config = config;
         if (config.enabled()) {
+            Class<?> type;
             try {
-                Class<?> type = Class.forName(config.contentType());
-                org.ehcache.config.CacheConfiguration cacheConfig =
-                        CacheConfigurationBuilder.newCacheConfigurationBuilder(Serializable.class, type,
-                                ResourcePoolsBuilder.heap(config.maxElementsInMemory()))
-                                .withExpiry(Expirations.timeToLiveExpiration(Duration.of(config.timeToLiveSeconds(), TimeUnit.SECONDS)))
-                                .withExpiry(Expirations.timeToIdleExpiration(Duration.of(config.timeToIdleSeconds(), TimeUnit.SECONDS)))
-                                .build();
-                cache = cacheManager.useCache(config.name(), cacheConfig);
-            } catch (ClassNotFoundException ex) {
-                LOG.error(ex.getMessage(), ex);
+                type = Class.forName(config.contentType());
+            } catch (ClassNotFoundException cnfex) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug(cnfex.getMessage(), cnfex);
+                }
+                type = Object.class;
             }
+            org.ehcache.config.CacheConfiguration cacheConfig =
+                    CacheConfigurationBuilder.newCacheConfigurationBuilder(Serializable.class, type,
+                            ResourcePoolsBuilder.heap(config.maxElementsInMemory()))
+                            .withExpiry(Expirations.timeToLiveExpiration(Duration.of(config.timeToLiveSeconds(), TimeUnit.SECONDS)))
+                            .withExpiry(Expirations.timeToIdleExpiration(Duration.of(config.timeToIdleSeconds(), TimeUnit.SECONDS)))
+                            .build();
+            cache = cacheManager.useCache(config.name(), cacheConfig);
         }
         LOG.info("activate: enabled: {} - cache: {}", config.enabled(), cache);
     }
 
+    /**
+     * extension hook for subclasses
+     */
+    protected void activate(final CacheManager cacheManager, final CacheConfiguration config) {
+        this.cacheManager = cacheManager;
+        activate(config);
+    }
+
     @Deactivate
-    public void deactivate() {
+    protected void deactivate() {
         if (cache != null) {
             cacheManager.removeCache(config.name());
             cache = null;

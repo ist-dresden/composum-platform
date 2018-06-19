@@ -7,7 +7,7 @@ import java.io.Serializable;
 /**
  * the cache service interface
  */
-public interface CacheService<T extends Serializable> {
+public interface CacheService<T> {
 
 	/**
 	 * return the key of the service and of the cache
