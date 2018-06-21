@@ -15,8 +15,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Binary;
-import javax.servlet.ServletException;
-import java.io.IOException;
 
 @SuppressWarnings("deprecation")
 @Component(
@@ -65,7 +63,7 @@ public class ContentRefServiceImpl implements ContentRefService {
                 if (!emptyLines) {
                     content = content.replaceAll("(?m)^\\s+$", ""); // remove empty lines
                 }
-            } catch (ServletException | IOException ex) {
+            } catch (Exception ex) {
                 LOG.error(ex.getMessage(), ex);
             }
         }
