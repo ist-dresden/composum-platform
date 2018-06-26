@@ -36,7 +36,8 @@ public interface InternalRequestService {
      */
     class PathInfo extends MockRequestPathInfo {
 
-        protected ResourceResolver resolver;
+        protected final SlingHttpServletRequest contextRequest;
+        protected final ResourceResolver resolver;
 
         protected String scheme;
         protected String host;
@@ -48,13 +49,14 @@ public interface InternalRequestService {
         protected String pathInfo;
         protected Resource resource;
 
-        public PathInfo(ResourceResolver resolver, String url) {
-            this(resolver);
+        public PathInfo(SlingHttpServletRequest contextRequest, String url) {
+            this(contextRequest);
             setUrl(url);
         }
 
-        public PathInfo(ResourceResolver resolver) {
-            this.resolver = resolver;
+        public PathInfo(SlingHttpServletRequest contextRequest) {
+            this.contextRequest = contextRequest;
+            this.resolver = contextRequest.getResourceResolver();
         }
 
         /**
@@ -72,9 +74,9 @@ public interface InternalRequestService {
                 host = matcher.group(3);
                 port = Integer.parseInt(matcher.group(4));
             } else {
-                scheme = null;
-                host = "localhost";
-                port = 0;
+                scheme = contextRequest.getScheme();
+                host = contextRequest.getServerName();
+                port = contextRequest.getServerPort();
             }
             pathInfo = matcher.group(5);
             query = matcher.group(7);
@@ -197,12 +199,12 @@ public interface InternalRequestService {
 
         @Override
         public String getContextPath() {
-            return "";
+            return contextRequest.getContextPath();
         }
 
         @Override
         public String getServletPath() {
-            return "";
+            return contextRequest.getServletPath();
         }
 
         @Override
@@ -242,13 +244,33 @@ public interface InternalRequestService {
         }
 
         @Override
+        public String getMethod() {
+            return contextRequest.getMethod();
+        }
+
+        @Override
+        public String getScheme() {
+            return contextRequest.getScheme();
+        }
+
+        @Override
+        public String getServerName() {
+            return contextRequest.getServerName();
+        }
+
+        @Override
+        public int getServerPort() {
+            return contextRequest.getServerPort();
+        }
+
+        @Override
         public String getLocalAddr() {
-            return "127.0.0.1";
+            return contextRequest.getLocalAddr();
         }
 
         @Override
         public String getLocalName() {
-            return "localhost";
+            return contextRequest.getLocalName();
         }
 
         @Override
@@ -259,6 +281,15 @@ public interface InternalRequestService {
         @Override
         public Enumeration<Locale> getLocales() {
             return contextRequest.getLocales();
+        }
+
+        @Override
+        public Object getAttribute(String name) {
+            Object value = super.getAttribute(name);
+            if (value == null) {
+                value = contextRequest.getAttribute(name);
+            }
+            return value;
         }
     }
 

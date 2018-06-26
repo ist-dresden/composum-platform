@@ -75,7 +75,7 @@ class StagingResourceValueMap extends ValueMapDecorator {
     @Nonnull
     public Set<Entry<String, Object>> entrySet() {
         final Set<Entry<String, Object>> entries = super.entrySet();
-        final Set<Entry<String, Object>> result = new HashSet<>(entries.size() - typesToMap.keySet().size());
+        final Set<Entry<String, Object>> result = new HashSet<>();
         for (Entry<String, Object> entry : entries) {
             if (typesToMap.values().contains(entry.getKey())) {
                 //nothing

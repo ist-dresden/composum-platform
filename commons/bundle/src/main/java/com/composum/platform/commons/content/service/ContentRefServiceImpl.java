@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.jcr.Binary;
+import java.util.regex.Pattern;
 
 @SuppressWarnings("deprecation")
 @Component(
@@ -26,6 +27,8 @@ public class ContentRefServiceImpl implements ContentRefService {
 
     private static final Logger LOG = LoggerFactory.getLogger(ContentRefServiceImpl.class);
 
+    private static final Pattern SERVLET_URI = Pattern.compile("/bin/(public|cpm)/.*\\.[^./]+/.*^$");
+
     @Reference
     protected InternalRequestService internalRequestService;
 
@@ -33,7 +36,7 @@ public class ContentRefServiceImpl implements ContentRefService {
     @Nonnull
     public String getReferencedContent(@Nonnull ResourceResolver resolver, String path) {
         String content = "";
-        if (StringUtils.isNotBlank(path)) {
+        if (StringUtils.isNotBlank(path) && !SERVLET_URI.matcher(path).matches()) {
             Resource resource = resolver.getResource(path);
             if (resource != null && ResourceUtil.isFile(resource)) {
                 Binary binary = ResourceUtil.getBinaryData(resource);
@@ -58,7 +61,7 @@ public class ContentRefServiceImpl implements ContentRefService {
         if (StringUtils.isNotBlank(url)) {
             try {
                 InternalRequestService.PathInfo pathInfo =
-                        new InternalRequestService.PathInfo(contextRequest.getResourceResolver(), url);
+                        new InternalRequestService.PathInfo(contextRequest, url);
                 content = internalRequestService.getString(contextRequest, pathInfo);
                 if (!emptyLines) {
                     content = content.replaceAll("(?m)^\\s+$", ""); // remove empty lines
