@@ -1,3 +1,8 @@
+/*
+ * copyright (c) 2015ff IST GmbH Dresden, Germany - https://www.ist-software.com
+ *
+ * This software may be modified and distributed under the terms of the MIT license.
+ */
 package com.composum.platform.commons.request.service;
 
 import org.apache.commons.lang3.StringUtils;
@@ -154,6 +159,9 @@ public interface InternalRequestService {
             super(contextRequest.getResourceResolver());
             this.contextRequest = contextRequest;
             internalPathInfo = pathInfo;
+            if (StringUtils.isNotBlank(pathInfo.query)) {
+                setQueryString(pathInfo.query);
+            }
         }
 
         protected MockRequestPathInfo newMockRequestPathInfo() {

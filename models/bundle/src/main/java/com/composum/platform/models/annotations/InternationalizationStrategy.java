@@ -1,3 +1,8 @@
+/*
+ * copyright (c) 2015ff IST GmbH Dresden, Germany - https://www.ist-software.com
+ *
+ * This software may be modified and distributed under the terms of the MIT license.
+ */
 package com.composum.platform.models.annotations;
 
 import com.composum.sling.core.BeanContext;
@@ -22,13 +27,13 @@ public interface InternationalizationStrategy {
     /**
      * Retrieves the internationalized value for name (may be an attribute name or a relative path) from resource.
      *
-     * @param resource   the resource for which the properties are wanted, not null
-     * @param name       the name of the property - may be a relative path as well
-     * @param valueClass the class the value is to be converted into, not null
+     * @param resource    the resource for which the properties are wanted, not null
+     * @param name        the name of the property - may be a relative path as well
+     * @param valueClass  the class the value is to be converted into, not null
      * @param beanContext if available, the {@link BeanContext}
-     * @param request    if available, the request one could get the locale from
-     * @param locale     if available, the locale
-     * @param parameters the annotation parameters about the value
+     * @param request     if available, the request one could get the locale from
+     * @param locale      if available, the locale
+     * @param parameters  the annotation parameters about the value
      * @return the value or null
      */
     <T> T getInternationalized(Resource resource, String name, Class<T> valueClass, BeanContext beanContext,
@@ -132,6 +137,24 @@ public interface InternationalizationStrategy {
             return i18nPaths;
         }
 
+        /**
+         * @return the path to the property named by the key in the locales context
+         */
+        public static String getI18nPath(Locale locale, String key) {
+            if (locale != null) {
+                String variant = locale.getVariant();
+                String country = locale.getCountry();
+                String language = locale.getLanguage();
+                String path = I18N_PROPERTY_PATH + language;
+                if (StringUtils.isNotBlank(country)) {
+                    path += "_" + country;
+                }
+                if (StringUtils.isNotBlank(variant)) {
+                    path += "_" + variant;
+                }
+                return path + "/" + key;
+            }
+            return key;
+        }
     }
-
 }

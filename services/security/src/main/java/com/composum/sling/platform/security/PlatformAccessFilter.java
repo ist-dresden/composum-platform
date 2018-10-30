@@ -1,3 +1,8 @@
+/*
+ * copyright (c) 2015ff IST GmbH Dresden, Germany - https://www.ist-software.com
+ *
+ * This software may be modified and distributed under the terms of the MIT license.
+ */
 package com.composum.sling.platform.security;
 
 import com.composum.sling.core.util.LinkMapper;
@@ -62,7 +67,7 @@ public class PlatformAccessFilter implements Filter {
                 name = "access.filter.enabled",
                 description = "the on/off switch for the Access Filter"
         )
-        boolean enabled() default true;
+        boolean enabled() default false;
 
         @AttributeDefinition(
                 name = "author.mapping.enabled",

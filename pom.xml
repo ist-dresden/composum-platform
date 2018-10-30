@@ -44,7 +44,7 @@
         <package.group>com/composum/platform</package.group>
         <package.company>IST GmbH Dresden</package.company>
         <bundle.category>composum,platform</bundle.category>
-        <composum.core.version>1.9.0-SNAPSHOT</composum.core.version>
+        <composum.core.version>1.9.0</composum.core.version>
         <sling.scheme>http</sling.scheme>
         <sling.secure>false</sling.secure>
         <sling.host>localhost</sling.host>
