@@ -118,7 +118,6 @@
                                 <include>.*/org.apache.sling.auth.form.FormAuthenticationHandler.config</include>
                                 <include>.*/org.apache.sling.engine.impl.auth.SlingAuthenticator.config</include>
                                 <include>.*/org.apache.sling.servlets.get.DefaultGetServlet.config</include>
-                                <include>.*/org.apache.sling.servlets.post.impl.SlingPostServlet.config</include>
                             </includes>
                         </filter>
                         <filter>
