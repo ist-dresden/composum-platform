@@ -7,4 +7,4 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<cpn:clientlib type="css" path="composum/platform/security/login/clientlib"/>
+<cpn:clientlib type="css" path="/libs/composum/platform/security/login/clientlib"/>

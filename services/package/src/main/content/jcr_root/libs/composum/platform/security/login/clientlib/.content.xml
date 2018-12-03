@@ -2,5 +2,4 @@
 <jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0" xmlns:jcr="http://www.jcp.org/jcr/1.0"
         jcr:primaryType="sling:Folder"
         sling:resourceType="composum/nodes/commons/clientlib"
-        jcr:description="the clientlib for the platform login form"
-        category="[composum.platform.security.login]"/>
+        jcr:description="the clientlib for the platform login form"/>

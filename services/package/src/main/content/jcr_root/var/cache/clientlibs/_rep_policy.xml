@@ -5,8 +5,5 @@
             jcr:primaryType="rep:GrantACE"
             rep:principalName="everyone"
             rep:privileges="{Name}[jcr:read]">
-        <rep:restrictions
-                jcr:primaryType="rep:Restrictions"
-                rep:glob=""/>
     </allow>
 </jcr:root>
