@@ -1,12 +1,12 @@
 package com.composum.platform.services.setup;
 
 import com.composum.sling.core.usermanagement.core.UserManagementService;
+import com.composum.sling.platform.security.SecurityService;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.vault.packaging.InstallContext;
 import org.apache.jackrabbit.vault.packaging.InstallHook;
-import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
@@ -15,6 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,14 +38,18 @@ public class SetupHook implements InstallHook {
     }
 
     @Override
-    public void execute(InstallContext ctx) throws PackageException {
+    public void execute(InstallContext ctx) {
         switch (ctx.getPhase()) {
             case PREPARE:
                 LOG.info("prepare: execute...");
-
                 setupGroupsAndUsers(ctx);
-
                 LOG.info("prepare: execute ends.");
+                break;
+            case INSTALLED:
+                LOG.info("installed: execute...");
+                setupAcls(ctx);
+                LOG.info("installed: execute ends.");
+                break;
         }
     }
 
@@ -66,7 +72,19 @@ public class SetupHook implements InstallHook {
         }
     }
 
-    public static <T> T getService(Class<T> type)  {
+    protected void setupAcls(InstallContext ctx) {
+        SecurityService securityService = getService(SecurityService.class);
+        try {
+            Session session = ctx.getSession();
+            securityService.addJsonAcl(session, "/conf/composum/platform/security/everyone.json");
+            session.save();
+        } catch (RepositoryException | IOException rex) {
+            LOG.error(rex.getMessage(), rex);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> T getService(Class<T> type) {
         Bundle serviceBundle = FrameworkUtil.getBundle(type);
         BundleContext serviceBundleContext = serviceBundle.getBundleContext();
         ServiceReference serviceReference = serviceBundleContext.getServiceReference(type.getName());

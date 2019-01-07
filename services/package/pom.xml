@@ -99,10 +99,13 @@
                     <group>${package.group}</group>
                     <properties>
                         <createdBy>${package.company}</createdBy>
-                        <acHandling>Merge</acHandling>
+                        <acHandling>MERGE</acHandling>
                     </properties>
 
                     <filters>
+                        <filter>
+                            <root>/conf/composum/platform/security</root>
+                        </filter>
                         <filter>
                             <root>/libs/sling/servlet/errorhandler</root>
                         </filter>
@@ -118,36 +121,6 @@
                                 <include>.*/org.apache.sling.auth.form.FormAuthenticationHandler.config</include>
                                 <include>.*/org.apache.sling.engine.impl.auth.SlingAuthenticator.config</include>
                                 <include>.*/org.apache.sling.servlets.get.DefaultGetServlet.config</include>
-                            </includes>
-                        </filter>
-                        <filter>
-                            <root>/</root>
-                            <includes>
-                                <include>/rep:policy(/.*)?</include>
-                            </includes>
-                        </filter>
-                        <filter>
-                            <root>/apps</root>
-                            <includes>
-                                <include>.*/rep:policy(/.*)?</include>
-                            </includes>
-                        </filter>
-                        <filter>
-                            <root>/libs</root>
-                            <includes>
-                                <include>.*/rep:policy(/.*)?</include>
-                            </includes>
-                        </filter>
-                        <filter>
-                            <root>/content</root>
-                            <includes>
-                                <include>.*/rep:policy(/.*)?</include>
-                            </includes>
-                        </filter>
-                        <filter>
-                            <root>/var</root>
-                            <includes>
-                                <include>.*/rep:policy(/.*)?</include>
                             </includes>
                         </filter>
                     </filters>

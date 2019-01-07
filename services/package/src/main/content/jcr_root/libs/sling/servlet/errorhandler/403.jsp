@@ -1,5 +1,6 @@
 <%@page session="false" pageEncoding="utf-8"
-        import="com.composum.sling.core.CoreConfiguration" %><%
+        import="com.composum.sling.core.CoreConfiguration,
+                com.composum.platform.commons.request.LoginUtil" %><%
 %><%@taglib prefix="sling" uri="http://sling.apache.org/taglibs/sling/1.2"%><%
 %><%@taglib prefix="cpn" uri="http://sling.composum.com/cpnl/1.0"%><%
 %><sling:defineObjects/><%
@@ -7,11 +8,13 @@
         // send the raw status code in the case of an Ajax request
         slingResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
     } else {
-        CoreConfiguration configuration = sling.getService(CoreConfiguration.class);
-        if (configuration == null ||
-                // try to forward to a custom error page
-                !configuration.forwardToErrorpage(slingRequest, slingResponse, HttpServletResponse.SC_FORBIDDEN)) {
-            slingResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        // try to login if no user is signed in currently
+        if (!LoginUtil.loginIfAnonymous(slingRequest, slingResponse)) {
+            CoreConfiguration configuration = sling.getService(CoreConfiguration.class);
+            if (configuration == null ||
+                    // try to forward to a custom error page
+                    !configuration.forwardToErrorpage(slingRequest, slingResponse, HttpServletResponse.SC_FORBIDDEN)) {
+                slingResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
 %>
 <html>
 <head>
@@ -30,6 +33,7 @@
 </body>
 </html>
 <%
+            }
         }
     }
 %>

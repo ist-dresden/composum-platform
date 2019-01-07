@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.security.Principal;
 
 public class LoginUtil {
 
@@ -25,6 +26,14 @@ public class LoginUtil {
             }
         } catch (IOException ex) {
             LOG.error(ex.getMessage(), ex);
+        }
+        return false;
+    }
+
+    public static boolean loginIfAnonymous(SlingHttpServletRequest request, SlingHttpServletResponse response) {
+        Principal currentUser = request.getUserPrincipal();
+        if (currentUser == null || "anonymous".equals(currentUser.getName())) {
+            return redirectToLogin(request, response);
         }
         return false;
     }

@@ -1,0 +1,209 @@
+[
+  {
+    "path": "/",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "type": "allow",
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/apps",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "type": "allow",
+            "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "type": "allow",
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/fonts",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "type": "allow",
+            "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/jslibs",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "type": "allow",
+            "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/composum",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "type": "allow",
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/composum/nodes",
+    "acl": [
+      {
+        "principal": "everyone",
+        "condition": "",
+        "acl": [
+          {
+            "type": "allow",
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/composum/nodes/commons",
+    "acl": [
+      {
+        "principal": "everyone",
+        "condition": "",
+        "acl": [
+          {
+            "type": "allow",
+            "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/composum/platform",
+    "acl": [
+      {
+        "principal": "everyone",
+        "condition": "",
+        "acl": [
+          {
+            "type": "allow",
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/composum/platform/security",
+    "acl": [
+      {
+        "principal": "everyone",
+        "condition": "",
+        "acl": [
+          {
+            "type": "allow",
+            "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/var",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "type": "allow",
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/var/composum",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "type": "allow",
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/var/composum/clientlibs",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "type": "allow",
+            "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  }
+]

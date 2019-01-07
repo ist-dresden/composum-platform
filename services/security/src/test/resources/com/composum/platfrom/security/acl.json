@@ -1,0 +1,19 @@
+[
+  {
+    "path": "/var/composum",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "type": "allow",
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

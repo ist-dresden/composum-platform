@@ -37,7 +37,13 @@
 
     <dependencies>
 
-        <!-- Composum Core -->
+        <!-- Composum Platform -->
+        <dependency>
+            <groupId>com.composum.sling.platform</groupId>
+            <artifactId>composum-sling-platform-security-bundle</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>com.composum.sling.core</groupId>
             <artifactId>composum-sling-user-management</artifactId>
