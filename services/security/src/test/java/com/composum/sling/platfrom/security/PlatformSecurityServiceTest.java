@@ -2,9 +2,10 @@ package com.composum.sling.platfrom.security;
 
 import com.composum.sling.platform.security.PlatformSecurityService;
 import com.google.gson.stream.JsonReader;
-import org.apache.jackrabbit.api.JackrabbitSession;
 import org.junit.Test;
 
+import javax.annotation.Nonnull;
+import javax.jcr.Session;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -19,9 +20,11 @@ public class PlatformSecurityServiceTest {
 
     public static class TestService extends PlatformSecurityService {
 
-        protected void addAcl(final JackrabbitSession session, final String path,
-                              final String principal, boolean allow, final String[] privileges,
-                              final Map restrictions) {
+        @Override
+        public void addAcl(@Nonnull final Session session, @Nonnull final String path,
+                           @Nonnull final String principal, boolean allow,
+                           @Nonnull final String[] privileges,
+                           @Nonnull final Map restrictions) {
             System.out.println("addAcl(" + path + "," + principal + ","
                     + allow + "," + Arrays.toString(privileges) + "," + restrictions + ")");
         }
