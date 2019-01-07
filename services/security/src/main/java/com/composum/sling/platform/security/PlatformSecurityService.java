@@ -47,11 +47,15 @@ public class PlatformSecurityService implements SecurityService {
     public void addJsonAcl(@Nonnull final Session session, @Nonnull final String jsonFilePath)
             throws RepositoryException, IOException {
         Node jsonFileNode = session.getNode(jsonFilePath);
-        Property property = jsonFileNode.getNode(JcrConstants.JCR_CONTENT).getProperty(JcrConstants.JCR_DATA);
-        try (InputStream stream = property.getBinary().getStream();
-             Reader streamReader = new InputStreamReader(stream, UTF_8);
-             JsonReader reader = new JsonReader(streamReader)) {
-            addJsonAcl(session, reader);
+        if (jsonFileNode != null) {
+            Property property = jsonFileNode.getNode(JcrConstants.JCR_CONTENT).getProperty(JcrConstants.JCR_DATA);
+            try (InputStream stream = property.getBinary().getStream();
+                 Reader streamReader = new InputStreamReader(stream, UTF_8);
+                 JsonReader reader = new JsonReader(streamReader)) {
+                addJsonAcl(session, reader);
+            }
+        } else {
+            throw new IOException("configuration file node not found");
         }
     }
 
