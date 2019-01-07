@@ -6,6 +6,7 @@ import com.google.gson.stream.JsonToken;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.JackrabbitSession;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
@@ -13,11 +14,14 @@ import org.apache.jackrabbit.value.StringValue;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Component;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.Value;
+import javax.jcr.security.AccessControlEntry;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.Privilege;
 import java.io.IOException;
@@ -40,7 +44,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class PlatformSecurityService implements SecurityService {
 
     @Override
-    public void addJsonAcl(final Session session, final String jsonFilePath)
+    public void addJsonAcl(@Nonnull final Session session, @Nonnull final String jsonFilePath)
             throws RepositoryException, IOException {
         Node jsonFileNode = session.getNode(jsonFilePath);
         Property property = jsonFileNode.getNode(JcrConstants.JCR_CONTENT).getProperty(JcrConstants.JCR_DATA);
@@ -51,7 +55,7 @@ public class PlatformSecurityService implements SecurityService {
         }
     }
 
-    public void addJsonAcl(final Session session, final JsonReader reader)
+    public void addJsonAcl(@Nonnull final Session session, @Nonnull final JsonReader reader)
             throws RepositoryException, IOException {
         if (reader.peek() == JsonToken.BEGIN_ARRAY) {
             reader.beginArray();
@@ -65,7 +69,7 @@ public class PlatformSecurityService implements SecurityService {
     }
 
     @SuppressWarnings("unchecked")
-    protected void addAclObject(final Session session, final JsonReader reader)
+    protected void addAclObject(@Nonnull final Session session, @Nonnull final JsonReader reader)
             throws RepositoryException {
         final Gson gson = new Gson();
         final Map map = gson.fromJson(reader, Map.class);
@@ -74,12 +78,15 @@ public class PlatformSecurityService implements SecurityService {
             final List<Map> acl = (List<Map>) map.get("acl");
             if (acl != null) {
                 addAclList(session, path, acl);
+            } else {
+                removeAcl(session, path, null);
             }
         }
     }
 
     @SuppressWarnings("unchecked")
-    protected void addAclList(final Session session, final String path, final List<Map> list)
+    protected void addAclList(@Nonnull final Session session, @Nonnull final String path,
+                              @Nonnull final List<Map> list)
             throws RepositoryException {
         for (Map map : list) {
             String principal = (String) map.get("principal");
@@ -87,7 +94,7 @@ public class PlatformSecurityService implements SecurityService {
                 final List<Map> acl = (List<Map>) map.get("acl");
                 if (acl != null) {
                     for (Map rule : acl) {
-                        boolean allow = "allow".equalsIgnoreCase((String) rule.get("type"));
+                        boolean allow = (Boolean) rule.get("allow");
                         Object object = rule.get("privileges");
                         String[] privileges;
                         if (object instanceof List) {
@@ -100,26 +107,46 @@ public class PlatformSecurityService implements SecurityService {
                         addAcl(session, path, principal, allow, privileges,
                                 restrictions != null ? restrictions : Collections.EMPTY_MAP);
                     }
+                } else {
+                    removeAcl(session, path, principal);
                 }
             }
         }
     }
 
     @Override
-    public void addAcl(final Session session, final String path,
-                       final String principalName, boolean allow, final String[] privilegeKeys,
-                       final Map restrictionKeys)
+    public void addAcl(@Nonnull final Session session, @Nonnull final String path,
+                       @Nonnull final String principalName, boolean allow,
+                       @Nonnull final String[] privilegeKeys,
+                       @Nonnull final Map restrictionKeys)
             throws RepositoryException {
         final AccessControlManager acManager = session.getAccessControlManager();
         final PrincipalManager principalManager = ((JackrabbitSession) session).getPrincipalManager();
-        final JackrabbitAccessControlList policy = AccessControlUtils.getAccessControlList(acManager, path);
+        final JackrabbitAccessControlList policies = AccessControlUtils.getAccessControlList(acManager, path);
         final Principal principal = principalManager.getPrincipal(principalName);
         final Privilege[] privileges = AccessControlUtils.privilegesFromNames(acManager, privilegeKeys);
         final Map<String, Value> restrictions = new HashMap<>();
         for (final Object key : restrictionKeys.keySet()) {
             restrictions.put((String) key, new StringValue((String) restrictionKeys.get(key)));
         }
-        policy.addEntry(principal, privileges, allow, restrictions);
+        policies.addEntry(principal, privileges, allow, restrictions);
+        acManager.setPolicy(path, policies);
+    }
+
+    @Override
+    public void removeAcl(@Nonnull final Session session, @Nonnull final String path, @Nullable final String principal)
+            throws RepositoryException {
+        final AccessControlManager acManager = session.getAccessControlManager();
+        final JackrabbitAccessControlList policy = AccessControlUtils.getAccessControlList(acManager, path);
+        for (final AccessControlEntry entry : policy.getAccessControlEntries()) {
+            final JackrabbitAccessControlEntry jrEntry = (JackrabbitAccessControlEntry) entry;
+            if (principal == null || principal.equals(jrEntry.getPrincipal().getName())) {
+                policy.removeAccessControlEntry(entry);
+            }
+        }
         acManager.setPolicy(path, policy);
+        if (policy.isEmpty()) {
+            acManager.removePolicy(path, policy);
+        }
     }
 }

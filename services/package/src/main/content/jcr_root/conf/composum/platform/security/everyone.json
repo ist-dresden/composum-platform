@@ -6,7 +6,7 @@
         "principal": "everyone",
         "acl": [
           {
-            "type": "allow",
+            "allow": true,
             "privileges": "jcr:read",
             "restrictions": {
               "rep:glob": ""
@@ -23,7 +23,7 @@
         "principal": "everyone",
         "acl": [
           {
-            "type": "allow",
+            "allow": true,
             "privileges": "jcr:read"
           }
         ]
@@ -37,7 +37,7 @@
         "principal": "everyone",
         "acl": [
           {
-            "type": "allow",
+            "allow": true,
             "privileges": "jcr:read",
             "restrictions": {
               "rep:glob": ""
@@ -54,7 +54,7 @@
         "principal": "everyone",
         "acl": [
           {
-            "type": "allow",
+            "allow": true,
             "privileges": "jcr:read"
           }
         ]
@@ -68,7 +68,7 @@
         "principal": "everyone",
         "acl": [
           {
-            "type": "allow",
+            "allow": true,
             "privileges": "jcr:read"
           }
         ]
@@ -82,7 +82,7 @@
         "principal": "everyone",
         "acl": [
           {
-            "type": "allow",
+            "allow": true,
             "privileges": "jcr:read",
             "restrictions": {
               "rep:glob": ""
@@ -100,7 +100,7 @@
         "condition": "",
         "acl": [
           {
-            "type": "allow",
+            "allow": true,
             "privileges": "jcr:read",
             "restrictions": {
               "rep:glob": ""
@@ -118,7 +118,7 @@
         "condition": "",
         "acl": [
           {
-            "type": "allow",
+            "allow": true,
             "privileges": "jcr:read"
           }
         ]
@@ -133,7 +133,7 @@
         "condition": "",
         "acl": [
           {
-            "type": "allow",
+            "allow": true,
             "privileges": "jcr:read",
             "restrictions": {
               "rep:glob": ""
@@ -151,7 +151,7 @@
         "condition": "",
         "acl": [
           {
-            "type": "allow",
+            "allow": true,
             "privileges": "jcr:read"
           }
         ]
@@ -165,7 +165,7 @@
         "principal": "everyone",
         "acl": [
           {
-            "type": "allow",
+            "allow": true,
             "privileges": "jcr:read",
             "restrictions": {
               "rep:glob": ""
@@ -182,7 +182,7 @@
         "principal": "everyone",
         "acl": [
           {
-            "type": "allow",
+            "allow": true,
             "privileges": "jcr:read",
             "restrictions": {
               "rep:glob": ""
@@ -199,7 +199,7 @@
         "principal": "everyone",
         "acl": [
           {
-            "type": "allow",
+            "allow": true,
             "privileges": "jcr:read"
           }
         ]
