@@ -55,7 +55,7 @@ public class PlatformSecurityService implements SecurityService {
                 addJsonAcl(session, reader);
             }
         } else {
-            throw new IOException("configuration file node not found");
+            throw new IOException("configuration file node not found (" + jsonFilePath + ")");
         }
     }
 
