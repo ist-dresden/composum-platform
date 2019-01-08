@@ -15,9 +15,9 @@
     <description>Maven parent for Composum Platform core services</description>
 
 	<modules>
-		<module>setup</module>
 		<module>security</module>
 		<module>staging</module>
+		<module>setup</module>
 		<module>package</module>
 	</modules>
 

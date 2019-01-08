@@ -65,7 +65,7 @@
     </build>
     <dependencies>
 
-        <!-- Composum Core -->
+        <!-- Composum Nodes (Core) -->
         <dependency>
             <groupId>com.composum.sling.core</groupId>
             <artifactId>composum-sling-core-commons</artifactId>

@@ -79,8 +79,8 @@
     <modules>
         <module>commons</module>
         <module>cache</module>
-        <module>services</module>
         <module>models</module>
+        <module>services</module>
     </modules>
 
     <build>
