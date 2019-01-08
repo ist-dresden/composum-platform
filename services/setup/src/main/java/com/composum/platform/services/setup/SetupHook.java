@@ -26,6 +26,8 @@ public class SetupHook implements InstallHook {
 
     private static final Logger LOG = LoggerFactory.getLogger(SetupHook.class);
 
+    private static final String EVERYONE_ACLS = "/conf/composum/platform/security/acl/everyone.json";
+
     private static final String ADMINISTRATORS_GROUP = "administrators";
 
     private static final Map<String, List<String>> PLATFORM_GROUPS;
@@ -76,7 +78,7 @@ public class SetupHook implements InstallHook {
         SecurityService securityService = getService(SecurityService.class);
         try {
             Session session = ctx.getSession();
-            securityService.addJsonAcl(session, "/conf/composum/platform/security/everyone.json");
+            securityService.addJsonAcl(session, EVERYONE_ACLS);
             session.save();
         } catch (RepositoryException | IOException rex) {
             LOG.error(rex.getMessage(), rex);

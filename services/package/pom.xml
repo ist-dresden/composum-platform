@@ -99,7 +99,6 @@
                     <group>${package.group}</group>
                     <properties>
                         <createdBy>${package.company}</createdBy>
-                        <acHandling>MERGE</acHandling>
                     </properties>
 
                     <filters>
