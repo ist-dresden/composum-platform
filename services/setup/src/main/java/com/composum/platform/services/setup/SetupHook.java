@@ -1,7 +1,7 @@
 package com.composum.platform.services.setup;
 
 import com.composum.sling.core.usermanagement.core.UserManagementService;
-import com.composum.sling.platform.security.SecurityService;
+import com.composum.sling.nodes.service.SecurityService;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
