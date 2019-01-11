@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>composum-sling-platform-launcher</artifactId>
+        <groupId>com.composum.sling.platform</groupId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.composum.sling.platform</groupId>
+    <artifactId>composum-sling-platform-launcher-basic</artifactId>
+
+    <name>Composum Platform Launcher Basic Starter</name>
+    <description>Creates a docker image from sling launcher with updated Composum Core , Package manager and User
+        mgmt
+    </description>
+
+    <dependencies>
+        <!-- The base docker image we rely on -->
+        <dependency>
+            <groupId>com.composum.sling.platform</groupId>
+            <artifactId>composum-sling-platform-launcher-slingstarter</artifactId>
+            <version>${project.version}</version>
+            <type>docker-info</type>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- bundles to deploy. All have scope compile and are optional. -->
+        <dependency>
+            <!-- neccesary for installing packages, until this is in the sling launchpad -->
+            <groupId>com.composum.sling.core</groupId>
+            <artifactId>composum-sling-osgi-package-installer</artifactId>
+            <version>${composum.core.version}</version>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- packages to deploy. -->
+        <dependency>
+            <!--  -->
+            <groupId>com.composum.sling.core</groupId>
+            <artifactId>composum-sling-core-package</artifactId>
+            <version>${composum.core.version}</version>
+            <type>zip</type>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources-filtered</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+
+        <plugins>
+            <plugin>
+                <!-- Retrieve slingstart jar to include in docker image -->
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>fetch-package-installer</id>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeArtifactIds>composum-sling-osgi-package-installer</includeArtifactIds>
+                            <excludeTypes>docker-info</excludeTypes>
+                            <excludeTransitive>true</excludeTransitive>
+                            <!-- order 25 since this must be installed before installing any packages.
+                             This can be removed if this makes it's way into the launchpad. -->
+                            <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>fetch-included-packages</id>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeScope>compile</includeScope>
+                            <excludeTypes>docker-info</excludeTypes>
+                            <excludeTransitive>true</excludeTransitive>
+                            <includeTypes>zip</includeTypes>
+                            <!-- order 30 since we want to replace the old composum packages in order 20 -->
+                            <outputDirectory>${project.build.directory}/lib/30</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>docker-info</id>
+                        <goals>
+                            <goal>unpack-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeScope>provided</includeScope>
+                            <includeClassifiers>docker-info</includeClassifiers>
+                            <excludeTransitive>true</excludeTransitive>
+                            <outputDirectory>${project.build.directory}/docker-info-deps</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default</id>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <repository>composum/basic</repository>
+                    <tag>${project.version}</tag>
+                    <verbose>true</verbose>
+                    <detail>true</detail>
+                    <pullNewerImage>false</pullNewerImage>
+                    <buildArgs>
+                        <PROJECT_VERSION>${project.version}</PROJECT_VERSION>
+                    </buildArgs>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <!-- Generate .env file with our version to enable version independent compose files -->
+                        <id>copy-resources</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/env</directory>
+                                    <filtering>true</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
