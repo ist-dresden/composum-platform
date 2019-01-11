@@ -40,10 +40,45 @@
 
         <!-- packages to deploy. -->
         <dependency>
-            <!--  -->
             <groupId>com.composum.sling.core</groupId>
             <artifactId>composum-sling-core-package</artifactId>
             <version>${composum.core.version}</version>
+            <type>zip</type>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.composum.sling.platform</groupId>
+            <artifactId>composum-sling-platform-commons-package</artifactId>
+            <version>${project.version}</version>
+            <type>zip</type>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.composum.sling.platform</groupId>
+            <artifactId>composum-sling-platform-cache-package</artifactId>
+            <version>${project.version}</version>
+            <type>zip</type>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.composum.sling.platform</groupId>
+            <artifactId>composum-sling-platform-models-package</artifactId>
+            <version>${project.version}</version>
+            <type>zip</type>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.composum.sling.platform</groupId>
+            <artifactId>composum-sling-platform-services-package</artifactId>
+            <version>${project.version}</version>
             <type>zip</type>
             <scope>compile</scope>
             <optional>true</optional>
