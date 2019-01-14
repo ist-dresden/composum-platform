@@ -10,9 +10,9 @@ services:
     container_name: composumbasic
     volumes:
       - "./target/run/logs:/opt/sling/sling/logs"
-      - "./target/run/fileinstall:/opt/sling/fileinstall"
+      - "./target/run/fileinstall:/opt/sling/fileinstall-user"
     ports:
-      - "8080:8080"
+      - "9090:8080"
       - "18080:18080"
       - "28080:28080"
 

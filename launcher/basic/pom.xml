@@ -112,18 +112,46 @@
                             <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
                         </configuration>
                     </execution>
+                    <!-- order > 30 since we want to replace the old composum packages in order 20 -->
                     <execution>
-                        <id>fetch-included-packages</id>
+                        <id>deploy-core-30</id>
                         <goals>
                             <goal>copy-dependencies</goal>
                         </goals>
                         <configuration>
-                            <includeScope>compile</includeScope>
-                            <excludeTypes>docker-info</excludeTypes>
-                            <excludeTransitive>true</excludeTransitive>
-                            <includeTypes>zip</includeTypes>
-                            <!-- order 30 since we want to replace the old composum packages in order 20 -->
+                            <includeArtifactIds>composum-sling-core-package</includeArtifactIds>
                             <outputDirectory>${project.build.directory}/lib/30</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>deploy-core-31</id>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeArtifactIds>composum-sling-platform-commons-package</includeArtifactIds>
+                            <outputDirectory>${project.build.directory}/lib/31</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>deploy-core-32</id>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeArtifactIds>composum-sling-platform-cache-package,
+                                composum-sling-platform-models-package</includeArtifactIds>
+                            <outputDirectory>${project.build.directory}/lib/32</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>deploy-core-33</id>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeArtifactIds>composum-sling-platform-services-package</includeArtifactIds>
+                            <outputDirectory>${project.build.directory}/lib/33</outputDirectory>
                         </configuration>
                     </execution>
                     <execution>
