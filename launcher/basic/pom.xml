@@ -33,7 +33,7 @@
             <!-- neccesary for installing packages, until this is in the sling launchpad -->
             <groupId>com.composum.sling.core</groupId>
             <artifactId>composum-sling-osgi-package-installer</artifactId>
-            <version>${composum.core.version}</version>
+            <version>1.9.2</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -112,6 +112,7 @@
                             <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
                         </configuration>
                     </execution>
+
                     <!-- order > 30 since we want to replace the old composum packages in order 20 -->
                     <execution>
                         <id>deploy-core-30</id>
