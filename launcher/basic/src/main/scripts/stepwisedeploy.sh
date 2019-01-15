@@ -9,9 +9,9 @@ if [ "$(ls -A .)" ]; then
         mkdir -p ../fileinstall/$dir
         echo `date "+%d.%m.%Y %H:%M:%S"` deploying $dir
         for fil in $dir/*; do
-            if test \! -e ../fileinstall/$fil; then
+            if test \! -e "../fileinstall/$fil"; then
                 echo `date "+%d.%m.%Y %H:%M:%S"` deploying $fil
-                ln $fil ../fileinstall/$dir/
+                ln -s `pwd`/$fil ../fileinstall/$dir/
             fi
         done
     sleep 10
@@ -24,9 +24,9 @@ if [ "$(ls -A .)" ]; then
         mkdir -p ../fileinstall/$dir
         echo `date "+%d.%m.%Y %H:%M:%S"` deploying $dir
         for fil in $dir/*; do
-            if test \! -e ../fileinstall/$fil; then
+            if test \! -e "../fileinstall/$fil"; then
                 echo `date "+%d.%m.%Y %H:%M:%S"` deploying $fil
-                ln $fil ../fileinstall/$dir/
+                ln -s `pwd`/$fil ../fileinstall/$dir/
             fi
         done
     sleep 10
