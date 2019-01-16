@@ -220,7 +220,7 @@ public class PlatformAccessFilter implements Filter {
                 LOG.debug(">> " + accessMode + " - "
                         + slingRequest.getScheme() + "://" + slingRequest.getServerName() + ":" + slingRequest.getServerPort() + slingRequest.getPathInfo()
                         + " (URI: " + uri + ", path: " + path + ", resource: " + resource
-                        + ", secure: " + request.isSecure() + ", SSL?: " + slingRequest.getHeader(LinkUtil.FORWARDED_SSL_HEADER) + ")");
+                        + ", secure: " + request.isSecure() + ", SSL?: " + LinkUtil.isForwaredSSL(slingRequest) + ")");
             }
 
             if (accessMode == AccessMode.PUBLIC) {
