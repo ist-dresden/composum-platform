@@ -15,18 +15,32 @@ RUN set -eux; \
     ln -s /opt/sling/sling/logs /var/log/sling;
 
 # JVM options
-ENV JAVA_OPTS \
+ENV JVM_OPTS \
+    -Djava.awt.headless=true -server
+
+ENV MEM_OPTS \
     -Xms32m -Xmx512m \
-    -XX:MaxHeapFreeRatio=10 -XX:MinHeapFreeRatio=5 -XX:-ShrinkHeapInSteps \
-    -agentlib:jdwp=transport=dt_socket,address=*:18080,server=y,suspend=n \
+    -XX:MaxHeapFreeRatio=10 -XX:MinHeapFreeRatio=5 -XX:-ShrinkHeapInSteps
+
+ENV DEBUG_OPTS \
+    -agentlib:jdwp=transport=dt_socket,address=*:18080,server=y,suspend=n
+
+ENV JMX_OPTS \
     -Dcom.sun.management.jmxremote.port=28080 \
     -Dcom.sun.management.jmxremote.local.only=false \
     -Dcom.sun.management.jmxremote.authenticate=false \
-    -Dcom.sun.management.jmxremote.ssl=false \
-    -Dsling.fileinstall.dir=fileinstall-docker,fileinstall-user
+    -Dcom.sun.management.jmxremote.ssl=false
+
+# additional options that don't belong here
+ENV ADD_OPTS ""
 
 # additional options for sling
 ENV SLING_OPTS ""
+
+ENV FILEINSTALL_OPTS \
+    -Dsling.fileinstall.dir=fileinstall-docker,fileinstall-user
+
+ENV COMMAND java
 
 # the HTTP port
 EXPOSE 8080
@@ -39,7 +53,7 @@ VOLUME /opt/sling/sling/logs
 VOLUME /opt/sling/fileinstall-user
 WORKDIR /opt/sling
 USER sling:sling
-CMD exec java $JAVA_OPTS -jar /opt/sling/org.apache.sling.starter.jar $SLING_OPTS
+CMD exec $COMMAND $JVM_OPTS $MEM_OPTS $DEBUG_OPTS $JMX_OPTS $FILEINSTALL_OPTS $ADD_OPTS -jar /opt/sling/org.apache.sling.starter.jar $SLING_OPTS
 
 # from maven dependency:copy
 COPY $STARTERJAR /opt/sling/org.apache.sling.starter.jar

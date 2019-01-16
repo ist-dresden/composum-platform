@@ -7,7 +7,7 @@ cd /opt/sling/fileinstall-docker
 if [ "$(ls -A .)" ]; then
     for dir in */; do
         mkdir -p ../fileinstall/$dir
-        echo `date "+%d.%m.%Y %H:%M:%S"` deploying $dir
+        echo `date "+%d.%m.%Y %H:%M:%S"` checking `pwd`/$dir
         for fil in $dir/*; do
             if test \! -e "../fileinstall/$fil"; then
                 echo `date "+%d.%m.%Y %H:%M:%S"` deploying $fil
@@ -22,7 +22,7 @@ cd /opt/sling/fileinstall-user
 if [ "$(ls -A .)" ]; then
     for dir in */; do
         mkdir -p ../fileinstall/$dir
-        echo `date "+%d.%m.%Y %H:%M:%S"` deploying $dir
+        echo `date "+%d.%m.%Y %H:%M:%S"` checking `pwd`/$dir
         for fil in $dir/*; do
             if test \! -e "../fileinstall/$fil"; then
                 echo `date "+%d.%m.%Y %H:%M:%S"` deploying $fil
