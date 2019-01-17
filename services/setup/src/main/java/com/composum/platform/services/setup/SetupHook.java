@@ -8,6 +8,7 @@ import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.vault.packaging.InstallContext;
 import org.apache.jackrabbit.vault.packaging.InstallHook;
+import org.apache.jackrabbit.vault.packaging.PackageException;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
@@ -19,6 +20,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +57,7 @@ public class SetupHook implements InstallHook {
     }
 
     @Override
-    public void execute(InstallContext ctx) {
+    public void execute(InstallContext ctx) throws PackageException {
         switch (ctx.getPhase()) {
             case PREPARE:
                 LOG.info("prepare: execute...");
@@ -65,6 +67,7 @@ public class SetupHook implements InstallHook {
             case INSTALLED:
                 LOG.info("installed: execute...");
                 setupAcls(ctx);
+                checkBundles(ctx);
                 LOG.info("installed: execute ends.");
                 break;
         }
@@ -115,6 +118,49 @@ public class SetupHook implements InstallHook {
             session.save();
         } catch (RepositoryException | IOException rex) {
             LOG.error(rex.getMessage(), rex);
+        }
+    }
+
+    protected void checkBundles(InstallContext ctx) throws PackageException {
+        checkBundles(ctx, new HashMap<String, String>() {{
+            put("com.composum.platform.staging", "1.0.0.SNAPSHOT");
+            put("com.composum.platform.security", "1.0.0.SNAPSHOT");
+        }}, 2, 30);
+    }
+
+    protected void checkBundles(InstallContext ctx, Map<String, String> bundlesToCheck,
+                                int waitToStartSeconds, int timeoutSeconds)
+            throws PackageException {
+        try {
+            // wait to give the bundle installer a chance to install bundles
+            Thread.sleep(waitToStartSeconds * 1000);
+        } catch (InterruptedException ignore) {
+        }
+        LOG.info("Check bundles...");
+        BundleContext bundleContext = FrameworkUtil.getBundle(ctx.getSession().getClass()).getBundleContext();
+        int ready = 0;
+        for (int i = 0; i < timeoutSeconds; i++) {
+            ready = 0;
+            for (Bundle bundle : bundleContext.getBundles()) {
+                String version = bundlesToCheck.get(bundle.getSymbolicName());
+                if (version != null && version.equals(bundle.getVersion().toString())
+                        && bundle.getState() == Bundle.ACTIVE) {
+                    ready++;
+                }
+            }
+            if (ready == bundlesToCheck.size()) {
+                break;
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ignore) {
+            }
+        }
+        if (ready < bundlesToCheck.size()) {
+            LOG.error("Checked bundles not ready - installation failed!");
+            throw new PackageException("bundles not ready");
+        } else {
+            LOG.info("Checked bundles are up and ready.");
         }
     }
 
