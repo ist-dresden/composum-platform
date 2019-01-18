@@ -1,6 +1,7 @@
 package com.composum.platform.services.setup;
 
 import com.composum.sling.core.service.RepositorySetupService;
+import com.composum.sling.core.setup.util.SetupUtil;
 import com.composum.sling.core.usermanagement.core.UserManagementService;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.jackrabbit.api.security.user.Authorizable;
@@ -9,10 +10,6 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.vault.packaging.InstallContext;
 import org.apache.jackrabbit.vault.packaging.InstallHook;
 import org.apache.jackrabbit.vault.packaging.PackageException;
-import org.osgi.framework.Bundle;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.FrameworkUtil;
-import org.osgi.framework.ServiceReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +26,8 @@ import java.util.Map;
 public class SetupHook implements InstallHook {
 
     private static final Logger LOG = LoggerFactory.getLogger(SetupHook.class);
+
+    public static final String PLATFORM_VERSION = "1.0.0.SNAPSHOT";
 
     private static final String EVERYONE_ACLS = "/conf/composum/platform/security/acl/everyone.json";
 
@@ -67,14 +66,17 @@ public class SetupHook implements InstallHook {
             case INSTALLED:
                 LOG.info("installed: execute...");
                 setupAcls(ctx);
-                checkBundles(ctx);
+                SetupUtil.checkBundles(ctx, new HashMap<String, String>() {{
+                    put("com.composum.platform.staging", PLATFORM_VERSION);
+                    put("com.composum.platform.security", PLATFORM_VERSION);
+                }}, 2, 30);
                 LOG.info("installed: execute ends.");
                 break;
         }
     }
 
     protected void setupGroupsAndUsers(InstallContext ctx) {
-        UserManagementService userManagementService = getService(UserManagementService.class);
+        UserManagementService userManagementService = SetupUtil.getService(UserManagementService.class);
         try {
             JackrabbitSession session = (JackrabbitSession) ctx.getSession();
             UserManager userManager = session.getUserManager();
@@ -111,7 +113,7 @@ public class SetupHook implements InstallHook {
     }
 
     protected void setupAcls(InstallContext ctx) {
-        RepositorySetupService setupService = getService(RepositorySetupService.class);
+        RepositorySetupService setupService = SetupUtil.getService(RepositorySetupService.class);
         try {
             Session session = ctx.getSession();
             setupService.addJsonAcl(session, EVERYONE_ACLS, null);
@@ -119,56 +121,5 @@ public class SetupHook implements InstallHook {
         } catch (RepositoryException | IOException rex) {
             LOG.error(rex.getMessage(), rex);
         }
-    }
-
-    protected void checkBundles(InstallContext ctx) throws PackageException {
-        checkBundles(ctx, new HashMap<String, String>() {{
-            put("com.composum.platform.staging", "1.0.0.SNAPSHOT");
-            put("com.composum.platform.security", "1.0.0.SNAPSHOT");
-        }}, 2, 30);
-    }
-
-    protected void checkBundles(InstallContext ctx, Map<String, String> bundlesToCheck,
-                                int waitToStartSeconds, int timeoutSeconds)
-            throws PackageException {
-        try {
-            // wait to give the bundle installer a chance to install bundles
-            Thread.sleep(waitToStartSeconds * 1000);
-        } catch (InterruptedException ignore) {
-        }
-        LOG.info("Check bundles...");
-        BundleContext bundleContext = FrameworkUtil.getBundle(ctx.getSession().getClass()).getBundleContext();
-        int ready = 0;
-        for (int i = 0; i < timeoutSeconds; i++) {
-            ready = 0;
-            for (Bundle bundle : bundleContext.getBundles()) {
-                String version = bundlesToCheck.get(bundle.getSymbolicName());
-                if (version != null && version.equals(bundle.getVersion().toString())
-                        && bundle.getState() == Bundle.ACTIVE) {
-                    ready++;
-                }
-            }
-            if (ready == bundlesToCheck.size()) {
-                break;
-            }
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ignore) {
-            }
-        }
-        if (ready < bundlesToCheck.size()) {
-            LOG.error("Checked bundles not ready - installation failed!");
-            throw new PackageException("bundles not ready");
-        } else {
-            LOG.info("Checked bundles are up and ready.");
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T> T getService(Class<T> type) {
-        Bundle serviceBundle = FrameworkUtil.getBundle(type);
-        BundleContext serviceBundleContext = serviceBundle.getBundleContext();
-        ServiceReference serviceReference = serviceBundleContext.getServiceReference(type.getName());
-        return (T) serviceBundleContext.getService(serviceReference);
     }
 }
