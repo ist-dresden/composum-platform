@@ -12,7 +12,7 @@
     <artifactId>composum-sling-platform-security-bundle</artifactId>
     <packaging>bundle</packaging>
 
-    <name>Composum Platfrom Security Bundle</name>
+    <name>Composum Platform Security Bundle</name>
     <description>Security adaption and configuration</description>
 
     <properties>
