@@ -24,63 +24,6 @@
             <artifactId>composum-sling-platform-launcher-slingstarter</artifactId>
             <version>${project.version}</version>
             <type>docker-info</type>
-            <scope>provided</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- bundles to deploy. All have scope compile and are optional. -->
-        <dependency>
-            <!-- neccesary for installing packages, until this is in the sling launchpad -->
-            <groupId>com.composum.sling.core</groupId>
-            <artifactId>composum-sling-osgi-package-installer</artifactId>
-            <version>1.9.2</version>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <!-- packages to deploy. -->
-        <dependency>
-            <groupId>com.composum.sling.core</groupId>
-            <artifactId>composum-sling-core-package</artifactId>
-            <version>${composum.core.version}</version>
-            <type>zip</type>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>com.composum.sling.platform</groupId>
-            <artifactId>composum-sling-platform-commons-package</artifactId>
-            <version>${project.version}</version>
-            <type>zip</type>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>com.composum.sling.platform</groupId>
-            <artifactId>composum-sling-platform-cache-package</artifactId>
-            <version>${project.version}</version>
-            <type>zip</type>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>com.composum.sling.platform</groupId>
-            <artifactId>composum-sling-platform-models-package</artifactId>
-            <version>${project.version}</version>
-            <type>zip</type>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>com.composum.sling.platform</groupId>
-            <artifactId>composum-sling-platform-services-package</artifactId>
-            <version>${project.version}</version>
-            <type>zip</type>
-            <scope>compile</scope>
             <optional>true</optional>
         </dependency>
     </dependencies>
@@ -95,76 +38,117 @@
 
         <plugins>
             <plugin>
-                <!-- Retrieve slingstart jar to include in docker image -->
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>fetch-package-installer</id>
+                        <id>fetch-included-libraries</id>
                         <goals>
-                            <goal>copy-dependencies</goal>
+                            <goal>copy</goal>
                         </goals>
                         <configuration>
-                            <includeArtifactIds>composum-sling-osgi-package-installer</includeArtifactIds>
-                            <excludeTypes>docker-info</excludeTypes>
-                            <excludeTransitive>true</excludeTransitive>
-                            <!-- order 25 since this must be installed before installing any packages.
-                             This can be removed if this makes it's way into the launchpad. -->
-                            <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                            <artifactItems>
+                                <!-- composum core bundles. As bundle, not as package, since we need to safely replace.
+                                    order > 20 since we want to replace the old composum bundles in launchpad. -->
+                                <artifactItem>
+                                    <groupId>com.composum.sling.core</groupId>
+                                    <artifactId>composum-sling-osgi-package-installer</artifactId>
+                                    <version>1.9.2</version>
+                                    <!-- Temporary solution to be able to install packages. Can be removed
+                                     when this goes into the package manager. -->
+                                    <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                                </artifactItem>
+
+                                <artifactItem>
+                                    <groupId>com.composum.sling.core</groupId>
+                                    <artifactId>composum-sling-core-jslibs</artifactId>
+                                    <version>${composum.core.version}</version>
+                                    <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.core</groupId>
+                                    <artifactId>composum-sling-core-jslibs</artifactId>
+                                    <version>${composum.core.version}</version>
+                                    <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.core</groupId>
+                                    <artifactId>composum-sling-core-commons</artifactId>
+                                    <version>${composum.core.version}</version>
+                                    <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.core</groupId>
+                                    <artifactId>composum-sling-core-console</artifactId>
+                                    <version>${composum.core.version}</version>
+                                    <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.core</groupId>
+                                    <artifactId>composum-sling-package-manager</artifactId>
+                                    <version>${composum.core.version}</version>
+                                    <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.core</groupId>
+                                    <artifactId>composum-sling-user-management</artifactId>
+                                    <version>${composum.core.version}</version>
+                                    <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.core</groupId>
+                                    <artifactId>composum-sling-core-config</artifactId>
+                                    <version>${composum.core.version}</version>
+                                    <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                                </artifactItem>
+
+                                <!-- Composum platform -->
+                                <artifactItem>
+                                    <groupId>com.composum.sling.platform</groupId>
+                                    <artifactId>composum-sling-platform-commons-package</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>zip</type>
+                                    <outputDirectory>${project.build.directory}/lib/31</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.platform</groupId>
+                                    <artifactId>composum-sling-platform-cache-package</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>zip</type>
+                                    <outputDirectory>${project.build.directory}/lib/32</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.platform</groupId>
+                                    <artifactId>composum-sling-platform-models-package</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>zip</type>
+                                    <outputDirectory>${project.build.directory}/lib/32</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.platform</groupId>
+                                    <artifactId>composum-sling-platform-services-package</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>zip</type>
+                                    <outputDirectory>${project.build.directory}/lib/33</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
                         </configuration>
                     </execution>
 
-                    <!-- order > 30 since we want to replace the old composum packages in order 20 -->
-                    <execution>
-                        <id>deploy-core-30</id>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <includeArtifactIds>composum-sling-core-package</includeArtifactIds>
-                            <outputDirectory>${project.build.directory}/lib/30</outputDirectory>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>deploy-core-31</id>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <includeArtifactIds>composum-sling-platform-commons-package</includeArtifactIds>
-                            <outputDirectory>${project.build.directory}/lib/31</outputDirectory>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>deploy-core-32</id>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <includeArtifactIds>composum-sling-platform-cache-package,
-                                composum-sling-platform-models-package</includeArtifactIds>
-                            <outputDirectory>${project.build.directory}/lib/32</outputDirectory>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>deploy-core-33</id>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <configuration>
-                            <includeArtifactIds>composum-sling-platform-services-package</includeArtifactIds>
-                            <outputDirectory>${project.build.directory}/lib/33</outputDirectory>
-                        </configuration>
-                    </execution>
                     <execution>
                         <id>docker-info</id>
                         <goals>
-                            <goal>unpack-dependencies</goal>
+                            <goal>unpack</goal>
                         </goals>
                         <configuration>
-                            <includeScope>provided</includeScope>
-                            <includeClassifiers>docker-info</includeClassifiers>
-                            <excludeTransitive>true</excludeTransitive>
-                            <outputDirectory>${project.build.directory}/docker-info-deps</outputDirectory>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.platform</groupId>
+                                    <artifactId>composum-sling-platform-launcher-slingstarter</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>docker-info</type>
+                                    <outputDirectory>${project.build.directory}/docker-info-deps</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
                         </configuration>
                     </execution>
                 </executions>
