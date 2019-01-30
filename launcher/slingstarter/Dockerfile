@@ -25,8 +25,13 @@ ENV MEM_OPTS \
 ENV DEBUG_OPTS \
     -agentlib:jdwp=transport=dt_socket,address=*:18080,server=y,suspend=n
 
+# enables JMX : caution, these are development settings!
+# The port has to be the same as the host port. For hostname we might also use environment variable HOST.
 ENV JMX_OPTS \
+    -Djava.rmi.server.hostname=0.0.0.0 \
+    -Dcom.sun.management.jmxremote \
     -Dcom.sun.management.jmxremote.port=28080 \
+    -Dcom.sun.management.jmxremote.rmi.port=28080 \
     -Dcom.sun.management.jmxremote.local.only=false \
     -Dcom.sun.management.jmxremote.authenticate=false \
     -Dcom.sun.management.jmxremote.ssl=false
@@ -49,7 +54,7 @@ EXPOSE 18080
 # JMX port for jconsole
 EXPOSE 28080
 
-VOLUME /opt/sling/sling/logs
+VOLUME /opt/sling/sling
 VOLUME /opt/sling/fileinstall-user
 WORKDIR /opt/sling
 USER sling:sling
