@@ -13,17 +13,21 @@ import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.commons.osgi.PropertiesUtil;
+import org.apache.sling.settings.SlingSettingsService;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Session;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -36,19 +40,25 @@ import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
+import static com.composum.sling.platform.security.AccessMode.ACCESS_MODE_AUTHOR;
+import static com.composum.sling.platform.security.AccessMode.ACCESS_MODE_PREVIEW;
+import static com.composum.sling.platform.security.AccessMode.ACCESS_MODE_PUBLIC;
+
 @Component(
-        service = {Filter.class},
+        service = {Filter.class, PlatformAccessService.class},
         property = {
                 Constants.SERVICE_DESCRIPTION + "=Composum Platform Access Filter",
                 "sling.filter.scope=REQUEST",
                 "service.ranking:Integer=" + 5090
         },
+        immediate = true,
         configurationPolicy = ConfigurationPolicy.REQUIRE
 )
 @Designate(ocd = PlatformAccessFilter.Config.class)
-public class PlatformAccessFilter implements Filter {
+public class PlatformAccessFilter implements Filter, PlatformAccessService {
 
     private static final Logger LOG = LoggerFactory.getLogger(PlatformAccessFilter.class);
 
@@ -64,22 +74,28 @@ public class PlatformAccessFilter implements Filter {
     @interface Config {
 
         @AttributeDefinition(
-                name = "access.filter.enabled",
-                description = "the on/off switch for the Access Filter"
+                name = "Access restriction ON",
+                description = "the on/off switch for the Access Filter restricted mode (reject unauthorized requests)"
         )
-        boolean enabled() default false;
+        boolean access_filter_enabled() default false;
 
         @AttributeDefinition(
-                name = "author.mapping.enabled",
+                name = "Honor Sling Runmode",
+                description = "use an 'author' or 'preview'/'public' Sling runmode to detect the access mode"
+        )
+        boolean honor_sling_runmode() default false;
+
+        @AttributeDefinition(
+                name = "Author URL mapping enabled",
                 description = "if enabled the resolver mapping is used in author mode; default: false"
         )
-        boolean enableAuthorMapping() default false;
+        boolean enable_author_mapping() default false;
 
         @AttributeDefinition(
-                name = "author.hosts",
+                name = "Author Hosts",
                 description = "hostname patterns to detect authoring access requests"
         )
-        String[] authorHostPatterns() default {
+        String[] author_host_patterns() default {
                 "^localhost$",
                 "^192\\.168\\.[0-9]{1,3}\\.[0-9]{1,3}$",
                 "^172\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$",
@@ -88,10 +104,18 @@ public class PlatformAccessFilter implements Filter {
         };
 
         @AttributeDefinition(
-                name = "author.allow.anonymous",
+                name = "Authoring URIs",
+                description = "uri patterns which are always editing requests"
+        )
+        String[] author_uri_patterns() default {
+                "^/bin/(?!public/).*$"
+        };
+
+        @AttributeDefinition(
+                name = "Allow anonymous on Author",
                 description = "URI patterns allowed for public access (to enable the login function)"
         )
-        String[] authorAllowAnonUriPatterns() default {
+        String[] author_allow_anonymous() default {
                 "^/apps/.*\\.(css|js)$",
                 "^/bin/public/clientlibs\\.(min\\.)?(css|js)(/.*)?$",
                 "^/libs(/jslibs)?/.*\\.(js|css|map)$",
@@ -102,34 +126,34 @@ public class PlatformAccessFilter implements Filter {
         };
 
         @AttributeDefinition(
-                name = "author.uri.allow",
+                name = "Author URI whitelist",
                 description = "the general whitelist URI patterns for an authoring host"
         )
-        String[] authorAllowUriPatterns() default {};
+        String[] author_uri_allow() default {};
 
         @AttributeDefinition(
-                name = "author.path.allow",
+                name = "Author path whitelist",
                 description = "the general whitelist PATH patterns for an authoring host"
         )
-        String[] authorAllowPathPatterns() default {};
+        String[] author_path_allow() default {};
 
         @AttributeDefinition(
-                name = "author.uri.deny",
+                name = "Author URI blacklist",
                 description = "the general blacklist URI patterns for an authoring host"
         )
-        String[] authorDenyUriPatterns() default {};
+        String[] author_uri_deny() default {};
 
         @AttributeDefinition(
-                name = "author.path.deny",
+                name = "Author path blacklist",
                 description = "the general blacklist PATH patterns for an authoring host"
         )
-        String[] authorDenyPathPatterns() default {};
+        String[] author_path_deny() default {};
 
         @AttributeDefinition(
-                name = "public.uri.allow",
+                name = "Public URI whitelist",
                 description = "the general whitelist URI patterns for a public host"
         )
-        String[] publicAllowUriPatterns() default {
+        String[] public_uri_allow() default {
                 "^/robots\\.txt$",
                 "^/sitemap\\.xml$",
                 "^/favicon\\.ico$",
@@ -137,10 +161,10 @@ public class PlatformAccessFilter implements Filter {
         };
 
         @AttributeDefinition(
-                name = "public.path.allow",
+                name = "Public path whitelist",
                 description = "the general whitelist PATH patterns for a public host"
         )
-        String[] publicAllowPathPatterns() default {
+        String[] public_path_allow() default {
                 "^/apps/.*\\.(css|js)$",
                 "^/libs/sling/servlet/errorhandler/.*$",
                 "^/libs/(fonts|jslibs|themes)/.*$",
@@ -148,31 +172,35 @@ public class PlatformAccessFilter implements Filter {
         };
 
         @AttributeDefinition(
-                name = "public.uri.deny",
+                name = "Public URI blacklist",
                 description = "the general blacklist URI patterns for a public host"
         )
-        String[] publicDenyUriPatterns() default {
+        String[] public_uri_deny() default {
                 "^.*\\.(jsp|xml|json)$",
                 "^.*/[^/]*\\.explorer\\..*$",
-                "^/(bin/cpm|servlet|system)(/.*)?$",
-                "^/bin/(browser|packages|users|pages|assets).*$"
+                "^/(servlet|system)(/.*)?$",
+                "^/bin/(?!public/).*$"
         };
 
         @AttributeDefinition(
-                name = "public.path.deny",
+                name = "Public path blacklist",
                 description = "the general blacklist PATH patterns for a public host"
         )
-        String[] publicDenyPathPatterns() default {
+        String[] public_path_deny() default {
                 "^/(etc|sightly|home)(/.*)?$",
                 "^/(jcr:system|oak:index)(/.*)?$",
                 "^.*/(rep:policy)(/.*)?$"
         };
     }
 
+    @Reference
+    private SlingSettingsService slingSettings;
+
     /**
      * the configuration patterns transformed into Pattern lists...
      */
     private List<Pattern> authorHostPatterns;
+    private List<Pattern> authorUriPatterns;
     private List<Pattern> authorAllowAnonUriPatterns;
     private List<Pattern> authorAllowUriPatterns;
     private List<Pattern> authorAllowPathPatterns;
@@ -185,13 +213,68 @@ public class PlatformAccessFilter implements Filter {
 
     private Config config;
 
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+    /**
+     * a thread local state object to make the requests context available in resolver-less interface methods
+     */
+    public static final class PlatformAccessContext implements AccessContext {
+
+        public final SlingHttpServletRequest request;
+        public final SlingHttpServletResponse response;
+        public final ResourceResolver resolver;
+
+        private PlatformAccessContext(@Nonnull final SlingHttpServletRequest request,
+                                      @Nonnull final SlingHttpServletResponse response) {
+            this(request, response, request.getResourceResolver());
+        }
+
+        private PlatformAccessContext(@Nonnull final SlingHttpServletRequest request,
+                                      @Nonnull final SlingHttpServletResponse response,
+                                      @Nonnull final ResourceResolver resolver) {
+            this.request = request;
+            this.response = response;
+            this.resolver = resolver;
+        }
+
+        @Override
+        @Nonnull
+        public final SlingHttpServletRequest getRequest() {
+            return request;
+        }
+
+        @Override
+        @Nonnull
+        public final SlingHttpServletResponse getResponse() {
+            return response;
+        }
+
+        @Override
+        @Nonnull
+        public final ResourceResolver getResolver() {
+            return resolver;
+        }
+    }
+
+    private static final ThreadLocal<AccessContext> PLATFORM_REQUEST_THREAD_LOCAL = new ThreadLocal<>();
+
+    public final void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
-        if (config.enabled()) {
+        SlingHttpServletRequest slingRequest = (SlingHttpServletRequest) request;
+        SlingHttpServletResponse slingResponse = (SlingHttpServletResponse) response;
 
-            SlingHttpServletRequest slingRequest = (SlingHttpServletRequest) request;
-            SlingHttpServletResponse slingResponse = (SlingHttpServletResponse) response;
+        AccessMode accessMode = getAccessMode(slingRequest, slingResponse);
+        slingRequest.setAttribute(ACCESS_MODE_KEY, accessMode.name());
+
+        ResourceResolver resolver = slingRequest.getResourceResolver();
+        Resource resource = slingRequest.getResource();
+        String path = resource.getPath();
+        String uri = slingRequest.getRequestURI();
+        String context = slingRequest.getContextPath();
+        if (uri.startsWith(context)) {
+            uri = uri.substring(context.length());
+        }
+
+        if (config.access_filter_enabled()) {
 
             /*
             boolean isForwardedSSL = "on".equals(slingRequest.getHeader(LinkUtil.FORWARDED_SSL_HEADER));
@@ -202,19 +285,6 @@ public class PlatformAccessFilter implements Filter {
                 }
             }
             */
-
-            AccessMode accessMode = getAccessMode(slingRequest, slingResponse);
-
-            slingRequest.setAttribute(ACCESS_MODE_KEY, accessMode.name());
-
-            ResourceResolver resolver = slingRequest.getResourceResolver();
-            Resource resource = slingRequest.getResource();
-            String path = resource.getPath();
-            String uri = slingRequest.getRequestURI();
-            String context = slingRequest.getContextPath();
-            if (uri.startsWith(context)) {
-                uri = uri.substring(context.length());
-            }
 
             if (LOG.isDebugEnabled()) {
                 LOG.debug(">> " + accessMode + " - "
@@ -262,33 +332,53 @@ public class PlatformAccessFilter implements Filter {
                 // for authoring pr preview access the user must be authenticated
 
                 Session session = resolver.adaptTo(Session.class);
-                String userId = session.getUserID();
+                if (session != null) {
 
-                if (userId == null || "anonymous".equalsIgnoreCase(userId)) {
+                    String userId = session.getUserID();
+                    if (userId == null || "anonymous".equalsIgnoreCase(userId)) {
 
-                    if (isAccessDenied(uri, false, authorAllowAnonUriPatterns, null)) {
-                        LOG.warn("REJECT(anon): '" + uri + "' by anonymous URI patterns!");
-                        sendError(slingResponse, SlingHttpServletResponse.SC_UNAUTHORIZED);
-                        return;
+                        if (isAccessDenied(uri, false, authorAllowAnonUriPatterns, null)) {
+                            LOG.warn("REJECT(anon): '" + uri + "' by anonymous URI patterns!");
+                            sendError(slingResponse, SlingHttpServletResponse.SC_UNAUTHORIZED);
+                            return;
+                        }
                     }
-                }
 
-                LinkMapper mapper = config.enableAuthorMapping() ? LinkMapper.RESOLVER : LinkMapper.CONTEXT;
-                request.setAttribute(LinkMapper.LINK_MAPPER_REQUEST_ATTRIBUTE, mapper);
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("author: '{}' ({})", uri, path);
+                } else {
+                    LOG.error("REJECT(fault): '" + uri + "' - not adaptable to a session!");
+                    sendError(slingResponse, SlingHttpServletResponse.SC_UNAUTHORIZED);
+                    return;
                 }
+            }
+        }
+
+        if (accessMode == AccessMode.AUTHOR) {
+            LinkMapper mapper = config.enable_author_mapping() ? LinkMapper.RESOLVER : LinkMapper.CONTEXT;
+            request.setAttribute(LinkMapper.LINK_MAPPER_REQUEST_ATTRIBUTE, mapper);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("author: '{}' ({})", uri, path);
             }
         }
 
         if (LOG.isDebugEnabled()) {
             LOG.debug("chain.doFilter()...");
         }
-        chain.doFilter(request, response);
+        try {
+            PLATFORM_REQUEST_THREAD_LOCAL.set(new PlatformAccessContext(slingRequest, slingResponse));
+            chain.doFilter(request, response);
+        } finally {
+            PLATFORM_REQUEST_THREAD_LOCAL.remove();
+        }
     }
 
-    protected AccessMode getAccessMode(SlingHttpServletRequest request,
-                                       SlingHttpServletResponse response) {
+    @Override
+    @Nullable
+    public final AccessContext getAccessContext() {
+        return PLATFORM_REQUEST_THREAD_LOCAL.get();
+    }
+
+    private AccessMode getAccessMode(SlingHttpServletRequest request,
+                                     SlingHttpServletResponse response) {
 
         AccessMode accessMode = null;
         AccessMode value;
@@ -308,11 +398,15 @@ public class PlatformAccessFilter implements Filter {
         }
 
         if (accessMode == null) {
-            HttpSession httpSession = request.getSession(false);
-            if (httpSession != null) {
-                value = AccessMode.accessModeValue(httpSession.getAttribute(ACCESS_MODE_KEY));
-                if (value != null && isAuthorHost(request)) {
-                    accessMode = value;
+            if (!isAuthorUri(request)) {
+                // uses session state only if it's not an author URI like '/bin/pages/...'
+                // otherwise you can lost the editing context for a session
+                HttpSession httpSession = request.getSession(false);
+                if (httpSession != null) {
+                    value = AccessMode.accessModeValue(httpSession.getAttribute(ACCESS_MODE_KEY));
+                    if (value != null && isAuthorHost(request)) {
+                        accessMode = value;
+                    }
                 }
             }
         }
@@ -326,7 +420,18 @@ public class PlatformAccessFilter implements Filter {
         return accessMode != null ? accessMode : AccessMode.PUBLIC;
     }
 
-    protected boolean isAuthorHost(SlingHttpServletRequest request) {
+    private boolean isAuthorHost(SlingHttpServletRequest request) {
+        if (config.honor_sling_runmode()) {
+            Set<String> runmodes = slingSettings.getRunModes();
+            for (String runmode : runmodes) {
+                if (ACCESS_MODE_AUTHOR.equalsIgnoreCase(runmode)) {
+                    return true;
+                } else if (ACCESS_MODE_PUBLIC.equalsIgnoreCase(runmode)
+                        || ACCESS_MODE_PREVIEW.equalsIgnoreCase(runmode)) {
+                    return false;
+                }
+            }
+        }
         String host = request.getServerName();
         for (Pattern pattern : authorHostPatterns) {
             if (pattern.matcher(host).matches()) {
@@ -336,9 +441,19 @@ public class PlatformAccessFilter implements Filter {
         return false;
     }
 
+    private boolean isAuthorUri(SlingHttpServletRequest request) {
+        String uri = request.getRequestURI();
+        for (Pattern pattern : authorUriPatterns) {
+            if (pattern.matcher(uri).matches()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @SuppressWarnings("Duplicates")
-    protected boolean isAccessDenied(String path, boolean defaultValue,
-                                     List<Pattern> allow, List<Pattern> deny) {
+    private boolean isAccessDenied(String path, boolean defaultValue,
+                                   List<Pattern> allow, List<Pattern> deny) {
 
         if (StringUtils.isNotBlank(path)) {
 
@@ -367,54 +482,58 @@ public class PlatformAccessFilter implements Filter {
         slingResponse.sendError(statusCode);
     }
 
-    public void init(FilterConfig filterConfig) {
+    public final void init(FilterConfig filterConfig) {
     }
 
-    public void destroy() {
+    public final void destroy() {
     }
 
     @Activate
     @Modified
-    public void activate(final Config config) {
+    public final void activate(final Config config) {
         this.config = config;
         authorHostPatterns = new ArrayList<>();
-        for (String rule : PropertiesUtil.toStringArray(config.authorHostPatterns())) {
+        for (String rule : PropertiesUtil.toStringArray(config.author_host_patterns())) {
             if (StringUtils.isNotBlank(rule = rule.trim())) authorHostPatterns.add(Pattern.compile(rule));
         }
+        authorUriPatterns = new ArrayList<>();
+        for (String rule : PropertiesUtil.toStringArray(config.author_uri_patterns())) {
+            if (StringUtils.isNotBlank(rule = rule.trim())) authorUriPatterns.add(Pattern.compile(rule));
+        }
         authorAllowAnonUriPatterns = new ArrayList<>();
-        for (String rule : PropertiesUtil.toStringArray(config.authorAllowAnonUriPatterns())) {
+        for (String rule : PropertiesUtil.toStringArray(config.author_allow_anonymous())) {
             if (StringUtils.isNotBlank(rule = rule.trim())) authorAllowAnonUriPatterns.add(Pattern.compile(rule));
         }
         authorAllowUriPatterns = new ArrayList<>();
-        for (String rule : PropertiesUtil.toStringArray(config.authorAllowUriPatterns())) {
+        for (String rule : PropertiesUtil.toStringArray(config.author_uri_allow())) {
             if (StringUtils.isNotBlank(rule = rule.trim())) authorAllowUriPatterns.add(Pattern.compile(rule));
         }
         authorAllowPathPatterns = new ArrayList<>();
-        for (String rule : PropertiesUtil.toStringArray(config.authorAllowPathPatterns())) {
+        for (String rule : PropertiesUtil.toStringArray(config.author_path_allow())) {
             if (StringUtils.isNotBlank(rule = rule.trim())) authorAllowPathPatterns.add(Pattern.compile(rule));
         }
         authorDenyUriPatterns = new ArrayList<>();
-        for (String rule : PropertiesUtil.toStringArray(config.authorDenyUriPatterns())) {
+        for (String rule : PropertiesUtil.toStringArray(config.author_uri_deny())) {
             if (StringUtils.isNotBlank(rule = rule.trim())) authorDenyUriPatterns.add(Pattern.compile(rule));
         }
         authorDenyPathPatterns = new ArrayList<>();
-        for (String rule : PropertiesUtil.toStringArray(config.authorDenyPathPatterns())) {
+        for (String rule : PropertiesUtil.toStringArray(config.author_path_deny())) {
             if (StringUtils.isNotBlank(rule = rule.trim())) authorDenyPathPatterns.add(Pattern.compile(rule));
         }
         publicAllowUriPatterns = new ArrayList<>();
-        for (String rule : PropertiesUtil.toStringArray(config.publicAllowUriPatterns())) {
+        for (String rule : PropertiesUtil.toStringArray(config.public_uri_allow())) {
             if (StringUtils.isNotBlank(rule = rule.trim())) publicAllowUriPatterns.add(Pattern.compile(rule));
         }
         publicAllowPathPatterns = new ArrayList<>();
-        for (String rule : PropertiesUtil.toStringArray(config.publicAllowPathPatterns())) {
+        for (String rule : PropertiesUtil.toStringArray(config.public_path_allow())) {
             if (StringUtils.isNotBlank(rule = rule.trim())) publicAllowPathPatterns.add(Pattern.compile(rule));
         }
         publicDenyUriPatterns = new ArrayList<>();
-        for (String rule : PropertiesUtil.toStringArray(config.publicDenyUriPatterns())) {
+        for (String rule : PropertiesUtil.toStringArray(config.public_uri_deny())) {
             if (StringUtils.isNotBlank(rule = rule.trim())) publicDenyUriPatterns.add(Pattern.compile(rule));
         }
         publicDenyPathPatterns = new ArrayList<>();
-        for (String rule : PropertiesUtil.toStringArray(config.publicDenyPathPatterns())) {
+        for (String rule : PropertiesUtil.toStringArray(config.public_path_deny())) {
             if (StringUtils.isNotBlank(rule = rule.trim())) publicDenyPathPatterns.add(Pattern.compile(rule));
         }
     }
