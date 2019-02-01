@@ -10,11 +10,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.composum.sling.platform</groupId>
-    <artifactId>composum-sling-platform-launcher-basic</artifactId>
+    <artifactId>composum-sling-platform-launcher-platform</artifactId>
 
     <name>Composum Platform Launcher Basic Starter</name>
-    <description>Creates a docker image from sling launcher with updated Composum Core , Package manager and User
-        mgmt
+    <description>Creates a docker image from sling launcher with updated Composum Core (incl. Package manager and User
+        mgmt) and Platform
     </description>
 
     <dependencies>
@@ -166,7 +166,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <repository>composum/basic</repository>
+                    <repository>composum/platform</repository>
                     <tag>${project.version}</tag>
                     <verbose>true</verbose>
                     <detail>true</detail>
@@ -174,6 +174,8 @@
                     <buildArgs>
                         <PROJECT_VERSION>${project.version}</PROJECT_VERSION>
                     </buildArgs>
+                    <verbose>true</verbose>
+                    <useMavenSettingsForAuth>true</useMavenSettingsForAuth>
                 </configuration>
             </plugin>
 
@@ -201,5 +203,48 @@
             </plugin>
         </plugins>
     </build>
+
+
+    <profiles>
+
+        <profile>
+            <!-- This can also be called manually with   mvn clean install dockerfile:tag dockerfile:push -->
+            <!-- Use authentication with entry in settings.xml , encrypt pwd with  mvn &dash;&dash;encrypt-password -->
+            <!--<server>
+                <id>docker.io</id>
+                <username>composum</username>
+                <password>xxx/password>
+            </server>-->
+            <id>deployDocker</id>
+            <build>
+                <plugins>
+
+                    <plugin>
+                        <groupId>com.spotify</groupId>
+                        <artifactId>dockerfile-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>tag-image</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>tag</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>push-image</id>
+                                <phase>deploy</phase>
+                                <goals>
+                                    <goal>push</goal>
+                                </goals>
+                            </execution>
+
+                        </executions>
+                    </plugin>
+
+                </plugins>
+            </build>
+        </profile>
+
+    </profiles>
 
 </project>

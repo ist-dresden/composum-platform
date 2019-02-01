@@ -19,7 +19,7 @@
 
     <modules>
         <module>slingstarter</module>
-        <module>basic</module>
+        <module>platform</module>
     </modules>
 
 </project>

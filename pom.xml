@@ -58,7 +58,7 @@
         <java.source>1.7</java.source>
         <java.target>1.7</java.target>
         <sling.starter.version>11</sling.starter.version>
-        <com.spotify.dockerfile.version>1.4.9</com.spotify.dockerfile.version>
+        <com.spotify.dockerfile.version>1.4.10</com.spotify.dockerfile.version>
     </properties>
 
     <scm>
@@ -321,6 +321,8 @@
                 </plugin>
 
                 <plugin>
+                    <!-- https://github.com/spotify/dockerfile-maven -->
+                    <!-- https://mvnrepository.com/artifact/com.spotify/dockerfile-maven -->
                     <groupId>com.spotify</groupId>
                     <artifactId>dockerfile-maven-plugin</artifactId>
                     <version>${com.spotify.dockerfile.version}</version>
