@@ -9,11 +9,11 @@
         slingResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
     } else {
         // try to login if no user is signed in currently
-        if (!LoginUtil.loginIfAnonymous(slingRequest, slingResponse)) {
-            CoreConfiguration configuration = sling.getService(CoreConfiguration.class);
-            if (configuration == null ||
-                    // try to forward to a custom error page
-                    !configuration.forwardToErrorpage(slingRequest, slingResponse, HttpServletResponse.SC_FORBIDDEN)) {
+        CoreConfiguration configuration = sling.getService(CoreConfiguration.class);
+        if (configuration == null ||
+                // try to forward to a custom error page
+                !configuration.forwardToErrorpage(slingRequest, slingResponse, HttpServletResponse.SC_FORBIDDEN)) {
+            if (!LoginUtil.loginIfAnonymous(slingRequest, slingResponse)) {
                 slingResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
 %>
 <html>

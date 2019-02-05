@@ -21,7 +21,7 @@ public class LoginUtil {
             String requestUri = request.getRequestURI();
             if (!requestUri.startsWith(LOGIN_URI)) {
                 String url = LOGIN_URL + LinkUtil.encodePath(requestUri);
-                response.sendRedirect(LinkUtil.getMappedUrl(request, url));
+                response.sendRedirect(LinkUtil.getUrl(request, url));
                 return true;
             }
         } catch (IOException ex) {

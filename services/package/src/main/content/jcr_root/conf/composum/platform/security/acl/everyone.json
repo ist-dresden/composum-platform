@@ -159,6 +159,56 @@
     ]
   },
   {
+    "path": "/libs/sling",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/sling/servlet",
+    "acl": [
+      {
+        "principal": "everyone",
+        "condition": "",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/sling/servlet/errorhandler",
+    "acl": [
+      {
+        "principal": "everyone",
+        "condition": "",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "path": "/var",
     "acl": [
       {

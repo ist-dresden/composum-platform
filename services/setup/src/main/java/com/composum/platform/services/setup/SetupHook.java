@@ -30,6 +30,7 @@ public class SetupHook implements InstallHook {
     public static final String PLATFORM_VERSION = "1.0.0.SNAPSHOT";
 
     private static final String EVERYONE_ACLS = "/conf/composum/platform/security/acl/everyone.json";
+    private static final String ADMIN_ACLS = "/conf/composum/platform/security/acl/administrators.json";
 
     private static final String ADMINISTRATORS_GROUP = "administrators";
 
@@ -117,6 +118,7 @@ public class SetupHook implements InstallHook {
         try {
             Session session = ctx.getSession();
             setupService.addJsonAcl(session, EVERYONE_ACLS, null);
+            setupService.addJsonAcl(session, ADMIN_ACLS, null);
             session.save();
         } catch (RepositoryException | IOException rex) {
             LOG.error(rex.getMessage(), rex);
