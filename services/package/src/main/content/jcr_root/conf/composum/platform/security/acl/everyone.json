@@ -17,20 +17,6 @@
     ]
   },
   {
-    "path": "/apps",
-    "acl": [
-      {
-        "principal": "everyone",
-        "acl": [
-          {
-            "allow": true,
-            "privileges": "jcr:read"
-          }
-        ]
-      }
-    ]
-  },
-  {
     "path": "/libs",
     "acl": [
       {
