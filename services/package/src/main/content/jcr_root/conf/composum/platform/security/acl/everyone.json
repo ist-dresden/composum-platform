@@ -17,6 +17,14 @@
     ]
   },
   {
+    "path": "/content",
+    "acl": [
+      {
+        "principal": "everyone"
+      }
+    ]
+  },
+  {
     "path": "/libs",
     "acl": [
       {
@@ -130,7 +138,7 @@
     ]
   },
   {
-    "path": "/libs/composum/platform/security",
+    "path": "/libs/composum/platform/public",
     "acl": [
       {
         "principal": "everyone",

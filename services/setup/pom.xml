@@ -60,14 +60,6 @@
 
     <dependencies>
 
-        <!-- Setup utilities -->
-        <dependency>
-            <groupId>com.composum.sling.core</groupId>
-            <artifactId>composum-sling-core-setup-util</artifactId>
-            <version>${composum.core.version}</version>
-            <scope>provided</scope>
-        </dependency>
-
         <!-- Composum Nodes (Core) -->
         <dependency>
             <groupId>com.composum.sling.core</groupId>
@@ -76,6 +68,12 @@
         <dependency>
             <groupId>com.composum.sling.core</groupId>
             <artifactId>composum-sling-user-management</artifactId>
+        </dependency>
+
+        <!-- Setup utilities -->
+        <dependency>
+            <groupId>com.composum.sling.core</groupId>
+            <artifactId>composum-sling-core-setup-util</artifactId>
         </dependency>
 
         <!-- Apache Sling -->

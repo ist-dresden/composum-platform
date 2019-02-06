@@ -13,17 +13,9 @@
         return;
     }
 %>
-<div class="login-page"
-     style="background-image:url(${slingRequest.contextPath}/libs/composum/platform/security/login/bg-ist-w-rg.png)">
-    <div class="top">
-        <cpn:text tagName="h1">Composum Platform</cpn:text>
-        <cpn:text tagName="h4" i18n="true">an Apache Sling Application Platform</cpn:text>
-        <h4>a.s.a.p.</h4>
-    </div>
+<div class="composum-platform-public_content login-page"
+     style="background-image:url(${slingRequest.contextPath}/libs/composum/platform/public/login/bg-ist-w-rg.png)">
+    <sling:include path="../page" replaceSelectors="header"/>
     <sling:call script="form.jsp"/>
-    <div class="bottom">
-        <h4>a living multi site and multi application live system</h4>
-        <h4>based on the <a href="http://sling.apache.org/">Apache Sling</a> framework</h4>
-        <p>&copy; 2015 <a href="http://www.ist-software.com/">IST GmbH Dresden, Germany</a></p>
-    </div>
+    <sling:include path="../page" replaceSelectors="footer"/>
 </div>

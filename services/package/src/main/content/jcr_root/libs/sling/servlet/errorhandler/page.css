@@ -15,7 +15,7 @@ h1 em {
 
 .error-page {
     position: relative;
-    background: #fff url(/libs/composum/platform/security/login/bg-ist-w-rg.png) 100% 50% no-repeat;
+    background: #fff url(/libs/composum/platform/public/login/bg-ist-w-rg.png) 100% 50% no-repeat;
     padding: 150px 0;
     max-width: 1024px;
     min-height: 558px;

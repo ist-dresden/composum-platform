@@ -9,7 +9,7 @@
 </head>
 <body>
 <div class="error-page"
-     style="background-image:url(${cpn:url(slingRequest,'/libs/composum/platform/security/login/bg-ist-w-rg.png')})">
+     style="background-image:url(${cpn:url(slingRequest,'/libs/composum/platform/public/login/bg-ist-w-rg.png')})">
     <div class="error-panel panel panel-default">
         <div class="panel-body">
             <h1>Forbidden <em>(403)</em></h1>

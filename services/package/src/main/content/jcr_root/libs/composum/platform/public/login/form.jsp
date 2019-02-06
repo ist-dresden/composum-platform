@@ -3,8 +3,8 @@
 <%@taglib prefix="cpn" uri="http://sling.composum.com/cpnl/1.0" %>
 <sling:defineObjects/>
 <form accept-charset="UTF-8" action="${slingRequest.contextPath}/j_security_check" method="post">
-    <div class="login-panel panel panel-default">
-        <div class="panel-body">
+    <div class="composum-platform-public_panel login-panel panel panel-default">
+            <div class="panel-body">
 
             <div class="alert alert-hidden" role="alert"></div>
 

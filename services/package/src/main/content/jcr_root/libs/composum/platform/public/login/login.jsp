@@ -5,7 +5,7 @@
 <head>
     <sling:call script="head.jsp"/>
 </head>
-<body>
+<body class="composum-platform-public-login_body">
 <sling:call script="body.jsp"/>
 <sling:call script="script.jsp"/>
 </body>

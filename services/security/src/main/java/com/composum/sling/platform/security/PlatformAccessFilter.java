@@ -120,7 +120,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
                 "^/bin/public/clientlibs\\.(min\\.)?(css|js)(/.*)?$",
                 "^/libs(/jslibs)?/.*\\.(js|css|map)$",
                 "^/(libs/)?fonts/.*\\.(css|eot|svg|ttf|woff2?)$",
-                "^/libs(/composum/platform/security)?/login.*\\.(html|css|js|png)$",
+                "^/libs(/composum/platform/public)?/login.*\\.(html|css|js|png)$",
                 "^/j_security_check$",
                 "^/favicon.ico$"
         };
@@ -168,7 +168,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
                 "^/apps/.*\\.(css|js)$",
                 "^/libs/sling/servlet/errorhandler/.*$",
                 "^/libs/(fonts|jslibs|themes)/.*$",
-                "^/libs(/composum/platform/security)?/login.*$"
+                "^/libs(/composum/platform/public)?/login.*$"
         };
 
         @AttributeDefinition(

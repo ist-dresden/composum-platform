@@ -109,7 +109,7 @@
                             <root>/libs/sling/servlet/errorhandler</root>
                         </filter>
                         <filter>
-                            <root>/libs/composum/platform/security</root>
+                            <root>/libs/composum/platform/public</root>
                         </filter>
                         <filter>
                             <root>/libs/composum/platform/install</root>
@@ -162,6 +162,11 @@
         </dependency>
 
         <!-- Composum Platform -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>composum-sling-platform-models-bundle</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>composum-sling-platform-commons-bundle</artifactId>

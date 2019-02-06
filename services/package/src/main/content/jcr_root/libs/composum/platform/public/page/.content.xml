@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0" xmlns:jcr="http://www.jcp.org/jcr/1.0"
+        jcr:primaryType="sling:Folder"
+        sling:resourceType="composum/platform/public/page"
+        title="Composum Platform"
+        subtitle="an Apache Sling Application Platform"
+        footer="a living multi site and multi application live system&lt;br>based on the &lt;a href=&apos;http://sling.apache.org/&apos;>Apache Sling&lt;/a> framework"
+        copyright="&amp;copy; 2015ff &lt;a href=&apos;http://www.ist-software.com/&apos;>IST GmbH Dresden, Germany&lt;/a>"/>

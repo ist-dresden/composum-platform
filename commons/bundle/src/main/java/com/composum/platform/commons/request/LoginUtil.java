@@ -13,7 +13,7 @@ public class LoginUtil {
 
     private static final Logger LOG = LoggerFactory.getLogger(LoginUtil.class);
 
-    public static final String LOGIN_URI = "/libs/composum/platform/security/login.html";
+    public static final String LOGIN_URI = "/libs/composum/platform/public/login.html";
     public static final String LOGIN_URL = LOGIN_URI + "?resource=";
 
     public static boolean redirectToLogin(SlingHttpServletRequest request, SlingHttpServletResponse response) {
