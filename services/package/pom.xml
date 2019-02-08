@@ -114,6 +114,7 @@
                         <filter>
                             <root>/libs/composum/platform/install</root>
                             <includes>
+                                <include>.*/org.apache.sling.tenant.*\.jar</include>
                                 <include>.*/composum-sling-platform-security-bundle.*\.jar</include>
                                 <include>.*/composum-sling-platform-staging-bundle.*\.jar</include>
                                 <include>.*/org.apache.sling.jcr.oak.server.internal.OakSlingRepositoryManager.config</include>
@@ -125,6 +126,11 @@
                     </filters>
 
                     <embeddeds>
+                        <embedded>
+                            <groupId>org.apache.sling</groupId>
+                            <artifactId>org.apache.sling.tenant</artifactId>
+                            <target>/libs/composum/platform/install</target>
+                        </embedded>
                         <embedded>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>composum-sling-platform-security-bundle</artifactId>
@@ -177,6 +183,12 @@
         <dependency>
             <groupId>com.composum.sling.core</groupId>
             <artifactId>composum-sling-core-commons</artifactId>
+        </dependency>
+
+        <!-- Apache Sling Tenant bundle -->
+        <dependency>
+            <groupId>org.apache.sling</groupId>
+            <artifactId>org.apache.sling.tenant</artifactId>
         </dependency>
 
         <!-- Taglib support -->
