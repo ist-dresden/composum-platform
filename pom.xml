@@ -57,6 +57,8 @@
         <source.encoding>UTF-8</source.encoding>
         <java.source>1.7</java.source>
         <java.target>1.7</java.target>
+        <sling.starter.version>11</sling.starter.version>
+        <com.spotify.dockerfile.version>1.4.10</com.spotify.dockerfile.version>
     </properties>
 
     <scm>
@@ -81,6 +83,7 @@
         <module>cache</module>
         <module>models</module>
         <module>services</module>
+        <module>launcher</module>
     </modules>
 
     <build>
@@ -317,8 +320,29 @@
                     </configuration>
                 </plugin>
 
+                <plugin>
+                    <!-- https://github.com/spotify/dockerfile-maven -->
+                    <!-- https://mvnrepository.com/artifact/com.spotify/dockerfile-maven -->
+                    <groupId>com.spotify</groupId>
+                    <artifactId>dockerfile-maven-plugin</artifactId>
+                    <version>${com.spotify.dockerfile.version}</version>
+                </plugin>
+
             </plugins>
         </pluginManagement>
+
+        <extensions>
+            <extension>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-extension</artifactId>
+                <version>${com.spotify.dockerfile.version}</version>
+            </extension>
+            <extension>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-plugin</artifactId>
+                <version>${com.spotify.dockerfile.version}</version>
+            </extension>
+        </extensions>
     </build>
     <profiles>
 
@@ -406,6 +430,12 @@
             </dependency>
 
             <!-- Apache Sling -->
+            <dependency>
+                <groupId>org.apache.sling</groupId>
+                <artifactId>org.apache.sling.starter</artifactId>
+                <version>${sling.starter.version}</version>
+                <scope>runtime</scope>
+            </dependency>
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.api</artifactId>

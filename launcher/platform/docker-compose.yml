@@ -1,0 +1,18 @@
+# simply starts the launchpad with filesystem based JCR for testing it after a maven build.
+# usage e.g.:
+# mvn clean install; docker-compose -f docker-compose.yml up --force-recreate -V --abort-on-container-exit
+
+version: "3.7"
+
+services:
+  sling:
+    image: composum/platform:${PROJECT_VERSION}
+    container_name: composumbasic
+    volumes:
+      - "./target/run/logs:/opt/sling/sling/logs"
+      - "./target/run/fileinstall:/opt/sling/fileinstall-user"
+    ports:
+      - "8080:8080"
+      - "18080:18080"
+      - "28080:28080"
+

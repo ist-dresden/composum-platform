@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>composum-sling-platform-launcher</artifactId>
+        <groupId>com.composum.sling.platform</groupId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.composum.sling.platform</groupId>
+    <artifactId>composum-sling-platform-launcher-platform</artifactId>
+
+    <name>Composum Platform Launcher Basic Starter</name>
+    <description>Creates a docker image from sling launcher with updated Composum Core (incl. Package manager and User
+        mgmt) and Platform
+    </description>
+
+    <dependencies>
+        <!-- The base docker image we rely on -->
+        <dependency>
+            <groupId>com.composum.sling.platform</groupId>
+            <artifactId>composum-sling-platform-launcher-slingstarter</artifactId>
+            <version>${project.version}</version>
+            <type>docker-info</type>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources-filtered</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+
+        <plugins>
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>fetch-included-libraries</id>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <!-- composum core bundles. As bundle, not as package, since we need to safely replace.
+                                    order > 20 since we want to replace the old composum bundles in launchpad. -->
+                                <artifactItem>
+                                    <groupId>com.composum.sling.core</groupId>
+                                    <artifactId>composum-sling-osgi-package-installer</artifactId>
+                                    <version>1.9.2</version>
+                                    <!-- Temporary solution to be able to install packages. Can be removed
+                                     when this goes into the package manager. -->
+                                    <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                                </artifactItem>
+
+                                <artifactItem>
+                                    <groupId>com.composum.sling.core</groupId>
+                                    <artifactId>composum-sling-core-jslibs</artifactId>
+                                    <version>${composum.core.version}</version>
+                                    <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.core</groupId>
+                                    <artifactId>composum-sling-core-jslibs</artifactId>
+                                    <version>${composum.core.version}</version>
+                                    <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.core</groupId>
+                                    <artifactId>composum-sling-core-commons</artifactId>
+                                    <version>${composum.core.version}</version>
+                                    <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.core</groupId>
+                                    <artifactId>composum-sling-core-console</artifactId>
+                                    <version>${composum.core.version}</version>
+                                    <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.core</groupId>
+                                    <artifactId>composum-sling-package-manager</artifactId>
+                                    <version>${composum.core.version}</version>
+                                    <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.core</groupId>
+                                    <artifactId>composum-sling-user-management</artifactId>
+                                    <version>${composum.core.version}</version>
+                                    <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.core</groupId>
+                                    <artifactId>composum-sling-core-config</artifactId>
+                                    <version>${composum.core.version}</version>
+                                    <outputDirectory>${project.build.directory}/lib/25</outputDirectory>
+                                </artifactItem>
+
+                                <!-- Composum platform -->
+                                <artifactItem>
+                                    <groupId>com.composum.sling.platform</groupId>
+                                    <artifactId>composum-sling-platform-commons-package</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>zip</type>
+                                    <outputDirectory>${project.build.directory}/lib/31</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.platform</groupId>
+                                    <artifactId>composum-sling-platform-cache-package</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>zip</type>
+                                    <outputDirectory>${project.build.directory}/lib/32</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.platform</groupId>
+                                    <artifactId>composum-sling-platform-models-package</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>zip</type>
+                                    <outputDirectory>${project.build.directory}/lib/32</outputDirectory>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.platform</groupId>
+                                    <artifactId>composum-sling-platform-services-package</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>zip</type>
+                                    <outputDirectory>${project.build.directory}/lib/33</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>docker-info</id>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>com.composum.sling.platform</groupId>
+                                    <artifactId>composum-sling-platform-launcher-slingstarter</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>docker-info</type>
+                                    <outputDirectory>${project.build.directory}/docker-info-deps</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default</id>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <repository>composum/platform</repository>
+                    <tag>${project.version}</tag>
+                    <verbose>true</verbose>
+                    <detail>true</detail>
+                    <pullNewerImage>false</pullNewerImage>
+                    <buildArgs>
+                        <PROJECT_VERSION>${project.version}</PROJECT_VERSION>
+                    </buildArgs>
+                    <verbose>true</verbose>
+                    <useMavenSettingsForAuth>true</useMavenSettingsForAuth>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <!-- Generate .env file with our version to enable version independent compose files -->
+                        <id>copy-resources</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/env</directory>
+                                    <filtering>true</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+
+    <profiles>
+
+        <profile>
+            <!-- This can also be called manually with   mvn clean install dockerfile:tag dockerfile:push -->
+            <!-- Use authentication with entry in settings.xml , encrypt pwd with  mvn &dash;&dash;encrypt-password -->
+            <!--<server>
+                <id>docker.io</id>
+                <username>composum</username>
+                <password>xxx/password>
+            </server>-->
+            <id>deployDocker</id>
+            <build>
+                <plugins>
+
+                    <plugin>
+                        <groupId>com.spotify</groupId>
+                        <artifactId>dockerfile-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>tag-image</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>tag</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>push-image</id>
+                                <phase>deploy</phase>
+                                <goals>
+                                    <goal>push</goal>
+                                </goals>
+                            </execution>
+
+                        </executions>
+                    </plugin>
+
+                </plugins>
+            </build>
+        </profile>
+
+    </profiles>
+
+</project>
