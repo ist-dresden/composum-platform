@@ -27,7 +27,7 @@ public class ValueComparatorFactory {
         else return reversedComparator(comparator);
     }
 
-    private static final Comparator nullLowNaturalComparator = nullLowComparator(naturalComparator());
+    private static final Comparator nullLowNaturalComparator = nullLowComparator((Comparator) naturalComparator());
 
     /** Compares Values, presuming both are not null. */
     protected static final Comparator<Value> rawComparator = new Comparator<Value>() {
