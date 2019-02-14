@@ -61,25 +61,26 @@ public class SetupHook implements InstallHook {
                 break;
             case INSTALLED:
                 LOG.info("installed: execute...");
-                setupAcls(ctx);
                 SetupUtil.checkBundles(ctx, new HashMap<String, String>() {{
                     put("com.composum.platform.staging", PLATFORM_VERSION);
                     put("com.composum.platform.security", PLATFORM_VERSION);
                 }}, 2, 30);
+                setupAcls(ctx);
                 LOG.info("installed: execute ends.");
                 break;
         }
     }
 
-    protected void setupAcls(InstallContext ctx) {
+    protected void setupAcls(InstallContext ctx) throws PackageException {
         RepositorySetupService setupService = SetupUtil.getService(RepositorySetupService.class);
         try {
             Session session = ctx.getSession();
             setupService.addJsonAcl(session, EVERYONE_ACLS, null);
             setupService.addJsonAcl(session, ADMIN_ACLS, null);
             session.save();
-        } catch (RepositoryException | IOException rex) {
+        } catch (RepositoryException | IOException | RuntimeException rex) {
             LOG.error(rex.getMessage(), rex);
+            throw new PackageException(rex);
         }
     }
 }
