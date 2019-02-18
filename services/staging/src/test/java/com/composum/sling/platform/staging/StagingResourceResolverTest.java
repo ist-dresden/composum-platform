@@ -4,23 +4,30 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.service.ReleaseMapper;
 import org.apache.commons.collections4.IterableUtils;
-import org.apache.sling.api.resource.*;
+import org.apache.sling.api.resource.NonExistingResource;
+import org.apache.sling.api.resource.PersistenceException;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 
-import javax.jcr.Node;
-import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.version.VersionHistory;
-
 import java.io.IOException;
 
-import static com.composum.sling.core.util.ResourceUtil.*;
-import static org.junit.Assert.*;
+import static com.composum.sling.core.util.ResourceUtil.CONTENT_NODE;
+import static com.composum.sling.core.util.ResourceUtil.PROP_DESCRIPTION;
+import static com.composum.sling.core.util.ResourceUtil.PROP_PRIMARY_TYPE;
+import static com.composum.sling.core.util.ResourceUtil.PROP_TITLE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -51,6 +58,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         unversionedNode = makeNode(builderAtFolder, "unversionedDocument", "uv/something", false, false, "uv");
         for (String path : new String[]{folder, node1, document2, node2, unreleasedNode, unversionedNode})
             assertNotNull(path + " doesn't exist", context.resourceResolver().getResource(path));
+        builderAtFolder.commit();
     }
 
     @Test
@@ -150,6 +158,29 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         assertEquals(4, IterableUtils.size(folderResource.getChildren()));
         // jcr:content of unreleasedDocument is not contained in release, and thus not found.
         assertEquals(0, IterableUtils.size(folderResource.getChild("unreleasedDocument").getChildren()));
+
+        StringBuilder buf = new StringBuilder();
+        for (Resource child : folderResource.getChildren()) buf.append(child.getName()).append(" ");
+        assertEquals("document1 document2 unreleasedDocument unversionedDocument ", buf.toString());
+    }
+
+    @Test
+    public void deletionOfCurrentResourcesDoesntChangeRelease() throws Exception {
+        ResourceResolver resolver = context.resourceResolver();
+        Resource resource = resolver.resolve(document2);
+        resolver.delete(resource);
+        resolver.commit();
+
+        Resource folderResource = stagingResourceResolver.resolve(folder);
+        printResourceRecursivelyAsJson(folderResource);
+        checkChildren(folderResource);
+        assertEquals(4, IterableUtils.size(folderResource.getChildren()));
+        // jcr:content of unreleasedDocument is not contained in release, and thus not found.
+        assertEquals(0, IterableUtils.size(folderResource.getChild("unreleasedDocument").getChildren()));
+
+        StringBuilder buf = new StringBuilder();
+        for (Resource child : folderResource.getChildren()) buf.append(child.getName()).append(" ");
+        assertEquals("document1 document2 unreleasedDocument unversionedDocument ", buf.toString());
     }
 
     private void checkChildren(Resource parent) {

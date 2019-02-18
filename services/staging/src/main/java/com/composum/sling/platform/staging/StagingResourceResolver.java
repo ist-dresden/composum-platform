@@ -580,4 +580,8 @@ public class StagingResourceResolver implements ResourceResolver {
         return resourceResolver.adaptTo(type);
     }
 
+    @Override
+    public String toString() {
+        return super.toString() + "{" + this.releasedLabel + "}";
+    }
 }
