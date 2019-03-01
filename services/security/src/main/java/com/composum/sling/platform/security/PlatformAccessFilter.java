@@ -54,8 +54,7 @@ import static com.composum.sling.platform.security.AccessMode.ACCESS_MODE_PUBLIC
                 "sling.filter.scope=REQUEST",
                 "service.ranking:Integer=" + 5090
         },
-        immediate = true,
-        configurationPolicy = ConfigurationPolicy.REQUIRE
+        immediate = true
 )
 @Designate(ocd = PlatformAccessFilter.Config.class)
 public class PlatformAccessFilter implements Filter, PlatformAccessService {
@@ -256,6 +255,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
 
     private static final ThreadLocal<AccessContext> PLATFORM_REQUEST_THREAD_LOCAL = new ThreadLocal<>();
 
+    @Override
     public final void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
@@ -482,9 +482,11 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
         slingResponse.sendError(statusCode);
     }
 
+    @Override
     public final void init(FilterConfig filterConfig) {
     }
 
+    @Override
     public final void destroy() {
     }
 
