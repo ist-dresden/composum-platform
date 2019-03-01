@@ -36,6 +36,20 @@
             "restrictions": {
               "rep:glob": ""
             }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/clientlib/*"
+            }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/clientlibs/*"
+            }
           }
         ]
       }
@@ -197,6 +211,30 @@
           {
             "allow": true,
             "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/apps",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/clientlib/*"
+            }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/clientlibs/*"
+            }
           }
         ]
       }
