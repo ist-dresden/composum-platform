@@ -4,6 +4,8 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 
 import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import java.io.IOException;
 
 public interface PlatformAccessFilterAuthPlugin {
 
@@ -14,7 +16,9 @@ public interface PlatformAccessFilterAuthPlugin {
      * @param chain the filter chain which has triggered this method
      * @return 'true' if the filter chain execution should end
      */
-    boolean examineRequest(SlingHttpServletRequest request, SlingHttpServletResponse response, FilterChain chain);
+    boolean examineRequest(SlingHttpServletRequest request, SlingHttpServletResponse response,
+                           FilterChain chain)
+            throws ServletException, IOException;
 
     /**
      * initiates the authentication for a requests which needs authentication and authorization
@@ -23,5 +27,7 @@ public interface PlatformAccessFilterAuthPlugin {
      * @param chain the filter chain which has triggered this method
      * @return 'true' if the filter chain execution should end
      */
-    boolean triggerAuthentication(SlingHttpServletRequest request, SlingHttpServletResponse response, FilterChain chain);
+    boolean triggerAuthentication(SlingHttpServletRequest request, SlingHttpServletResponse response,
+                                  FilterChain chain)
+            throws ServletException, IOException;
 }

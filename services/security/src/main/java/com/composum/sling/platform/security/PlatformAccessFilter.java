@@ -260,7 +260,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
 
     private boolean handleUnauthorized(SlingHttpServletRequest request, SlingHttpServletResponse response,
                                        FilterChain chain, String reason, Object... args)
-            throws IOException {
+            throws ServletException, IOException {
         if (authPlugin != null) {
             if (LOG.isDebugEnabled()) {
                 LOG.debug(reason, args);
