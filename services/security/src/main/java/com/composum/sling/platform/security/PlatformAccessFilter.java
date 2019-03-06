@@ -353,7 +353,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
                     return;
                 }
 
-                // for authoring pr preview access the user must be authenticated
+                // for authoring or preview access the user must be authenticated
 
                 Session session = resolver.adaptTo(Session.class);
                 if (session != null) {
