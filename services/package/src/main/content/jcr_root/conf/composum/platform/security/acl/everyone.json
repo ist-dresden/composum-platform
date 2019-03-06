@@ -50,6 +50,34 @@
             "restrictions": {
               "rep:glob": "/*/clientlibs/*"
             }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/clientlib"
+            }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/clientlibs"
+            }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/*.css"
+            }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/*.js"
+            }
           }
         ]
       }
@@ -234,6 +262,34 @@
             "privileges": "jcr:read",
             "restrictions": {
               "rep:glob": "/*/clientlibs/*"
+            }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/clientlib"
+            }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/clientlibs"
+            }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/*.css"
+            }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/*.js"
             }
           }
         ]
