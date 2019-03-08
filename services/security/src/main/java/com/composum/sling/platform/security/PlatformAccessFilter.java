@@ -196,7 +196,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
     private SlingSettingsService slingSettings;
 
     @Reference(cardinality = ReferenceCardinality.OPTIONAL)
-    private PlatformAccessFilterAuthPlugin authPlugin;
+    private volatile PlatformAccessFilterAuthPlugin authPlugin;
 
     /**
      * the configuration patterns transformed into Pattern lists...
@@ -263,7 +263,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
             throws ServletException, IOException {
         if (authPlugin != null) {
             if (LOG.isDebugEnabled()) {
-                LOG.debug(reason, args);
+                LOG.debug("AUTH plugin.triggerAuthentication... (" + reason + ")", args);
             }
             return authPlugin.triggerAuthentication(request, response, chain);
         } else {
@@ -284,7 +284,13 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
         slingRequest.setAttribute(ACCESS_MODE_KEY, accessMode.name());
 
         if (authPlugin != null) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("AUTH plugin.examineRequest...");
+            }
             if (authPlugin.examineRequest(slingRequest, slingResponse, chain)) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("AUTH plugin.examineRequest: chain ends.");
+                }
                 return;
             }
         }
