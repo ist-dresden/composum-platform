@@ -11,6 +11,7 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
@@ -165,6 +166,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     }
 
     @Test
+    @Ignore("Unimplemented yet")
     public void deletionOfCurrentResourcesDoesntChangeRelease() throws Exception {
         ResourceResolver resolver = context.resourceResolver();
         Resource resource = resolver.resolve(document2);
