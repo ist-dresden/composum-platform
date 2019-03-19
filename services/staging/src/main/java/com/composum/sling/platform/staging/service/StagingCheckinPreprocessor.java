@@ -2,10 +2,10 @@ package com.composum.sling.platform.staging.service;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.service.VersionCheckinPreprocessor;
+import com.composum.sling.core.util.ResourceUtil;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
@@ -13,12 +13,12 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.version.VersionManager;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.composum.sling.core.util.ResourceUtil.CONTENT_NODE;
 
 /**
  * A {@link VersionCheckinPreprocessor} that saves the order of the node within it siblings to enable the
@@ -39,29 +39,16 @@ public class StagingCheckinPreprocessor implements VersionCheckinPreprocessor {
 
     @Override
     public void beforeCheckin(@Nonnull SlingHttpServletRequest request, @Nonnull JackrabbitSession session, VersionManager versionManager, @Nullable ResourceHandle resource) throws RepositoryException {
-        if (null != resource && resource.isResourceType("cpp:PageContent")) {
-            List<String> childnames = IteratorUtils.toList(resource.getParent().listChildren())
-                    .stream()
+        if (null != resource && CONTENT_NODE.equals(resource.getName()) && resource.isOfType(ResourceUtil.TYPE_UNSTRUCTURED)
+                && resource.getParent() != null && resource.getParent().getParent() != null) {
+            List<Resource> pageSiblings = IteratorUtils.toList(resource.getParent().getParent().listChildren());
+            List<String> siblingnames = pageSiblings.stream()
                     .map(Resource::getName)
                     .collect(Collectors.toList());
-            resource.setProperty(PROP_SIBLINGSONCHECKIN, childnames);
-
-            try {
-                Node config = versionManager.createConfiguration(resource.getPath());
-                config.setProperty("before", new Date().toString());
-            } catch (Exception e) {
-                LOG.error("" + e, e);
-            }
+            resource.setProperty(PROP_SIBLINGSONCHECKIN, siblingnames);
+            LOG.debug("On {} noting page siblings {}", resource.getPath(), siblingnames);
+            session.save();
         }
     }
 
-    @Override
-    public void afterCheckin(SlingHttpServletRequest request, JackrabbitSession session, VersionManager versionManager, ResourceHandle resource) throws RepositoryException, PersistenceException {
-        try {
-            Node config = versionManager.createConfiguration(resource.getPath());
-            config.setProperty("after", new Date().toString());
-        } catch (Exception e) {
-            LOG.error("" + e, e);
-        }
-    }
 }
