@@ -20,12 +20,11 @@ import javax.jcr.Session;
 import javax.jcr.Workspace;
 import javax.jcr.query.QueryManager;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.*;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
 import static com.composum.sling.platform.staging.query.Query.*;
-import static java.util.Arrays.*;
+import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.sling.api.resource.ResourceUtil.getParent;
 import static org.hamcrest.Matchers.*;
@@ -71,19 +70,19 @@ public class QueryTest extends AbstractStagingTest {
         folder = "/folder";
         ResourceBuilder builderAtFolder = context.build().resource(folder).commit();
         document1 = folder + "/" + "document1";
-        node1version = makeNode(builderAtFolder, "document1", "n1/something", true, true, "3 third title");
+        node1version = makeDocumentWithInternalNode(builderAtFolder, "document1", "n1/something", true, true, "3 third title", false);
         node1current = node1version.replaceAll("n1/something", "n1c/something");
         document2 = folder + "/" + "document2";
-        node2oldandnew = makeNode(builderAtFolder, "document2", "n2/some/kind/of/hierarchy/something", true,
-                true, null);
+        node2oldandnew = makeDocumentWithInternalNode(builderAtFolder, "document2", "n2/some/kind/of/hierarchy/something", true,
+                true, null, false);
         node2new = node2oldandnew.replaceAll("hierarchy", "current");
         context.build().resource(node2new, PROP_PRIMARY_TYPE, SELECTED_NODETYPE, PROP_MIXINTYPES,
                 SELECTED_NODE_MIXINS).commit();
         unreleasedDocument = folder + "/" + "unreleasedDocument";
-        unreleasedNode = makeNode(builderAtFolder, "unreleasedDocument", "un/something", true, false, "4");
+        unreleasedNode = makeDocumentWithInternalNode(builderAtFolder, "unreleasedDocument", "un/something", true, false, "4", false);
         unversionedDocument = folder + "/" + "unversionedDocument";
-        unversionedNode = makeNode(builderAtFolder, "unversionedDocument", "uv/something", false, false, "1 first " +
-                "title");
+        unversionedNode = makeDocumentWithInternalNode(builderAtFolder, "unversionedDocument", "uv/something", false, false, "1 first " +
+                "title", false);
 
         ResourceResolver resolver = context.resourceResolver();
         for (String path : new String[]{folder, node1version, document2, node2oldandnew, node2new, unreleasedNode,

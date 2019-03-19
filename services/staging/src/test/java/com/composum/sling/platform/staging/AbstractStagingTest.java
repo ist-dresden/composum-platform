@@ -5,8 +5,10 @@ import com.composum.sling.core.mapping.MappingRules;
 import com.composum.sling.core.util.JsonUtil;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.service.ReleaseMapper;
+import com.composum.sling.platform.staging.service.StagingCheckinPreprocessor;
 import com.google.gson.stream.JsonWriter;
 import org.apache.commons.lang3.RandomUtils;
+import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
@@ -28,7 +30,8 @@ import java.io.StringWriter;
 import java.util.Calendar;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -105,8 +108,20 @@ public abstract class AbstractStagingTest {
     }
 
 
-    protected String makeNode(ResourceBuilder builder, String documentName, String nodepath, boolean versioned,
-                              boolean released, String title) throws RepositoryException {
+    /**
+     * Creates a node at the given nodepath.
+     *
+     * @param builder      the builder that determines the path where the document is built
+     * @param documentName resource name created at builder's folder
+     * @param nodepath     a path of a subnode created below {documentName}/jcr:content
+     * @param versioned    when true, we create a checkpoint for {documentName}/jcr:content
+     * @param released     when true, we label the created version with {@link #RELEASED}
+     * @param title        title of the document
+     * @param storeorder   when true, the ordering of the parent's siblings is stored with the {@link com.composum.sling.platform.staging.service.StagingCheckinPreprocessor}.
+     * @return the path of the node created at {nodepath} within the document
+     */
+    protected String makeDocumentWithInternalNode(ResourceBuilder builder, String documentName, String nodepath, boolean versioned,
+                                                  boolean released, String title, boolean storeorder) throws RepositoryException {
         String[] mixins = versioned ? new String[]{TYPE_VERSIONABLE} : new String[]{};
         builder = builder.resource(documentName);
         builder = builder.resource(CONTENT_NODE, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED, PROP_MIXINTYPES, mixins);
@@ -124,6 +139,12 @@ public abstract class AbstractStagingTest {
         handle.setProperty(PROP_LAST_MODIFIED, modificationTime);
         builder.commit();
         if (versioned) {
+            if (storeorder) {
+                JackrabbitSession session = Mockito.mock(JackrabbitSession.class);
+                new StagingCheckinPreprocessor().beforeCheckin(null, session, versionManager,
+                        ResourceHandle.use(contentResource));
+                builder.commit();
+            }
             Version version = versionManager.checkpoint(contentResource.getPath());
             if (released) {
                 versionManager.getVersionHistory(contentResource.getPath())

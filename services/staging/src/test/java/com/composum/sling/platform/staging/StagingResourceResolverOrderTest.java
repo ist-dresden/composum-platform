@@ -23,13 +23,13 @@ import static org.mockito.Mockito.when;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
- * Tests for {@link StagingResourceResolver}. In this test, the mechanism for restoring the node order that relies on
+ * Tests for {@link StagingResourceResolver}, especially for the ordering of documents, relying on the property
  * {@link com.composum.sling.platform.staging.service.StagingCheckinPreprocessor#PROP_SIBLINGSONCHECKIN}
- * is not active - simulating documents created before this was introduced.
+ * that saves the ordering of the siblings of documents.
  */
-public class StagingResourceResolverTest extends AbstractStagingTest {
+public class StagingResourceResolverOrderTest extends AbstractStagingTest {
 
-    private static final Logger LOG = getLogger(StagingResourceResolverTest.class);
+    private static final Logger LOG = getLogger(StagingResourceResolverOrderTest.class);
 
     private String folder;
     private String node1;
@@ -43,11 +43,11 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     public void setUpContent() throws Exception {
         folder = "/folder";
         builderAtFolder = context.build().resource(folder).commit();
-        node1 = makeDocumentWithInternalNode(builderAtFolder, "document1", "n1/something", true, true, "n1", false);
+        node1 = makeDocumentWithInternalNode(builderAtFolder, "document1", "n1/something", true, true, "n1", true);
         document2 = folder + "/" + "document2";
-        node2 = makeDocumentWithInternalNode(builderAtFolder, "document2", "n2/some/kind/of/hierarchy/something", true, true, "n2", false);
-        unreleasedNode = makeDocumentWithInternalNode(builderAtFolder, "unreleasedDocument", "un/something", true, false, "un", false);
-        unversionedNode = makeDocumentWithInternalNode(builderAtFolder, "unversionedDocument", "uv/something", false, false, "uv", false);
+        node2 = makeDocumentWithInternalNode(builderAtFolder, "document2", "n2/some/kind/of/hierarchy/something", true, true, "n2", true);
+        unreleasedNode = makeDocumentWithInternalNode(builderAtFolder, "unreleasedDocument", "un/something", true, false, "un", true);
+        unversionedNode = makeDocumentWithInternalNode(builderAtFolder, "unversionedDocument", "uv/something", false, false, "uv", true);
         for (String path : new String[]{folder, node1, document2, node2, unreleasedNode, unversionedNode})
             assertNotNull(path + " doesn't exist", context.resourceResolver().getResource(path));
         builderAtFolder.commit();
@@ -133,7 +133,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         resolver.delete(resource);
         resolver.commit();
         String node2Recreated = makeDocumentWithInternalNode(builderAtFolder, "document2", "n2/some/kind/of/hierarchy/something",
-                true, false, "n2-recreated", false);
+                true, false, "n2-recreated", true);
 
         Resource node2AsReleased = stagingResourceResolver.getResource(node2);
         assertThat(node2AsReleased, existsInclusiveParents());
@@ -204,7 +204,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     @Test
     public void testSearchPathUsage() throws Exception {
         ResourceBuilder builderAtApps = context.build().resource("/apps/bla").commit();
-        String atApps = makeDocumentWithInternalNode(builderAtApps, "someatapps", "something", true, true, "at", false);
+        String atApps = makeDocumentWithInternalNode(builderAtApps, "someatapps", "something", true, true, "at", true);
         Resource resource = stagingResourceResolver.getResource(atApps.substring(6));
         assertThat(resource, existsInclusiveParents());
         assertEquals(atApps, resource.getPath());

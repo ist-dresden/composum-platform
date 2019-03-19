@@ -2,7 +2,6 @@ package com.composum.sling.platform.staging.service;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.service.VersionCheckinPreprocessor;
-import com.composum.sling.core.util.ResourceUtil;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -18,7 +17,7 @@ import javax.jcr.version.VersionManager;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.composum.sling.core.util.ResourceUtil.CONTENT_NODE;
+import static com.composum.sling.core.util.ResourceUtil.*;
 
 /**
  * A {@link VersionCheckinPreprocessor} that saves the order of the node within it siblings to enable the
@@ -35,12 +34,13 @@ public class StagingCheckinPreprocessor implements VersionCheckinPreprocessor {
      * Saves the names of the siblings of the page of a checked in page in their order when the page
      * was checked in on the the page content node {@link #NODE_TYPE_PAGE_CONTENT}.
      */
-    String PROP_SIBLINGSONCHECKIN = "pageSiblingsOnCheckin";
+    public static final String PROP_SIBLINGSONCHECKIN = "pageSiblingsOnCheckin";
 
     @Override
     public void beforeCheckin(@Nonnull SlingHttpServletRequest request, @Nonnull JackrabbitSession session, VersionManager versionManager, @Nullable ResourceHandle resource) throws RepositoryException {
-        if (null != resource && CONTENT_NODE.equals(resource.getName()) && resource.isOfType(ResourceUtil.TYPE_UNSTRUCTURED)
-                && resource.getParent() != null && resource.getParent().getParent() != null) {
+        if (null != resource && CONTENT_NODE.equals(resource.getName())
+                && resource.getParent() != null && resource.getParent().getParent() != null
+                && resource.isOfType(TYPE_UNSTRUCTURED) && resource.isOfType(TYPE_VERSIONABLE)) {
             List<Resource> pageSiblings = IteratorUtils.toList(resource.getParent().getParent().listChildren());
             List<String> siblingnames = pageSiblings.stream()
                     .map(Resource::getName)
