@@ -71,8 +71,13 @@ public class LoadedModel implements SlingBean {
         return resource.getValueMap().get(key, defaultValue);
     }
 
-    public String getDate(@Nonnull String key) {
-        Calendar date = getProperty(key, Calendar.class);
+    public String getDate(@Nonnull String... keyChain) {
+        Calendar date = null;
+        for (String key : keyChain) {
+            if ((date = getProperty(key, Calendar.class)) != null) {
+                break;
+            }
+        }
         return date != null ? new SimpleDateFormat("yyyy-MM-dd HH:mm").format(date.getTime()) : "";
     }
 
