@@ -44,12 +44,15 @@ class StagingResourceChildrenIterator implements Iterator<Resource> {
     private Resource next;
     private boolean hasNext;
 
+    private final StagingSavedResourceOrdering ordering;
+
     StagingResourceChildrenIterator(@Nonnull final Iterator<Resource> iterator,
                                     @Nonnull final StagingResourceResolver resourceResolver) {
         this.iterator = iterator;
         this.resourceResolver = resourceResolver;
         this.potentialVersionedDirectChildren = Collections.emptyIterator();
         this.parentPath = "";
+        this.ordering = new StagingSavedResourceOrdering(parentPath, null, resourceResolver);
         readNext();
     }
 
@@ -65,6 +68,7 @@ class StagingResourceChildrenIterator implements Iterator<Resource> {
                 .filter(this::isDirectChild)
                 .collect(Collectors.toList())
                 .iterator();
+        ordering = new StagingSavedResourceOrdering(parentPath, potentialVersionedChildrenList, resourceResolver);
         readNext();
     }
 
