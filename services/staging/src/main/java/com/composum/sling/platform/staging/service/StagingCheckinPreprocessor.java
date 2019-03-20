@@ -31,24 +31,40 @@ public class StagingCheckinPreprocessor implements VersionCheckinPreprocessor {
     private static final Logger LOG = LoggerFactory.getLogger(StagingCheckinPreprocessor.class);
 
     /**
-     * Saves the names of the siblings of the page of a checked in page in their order when the page
-     * was checked in on the the page content node {@link #NODE_TYPE_PAGE_CONTENT}.
+     * Saves an ordered list of the names of the siblings of the parent of a checked in jcr:content.
      */
-    public static final String PROP_SIBLINGSONCHECKIN = "pageSiblingsOnCheckin";
+    public static final String PROP_PARENT_SIBLINGS_ON_CHECKIN = "parentSiblingsOnCheckin";
+
+    /**
+     * Saves an ordered list of the names of the siblings of a checked in jcr:content.
+     */
+    public static final String PROP_SIBLINGS_ON_CHECKIN = "siblingsOnCheckin";
 
     @Override
     public void beforeCheckin(@Nonnull SlingHttpServletRequest request, @Nonnull JackrabbitSession session, VersionManager versionManager, @Nullable ResourceHandle resource) throws RepositoryException {
         if (null != resource && CONTENT_NODE.equals(resource.getName())
-                && resource.getParent() != null && resource.getParent().getParent() != null
                 && resource.isOfType(TYPE_UNSTRUCTURED) && resource.isOfType(TYPE_VERSIONABLE)) {
-            List<Resource> pageSiblings = IteratorUtils.toList(resource.getParent().getParent().listChildren());
-            List<String> siblingnames = pageSiblings.stream()
-                    .map(Resource::getName)
-                    .collect(Collectors.toList());
-            resource.setProperty(PROP_SIBLINGSONCHECKIN, siblingnames);
-            LOG.debug("On {} noting page siblings {}", resource.getPath(), siblingnames);
-            session.save();
+            ResourceHandle parent = resource.getParent();
+            if (parent != null) {
+                List<String> siblingnames = collectChildrensNames(parent);
+                resource.setProperty(PROP_SIBLINGS_ON_CHECKIN, siblingnames);
+                List<String> parentsiblingnames = null;
+                ResourceHandle greatparent = parent.getParent();
+                if (greatparent != null) {
+                    parentsiblingnames = collectChildrensNames(greatparent);
+                    resource.setProperty(PROP_PARENT_SIBLINGS_ON_CHECKIN, parentsiblingnames);
+                }
+                LOG.debug("On {} noting page siblings {} and parent siblings {}", resource.getPath(), siblingnames, parentsiblingnames);
+                session.save();
+            }
         }
+    }
+
+    protected List<String> collectChildrensNames(ResourceHandle greatparent) {
+        List<Resource> pageSiblings = IteratorUtils.toList(greatparent.listChildren());
+        return pageSiblings.stream()
+                .map(Resource::getName)
+                .collect(Collectors.toList());
     }
 
 }
