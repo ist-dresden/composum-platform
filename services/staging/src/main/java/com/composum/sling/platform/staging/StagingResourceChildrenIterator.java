@@ -1,16 +1,15 @@
 package com.composum.sling.platform.staging;
 
+import org.apache.commons.collections4.IteratorUtils;
 import org.apache.sling.api.resource.NonExistingResource;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceUtil;
 
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.composum.sling.platform.staging.StagingUtils.isInVersionStorage;
 import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
@@ -30,7 +29,7 @@ class StagingResourceChildrenIterator implements Iterator<Resource> {
      * of the resource.
      */
     @Nonnull
-    private final Iterator<Resource> potentialVersionableChildren;
+    private final Iterator<Resource> potentialVersionedDirectChildren;
 
     @Nonnull
     private final StagingResourceResolver resourceResolver;
@@ -49,20 +48,30 @@ class StagingResourceChildrenIterator implements Iterator<Resource> {
                                     @Nonnull final StagingResourceResolver resourceResolver) {
         this.iterator = iterator;
         this.resourceResolver = resourceResolver;
-        this.potentialVersionableChildren = Collections.emptyIterator();
+        this.potentialVersionedDirectChildren = Collections.emptyIterator();
         this.parentPath = "";
         readNext();
     }
 
     StagingResourceChildrenIterator(@Nonnull final Iterator<Resource> iterator,
-                                    @Nonnull final Iterator<Resource> potentialVersionableChildren,
+                                    @Nonnull final Iterator<Resource> potentialVersionedChildren,
                                     @Nonnull final StagingResourceResolver resourceResolver,
                                     @Nonnull final String parentPath) {
         this.iterator = iterator;
         this.resourceResolver = resourceResolver;
-        this.potentialVersionableChildren = potentialVersionableChildren;
         this.parentPath = parentPath;
+        List<Resource> potentialVersionedChildrenList = IteratorUtils.toList(potentialVersionedChildren);
+        this.potentialVersionedDirectChildren = potentialVersionedChildrenList.stream()
+                .filter(this::isDirectChild)
+                .collect(Collectors.toList())
+                .iterator();
         readNext();
+    }
+
+    protected boolean isDirectChild(Resource inext) {
+        String inextPath = inext.getValueMap().get("default", String.class);
+        final String subpath = inextPath.replaceFirst("^" + Pattern.quote(parentPath), "");
+        return subpath.lastIndexOf('/') < 1;
     }
 
     /**
@@ -110,23 +119,18 @@ class StagingResourceChildrenIterator implements Iterator<Resource> {
      * @return a child or null
      */
     private Resource getNextPotentialChild() {
-        if (potentialVersionableChildren.hasNext()) {
+        if (potentialVersionedDirectChildren.hasNext()) {
             do {
-                Resource inext = potentialVersionableChildren.next();
-                String inextPath = inext.getValueMap().get("default", String.class);
-                final String subpath = inextPath.replaceAll("^" + parentPath, "");
-                if (subpath.lastIndexOf('/') < 1) {
-                    // this is a direct child
-                    final String uuid = inext.getValueMap().get(JCR_VERSIONABLEUUID, String.class);
-                    if (!uuids.contains(uuid)) {
-                        try {
-                            return StagingResource.wrap(resourceResolver.getReleasedFrozenResource(inext), resourceResolver);
-                        } catch (RepositoryException e) {
-                            //nothing - not released
-                        }
+                Resource inext = potentialVersionedDirectChildren.next();
+                final String uuid = inext.getValueMap().get(JCR_VERSIONABLEUUID, String.class);
+                if (!uuids.contains(uuid)) {
+                    try {
+                        return StagingResource.wrap(resourceResolver.getReleasedFrozenResource(inext), resourceResolver);
+                    } catch (RepositoryException e) {
+                        //nothing - not released
                     }
                 }
-            } while (potentialVersionableChildren.hasNext());
+            } while (potentialVersionedDirectChildren.hasNext());
             return null;
         } else {
             return null;
@@ -158,6 +162,7 @@ class StagingResourceChildrenIterator implements Iterator<Resource> {
     /**
      * @see java.util.Iterator#hasNext()
      */
+    @Override
     public boolean hasNext() {
         return hasNext;
     }
@@ -165,6 +170,7 @@ class StagingResourceChildrenIterator implements Iterator<Resource> {
     /**
      * @see java.util.Iterator#next()
      */
+    @Override
     public Resource next() {
         if (!hasNext) {
             throw new NoSuchElementException();
@@ -177,6 +183,7 @@ class StagingResourceChildrenIterator implements Iterator<Resource> {
     /**
      * @see java.util.Iterator#remove()
      */
+    @Override
     public void remove() {
         throw new UnsupportedOperationException();
     }

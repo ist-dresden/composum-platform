@@ -4,6 +4,7 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.service.ReleaseMapper;
 import org.apache.commons.collections4.IterableUtils;
+import org.apache.commons.collections4.IteratorUtils;
 import org.apache.sling.api.resource.*;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.junit.Before;
@@ -15,6 +16,7 @@ import org.slf4j.Logger;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import java.io.IOException;
+import java.util.List;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
 import static org.junit.Assert.*;
@@ -145,8 +147,10 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     @Test
     public void childrenAreOnlyReleasedOrUnversioned() throws Exception {
         Resource folderResource = stagingResourceResolver.resolve(folder);
+        List<Resource> children = IteratorUtils.toList(folderResource.listChildren());
+
         printResourceRecursivelyAsJson(folderResource);
-        checkChildren(folderResource);
+        checkChildParentRelationsRecursively(folderResource);
         assertEquals(4, IterableUtils.size(folderResource.getChildren()));
         // jcr:content of unreleasedDocument is not contained in release, and thus not found.
         assertEquals(0, IterableUtils.size(folderResource.getChild("unreleasedDocument").getChildren()));
@@ -157,7 +161,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     }
 
     @Test
-    @Ignore("Unimplemented yet")
+    @Ignore("Different from current specification - doesn't work like that.")
     public void deletionOfCurrentResourcesDoesntChangeRelease() throws Exception {
         ResourceResolver resolver = context.resourceResolver();
         Resource resource = resolver.resolve(document2);
@@ -166,7 +170,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
         Resource folderResource = stagingResourceResolver.resolve(folder);
         printResourceRecursivelyAsJson(folderResource);
-        checkChildren(folderResource);
+        checkChildParentRelationsRecursively(folderResource);
         assertEquals(4, IterableUtils.size(folderResource.getChildren()));
         // jcr:content of unreleasedDocument is not contained in release, and thus not found.
         assertEquals(0, IterableUtils.size(folderResource.getChild("unreleasedDocument").getChildren()));
@@ -176,10 +180,10 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         assertEquals("document1 document2 unreleasedDocument unversionedDocument ", buf.toString());
     }
 
-    private void checkChildren(Resource parent) {
+    private void checkChildParentRelationsRecursively(Resource parent) {
         assertThat(parent, existsInclusiveParents());
         for (Resource child : parent.getChildren()) {
-            checkChildren(child);
+            checkChildParentRelationsRecursively(child);
         }
     }
 

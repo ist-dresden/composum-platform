@@ -142,7 +142,7 @@ public class QueryTest extends AbstractStagingTest {
         String prefix = q.searchpathForPathPrefixInVersionStorage(queryManager);
         // for example /jcr:system/jcr:versionStorage/73/ae/3b/73ae3bf3-c829-4b07-a217-fabe19b95a40/1.0/jcr
         // :frozenNode/n2/some/kind/of/hierarchy/something
-        assertEquals("/jcr:system/jcr:versionStorage/X/X/X/X/1.0/jcr:frozenNode/n2/some/kind/of/hierarchy/something",
+        assertEquals("/jcr:system/jcr:versionStorage/X/X/X/X/1.1/jcr:frozenNode/n2/some/kind/of/hierarchy/something",
                 prefix.replaceAll("/[a-f0-9-]{2,}", "/X"));
     }
 

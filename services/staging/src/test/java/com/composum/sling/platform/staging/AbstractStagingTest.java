@@ -126,32 +126,52 @@ public abstract class AbstractStagingTest {
         builder = builder.resource(documentName);
         builder = builder.resource(CONTENT_NODE, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED, PROP_MIXINTYPES, mixins);
         Resource contentResource = builder.getCurrentParent();
+        builder.commit();
+
+        if (versioned) { // create an empty first version
+            if (storeorder) {
+                JackrabbitSession session = Mockito.mock(JackrabbitSession.class);
+                new StagingCheckinPreprocessor().beforeCheckin(null, session, versionManager,
+                        ResourceHandle.use(contentResource));
+                builder.commit(); // since we used a session mock
+            }
+            versionManager.checkpoint(contentResource.getPath());
+        }
+
+        // create the node at nodepath
         Resource resource = builder.resource(nodepath, PROP_PRIMARY_TYPE, SELECTED_NODETYPE,
                 PROP_MIXINTYPES, SELECTED_NODE_MIXINS).getCurrentParent();
         ResourceHandle handle = ResourceHandle.use(resource);
         if (null != title) {
             handle.setProperty(PROP_TITLE, title);
         }
-        Calendar modificationTime = Calendar.getInstance();
-        modificationTime.add(Calendar.DAY_OF_YEAR, -RandomUtils.nextInt(1, 90));
-        modificationTime.add(Calendar.SECOND, -RandomUtils.nextInt(1, 1000));
-        modificationTime.add(Calendar.MILLISECOND, RandomUtils.nextInt(1, 1000));
-        handle.setProperty(PROP_LAST_MODIFIED, modificationTime);
+        handle.setProperty(PROP_LAST_MODIFIED, randomTime());
         builder.commit();
+
         if (versioned) {
             if (storeorder) {
                 JackrabbitSession session = Mockito.mock(JackrabbitSession.class);
                 new StagingCheckinPreprocessor().beforeCheckin(null, session, versionManager,
                         ResourceHandle.use(contentResource));
-                builder.commit();
+                builder.commit(); // since we used a session mock
             }
             Version version = versionManager.checkpoint(contentResource.getPath());
             if (released) {
                 versionManager.getVersionHistory(contentResource.getPath())
                         .addVersionLabel(version.getName(), RELEASED, false);
+                builder.commit();
+                versionManager.checkpoint(contentResource.getPath()); // don't let it just be the last version
             }
-            builder.commit(); // unclear whether this is neccesary.
+            builder.commit();
         }
         return resource.getPath();
+    }
+
+    private Calendar randomTime() {
+        Calendar modificationTime = Calendar.getInstance();
+        modificationTime.add(Calendar.DAY_OF_YEAR, -RandomUtils.nextInt(1, 90));
+        modificationTime.add(Calendar.SECOND, -RandomUtils.nextInt(1, 1000));
+        modificationTime.add(Calendar.MILLISECOND, RandomUtils.nextInt(1, 1000));
+        return modificationTime;
     }
 }
