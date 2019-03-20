@@ -176,7 +176,7 @@ public class StagingResourceResolver implements ResourceResolver {
                 resourceToUse = resource.getParent();
             }
 
-            while (!isVersionable(resourceToUse) && !isRoot(resourceToUse)) {
+            while (resourceToUse != null && !isVersionable(resourceToUse) && !isRoot(resourceToUse)) {
                 if (intermediatePath.length() == 0) {
                     intermediatePath = resourceToUse.getName();
                 } else {
@@ -185,7 +185,7 @@ public class StagingResourceResolver implements ResourceResolver {
                 resourceToUse = resourceToUse.getParent();
             }
 
-            if (isRoot(resourceToUse)) { // not versionable and no versionable parent
+            if (resourceToUse == null || isRoot(resourceToUse)) { // not versionable and no versionable parent
                 return StagingResource.wrap(request, resource, this);
             } else {
                 final String frozenNodePath = getReleasedFrozenNodePath(resourceToUse, releasedLabel,
