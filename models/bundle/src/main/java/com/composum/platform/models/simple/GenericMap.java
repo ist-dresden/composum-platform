@@ -1,5 +1,10 @@
 package com.composum.platform.models.simple;
 
+import com.composum.sling.core.util.PropertyUtil;
+import org.apache.sling.api.resource.ValueMap;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -7,7 +12,7 @@ import java.util.List;
 /**
  * a caching property map for direct use as model with i18N support
  */
-public abstract class GenericMap extends HashMap<String, Object> {
+public abstract class GenericMap extends HashMap<String, Object> implements ValueMap {
 
     public static final String UNDEFINED = "<undefined>";
 
@@ -15,6 +20,19 @@ public abstract class GenericMap extends HashMap<String, Object> {
 
     protected GenericMap(final List<String> i18nPaths) {
         this.i18nPaths = i18nPaths != null ? i18nPaths : Collections.singletonList(".");
+    }
+
+    @Nullable
+    public <T> T get(@Nonnull String key, @Nonnull Class<T> type) {
+        //noinspection unchecked
+        return (T) get(key);
+    }
+
+    @Nonnull
+    public <T> T get(@Nonnull String key, @Nonnull T defaultValue) {
+        Class<T> type = PropertyUtil.getType(defaultValue);
+        T value = get(key, type);
+        return value != null ? value : defaultValue;
     }
 
     /**
@@ -33,7 +51,8 @@ public abstract class GenericMap extends HashMap<String, Object> {
     protected Object getValue(String key, List<String> pathsToTry) {
         Object value;
         for (String path : pathsToTry) {
-            if ((value = getValue(path + '/' + key)) != null) {
+            // a local path ('./...') doesn't work properly in the LoadedModel; therefore checked here
+            if ((value = getValue(".".equals(path) ? key : path + '/' + key)) != null) {
                 return value;
             }
         }

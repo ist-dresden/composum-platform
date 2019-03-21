@@ -2,6 +2,7 @@ package com.composum.platform.models.simple;
 
 import com.composum.platform.models.annotations.InternationalizationStrategy;
 import com.composum.sling.core.AbstractServletBean;
+import org.apache.sling.api.SlingHttpServletRequest;
 
 import java.util.List;
 import java.util.Locale;
@@ -46,7 +47,8 @@ public class SimpleModel extends AbstractServletBean {
 
     public Locale getLocale() {
         if (locale == null) {
-            locale = getRequest().getLocale();
+            SlingHttpServletRequest request = getRequest();
+            locale = request != null ? getRequest().getLocale() : Locale.getDefault();
         }
         return locale;
     }

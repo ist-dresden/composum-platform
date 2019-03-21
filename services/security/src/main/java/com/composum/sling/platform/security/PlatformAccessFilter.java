@@ -17,9 +17,9 @@ import org.apache.sling.settings.SlingSettingsService;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
@@ -54,8 +54,7 @@ import static com.composum.sling.platform.security.AccessMode.ACCESS_MODE_PUBLIC
                 "sling.filter.scope=REQUEST",
                 "service.ranking:Integer=" + 5090
         },
-        immediate = true,
-        configurationPolicy = ConfigurationPolicy.REQUIRE
+        immediate = true
 )
 @Designate(ocd = PlatformAccessFilter.Config.class)
 public class PlatformAccessFilter implements Filter, PlatformAccessService {
@@ -196,6 +195,9 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
     @Reference
     private SlingSettingsService slingSettings;
 
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL)
+    private volatile PlatformAccessFilterAuthPlugin authPlugin;
+
     /**
      * the configuration patterns transformed into Pattern lists...
      */
@@ -256,6 +258,22 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
 
     private static final ThreadLocal<AccessContext> PLATFORM_REQUEST_THREAD_LOCAL = new ThreadLocal<>();
 
+    private boolean handleUnauthorized(SlingHttpServletRequest request, SlingHttpServletResponse response,
+                                       FilterChain chain, String reason, Object... args)
+            throws ServletException, IOException {
+        if (authPlugin != null) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("AUTH plugin.triggerAuthentication... (" + reason + ")", args);
+            }
+            return authPlugin.triggerAuthentication(request, response, chain);
+        } else {
+            LOG.warn(reason, args);
+            sendError(response, SlingHttpServletResponse.SC_UNAUTHORIZED);
+            return true;
+        }
+    }
+
+    @Override
     public final void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
@@ -264,6 +282,18 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
 
         AccessMode accessMode = getAccessMode(slingRequest, slingResponse);
         slingRequest.setAttribute(ACCESS_MODE_KEY, accessMode.name());
+
+        if (authPlugin != null) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("AUTH plugin.examineRequest...");
+            }
+            if (authPlugin.examineRequest(slingRequest, slingResponse, chain)) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("AUTH plugin.examineRequest: chain ends.");
+                }
+                return;
+            }
+        }
 
         ResourceResolver resolver = slingRequest.getResourceResolver();
         Resource resource = slingRequest.getResource();
@@ -329,7 +359,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
                     return;
                 }
 
-                // for authoring pr preview access the user must be authenticated
+                // for authoring or preview access the user must be authenticated
 
                 Session session = resolver.adaptTo(Session.class);
                 if (session != null) {
@@ -338,16 +368,18 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
                     if (userId == null || "anonymous".equalsIgnoreCase(userId)) {
 
                         if (isAccessDenied(uri, false, authorAllowAnonUriPatterns, null)) {
-                            LOG.warn("REJECT(anon): '" + uri + "' by anonymous URI patterns!");
-                            sendError(slingResponse, SlingHttpServletResponse.SC_UNAUTHORIZED);
-                            return;
+                            if (handleUnauthorized(slingRequest, slingResponse, chain,
+                                    "REJECT(anon): '{}' by anonymous URI patterns!", uri)) {
+                                return;
+                            }
                         }
                     }
 
                 } else {
-                    LOG.error("REJECT(fault): '" + uri + "' - not adaptable to a session!");
-                    sendError(slingResponse, SlingHttpServletResponse.SC_UNAUTHORIZED);
-                    return;
+                    if (handleUnauthorized(slingRequest, slingResponse, chain,
+                            "REJECT(fault): '{}' - not adaptable to a session!", uri)) {
+                        return;
+                    }
                 }
             }
         }
@@ -482,9 +514,11 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
         slingResponse.sendError(statusCode);
     }
 
+    @Override
     public final void init(FilterConfig filterConfig) {
     }
 
+    @Override
     public final void destroy() {
     }
 
