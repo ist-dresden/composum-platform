@@ -1,0 +1,22 @@
+<'nt'='http://www.jcp.org/jcr/nt/1.0'>
+<'mix'='http://www.jcp.org/jcr/mix/1.0'>
+<'jcr'='http://www.jcp.org/jcr/1.0'>
+<'sling'='http://sling.apache.org/jcr/sling/1.0'>
+<'cpl'='http://sling.composum.com/platform/1.0'>
+
+/* Mixin for the versionable node that contains the structure of a release in a subnode cpl:release.
+ We also save the full path at which the release node was created in cpl:pathOnCheckin. */
+[cpl:releaseConfig] > mix:versionable
+  mixin
+  - cpl:pathOnCheckin (PATH)
+  + cpl:release (nt:base) = nt:unstructured mandatory autocreated
+
+/* Mixin that makes a node a root of a release. This mainly ensures easy location of the release
+ roots and that a jcr:content node is always present. */
+[cpl:releaseRoot]
+  mixin
+  + jcr:content (cpl:releaseConfig)
+
+[cpl:VersionReference] > nt:base
+  - cpl:versionUuid (REFERENCE) mandatory
+
