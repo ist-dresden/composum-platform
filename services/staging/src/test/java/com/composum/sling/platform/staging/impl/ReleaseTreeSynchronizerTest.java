@@ -65,7 +65,8 @@ public class ReleaseTreeSynchronizerTest extends NodeTreeSynchronizerTest {
         toBuilder.resource("moveme", PROP_PRIMARY_TYPE, StagingConstants.TYPE_VERSIONREFERENCE,
                 StagingConstants.PROP_VERSIONHISTORY, version.getContainingHistory().getUUID(),
                 StagingConstants.PROP_VERSION, version.getIdentifier(),
-                StagingConstants.PROP_VERSIONABLEUUID, version.getContainingHistory().getVersionableUUID());
+                StagingConstants.PROP_VERSIONABLEUUID, version.getContainingHistory().getVersionableUUID(),
+                "oldmetadata", "oldmetaval");
         Resource toResource = toBuilder.commit().getCurrentParent();
 
         // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
@@ -74,6 +75,8 @@ public class ReleaseTreeSynchronizerTest extends NodeTreeSynchronizerTest {
 
         JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
 
+        assertEquals(StagingConstants.TYPE_VERSIONREFERENCE, ResourceHandle.use(toResource).getProperty("a/jcr:content/jcr:primaryType"));
+        assertEquals("oldmetaval", ResourceHandle.use(toResource).getProperty("a/jcr:content/oldmetadata"));
         assertEquals("valc", ResourceHandle.use(fromResource).getProperty("b/c/attrc"));
         assertEquals("valc", ResourceHandle.use(toResource).getProperty("b/c/attrc"));
         assertEquals("vala", ResourceHandle.use(toResource).getProperty("a/attra"));

@@ -87,35 +87,43 @@ public class ReleaseTreeSynchronizer extends NodeTreeSynchronizer {
      * </ul>
      */
     protected void updateVersionReference(ResourceHandle from, ResourceHandle to) throws RepositoryException, PersistenceException {
-        if (!to.isResourceType(StagingConstants.TYPE_VERSIONREFERENCE)) {
-            // initialize fresh version reference.
-            to.setProperty(ResourceUtil.PROP_PRIMARY_TYPE, StagingConstants.TYPE_VERSIONREFERENCE);
-            to.setProperty(ResourceUtil.PROP_MIXINTYPES, Collections.emptyList());
-            // if we turned a previously unversionable node into versionable, there might be already properties and children,
-            // which are obsolete since they are now versioned. Remove this stuff.
-            clearNode(to);
-
+        if (to.isResourceType(StagingConstants.TYPE_VERSIONREFERENCE) &&
+                StringUtils.equals(getReferencedVersionHistory(from), getReferencedVersionHistory(to))) {
+            LOG.debug("Is already reference to same versionable - do nothing: {}", to.getPath());
+        } else {
+            if (from.isResourceType(StagingConstants.TYPE_VERSIONREFERENCE)) {
+                super.updateSubtree(from, to);
+            } else {
+                // initialize fresh version reference.
+                to.setProperty(ResourceUtil.PROP_PRIMARY_TYPE, StagingConstants.TYPE_VERSIONREFERENCE);
+                to.setProperty(ResourceUtil.PROP_MIXINTYPES, Collections.emptyList());
+                // if we turned a previously unversionable node into versionable, there might be already properties and children,
+                // which are obsolete since they are now versioned. Remove this stuff.
+                clearNode(to);
+                updateVersionAttributes(from, to);
+            }
         }
-        updateVersionAttributes(from, to);
+    }
+
+    protected String getReferencedVersionHistory(ResourceHandle resource) {
+        return resource.isResourceType(StagingConstants.TYPE_VERSIONREFERENCE) ? resource.getProperty(StagingConstants.PROP_VERSIONHISTORY, String.class)
+                : resource.getProperty(JcrConstants.JCR_VERSIONHISTORY);
     }
 
     protected void updateVersionAttributes(ResourceHandle from, ResourceHandle to) throws RepositoryException, PersistenceException {
+        if (to.getProperty(StagingConstants.PROP_VERSIONHISTORY) != null && !
+                StringUtils.equals(getReferencedVersionHistory(from), getReferencedVersionHistory(to)))
+            throw new IllegalArgumentException("Abuse: set attributes from different versionable? " + from.getPath() + " to " + to.getPath());
+
         if (from.isResourceType(ResourceUtil.TYPE_VERSIONABLE)) {
             LOG.debug("Set from versionable: {}", to.getPath());
             to.setProperty(StagingConstants.PROP_VERSIONHISTORY, from.getProperty("jcr:versionHistory"));
             to.setProperty(StagingConstants.PROP_VERSION, from.getProperty("jcr:baseVersion"));
             to.setProperty(StagingConstants.PROP_VERSIONABLEUUID, from.getProperty(JcrConstants.JCR_UUID));
         } else if (from.isResourceType(StagingConstants.TYPE_VERSIONREFERENCE)) {
-            if (!StringUtils.equals(from.getProperty(StagingConstants.PROP_VERSIONHISTORY, String.class), to.getProperty(StagingConstants.PROP_VERSIONHISTORY, String.class))) {
-                // either fresh or the rare case that there originally was another versionable document at from -> clear.
-                LOG.debug("Fresh or from other versionHistory: {}", to.getPath());
-                clearNode(to);
-                to.setProperty(StagingConstants.PROP_VERSIONHISTORY, from.getProperty(StagingConstants.PROP_VERSIONHISTORY));
-                to.setProperty(StagingConstants.PROP_VERSION, from.getProperty(StagingConstants.PROP_VERSION));
-                to.setProperty(StagingConstants.PROP_VERSIONABLEUUID, from.getProperty(StagingConstants.PROP_VERSIONABLEUUID));
-            } else {
-                LOG.debug("Do not touch node since it is already reference to same versionable: {}", to.getPath());
-            }
+            to.setProperty(StagingConstants.PROP_VERSIONHISTORY, from.getProperty(StagingConstants.PROP_VERSIONHISTORY));
+            to.setProperty(StagingConstants.PROP_VERSION, from.getProperty(StagingConstants.PROP_VERSION));
+            to.setProperty(StagingConstants.PROP_VERSIONABLEUUID, from.getProperty(StagingConstants.PROP_VERSIONABLEUUID));
         } else
             throw new IllegalArgumentException("Bug: should be versionable or versionreference for this method: " + from);
     }
