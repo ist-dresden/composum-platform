@@ -19,10 +19,15 @@ import static org.junit.Assert.*;
 @SuppressWarnings("ConstantConditions")
 public class NodeTreeSynchronizerTest {
 
-    private final NodeTreeSynchronizer syncronizer = new NodeTreeSynchronizer();
+    protected final NodeTreeSynchronizer syncronizer = createSynchronizer();
 
+    protected NodeTreeSynchronizer createSynchronizer() {
+        return new NodeTreeSynchronizer();
+    }
+
+    // wee need JCR_OAK for the node type handling - check protected properties etc.
     @Rule
-    public final SlingContext context = new SlingContext(ResourceResolverType.RESOURCERESOLVER_MOCK);
+    public final SlingContext context = new SlingContext(ResourceResolverType.JCR_OAK);
 
     @Test
     public void syncAttributes() throws RepositoryException, PersistenceException {
@@ -64,11 +69,11 @@ public class NodeTreeSynchronizerTest {
                 .resource("deletemetoo", PROP_PRIMARY_TYPE, "sling:Folder", "attrc", "valc");
         Resource toResource = toBuilder.commit().getCurrentParent();
 
-        JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
+        // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
 
         syncronizer.update(fromResource, toResource);
 
-        JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
+        // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
 
         assertEquals("valc", ResourceHandle.use(fromResource).getProperty("b/c/attrc"));
         assertEquals("valc", ResourceHandle.use(toResource).getProperty("b/c/attrc"));
