@@ -46,7 +46,7 @@ public class ReleaseTreeSynchronizer extends NodeTreeSynchronizer {
             for (Map.Entry<String, String> entry : fromNodes.entrySet()) {
                 String toRelPath = toVersionrefs.get(entry.getKey());
                 String fromRelPath = entry.getValue();
-                if (!StringUtils.equals(fromRelPath, toRelPath)) {
+                if (toRelPath != null && !toRelPath.equals(fromRelPath)) {
                     String newPath = to.getPath() + "/" + fromRelPath;
                     String newPathParent = ResourceUtil.getParent(newPath);
                     Resource parent = ResourceUtil.getOrCreateResource(to.getResourceResolver(), newPathParent);
