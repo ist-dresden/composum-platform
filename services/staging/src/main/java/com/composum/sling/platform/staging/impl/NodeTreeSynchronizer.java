@@ -36,7 +36,21 @@ public class NodeTreeSynchronizer {
      * @see #ignoreAttribute(ResourceHandle, String, boolean)
      */
     public void update(@Nonnull Resource from, @Nonnull Resource to) throws RepositoryException, PersistenceException {
-        updateAttributes(ResourceHandle.use(from), ResourceHandle.use(to));
+        updateSubtree(ResourceHandle.use(from), ResourceHandle.use(to));
+    }
+
+    /**
+     * Internal entry point: updates the resource tree below {to} to match the resource tree below {from},
+     * creating missing nodes, removing superfluous nodes, setting / removing attributes.
+     * Protected attributes are ignored (e.g. jcr:uuid can't be set) - see {@link #ignoreAttribute(ResourceHandle, String, boolean)}.
+     *
+     * @param from the source
+     * @param to   the destination which we update
+     * @throws RepositoryException if we couldn't finish the operation
+     * @see #ignoreAttribute(ResourceHandle, String, boolean)
+     */
+    protected void updateSubtree(@Nonnull ResourceHandle from, @Nonnull ResourceHandle to) throws RepositoryException, PersistenceException {
+        updateAttributes(from, to);
         updateChildren(from, to);
     }
 
@@ -49,7 +63,7 @@ public class NodeTreeSynchronizer {
      * @throws RepositoryException if we couldn't finish the operation
      * @see #ignoreAttribute(ResourceHandle, String, boolean)
      */
-    public void updateAttributes(ResourceHandle from, ResourceHandle to) {
+    protected void updateAttributes(ResourceHandle from, ResourceHandle to) {
         ValueMap fromAttributes = ResourceUtil.getValueMap(from);
         ModifiableValueMap toAttributes = to.adaptTo(ModifiableValueMap.class);
         // first copy type information since this changes attributes
@@ -105,7 +119,7 @@ public class NodeTreeSynchronizer {
      * Creates / Updates / Deletes the children of {to} according to {from}. The attributes of {from} are ignored,
      * the attributes of the children are handled.
      */
-    protected void updateChildren(Resource from, Resource to) throws RepositoryException, PersistenceException {
+    protected void updateChildren(ResourceHandle from, ResourceHandle to) throws RepositoryException, PersistenceException {
         List<Resource> fromChildren = IteratorUtils.toList(from.listChildren());
         List<String> fromChildrenNames = fromChildren.stream().map(Resource::getName).collect(Collectors.toList());
         for (Resource child : to.getChildren()) {
@@ -117,7 +131,7 @@ public class NodeTreeSynchronizer {
         for (Resource fromchild : from.getChildren()) {
             if (!toChildrenNames.contains(fromchild.getName())) {
                 Resource tochild = to.getResourceResolver().create(to, fromchild.getName(), null);
-                update(fromchild, tochild);
+                updateSubtree(ResourceHandle.use(fromchild), ResourceHandle.use(tochild));
             }
         }
     }

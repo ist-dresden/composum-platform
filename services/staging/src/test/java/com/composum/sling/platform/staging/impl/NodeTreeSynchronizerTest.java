@@ -17,7 +17,7 @@ import static com.composum.sling.platform.staging.testutil.JcrTestUtils.array;
 import static org.junit.Assert.*;
 
 @SuppressWarnings("ConstantConditions")
-public class NodeTreeSynchronizerTest {
+public class NodeTreeSynchronizerTest<T extends NodeTreeSynchronizer> {
 
     protected final NodeTreeSynchronizer syncronizer = createSynchronizer();
 
