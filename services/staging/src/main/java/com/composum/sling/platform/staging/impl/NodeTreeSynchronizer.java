@@ -132,6 +132,8 @@ public class NodeTreeSynchronizer {
             if (!toChildrenNames.contains(fromchild.getName())) {
                 Resource tochild = to.getResourceResolver().create(to, fromchild.getName(), null);
                 updateSubtree(ResourceHandle.use(fromchild), ResourceHandle.use(tochild));
+            } else {
+                updateSubtree(ResourceHandle.use(fromchild), ResourceHandle.use(to.getChild(fromchild.getName())));
             }
         }
     }

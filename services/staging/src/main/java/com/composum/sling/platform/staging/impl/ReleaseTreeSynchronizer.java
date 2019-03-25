@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
@@ -59,7 +60,7 @@ public class ReleaseTreeSynchronizer extends NodeTreeSynchronizer {
 
     @Override
     protected void updateSubtree(@Nonnull ResourceHandle from, @Nonnull ResourceHandle to) throws RepositoryException, PersistenceException {
-        if (from.isResourceType(ResourceUtil.TYPE_VERSIONABLE) || from.isResourceType(StagingConstants.TYPE_VERSIONREFERENCE)) {
+        if (from.isOfType(ResourceUtil.TYPE_VERSIONABLE) || from.isOfType(StagingConstants.TYPE_VERSIONREFERENCE)) {
             updateVersionReference(from, to);
         } else {
             super.updateSubtree(from, to);
@@ -87,11 +88,11 @@ public class ReleaseTreeSynchronizer extends NodeTreeSynchronizer {
      * </ul>
      */
     protected void updateVersionReference(ResourceHandle from, ResourceHandle to) throws RepositoryException, PersistenceException {
-        if (to.isResourceType(StagingConstants.TYPE_VERSIONREFERENCE) &&
+        if (to.isOfType(StagingConstants.TYPE_VERSIONREFERENCE) &&
                 StringUtils.equals(getReferencedVersionHistory(from), getReferencedVersionHistory(to))) {
             LOG.debug("Is already reference to same versionable - do nothing: {}", to.getPath());
         } else {
-            if (from.isResourceType(StagingConstants.TYPE_VERSIONREFERENCE)) {
+            if (from.isOfType(StagingConstants.TYPE_VERSIONREFERENCE)) {
                 super.updateSubtree(from, to);
             } else {
                 // initialize fresh version reference.
@@ -106,7 +107,7 @@ public class ReleaseTreeSynchronizer extends NodeTreeSynchronizer {
     }
 
     protected String getReferencedVersionHistory(ResourceHandle resource) {
-        return resource.isResourceType(StagingConstants.TYPE_VERSIONREFERENCE) ? resource.getProperty(StagingConstants.PROP_VERSIONHISTORY, String.class)
+        return resource.isOfType(StagingConstants.TYPE_VERSIONREFERENCE) ? resource.getProperty(StagingConstants.PROP_VERSIONHISTORY, String.class)
                 : resource.getProperty(JcrConstants.JCR_VERSIONHISTORY);
     }
 
@@ -115,15 +116,15 @@ public class ReleaseTreeSynchronizer extends NodeTreeSynchronizer {
                 StringUtils.equals(getReferencedVersionHistory(from), getReferencedVersionHistory(to)))
             throw new IllegalArgumentException("Abuse: set attributes from different versionable? " + from.getPath() + " to " + to.getPath());
 
-        if (from.isResourceType(ResourceUtil.TYPE_VERSIONABLE)) {
+        if (from.isOfType(ResourceUtil.TYPE_VERSIONABLE)) {
             LOG.debug("Set from versionable: {}", to.getPath());
-            to.setProperty(StagingConstants.PROP_VERSIONHISTORY, from.getProperty("jcr:versionHistory"));
-            to.setProperty(StagingConstants.PROP_VERSION, from.getProperty("jcr:baseVersion"));
-            to.setProperty(StagingConstants.PROP_VERSIONABLEUUID, from.getProperty(JcrConstants.JCR_UUID));
-        } else if (from.isResourceType(StagingConstants.TYPE_VERSIONREFERENCE)) {
-            to.setProperty(StagingConstants.PROP_VERSIONHISTORY, from.getProperty(StagingConstants.PROP_VERSIONHISTORY));
-            to.setProperty(StagingConstants.PROP_VERSION, from.getProperty(StagingConstants.PROP_VERSION));
-            to.setProperty(StagingConstants.PROP_VERSIONABLEUUID, from.getProperty(StagingConstants.PROP_VERSIONABLEUUID));
+            to.setProperty(StagingConstants.PROP_VERSIONHISTORY, from.getProperty("jcr:versionHistory"), PropertyType.REFERENCE);
+            to.setProperty(StagingConstants.PROP_VERSION, from.getProperty("jcr:baseVersion"), PropertyType.REFERENCE);
+            to.setProperty(StagingConstants.PROP_VERSIONABLEUUID, from.getProperty(JcrConstants.JCR_UUID), PropertyType.WEAKREFERENCE);
+        } else if (from.isOfType(StagingConstants.TYPE_VERSIONREFERENCE)) {
+            to.setProperty(StagingConstants.PROP_VERSIONHISTORY, from.getProperty(StagingConstants.PROP_VERSIONHISTORY), PropertyType.REFERENCE);
+            to.setProperty(StagingConstants.PROP_VERSION, from.getProperty(StagingConstants.PROP_VERSION), PropertyType.REFERENCE);
+            to.setProperty(StagingConstants.PROP_VERSIONABLEUUID, from.getProperty(StagingConstants.PROP_VERSIONABLEUUID), PropertyType.WEAKREFERENCE);
         } else
             throw new IllegalArgumentException("Bug: should be versionable or versionreference for this method: " + from);
     }

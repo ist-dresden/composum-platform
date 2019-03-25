@@ -11,6 +11,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
 import static com.composum.sling.platform.staging.testutil.JcrTestUtils.array;
@@ -33,13 +34,14 @@ public class NodeTreeSynchronizerTest<T extends NodeTreeSynchronizer> {
     public void syncAttributes() throws RepositoryException, PersistenceException {
         Resource fromResource = context.build().resource("/s/from",
                 PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED, PROP_MIXINTYPES,
-                array(TYPE_TITLE, TYPE_VERSIONABLE), "bla", "blaval", "blu", 7, PROP_TITLE, "title").commit().getCurrentParent();
+                array(TYPE_TITLE, TYPE_LAST_MODIFIED), "bla", "blaval", "blu", 7, PROP_TITLE, "title").commit().getCurrentParent();
         Resource toResource = context.build().resource("/s/to", PROP_PRIMARY_TYPE, TYPE_SLING_FOLDER,
                 PROP_MIXINTYPES, array(TYPE_LOCKABLE), "foo", "fooval").commit().getCurrentParent();
 
         // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
 
         syncronizer.update(fromResource, toResource);
+        toResource.getResourceResolver().adaptTo(Session.class).save();
 
         // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
 
@@ -67,6 +69,7 @@ public class NodeTreeSynchronizerTest<T extends NodeTreeSynchronizer> {
         ResourceBuilder toBuilder = builder.resource("/s/to", PROP_PRIMARY_TYPE, TYPE_SLING_FOLDER);
         toBuilder.resource("deleteme", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED)
                 .resource("deletemetoo", PROP_PRIMARY_TYPE, "sling:Folder", "attrc", "valc");
+        toBuilder.resource("a", PROP_PRIMARY_TYPE, TYPE_SLING_FOLDER, "attra", "xxx");
         Resource toResource = toBuilder.commit().getCurrentParent();
 
         // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
