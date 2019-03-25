@@ -2,6 +2,7 @@ package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.platform.staging.StagingConstants;
+import com.composum.sling.platform.staging.testutil.JcrTestUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.sling.api.resource.PersistenceException;
@@ -134,7 +135,16 @@ public class ReleaseTreeSynchronizerTest extends NodeTreeSynchronizerTest {
 
         assertNull(context.resourceResolver().getResource("/s/to/moveme"));
 
+        // ensure released versions are kept since referenced.
         versionManager.restore(firstversion, false);
+        versionManager.checkpoint(versionableResource.getPath());
+        versionManager.checkpoint(versionableResource.getPath());
+        Version lastversion = versionManager.checkpoint(versionableResource.getPath());
+        session.save();
+        assertEquals("1.0.1", lastversion.getName());
+
+        // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
+        // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/jcr:system/jcr:versionStorage"));
     }
 
 }
