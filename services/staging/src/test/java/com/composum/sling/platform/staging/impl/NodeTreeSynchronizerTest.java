@@ -12,6 +12,7 @@ import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import java.util.Arrays;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
 import static com.composum.sling.platform.staging.testutil.JcrTestUtils.array;
@@ -34,7 +35,8 @@ public class NodeTreeSynchronizerTest<T extends NodeTreeSynchronizer> {
     public void syncAttributes() throws RepositoryException, PersistenceException {
         Resource fromResource = context.build().resource("/s/from",
                 PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED, PROP_MIXINTYPES,
-                array(TYPE_TITLE, TYPE_LAST_MODIFIED), "bla", "blaval", "blu", 7, PROP_TITLE, "title").commit().getCurrentParent();
+                array(TYPE_TITLE, TYPE_LAST_MODIFIED), "bla", "blaval", "blu", 7, PROP_TITLE, "title",
+                "arrayprop", array("a1", "a2")).commit().getCurrentParent();
         Resource toResource = context.build().resource("/s/to", PROP_PRIMARY_TYPE, TYPE_SLING_FOLDER,
                 PROP_MIXINTYPES, array(TYPE_LOCKABLE), "foo", "fooval").commit().getCurrentParent();
 
@@ -43,7 +45,7 @@ public class NodeTreeSynchronizerTest<T extends NodeTreeSynchronizer> {
         syncronizer.update(fromResource, toResource);
         toResource.getResourceResolver().adaptTo(Session.class).save();
 
-        // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
+        JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
 
         fromResource = fromResource.getResourceResolver().getResource(fromResource.getPath());
         toResource = fromResource.getResourceResolver().getResource(toResource.getPath());
@@ -53,6 +55,7 @@ public class NodeTreeSynchronizerTest<T extends NodeTreeSynchronizer> {
 
         assertEquals("blaval", toResource.getValueMap().get("bla"));
         assertEquals(Integer.valueOf(7), toResource.getValueMap().get("blu", Integer.class));
+        assertEquals(Arrays.asList("a1", "a2"), Arrays.asList(toResource.getValueMap().get("arrayprop", String[].class)));
         assertNull(toResource.getValueMap().get("foo"));
         assertNull(toResource.getValueMap().get(PROP_CREATED));
     }

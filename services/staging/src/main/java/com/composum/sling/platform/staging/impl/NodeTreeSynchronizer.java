@@ -2,8 +2,10 @@ package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.platform.staging.StagingConstants;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.IteratorUtils;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.ModifiableValueMap;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
@@ -12,7 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import javax.jcr.RepositoryException;
+import javax.jcr.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -57,37 +59,56 @@ public class NodeTreeSynchronizer {
     /**
      * Updates all attributes of {to} from their values at {from} - including primary type and mixins.
      * Protected attributes are ignored (e.g. jcr:uuid can't be set) - see {@link #ignoreAttribute(ResourceHandle, String, boolean)}.
+     * We implement this using JCR directly, since {@link ModifiableValueMap#put(Object, Object)} breaks on references.
      *
      * @param from the source
      * @param to   the destination which we update
      * @throws RepositoryException if we couldn't finish the operation
      * @see #ignoreAttribute(ResourceHandle, String, boolean)
      */
-    protected void updateAttributes(ResourceHandle from, ResourceHandle to) {
+    protected void updateAttributes(ResourceHandle from, ResourceHandle to) throws RepositoryException {
         ValueMap fromAttributes = ResourceUtil.getValueMap(from);
         ModifiableValueMap toAttributes = to.adaptTo(ModifiableValueMap.class);
-        // first copy type information since this changes attributes
+        // first copy type information since this changes attributes. Use valuemap because of mixin handling
         toAttributes.put(PROP_PRIMARY_TYPE, fromAttributes.get(PROP_PRIMARY_TYPE));
         toAttributes.put(PROP_MIXINTYPES, fromAttributes.get(PROP_MIXINTYPES, new String[0]));
 
-        for (Map.Entry<String, Object> entry : fromAttributes.entrySet()) {
-            if (!ignoreAttribute(from, entry.getKey(), true)) {
-                try {
-                    toAttributes.put(entry.getKey(), entry.getValue());
-                } catch (IllegalArgumentException e) { // probably extend protectedMetadataAttributes
-                    LOG.info("Could not copy probably protected attribute {} - {}", entry.getKey(), e.toString());
+        // use nodes for others since it seems hard to handle types REFERENCE and WEAKREFERENCE correctly through ValueMap.
+        Node fromNode = Objects.requireNonNull(from.getNode(), from.getPath());
+        Node toNode = Objects.requireNonNull(to.getNode(), to.getPath());
+
+        for (PropertyIterator fromProperties = fromNode.getProperties(); fromProperties.hasNext(); ) {
+            Property prop = fromProperties.nextProperty();
+            String name = prop.getName();
+            if (!ignoreAttribute(from, name, true)) {
+                if (prop.isMultiple()) {
+                    Value[] values = prop.getValues();
+                    try {
+                        toNode.setProperty(name, values);
+                    } catch (IllegalArgumentException | RepositoryException e) { // probably extend protectedMetadataAttributes
+                        LOG.info("Could not copy probably protected multiple attribute {} - {}", name, e.toString());
+                    }
+                } else {
+                    Value value = prop.getValue();
+                    try {
+                        toNode.setProperty(name, value);
+                    } catch (IllegalArgumentException | RepositoryException e) { // probably extend protectedMetadataAttributes
+                        LOG.info("Could not copy probably protected single attribute {} - {}", name, e.toString());
+                    }
                 }
             }
         }
 
-        for (String key : CollectionUtils.subtract(toAttributes.keySet(), fromAttributes.keySet())) {
-            if (!fromAttributes.containsKey(key) && !ignoreAttribute(from, key, false) &&
-                    !PROP_MIXINTYPES.equals(key)) {
+        Collection<String> toremove = CollectionUtils.subtract(toAttributes.keySet(), fromAttributes.keySet());
+        for (PropertyIterator toProperties = toNode.getProperties(); toProperties.hasNext(); ) {
+            Property toProp = toProperties.nextProperty();
+            String name = toProp.getName();
+            if (toremove.contains(name)) {
                 try {
-                    toAttributes.remove(key);
-                } catch (IllegalArgumentException e) {
-                    // shouldn't be possible - how come that isn't there on source?
-                    LOG.error("Couldn't copy remove protected attribute {} - {}", key, e.toString());
+                    toProp.remove();
+                } catch (IllegalArgumentException | RepositoryException e) {
+                    // shouldn't be possible - how come that it isn't there on node from?
+                    LOG.error("Couldn't copy remove protected attribute {} - {}", name, e.toString());
                 }
             }
         }
@@ -100,7 +121,8 @@ public class NodeTreeSynchronizer {
     protected static final Collection<String> protectedMetadataAttributes =
             Collections.unmodifiableSet(new HashSet<>(Arrays.asList("jcr:uuid", "jcr:lastModified",
                     "jcr:lastModifiedBy", "jcr:created", "jcr:createdBy", "jcr:isCheckedOut", "jcr:baseVersion",
-                    "jcr:versionHistory", "jcr:predecessors", "jcr:mergeFailed", "jcr:configuration")));
+                    "jcr:versionHistory", "jcr:predecessors", "jcr:mergeFailed", "jcr:configuration",
+                    JcrConstants.JCR_PRIMARYTYPE, JcrConstants.JCR_MIXINTYPES)));
 
     /**
      * Specifies if the attribute is ignored in the synchronization process. In the default implementation we exclude
