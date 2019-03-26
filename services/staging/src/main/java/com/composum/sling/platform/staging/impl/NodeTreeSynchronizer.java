@@ -2,7 +2,7 @@ package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.platform.staging.StagingConstants;
+import com.google.common.base.Predicates;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.jackrabbit.JcrConstants;
@@ -142,8 +142,18 @@ public class NodeTreeSynchronizer {
      * the attributes of the children are handled.
      */
     protected void updateChildren(ResourceHandle from, ResourceHandle to) throws RepositoryException, PersistenceException {
+        boolean recursion = false;
+        if (to.getPath().startsWith(from.getPath() + "/")) { // to is inside from
+            String difference = to.getPath().substring(from.getPath().length());
+            if (from.getPath().endsWith(difference))
+                return; // we are already inside a recursion. Not pretty, but at least doesn't crash.
+        }
+
         List<Resource> fromChildren = IteratorUtils.toList(from.listChildren());
-        List<String> fromChildrenNames = fromChildren.stream().map(Resource::getName).collect(Collectors.toList());
+        List<String> fromChildrenNames = fromChildren.stream()
+                .filter(n -> !skipNode(n))
+                .map(Resource::getName)
+                .collect(Collectors.toList());
         for (Resource child : to.getChildren()) {
             if (!fromChildrenNames.contains(child.getName()))
                 child.getResourceResolver().delete(child);
@@ -151,6 +161,7 @@ public class NodeTreeSynchronizer {
         List<String> toChildrenNames = IteratorUtils.toList(to.listChildren())
                 .stream().map(Resource::getName).collect(Collectors.toList());
         for (Resource fromchild : from.getChildren()) {
+            if (skipNode(fromchild)) continue;
             if (!toChildrenNames.contains(fromchild.getName())) {
                 Resource tochild = to.getResourceResolver().create(to, fromchild.getName(), null);
                 updateSubtree(ResourceHandle.use(fromchild), ResourceHandle.use(tochild));
@@ -158,6 +169,11 @@ public class NodeTreeSynchronizer {
                 updateSubtree(ResourceHandle.use(fromchild), ResourceHandle.use(to.getChild(fromchild.getName())));
             }
         }
+    }
+
+    /** Can be overridden to remove nodes from the source - nodes matching this aren't copied. */
+    protected boolean skipNode(@Nonnull Resource from) {
+        return false;
     }
 
 }

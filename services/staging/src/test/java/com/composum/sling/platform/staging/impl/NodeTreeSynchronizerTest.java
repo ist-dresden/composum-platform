@@ -41,11 +41,9 @@ public class NodeTreeSynchronizerTest<T extends NodeTreeSynchronizer> {
                 PROP_MIXINTYPES, array(TYPE_LOCKABLE), "foo", "fooval").commit().getCurrentParent();
 
         // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
-
         syncronizer.update(fromResource, toResource);
         toResource.getResourceResolver().adaptTo(Session.class).save();
-
-        JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
+        // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
 
         fromResource = fromResource.getResourceResolver().getResource(fromResource.getPath());
         toResource = fromResource.getResourceResolver().getResource(toResource.getPath());
@@ -76,14 +74,34 @@ public class NodeTreeSynchronizerTest<T extends NodeTreeSynchronizer> {
         Resource toResource = toBuilder.commit().getCurrentParent();
 
         // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
-
         syncronizer.update(fromResource, toResource);
-
+        toResource.getResourceResolver().adaptTo(Session.class).save();
         // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
 
         assertEquals("valc", ResourceHandle.use(fromResource).getProperty("b/c/attrc"));
         assertEquals("valc", ResourceHandle.use(toResource).getProperty("b/c/attrc"));
         assertEquals("vala", ResourceHandle.use(toResource).getProperty("a/attra"));
+    }
+
+    /** Synchronize a tree into a subtree (used for the release mechanism) - should at least avoid infinite recursion. */
+    @Test
+    public void overlappingSync() throws RepositoryException, PersistenceException {
+        ResourceBuilder builder = context.build().withIntermediatePrimaryType(TYPE_UNSTRUCTURED);
+        ResourceBuilder fromBuilder = builder.resource("/s/from", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED, "attrroot", "rootval");
+        Resource toResource = fromBuilder.resource("a", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED).getCurrentParent();
+        fromBuilder.resource("b", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED, "attrb", "valb");
+        builder.commit();
+
+        // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
+        syncronizer.update(fromBuilder.getCurrentParent(), toResource);
+        toResource.getResourceResolver().adaptTo(Session.class).save();
+        // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
+
+        assertEquals("rootval", ResourceHandle.use(toResource).getProperty("attrroot"));
+        assertEquals("valb", ResourceHandle.use(toResource).getProperty("b/attrb"));
+        // no infinite recursion:
+        assertNull(ResourceHandle.use(toResource).getChild("a/a"));
+        // from/a/a exists, but that's a bit hard to prevent and
     }
 
 }

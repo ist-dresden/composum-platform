@@ -153,7 +153,7 @@ public class ReleaseTreeSynchronizer extends NodeTreeSynchronizer {
     /**
      * Finds occurrences of attribute {attribute} on node types {type} below {path} : maps attribute value to path.
      */
-    private Map<String, String> findAttributeOccurrences(Resource rootNode, String type, String attribute) {
+    protected Map<String, String> findAttributeOccurrences(Resource rootNode, String type, String attribute) {
         String query = "SELECT n.[jcr:path], n.[" + attribute + "] FROM [" + type + "] AS n WHERE ISDESCENDANTNODE(n, \"" + rootNode.getPath() + "\")";
         Iterator<Map<String, Object>> result = rootNode.getResourceResolver().queryResources(query, Query.JCR_SQL2);
         List<Map<String, Object>> resultList = IteratorUtils.toList(result);
@@ -166,6 +166,12 @@ public class ReleaseTreeSynchronizer extends NodeTreeSynchronizer {
         if (!StringUtils.startsWith(absolutePath + "/", root.getPath()))
             throw new IllegalArgumentException("Bug: " + absolutePath + " doesn't start with " + root.getPath());
         return StringUtils.removeStart(absolutePath, root.getPath() + "/");
+    }
+
+    /** Skip {@value StagingConstants#TYPE_MIX_RELEASE_CONFIG} to avoid copying the release config into releases. */
+    @Override
+    protected boolean skipNode(@Nonnull Resource from) {
+        return super.skipNode(from) || ResourceHandle.use(from).isOfType(StagingConstants.TYPE_MIX_RELEASE_CONFIG);
     }
 
 }
