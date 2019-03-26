@@ -9,6 +9,10 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Wrapper for {@link ResourceMetadata} overriding the {@link ResourceMetadata#RESOLUTION_PATH}
+ * and {@link ResourceMetadata#RESOLUTION_PATH_INFO} with specified values.
+ */
 class StagingResourceMetadata extends ResourceMetadata {
 
     @Nonnull
@@ -28,7 +32,7 @@ class StagingResourceMetadata extends ResourceMetadata {
     @Nonnull
     public Set<Map.Entry<String, Object>> entrySet() {
         final Set<Map.Entry<String, Object>> entries = frozenMetaData.entrySet();
-        for (Map.Entry<String, Object> entry:entries) {
+        for (Map.Entry<String, Object> entry : entries) {
             if (entry.getKey().equals(RESOLUTION_PATH)) {
                 entry.setValue(calculatedResolutionPath);
             } else if (entry.getKey().equals(RESOLUTION_PATH_INFO)) {
@@ -49,7 +53,7 @@ class StagingResourceMetadata extends ResourceMetadata {
     public Collection<Object> values() {
         final Collection<Object> results = new ArrayList<>();
         final Set<Map.Entry<String, Object>> entries = frozenMetaData.entrySet();
-        for (Map.Entry<String, Object> entry:entries) {
+        for (Map.Entry<String, Object> entry : entries) {
             if (entry.getKey().equals(RESOLUTION_PATH)) {
                 results.add(calculatedResolutionPath);
             } else if (entry.getKey().equals(RESOLUTION_PATH_INFO)) {

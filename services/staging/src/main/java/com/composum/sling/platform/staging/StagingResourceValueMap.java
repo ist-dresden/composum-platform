@@ -14,9 +14,13 @@ import java.util.Set;
 
 import static org.apache.jackrabbit.JcrConstants.*;
 
+/**
+ * Emulates the normal {@link ValueMap} from the {@link ValueMap} of a frozen resource.
+ */
 class StagingResourceValueMap extends ValueMapDecorator {
 
     private Map<String, String> typesToMap = new HashMap<>();
+
     {
         typesToMap.put(JCR_FROZENPRIMARYTYPE, JCR_PRIMARYTYPE);
         typesToMap.put(JCR_FROZENUUID, JCR_UUID);

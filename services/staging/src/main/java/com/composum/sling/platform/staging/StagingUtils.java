@@ -16,12 +16,12 @@ public class StagingUtils {
 
     @CheckReturnValue
     static boolean isInVersionStorage(@Nonnull Resource resource) {
-        return resource.getPath().startsWith("/jcr:system/jcr:versionStorage");
+        return resource.getPath().startsWith(VERSIONS_ROOT);
     }
 
     @CheckReturnValue
     public static boolean isVersionable(@Nonnull Node node) throws RepositoryException {
-        return node.isNodeType(NodeType.MIX_VERSIONABLE) || node.isNodeType(NodeType.MIX_SIMPLE_VERSIONABLE);
+        return node.isNodeType(NodeType.MIX_VERSIONABLE);
     }
 
     @CheckReturnValue
