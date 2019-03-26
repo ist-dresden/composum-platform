@@ -187,5 +187,5 @@ public class ReleaseTreeSynchronizerTest extends NodeTreeSynchronizerTest {
 
         assertNull(context.resourceResolver().getResource("/s/to/deleteme/deletemetoo"));
     }
-    
+
 }

@@ -47,4 +47,10 @@ public interface StagingConstants {
      */
     final String PROP_VERSIONABLEUUID = "cpl:versionableUuid";
 
+    /**
+     * Nodename for the "current release" (the release that's in construction and will be used as default preview)
+     * below {@link #NODE_RELEASES}.
+     */
+    final String NODE_CURRENT_RELEASE = "cpl:current";
+
 }
