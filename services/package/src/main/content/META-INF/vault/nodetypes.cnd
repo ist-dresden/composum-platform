@@ -20,10 +20,10 @@
 
 /* References a version within the release tree. Allows other attributes / child nodes as release metadata.
   cpl:versionHistory is the jcr:uuid of the nt:versionHistory - the jcr:versionHistory attribute in mix:versionable ,
-  cpl:version is the jcr:uuid of the nt:version, as in the jcr:baseVersion attribute of mix:versionable ,
+  cpl:version is the jcr:uuid of the nt:version, as in the jcr:baseVersion attribute of mix:versionable,
   cpl:versionableUuid is the jcr:uuid of the mix:versionable, as in the jcr:versionableUuid of nt:version */
 [cpl:VersionReference] > nt:base
-  - cpl:version (REFERENCE) mandatory
+  - cpl:version (REFERENCE)
   - cpl:versionHistory (REFERENCE) mandatory
   - cpl:versionableUuid (WEAKREFERENCE) mandatory
   - * (UNDEFINED) multiple

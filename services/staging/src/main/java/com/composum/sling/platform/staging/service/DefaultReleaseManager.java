@@ -32,10 +32,12 @@ import static com.composum.sling.platform.staging.StagingUtils.isVersionable;
         immediate = true
 )
 @Service
+@Deprecated
 public class DefaultReleaseManager implements ReleaseManager {
 
     // getReleases
 
+    @Override
     public List<String> getReleases(final ResourceResolver resolver, final Iterable<String> rootPaths)
             throws RepositoryException {
         List<String> releases = new ArrayList<>();
@@ -131,6 +133,7 @@ public class DefaultReleaseManager implements ReleaseManager {
         }
     }
 
+    @Override
     public void createRelease(final ResourceResolver resolver, final Iterable<String> rootPaths, String releaseLabel)
             throws RepositoryException {
         releaseLabel = adjustReleaseLabel(releaseLabel);
@@ -171,6 +174,7 @@ public class DefaultReleaseManager implements ReleaseManager {
 
     // removeRelease
 
+    @Override
     public void removeRelease(final ResourceResolver resolver, final Iterable<String> rootPaths,
                               String releaseLabel, boolean deleteVersions)
             throws RepositoryException {
@@ -221,6 +225,7 @@ public class DefaultReleaseManager implements ReleaseManager {
 
     // purgeReleases
 
+    @Override
     public void purgeReleases(final ResourceResolver resolver, final Iterable<String> rootPaths,
                               Calendar keepDate, int keepCount) {
 
@@ -228,6 +233,7 @@ public class DefaultReleaseManager implements ReleaseManager {
 
     // rollbackToRelease
 
+    @Override
     public void rollbackToRelease(final ResourceResolver resolver, final Iterable<String> rootPaths,
                                   String releaseLabel) {
 

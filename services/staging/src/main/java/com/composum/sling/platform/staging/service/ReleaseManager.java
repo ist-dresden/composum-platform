@@ -6,6 +6,10 @@ import javax.jcr.RepositoryException;
 import java.util.Calendar;
 import java.util.List;
 
+/**
+ * @deprecated Will be replaced by {@link StagingReleaseManager}.
+ */
+@Deprecated
 public interface ReleaseManager {
 
     String RELEASE_LABEL_PREFIX = "composum-release-";
