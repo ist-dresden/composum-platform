@@ -1,6 +1,7 @@
 package com.composum.sling.platform.staging;
 
 import com.composum.sling.core.JcrResource;
+import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -81,7 +82,7 @@ public class StagingResource implements JcrResource {
     private final String originalResourceType;
 
     /**
-     * If this resource is resolved from a HTTP-Request, the request is sored here
+     * If this resource is resolved from a HTTP-Request, the request is stored here
      */
     @CheckForNull
     private final SlingHttpServletRequest request;
@@ -332,7 +333,7 @@ public class StagingResource implements JcrResource {
         // this can happen, if this only wraps a JcrResource and so frozenNode is only a JcrResource
         // but we will handle it inside ResourceResolver/ChildrenIterator
         final Iterator<Resource> iterator = resourceResolver.listChildren(this);
-        return new StagingResourceChildrenIterable(iterator);
+        return IteratorUtils.asIterable(iterator);
     }
 
     @Override
@@ -345,6 +346,7 @@ public class StagingResource implements JcrResource {
         return child == null ? null : StagingResource.wrap(child, resourceResolver);
     }
 
+    @Override
     @Nonnull
     public String getPrimaryType() {
         LOGGER.debug("getPrimaryType(): {}", originalPrimaryType);

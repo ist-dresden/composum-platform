@@ -3,6 +3,7 @@ package com.composum.sling.platform.staging;
 import com.composum.sling.platform.staging.query.QueryBuilder;
 import com.composum.sling.platform.staging.query.QueryBuilderImpl;
 import com.composum.sling.platform.staging.service.ReleaseMapper;
+import org.apache.commons.collections4.IteratorUtils;
 import org.apache.jackrabbit.api.JackrabbitSession;
 import org.apache.sling.api.SlingException;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -365,7 +366,7 @@ public class StagingResourceResolver implements ResourceResolver {
 
     @Override
     public Resource getParent(@Nonnull Resource child) {
-        return resourceResolver.getParent(child);
+        return getReleasedResource(resourceResolver.getParent(child));
     }
 
     @Override
@@ -410,7 +411,7 @@ public class StagingResourceResolver implements ResourceResolver {
         LOGGER.debug("getChildren({})", parent);
         if (parent instanceof StagingResource) {
             final Iterator<Resource> iterator = resourceResolver.listChildren(((StagingResource) parent).getFrozenResource());
-            return new StagingResourceChildrenIterable(iterator);
+            return IteratorUtils.asIterable(iterator);
         }
         return resourceResolver.getChildren(parent);
     }

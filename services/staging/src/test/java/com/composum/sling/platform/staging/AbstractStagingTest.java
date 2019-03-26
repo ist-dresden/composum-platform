@@ -105,6 +105,7 @@ public abstract class AbstractStagingTest {
     }
 
 
+    // FIXME hps the attribute released will no longer be used
     protected String makeNode(ResourceBuilder builder, String documentName, String nodepath, boolean versioned,
                               boolean released, String title) throws RepositoryException {
         String[] mixins = versioned ? new String[]{TYPE_VERSIONABLE} : new String[]{};
