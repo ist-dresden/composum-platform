@@ -2,8 +2,11 @@ package com.composum.sling.platform.staging;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.platform.staging.service.DefaultStagingReleaseManager;
 import com.composum.sling.platform.staging.service.ReleaseMapper;
+import com.composum.sling.platform.staging.service.StagingReleaseManager;
 import org.apache.commons.collections4.IterableUtils;
+import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.sling.api.resource.*;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.junit.Before;
@@ -14,12 +17,17 @@ import org.slf4j.Logger;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.VersionHistory;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
+import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
+import static com.composum.sling.platform.staging.testutil.JcrTestUtils.array;
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
@@ -40,13 +48,21 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     private String unversionedNode;
     private ResourceBuilder builderAtFolder;
 
+    private StagingReleaseManager releaseManager = new DefaultStagingReleaseManager();
+
     @Before
     public void setUpContent() throws Exception {
+        InputStreamReader cndReader = new InputStreamReader(getClass().getResourceAsStream("/testsetup/nodetypes.cnd"));
+        NodeType[] nodeTypes = CndImporter.registerNodeTypes(cndReader, context.resourceResolver().adaptTo(Session.class));
+        assertEquals(3, nodeTypes.length);
+
         folder = "/folder";
-        builderAtFolder = context.build().resource(folder).commit();
+        builderAtFolder = context.build().resource(folder, ResourceUtil.PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+                ResourceUtil.PROP_MIXINTYPES, array(TYPE_MIX_RELEASE_ROOT)).commit();
         node1 = makeNode(builderAtFolder, "document1", "n1/something", true, true, "n1");
         document2 = folder + "/" + "document2";
         node2 = makeNode(builderAtFolder, "document2", "n2/some/kind/of/hierarchy/something", true, true, "n2");
+        releaseManager.updateCurrentReleaseFromWorkspace(builderAtFolder.commit().getCurrentParent());
         unreleasedNode = makeNode(builderAtFolder, "unreleasedDocument", "un/something", true, false, "un");
         unversionedNode = makeNode(builderAtFolder, "unversionedDocument", "uv/something", false, false, "uv");
         for (String path : new String[]{folder, node1, document2, node2, unreleasedNode, unversionedNode})
@@ -54,7 +70,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     }
 
     @Test
-    public void checkSetup() throws Exception {
+    public void printSetup() throws Exception {
         assertNotNull(context.resourceResolver().getResource(folder));
         printResourceRecursivelyAsJson(context.resourceResolver().getResource(folder));
         printResourceRecursivelyAsJson(context.resourceResolver().getResource("/jcr:system/jcr:versionStorage"));
@@ -147,7 +163,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         Resource folderResource = stagingResourceResolver.resolve(folder);
         printResourceRecursivelyAsJson(folderResource);
         checkChildren(folderResource);
-        assertEquals(4, IterableUtils.size(folderResource.getChildren()));
+        assertEquals(5, IterableUtils.size(folderResource.getChildren()));
         // jcr:content of unreleasedDocument is not contained in release, and thus not found.
         assertEquals(0, IterableUtils.size(folderResource.getChild("unreleasedDocument").getChildren()));
     }
