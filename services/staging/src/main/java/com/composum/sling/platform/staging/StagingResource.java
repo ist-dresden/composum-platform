@@ -5,11 +5,7 @@ import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceMetadata;
-import org.apache.sling.api.resource.ResourceResolver;
-import org.apache.sling.api.resource.ResourceUtil;
-import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.api.resource.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +30,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.sling.jcr.resource.api.JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY;
 
 /** Provides a view of a frozen node as if it was a normal resource. */
-public class StagingResource implements JcrResource {
+public class StagingResource extends AbstractResource implements JcrResource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(StagingResource.class);
 
@@ -302,51 +298,6 @@ public class StagingResource implements JcrResource {
     }
 
     @Override
-    @CheckForNull
-    public Resource getParent() {
-        LOGGER.debug("getParent()");
-        if (isRoot(frozenResource)) {
-            return null;
-        }
-        String parentPath;
-        if (originalResourcePath.endsWith("/")) {
-            final String s = originalResourcePath.substring(0, originalResourcePath.length() - 1);
-            parentPath = s.substring(0, s.lastIndexOf('/'));
-        } else {
-            parentPath = originalResourcePath.substring(0, originalResourcePath.lastIndexOf('/'));
-        }
-        return resourceResolver.resolve(parentPath);
-    }
-
-    @Override
-    @Nonnull
-    public Iterator<Resource> listChildren() {
-        LOGGER.debug("listChildren()");
-        return resourceResolver.listChildren(this);
-    }
-
-    @Override
-    @Nonnull
-    public Iterable<Resource> getChildren() {
-        LOGGER.debug("getChildren()");
-        // if this is not a node of version storage, this will result in all current children, not the children of the released version
-        // this can happen, if this only wraps a JcrResource and so frozenNode is only a JcrResource
-        // but we will handle it inside ResourceResolver/ChildrenIterator
-        final Iterator<Resource> iterator = resourceResolver.listChildren(this);
-        return IteratorUtils.asIterable(iterator);
-    }
-
-    @Override
-    @CheckForNull
-    public Resource getChild(@Nonnull String relPath) {
-        LOGGER.debug("getChild({})", relPath);
-        final Resource child = versioned
-                ? frozenResource.getChild(relPath)
-                : resourceResolver.getResource(frozenResource, relPath);
-        return child == null ? null : StagingResource.wrap(child, resourceResolver);
-    }
-
-    @Override
     @Nonnull
     public String getPrimaryType() {
         LOGGER.debug("getPrimaryType(): {}", originalPrimaryType);
@@ -365,24 +316,6 @@ public class StagingResource implements JcrResource {
     public String getResourceSuperType() {
         LOGGER.debug("getResourceSuperType()");
         return frozenResource.getResourceSuperType();
-    }
-
-    @Override
-    @CheckReturnValue
-    public boolean hasChildren() {
-        final boolean b = versioned
-                ? frozenResource.hasChildren()
-                : resourceResolver.hasChildren(frozenResource);
-        LOGGER.debug("hasChildren(): {}", b);
-        return b;
-    }
-
-    @Override
-    @CheckReturnValue
-    public boolean isResourceType(String resourceType) {
-        final boolean b = !StringUtils.isBlank(frozenResource.getResourceType()) && frozenResource.getResourceType().equals(resourceType);
-        LOGGER.debug("isResourceType({}): {}", resourceType, b);
-        return b;
     }
 
     @Override

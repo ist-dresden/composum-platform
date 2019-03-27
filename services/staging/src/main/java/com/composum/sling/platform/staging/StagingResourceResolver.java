@@ -31,6 +31,7 @@ import javax.jcr.version.VersionManager;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 
 import static com.composum.sling.platform.staging.StagingUtils.isInVersionStorage;
 import static com.composum.sling.platform.staging.StagingUtils.isRoot;
@@ -98,10 +99,10 @@ public class StagingResourceResolver implements ResourceResolver {
                                    @Nonnull final ResourceResolver resourceResolver,
                                    @Nonnull final String releasedLabel,
                                    @Nonnull final ReleaseMapper mapper) {
-        this.resourceResolver = resourceResolver;
-        this.resourceResolverFactory = resourceResolverFactory;
-        this.releasedLabel = releasedLabel;
-        this.releaseMapper = mapper;
+        this.resourceResolver = Objects.requireNonNull(resourceResolver);
+        this.resourceResolverFactory = Objects.requireNonNull(resourceResolverFactory);
+        this.releasedLabel = Objects.requireNonNull(releasedLabel);
+        this.releaseMapper = Objects.requireNonNull(mapper);
     }
 
     @Nonnull
@@ -149,7 +150,7 @@ public class StagingResourceResolver implements ResourceResolver {
     @Nonnull
     private Resource getReleasedResource(@Nullable final SlingHttpServletRequest request, final Resource resource,
                                          final String releasedLabel) {
-        if (!releaseMapper.releaseMappingAllowed(resource.getPath())) {
+        if (!releaseMapper.releaseMappingAllowed(Objects.requireNonNull(resource).getPath())) {
             return resource;
         }
         try {
@@ -366,7 +367,7 @@ public class StagingResourceResolver implements ResourceResolver {
 
     @Override
     public Resource getParent(@Nonnull Resource child) {
-        return getReleasedResource(resourceResolver.getParent(child));
+        return getReleasedResource(resourceResolver.getParent(Objects.requireNonNull(child)));
     }
 
     @Override
