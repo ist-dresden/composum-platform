@@ -97,6 +97,14 @@ public interface StagingReleaseManager extends StagingConstants {
          * {@link StagingReleaseManager} for that!
          */
         Resource getReleaseNode();
+
+        /**
+         * Checks whether the given path is in the range of the release root. This does not check whether the resource actually exists.
+         *
+         * @param path an absolute path
+         * @return true if it's within the tree spanned by the release root.
+         */
+        boolean appliesToPath(@Nullable String path);
     }
 
 }

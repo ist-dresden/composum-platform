@@ -1,6 +1,8 @@
 package com.composum.sling.platform.staging;
 
+import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.service.StagingReleaseManager;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.*;
 import org.slf4j.Logger;
@@ -61,11 +63,11 @@ class StagingResourceImpl extends AbstractResource {
     @Override
     @Nonnull
     public String getResourceType() {
-        LOG.error("StagingResourceImpl.getResourceType");
-        if (0 == 0) throw new UnsupportedOperationException("Not implemented yet: StagingResourceImpl.getResourceType");
-        // FIXME hps 2019-03-27 implement StagingResourceImpl.getResourceType
-        String result = null;
-        return result;
+        // FIXME hps check for propertyresource
+        ValueMap vm = getValueMap();
+        String resourceType = vm.get(ResourceUtil.PROP_RESOURCE_TYPE, String.class);
+        resourceType = StringUtils.isBlank(resourceType) ? vm.get(ResourceUtil.PROP_PRIMARY_TYPE, String.class) : null;
+        return StringUtils.defaultIfBlank(resourceType, Resource.RESOURCE_TYPE_NON_EXISTING);
     }
 
     @Override
@@ -101,7 +103,7 @@ class StagingResourceImpl extends AbstractResource {
 
     @Override
     @Nullable
-    public <AdapterType> AdapterType adaptTo(Class<AdapterType> type) {
+    public <AdapterType> AdapterType adaptTo(@Nullable Class<AdapterType> type) {
         if (type == null) return null;
         if (ModifiableValueMap.class.isAssignableFrom(type))
             return null; // we currently don't support any modification.

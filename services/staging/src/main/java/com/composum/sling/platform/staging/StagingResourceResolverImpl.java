@@ -5,6 +5,7 @@ import com.composum.sling.platform.staging.query.QueryBuilder;
 import com.composum.sling.platform.staging.query.QueryBuilderImpl;
 import com.composum.sling.platform.staging.service.ReleaseMapper;
 import com.composum.sling.platform.staging.service.StagingReleaseManager;
+import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,15 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Iterator;
 import java.util.Map;
 
+/**
+ * <p>A {@link ResourceResolver} that provides transparent access to releases as defined in {@link StagingReleaseManager}.</p>
+ * <h3>Limitations:</h3>
+ * <ul>
+ * <li>This returns read-only resources, and querying is only supported through {@link QueryBuilder}.</li>
+ * <li>We also don't support {@link org.apache.sling.resourceresolver.impl.params.ParsedParameters}.</li>
+ * <li>We don't include synthetic resources or resources of other resource providers (servlets etc.) into releases.</li>
+ * </ul>
+ */
 class StagingResourceResolverImpl implements ResourceResolver {
 
     private static final Logger LOG = LoggerFactory.getLogger(StagingResourceResolverImpl.class);
@@ -39,56 +49,20 @@ class StagingResourceResolverImpl implements ResourceResolver {
         this.resourceResolverFactory = resourceResolverFactory;
     }
 
-    @Override
+    /**
+     * Finds the simulated resource. The meat of the actual retrieval algorithm.  @param request the request
+     *
+     * @param rawPath an absolute path (possibly not normalized)
+     * @return the resource or a {@link NonExistingResource} if it isn't present somewhere or in the release
+     */
     @Nonnull
-    public Resource resolve(@Nonnull HttpServletRequest request, @Nonnull String absPath) {
-        LOG.error("StagingResourceResolverImpl.resolve");
-        if (0 == 0) throw new UnsupportedOperationException("Not implemented yet: StagingResourceResolverImpl.resolve");
-        // FIXME hps 2019-03-27 implement StagingResourceResolverImpl.resolve
-        @Nonnull Resource result = null;
-        return result;
-    }
-
-    @Override
-    @Nonnull
-    public Resource resolve(@Nonnull String absPath) {
-        LOG.error("StagingResourceResolverImpl.resolve");
-        if (0 == 0) throw new UnsupportedOperationException("Not implemented yet: StagingResourceResolverImpl.resolve");
-        // FIXME hps 2019-03-27 implement StagingResourceResolverImpl.resolve
-        Resource result = null;
-        return result;
-    }
-
-    @Override
-    @Nonnull
-    public Resource resolve(@Nonnull HttpServletRequest request) {
-        LOG.error("StagingResourceResolverImpl.resolve");
-        if (0 == 0) throw new UnsupportedOperationException("Not implemented yet: StagingResourceResolverImpl.resolve");
-        // FIXME hps 2019-03-27 implement StagingResourceResolverImpl.resolve
-        Resource result = null;
-        return result;
-    }
-
-    @Override
-    @Nullable
-    public Resource getResource(@Nonnull String path) {
-        LOG.error("StagingResourceResolverImpl.getResource");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: StagingResourceResolverImpl.getResource");
-        // FIXME hps 2019-03-27 implement StagingResourceResolverImpl.getResource
-        Resource result = null;
-        return result;
-    }
-
-    @Override
-    @Nullable
-    public Resource getResource(Resource base, @Nonnull String path) {
-        LOG.error("StagingResourceResolverImpl.getResource");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: StagingResourceResolverImpl.getResource");
-        // FIXME hps 2019-03-27 implement StagingResourceResolverImpl.getResource
-        Resource result = null;
-        return result;
+    protected Resource retrieveReleasedResource(@Nullable SlingHttpServletRequest request, @Nonnull String rawPath) {
+        String path = ResourceUtil.normalize(rawPath);
+        if (path == null) return new NonExistingResource(this, rawPath);
+        if (!releaseMapper.releaseMappingAllowed(path) || !release.appliesToPath(path)) {
+            return underlyingResolver.resolve(path);
+        }
+        throw new UnsupportedOperationException("Not implemented yet."); // FIXME hps 2019-03-27 not implemented
     }
 
     @Override
@@ -103,79 +77,93 @@ class StagingResourceResolverImpl implements ResourceResolver {
     }
 
     @Override
+    @Nonnull
+    public Resource resolve(@Nullable HttpServletRequest request, @Nonnull String rawAbsPath) {
+        String absPath = ResourceUtil.normalize(rawAbsPath);
+        if (absPath == null) return new NonExistingResource(this, rawAbsPath);
+        Resource resource = request != null ? underlyingResolver.resolve(request, absPath) : underlyingResolver.resolve(absPath);
+        if (!releaseMapper.releaseMappingAllowed(rawAbsPath) || !release.appliesToPath(absPath))
+            return resource;
+        return retrieveReleasedResource((SlingHttpServletRequest) request, resource.getPath());
+    }
+
+    @Override
     @Nullable
-    public Resource getParent(@Nonnull Resource child) {
-        return getResource(ResourceUtil.getParent(child.getPath()));
-    }
-
-    @Override
-    @Nonnull
-    public Iterable<Resource> getChildren(@Nonnull Resource parent) {
-        LOG.error("StagingResourceResolverImpl.getChildren");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: StagingResourceResolverImpl.getChildren");
-        // FIXME hps 2019-03-27 implement StagingResourceResolverImpl.getChildren
-        Iterable<Resource> result = null;
-        return result;
-    }
-
-    @Override
-    public boolean hasChildren(@Nonnull Resource resource) {
-        LOG.error("StagingResourceResolverImpl.hasChildren");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: StagingResourceResolverImpl.hasChildren");
-        // FIXME hps 2019-03-27 implement StagingResourceResolverImpl.hasChildren
-        boolean result = false;
-        return result;
-    }
-
-
-    /** Not implemented, since this resolver provides an readon view of things. */
-    @Override
-    @Nonnull
-    public Resource create(@Nonnull Resource parent, @Nonnull String name, Map<String, Object> properties) throws PersistenceException {
-        LOG.error("StagingResourceResolverImpl.create");
-        if (0 == 0) throw new UnsupportedOperationException("Not implemented yet: StagingResourceResolverImpl.create");
-        // FIXME hps 2019-03-27 implement StagingResourceResolverImpl.create
+    public Resource getResource(@Nonnull String path) {
         Resource result = null;
+        if (path.startsWith("/")) {
+            result = retrieveReleasedResource(null, path);
+        } else {
+            for (final String prefix : underlyingResolver.getSearchPath()) {
+                result = getResource(prefix + path);
+                if (result != null) break;
+            }
+        }
         return result;
     }
 
     @Override
     @Nullable
-    public String getParentResourceType(Resource resource) {
-        LOG.error("StagingResourceResolverImpl.getParentResourceType");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: StagingResourceResolverImpl.getParentResourceType");
-        // FIXME hps 2019-03-27 implement StagingResourceResolverImpl.getParentResourceType
-        String result = null;
-        return result;
-    }
-
-    @Override
-    @Nullable
-    public String getParentResourceType(String resourceType) {
-        LOG.error("StagingResourceResolverImpl.getParentResourceType");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: StagingResourceResolverImpl.getParentResourceType");
-        // FIXME hps 2019-03-27 implement StagingResourceResolverImpl.getParentResourceType
-        String result = null;
-        return result;
-    }
-
-    @Override
-    public boolean isResourceType(Resource resource, String resourceType) {
-        LOG.error("StagingResourceResolverImpl.isResourceType");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: StagingResourceResolverImpl.isResourceType");
-        // FIXME hps 2019-03-27 implement StagingResourceResolverImpl.isResourceType
-        boolean result = false;
-        return result;
+    public Resource getResource(@Nullable Resource base, @Nonnull String path) {
+        String fullPath = path;
+        if (!fullPath.startsWith("/") && base != null) {
+            base.getPath();
+            fullPath = base.getPath() + '/' + fullPath;
+        }
+        return getResource(fullPath);
     }
 
     // ------------------------- Start of the easy parts
     // unsupported modification methods and simply forwarded to underlyingResolver
     // or can just be implemented in terms of other methods.
+
+    @Override
+    @Nullable
+    public String getParentResourceType(@Nullable Resource resource) {
+        return underlyingResolver.getParentResourceType(resource);
+    }
+
+    @Override
+    @Nullable
+    public String getParentResourceType(@Nullable String resourceType) {
+        return underlyingResolver.getParentResourceType(resourceType);
+    }
+
+    @Override
+    public boolean isResourceType(@Nullable Resource resource, @Nullable String resourceType) {
+        return underlyingResolver.isResourceType(resource, resourceType);
+    }
+
+    @Override
+    @Nonnull
+    public Iterable<Resource> getChildren(@Nonnull Resource parent) {
+        return () -> listChildren(parent);
+    }
+
+    @Override
+    public boolean hasChildren(@Nonnull Resource resource) {
+        return listChildren(resource).hasNext();
+    }
+
+    @Override
+    @Nullable
+    public Resource getParent(@Nonnull Resource child) {
+        String parent = ResourceUtil.getParent(child.getPath());
+        return parent != null ? getResource(parent) : null;
+    }
+
+    @Override
+    @Nonnull
+    public Resource resolve(@Nonnull String absPath) {
+        return resolve(null, absPath);
+    }
+
+    @Override
+    @Nonnull
+    @Deprecated
+    public Resource resolve(@Nonnull HttpServletRequest request) {
+        return resolve(request, request.getPathInfo());
+    }
 
     @Override
     @Nonnull
@@ -202,7 +190,7 @@ class StagingResourceResolverImpl implements ResourceResolver {
      */
     @Override
     @Nonnull
-    public Iterator<Resource> findResources(@Nonnull String query, String language) {
+    public Iterator<Resource> findResources(@Nonnull String query, @Nullable String language) {
         throw new UnsupportedOperationException("findResources not supported / not yet implemented. Please use QueryBuilder.");
     }
 
@@ -213,13 +201,13 @@ class StagingResourceResolverImpl implements ResourceResolver {
      */
     @Override
     @Nonnull
-    public Iterator<Map<String, Object>> queryResources(@Nonnull String query, String language) {
+    public Iterator<Map<String, Object>> queryResources(@Nonnull String query, @Nullable String language) {
         throw new UnsupportedOperationException("queryResources not supported / not yet implemented. Please use QueryBuilder.");
     }
 
     @Override
     @Nonnull
-    public ResourceResolver clone(Map<String, Object> authenticationInfo) throws LoginException {
+    public ResourceResolver clone(@Nullable Map<String, Object> authenticationInfo) throws LoginException {
         ResourceResolver resolver = underlyingResolver.clone(authenticationInfo);
         if (resolver instanceof StagingResourceResolverImpl)
             return resolver;
@@ -257,6 +245,14 @@ class StagingResourceResolverImpl implements ResourceResolver {
 
     /** Not implemented, since this resolver provides an readon view of things. */
     @Override
+    @Nonnull
+    public Resource create(@Nonnull Resource parent, @Nonnull String name, @Nullable Map<String, Object> properties) throws PersistenceException {
+        throw new UnsupportedOperationException("creating resources not implemented - readonly view.");
+    }
+
+
+    /** Not implemented, since this resolver provides an readon view of things. */
+    @Override
     public void delete(@Nonnull Resource resource) throws PersistenceException {
         throw new UnsupportedOperationException("deleting resources not implemented - readonly view.");
     }
@@ -286,13 +282,15 @@ class StagingResourceResolverImpl implements ResourceResolver {
 
     /** Not implemented, since this resolver provides an readon view of things. */
     @Override
-    public Resource copy(String srcAbsPath, String destAbsPath) throws PersistenceException {
+    @Nullable
+    public Resource copy(@Nullable String srcAbsPath, @Nullable String destAbsPath) throws PersistenceException {
         throw new UnsupportedOperationException("copy not implemented - readonly view.");
     }
 
     /** Not implemented, since this resolver provides an readon view of things. */
     @Override
-    public Resource move(String srcAbsPath, String destAbsPath) throws PersistenceException {
+    @Nullable
+    public Resource move(@Nullable String srcAbsPath, @Nullable String destAbsPath) throws PersistenceException {
         throw new UnsupportedOperationException("move not implemented - readonly view.");
     }
 
