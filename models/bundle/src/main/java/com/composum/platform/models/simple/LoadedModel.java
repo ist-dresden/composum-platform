@@ -5,6 +5,7 @@ import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.SlingBean;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ValueMap;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -61,14 +62,21 @@ public class LoadedModel implements SlingBean {
         return resource.getResourceType();
     }
 
+    /**
+     * extension hook
+     */
+    protected ValueMap getValues(){
+        return resource.getValueMap();
+    }
+
     @Nullable
     public <T> T getProperty(@Nonnull String key, Class<T> type) {
-        return resource.getValueMap().get(key, type);
+        return getValues().get(key, type);
     }
 
     @Nonnull
     public <T> T getProperty(@Nonnull String key, @Nonnull T defaultValue) {
-        return resource.getValueMap().get(key, defaultValue);
+        return getValues().get(key, defaultValue);
     }
 
     public String getDate(@Nonnull String... keyChain) {
