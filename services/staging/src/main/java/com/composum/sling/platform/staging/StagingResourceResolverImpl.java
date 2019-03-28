@@ -5,6 +5,7 @@ import com.composum.sling.platform.staging.query.QueryBuilder;
 import com.composum.sling.platform.staging.query.QueryBuilderImpl;
 import com.composum.sling.platform.staging.service.ReleaseMapper;
 import com.composum.sling.platform.staging.service.StagingReleaseManager;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.*;
 import org.slf4j.Logger;
@@ -12,6 +13,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Iterator;
 import java.util.Map;
@@ -25,7 +28,7 @@ import java.util.Map;
  * <li>We don't include synthetic resources or resources of other resource providers (servlets etc.) into releases.</li>
  * </ul>
  */
-class StagingResourceResolverImpl implements ResourceResolver {
+public class StagingResourceResolverImpl implements ResourceResolver {
 
     private static final Logger LOG = LoggerFactory.getLogger(StagingResourceResolverImpl.class);
 
@@ -58,11 +61,43 @@ class StagingResourceResolverImpl implements ResourceResolver {
     @Nonnull
     protected Resource retrieveReleasedResource(@Nullable SlingHttpServletRequest request, @Nonnull String rawPath) {
         String path = ResourceUtil.normalize(rawPath);
-        if (path == null) return new NonExistingResource(this, rawPath);
+        if (path == null) return new NonExistingResource(this, rawPath); // weird path like /../..
         if (!releaseMapper.releaseMappingAllowed(path) || !release.appliesToPath(path)) {
             return underlyingResolver.resolve(path);
         }
-        throw new UnsupportedOperationException("Not implemented yet."); // FIXME hps 2019-03-27 not implemented
+        Resource releaseWorkspaceCopy = release.getReleaseNode().getChild(StagingConstants.NODE_RELEASE_ROOT);
+        Resource underlyingResource;
+        if (release.getReleaseRoot().getPath().equals(path)) {
+            underlyingResource = releaseWorkspaceCopy;
+        } else {
+            if (!path.startsWith(release.getReleaseRoot().getPath() + '/')) // safety check
+                throw new IllegalStateException("Bug. " + path);
+            String relPath = path.substring(release.getReleaseRoot().getPath().length()); // starts with /
+            String pathIntoWorkspaceCopy = releaseWorkspaceCopy.getPath() + relPath;
+            underlyingResource = underlyingResolver.resolve(pathIntoWorkspaceCopy);
+            StringBuilder restPath = new StringBuilder();
+            while (underlyingResource != null && ResourceUtil.isNonExistingResource(underlyingResource)) {
+                restPath.insert(0, underlyingResource.getName());
+                restPath.insert(0, '/');
+                underlyingResource = underlyingResource.getParent();
+            }
+            if (StagingUtils.isVersionReference(underlyingResource)) {
+                String versionUuid = underlyingResource.getValueMap().get(StagingConstants.PROP_VERSION, String.class);
+                try {
+                    underlyingResource = ResourceUtil.getByUuid(underlyingResolver, versionUuid);
+                } catch (RepositoryException e) { // weird unexpected case
+                    // Returning a NonExistingResource here is not good, but breaking everything seems worse.
+                    underlyingResource = null;
+                    LOG.error("Error finding version for " + underlyingResource.getPath(), e);
+                }
+                if (underlyingResource != null)
+                    underlyingResource = underlyingResource.getChild(JcrConstants.JCR_FROZENNODE + restPath);
+            }
+            if (underlyingResource == null) // version disabled or no corresponding frozen node found
+                return new NonExistingResource(this, rawPath);
+        }
+        return new StagingResourceImpl(release, path, this, underlyingResource,
+                request != null ? request.getRequestPathInfo() : null);
     }
 
     @Override
@@ -99,7 +134,7 @@ class StagingResourceResolverImpl implements ResourceResolver {
                 if (result != null) break;
             }
         }
-        return result;
+        return result != null && ResourceUtil.isNonExistingResource(result) ? null : result;
     }
 
     @Override

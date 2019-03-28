@@ -4,7 +4,9 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.mapping.MappingRules;
 import com.composum.sling.core.util.JsonUtil;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.platform.staging.service.DefaultStagingReleaseManager;
 import com.composum.sling.platform.staging.service.ReleaseMapper;
+import com.composum.sling.platform.staging.service.StagingReleaseManager;
 import com.google.gson.stream.JsonWriter;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.sling.api.resource.Resource;
@@ -45,9 +47,11 @@ public abstract class AbstractStagingTest {
     public final SlingContext context = new SlingContext(ResourceResolverType.JCR_OAK);
 
     protected static final String RELEASED = "theRelease";
-    protected ResourceResolver stagingResourceResolver;
+    protected StagingResourceResolverImpl stagingResourceResolver;
     protected VersionManager versionManager;
     protected ReleaseMapper releaseMapper;
+
+    protected final StagingReleaseManager releaseManager = new DefaultStagingReleaseManager();
 
     @Before
     public final void setUpResolver() throws Exception {
@@ -56,8 +60,8 @@ public abstract class AbstractStagingTest {
         releaseMapper = Mockito.mock(ReleaseMapper.class);
         when(releaseMapper.releaseMappingAllowed(anyString())).thenReturn(true);
         when(releaseMapper.releaseMappingAllowed(anyString(), anyString())).thenReturn(true);
-        stagingResourceResolver = new StagingResourceResolver(context.getService(ResourceResolverFactory.class), context
-                .resourceResolver(), RELEASED, releaseMapper);
+        // stagingResourceResolver = new StagingResourceResolver(context.getService(ResourceResolverFactory.class), context
+        // .resourceResolver(), RELEASED, releaseMapper);
     }
 
 

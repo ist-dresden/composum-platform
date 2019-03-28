@@ -101,6 +101,12 @@ class StagingResourceImpl extends AbstractResource {
         return resolver;
     }
 
+    @Nonnull
+    @Override
+    public ValueMap getValueMap() {
+        return new StagingResourceValueMap(underlyingResource.getValueMap());
+    }
+
     @Override
     @Nullable
     public <AdapterType> AdapterType adaptTo(@Nullable Class<AdapterType> type) {

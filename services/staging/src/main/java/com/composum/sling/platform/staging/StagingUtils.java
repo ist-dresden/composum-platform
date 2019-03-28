@@ -2,10 +2,11 @@ package com.composum.sling.platform.staging;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceUtil;
+import com.composum.sling.core.util.ResourceUtil;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeType;
@@ -15,18 +16,18 @@ public class StagingUtils {
     public static final String VERSIONS_ROOT = "/" + JcrConstants.JCR_SYSTEM + "/" + JcrConstants.JCR_VERSIONSTORAGE;
 
     @CheckReturnValue
-    static boolean isInVersionStorage(@Nonnull Resource resource) {
-        return resource.getPath().startsWith(VERSIONS_ROOT);
+    static boolean isInVersionStorage(@Nullable Resource resource) {
+        return resource != null && resource.getPath().startsWith(VERSIONS_ROOT);
     }
 
     @CheckReturnValue
-    public static boolean isVersionable(@Nonnull Node node) throws RepositoryException {
-        return node.isNodeType(NodeType.MIX_VERSIONABLE);
+    public static boolean isVersionable(@Nullable Node node) throws RepositoryException {
+        return node != null && node.isNodeType(NodeType.MIX_VERSIONABLE);
     }
 
     @CheckReturnValue
-    public static boolean isVersionable(@Nonnull Resource resource) throws RepositoryException {
-        if (ResourceUtil.isNonExistingResource(resource)) {
+    public static boolean isVersionable(@Nullable Resource resource) throws RepositoryException {
+        if (resource == null || ResourceUtil.isNonExistingResource(resource)) {
             return false;
         }
         Node n = resource.adaptTo(Node.class);
@@ -34,7 +35,8 @@ public class StagingUtils {
     }
 
     @CheckReturnValue
-    public static boolean isUnderVersionControl(@Nonnull Resource resource) throws RepositoryException {
+    public static boolean isUnderVersionControl(@Nullable Resource resource) throws RepositoryException {
+        if (resource == null) return false;
         if (isInVersionStorage(resource)) {
             return true;
         }
@@ -47,13 +49,18 @@ public class StagingUtils {
     }
 
     @CheckReturnValue
-    public static boolean isPropertyResource(@Nonnull final Resource resource) {
-        return resource.getClass().getSimpleName().equals("JcrPropertyResource");
+    public static boolean isVersionReference(@Nullable Resource resource) {
+        return resource != null && ResourceUtil.isResourceType(resource, StagingConstants.TYPE_VERSIONREFERENCE);
     }
 
     @CheckReturnValue
-    public static boolean isRoot(@Nonnull final Resource resource) {
-        return resource.getPath().equals("/");
+    public static boolean isPropertyResource(@Nullable final Resource resource) {
+        return resource != null && resource.getClass().getSimpleName().equals("JcrPropertyResource");
+    }
+
+    @CheckReturnValue
+    public static boolean isRoot(@Nullable final Resource resource) {
+        return resource != null && resource.getPath().equals("/");
     }
 
 }

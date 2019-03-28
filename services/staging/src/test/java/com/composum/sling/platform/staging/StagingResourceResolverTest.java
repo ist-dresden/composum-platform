@@ -24,6 +24,7 @@ import javax.jcr.version.VersionHistory;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.List;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
@@ -48,8 +49,6 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     private String unversionedNode;
     private ResourceBuilder builderAtFolder;
 
-    private StagingReleaseManager releaseManager = new DefaultStagingReleaseManager();
-
     @Before
     public void setUpContent() throws Exception {
         InputStreamReader cndReader = new InputStreamReader(getClass().getResourceAsStream("/testsetup/nodetypes.cnd"));
@@ -67,6 +66,10 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         unversionedNode = makeNode(builderAtFolder, "unversionedDocument", "uv/something", false, false, "uv");
         for (String path : new String[]{folder, node1, document2, node2, unreleasedNode, unversionedNode})
             assertNotNull(path + " doesn't exist", context.resourceResolver().getResource(path));
+
+        List<StagingReleaseManager.Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
+        assertEquals(1, releases.size());
+        stagingResourceResolver = new StagingResourceResolverImpl(releases.get(0), context.resourceResolver(), releaseMapper, context.getService(ResourceResolverFactory.class));
     }
 
     @Test
@@ -81,12 +84,10 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         ReleaseMapper releaseMapper = Mockito.mock(ReleaseMapper.class);
         when(releaseMapper.releaseMappingAllowed(anyString())).thenReturn(false);
         when(releaseMapper.releaseMappingAllowed(anyString(), anyString())).thenReturn(false);
-        StagingResourceResolver resolver = new StagingResourceResolver(context.getService(ResourceResolverFactory
-                .class), context.resourceResolver(), RELEASED, releaseMapper);
 
         for (String path : new String[]{folder, node1, node2, unversionedNode, unreleasedNode,
                 node1 + "/" + PROP_PRIMARY_TYPE, unreleasedNode + "/" + PROP_PRIMARY_TYPE})
-            assertThat(resolver.getResource(path), existsInclusiveParents());
+            assertThat(stagingResourceResolver.getResource(path), existsInclusiveParents());
 
     }
 
@@ -132,8 +133,8 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         assertNull(resolver.getResource(document2));
         for (String path : new String[]{node2, node2 + "/" + PROP_PRIMARY_TYPE,
                 document2 + "/" + CONTENT_NODE}) {
-            assertThat(stagingResourceResolver.resolve(node2), exists());
-            Resource res = stagingResourceResolver.getResource(node2);
+            assertThat(stagingResourceResolver.resolve(path), exists());
+            Resource res = stagingResourceResolver.getResource(path);
             assertThat(res, exists());
             while (!res.getPath().equals("/")) {
                 assertNotNull("No parent of " + res, res.getParent());
