@@ -3,6 +3,7 @@ package com.composum.sling.platform.staging.query;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.platform.staging.AbstractStagingTest;
 import com.composum.sling.platform.staging.StagingResourceResolver;
+import com.composum.sling.platform.staging.testutil.JcrTestUtils;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
@@ -128,13 +129,13 @@ public class QueryTest extends AbstractStagingTest {
     @Test
     @Ignore("Only for development, as needed")
     public void printContent() throws Exception {
-        printResourceRecursivelyAsJson(context.resourceResolver().getResource(folder));
+        JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource(folder));
     }
 
     @Test
     @Ignore("Only for development, as needed")
     public void printVersionStorage() throws Exception {
-        printResourceRecursivelyAsJson(context.resourceResolver().getResource("/jcr:system/jcr:versionStorage"));
+        JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/jcr:system/jcr:versionStorage"));
     }
 
     @Test

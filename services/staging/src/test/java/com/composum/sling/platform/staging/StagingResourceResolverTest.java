@@ -2,9 +2,9 @@ package com.composum.sling.platform.staging;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.platform.staging.service.DefaultStagingReleaseManager;
 import com.composum.sling.platform.staging.service.ReleaseMapper;
 import com.composum.sling.platform.staging.service.StagingReleaseManager;
+import com.composum.sling.platform.staging.testutil.JcrTestUtils;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.sling.api.resource.*;
@@ -14,13 +14,10 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 
-import javax.jcr.Node;
-import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeType;
-import javax.jcr.version.VersionHistory;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -75,8 +72,8 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     @Test
     public void printSetup() throws Exception {
         assertNotNull(context.resourceResolver().getResource(folder));
-        printResourceRecursivelyAsJson(context.resourceResolver().getResource(folder));
-        printResourceRecursivelyAsJson(context.resourceResolver().getResource("/jcr:system/jcr:versionStorage"));
+        JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource(folder));
+        JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/jcr:system/jcr:versionStorage"));
     }
 
     @Test
@@ -162,7 +159,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     @Test
     public void childrenAreOnlyReleasedOrUnversioned() throws Exception {
         Resource folderResource = stagingResourceResolver.resolve(folder);
-        printResourceRecursivelyAsJson(folderResource);
+        JcrTestUtils.printResourceRecursivelyAsJson(folderResource);
         checkChildren(folderResource);
         assertEquals(5, IterableUtils.size(folderResource.getChildren()));
         // jcr:content of unreleasedDocument is not contained in release, and thus not found.

@@ -7,6 +7,7 @@ import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.service.DefaultStagingReleaseManager;
 import com.composum.sling.platform.staging.service.ReleaseMapper;
 import com.composum.sling.platform.staging.service.StagingReleaseManager;
+import com.composum.sling.platform.staging.testutil.JcrTestUtils;
 import com.google.gson.stream.JsonWriter;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.sling.api.resource.Resource;
@@ -65,16 +66,6 @@ public abstract class AbstractStagingTest {
         // .resourceResolver(), RELEASED, releaseMapper);
     }
 
-
-    /** Prints a resource and its subresources as JSON, depth effectively unlimited. */
-    public static void printResourceRecursivelyAsJson(Resource resource) throws IOException, RepositoryException {
-        StringWriter writer = new StringWriter();
-        JsonWriter jsonWriter = new JsonWriter(writer);
-        jsonWriter.setHtmlSafe(true);
-        jsonWriter.setIndent("    ");
-        JsonUtil.exportJson(jsonWriter, resource, MappingRules.getDefaultMappingRules(), 99);
-        System.out.println(writer);
-    }
 
     public static Matcher<? super Resource> exists() {
         return new CustomMatcher<Resource>("Resource should exist") {
