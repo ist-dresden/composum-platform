@@ -104,7 +104,8 @@ class StagingResourceImpl extends AbstractResource {
     @Nonnull
     @Override
     public ValueMap getValueMap() {
-        return new StagingResourceValueMap(underlyingResource.getValueMap());
+        return StagingUtils.isInVersionStorage(underlyingResource) ?
+                new StagingResourceValueMap(underlyingResource.getValueMap()) : underlyingResource.getValueMap();
     }
 
     @Override
@@ -116,5 +117,15 @@ class StagingResourceImpl extends AbstractResource {
         if (ValueMap.class.isAssignableFrom(type))
             return type.cast(getValueMap());
         return super.adaptTo(type);
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("StagingResourceImpl{");
+        sb.append("release=").append(release);
+        sb.append(", path='").append(path).append('\'');
+        if (pathInfo != null) sb.append(", pathInfo=").append(pathInfo);
+        sb.append('}');
+        return sb.toString();
     }
 }

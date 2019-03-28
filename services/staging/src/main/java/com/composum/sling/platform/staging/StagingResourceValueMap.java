@@ -28,7 +28,7 @@ class StagingResourceValueMap extends ValueMapDecorator {
     }
 
     /**
-     * Creates a new wrapper around a given map.
+     * Creates a new wrapper around a given value map of a frozen node.
      */
     StagingResourceValueMap(ValueMap frozen) {
         super(frozen);

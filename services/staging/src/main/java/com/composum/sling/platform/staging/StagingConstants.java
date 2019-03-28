@@ -48,6 +48,11 @@ public interface StagingConstants {
     final String PROP_VERSIONABLEUUID = "cpl:versionableUuid";
 
     /**
+     * Property of {@link #TYPE_VERSIONREFERENCE}: if true this reference is ignored. If not set, this is evaluated as false.
+     */
+    final String PROP_DEACTIVATED = "cpl:deactivated";
+
+    /**
      * Nodename for the "current release" (the release that's in construction and will be used as default preview)
      * below {@link #NODE_RELEASES}.
      */

@@ -87,7 +87,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
         for (String path : new String[]{folder, node1, node2, unversionedNode, unreleasedNode,
                 node1 + "/" + PROP_PRIMARY_TYPE, unreleasedNode + "/" + PROP_PRIMARY_TYPE})
-            assertThat(stagingResourceResolver.getResource(path), existsInclusiveParents());
+            assertThat(path, stagingResourceResolver.getResource(path), existsInclusiveParents());
 
     }
 
@@ -110,7 +110,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     @Test
     public void releasedIsFound() {
         for (String path : new String[]{node1, node2, node1 + "/" + PROP_PRIMARY_TYPE})
-            assertThat(stagingResourceResolver.getResource(path), existsInclusiveParents());
+            assertThat(path, stagingResourceResolver.getResource(path), existsInclusiveParents());
     }
 
     @Test
@@ -133,7 +133,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         assertNull(resolver.getResource(document2));
         for (String path : new String[]{node2, node2 + "/" + PROP_PRIMARY_TYPE,
                 document2 + "/" + CONTENT_NODE}) {
-            assertThat(stagingResourceResolver.resolve(path), exists());
+            assertThat(path, stagingResourceResolver.resolve(path), exists());
             Resource res = stagingResourceResolver.getResource(path);
             assertThat(res, exists());
             while (!res.getPath().equals("/")) {
@@ -176,7 +176,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         }
     }
 
-    @Test(expected = StagingException.class)
+    @Test(expected = UnsupportedOperationException.class)
     public void releasedCannotBeDeleted() throws PersistenceException {
         stagingResourceResolver.delete(stagingResourceResolver.getResource(node2));
     }

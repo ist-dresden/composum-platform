@@ -150,5 +150,10 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager, Stag
             String normalized = ResourceUtil.normalize(path);
             return releaseRoot.getPath().equals(normalized) || normalized.startsWith(releaseRoot.getPath() + "/");
         }
+
+        @Override
+        public String toString() {
+            return "Release('" + releaseNode.getName() + "'," + releaseRoot.getPath() + ")";
+        }
     }
 }

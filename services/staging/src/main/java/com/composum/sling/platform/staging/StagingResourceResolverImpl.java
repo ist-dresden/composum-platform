@@ -83,15 +83,18 @@ public class StagingResourceResolverImpl implements ResourceResolver {
             }
             if (StagingUtils.isVersionReference(underlyingResource)) {
                 String versionUuid = underlyingResource.getValueMap().get(StagingConstants.PROP_VERSION, String.class);
-                try {
-                    underlyingResource = ResourceUtil.getByUuid(underlyingResolver, versionUuid);
-                } catch (RepositoryException e) { // weird unexpected case
-                    // Returning a NonExistingResource here is not good, but breaking everything seems worse.
-                    underlyingResource = null;
-                    LOG.error("Error finding version for " + underlyingResource.getPath(), e);
+                Boolean deactivated = underlyingResource.getValueMap().get(StagingConstants.PROP_DEACTIVATED, false);
+                underlyingResource = null;
+                if (!deactivated) {
+                    try {
+                        underlyingResource = ResourceUtil.getByUuid(underlyingResolver, versionUuid);
+                    } catch (RepositoryException e) { // weird unexpected case
+                        // Returning a NonExistingResource here is not good, but breaking everything seems worse.
+                        LOG.error("Error finding version for " + underlyingResource.getPath(), e);
+                    }
+                    if (underlyingResource != null)
+                        underlyingResource = underlyingResource.getChild(JcrConstants.JCR_FROZENNODE + restPath);
                 }
-                if (underlyingResource != null)
-                    underlyingResource = underlyingResource.getChild(JcrConstants.JCR_FROZENNODE + restPath);
             }
             if (underlyingResource == null) // version disabled or no corresponding frozen node found
                 return new NonExistingResource(this, rawPath);

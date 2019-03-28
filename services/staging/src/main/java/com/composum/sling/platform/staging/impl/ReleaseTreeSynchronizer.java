@@ -121,16 +121,18 @@ public class ReleaseTreeSynchronizer extends NodeTreeSynchronizer {
             to.setProperty(StagingConstants.PROP_VERSIONHISTORY, from.getProperty("jcr:versionHistory"), PropertyType.REFERENCE);
             to.setProperty(StagingConstants.PROP_VERSION, from.getProperty("jcr:baseVersion"), PropertyType.REFERENCE);
             to.setProperty(StagingConstants.PROP_VERSIONABLEUUID, from.getProperty(JcrConstants.JCR_UUID), PropertyType.WEAKREFERENCE);
+            to.setProperty(StagingConstants.PROP_DEACTIVATED, false);
         } else if (from.isOfType(StagingConstants.TYPE_VERSIONREFERENCE)) {
             to.setProperty(StagingConstants.PROP_VERSIONHISTORY, from.getProperty(StagingConstants.PROP_VERSIONHISTORY), PropertyType.REFERENCE);
             to.setProperty(StagingConstants.PROP_VERSION, from.getProperty(StagingConstants.PROP_VERSION), PropertyType.REFERENCE);
             to.setProperty(StagingConstants.PROP_VERSIONABLEUUID, from.getProperty(StagingConstants.PROP_VERSIONABLEUUID), PropertyType.WEAKREFERENCE);
+            to.setProperty(StagingConstants.PROP_DEACTIVATED, from.getProperty(StagingConstants.PROP_VERSIONABLEUUID, false));
         } else
             throw new IllegalArgumentException("Bug: should be versionable or versionreference for this method: " + from);
     }
 
     /**
-     * Removes children and attributes from a node, except the primary type and mixins and the version attributes.
+     * Removes children and attributes from a node, except the primary type and mixins and the mandatory version attributes.
      */
     protected void clearNode(ResourceHandle to) throws RepositoryException, PersistenceException {
         LOG.debug("Clearing {}", to.getPath());
