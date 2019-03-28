@@ -5,12 +5,17 @@ import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.service.ReleaseMapper;
 import com.composum.sling.platform.staging.service.StagingReleaseManager;
 import com.composum.sling.platform.staging.testutil.JcrTestUtils;
+import com.composum.sling.platform.staging.testutil.SlingAssertionCodeGenerator;
+import com.composum.sling.platform.staging.testutil.SlingMatchers;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.sling.api.resource.*;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
+import org.hamcrest.Matchers;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ErrorCollector;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 
@@ -18,14 +23,16 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NodeType;
-
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.List;
+import java.util.Map;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
 import static com.composum.sling.platform.staging.testutil.JcrTestUtils.array;
+import static com.composum.sling.platform.staging.testutil.SlingMatchers.*;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
@@ -45,6 +52,9 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     private String unreleasedNode;
     private String unversionedNode;
     private ResourceBuilder builderAtFolder;
+
+    @Rule
+    public final ErrorCollector errorCollector = new ErrorCollector();
 
     @Before
     public void setUpContent() throws Exception {
@@ -198,6 +208,27 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         Resource resource = stagingResourceResolver.getResource(atApps.substring(6));
         assertThat(resource, existsInclusiveParents());
         assertEquals(atApps, resource.getPath());
+    }
+
+    @Test
+    public void fullcheck() throws Exception {
+        Resource r = context.resourceResolver().getResource(document2);
+        new SlingAssertionCodeGenerator("r", r).useErrorCollector().withMessage("r.getPath()")
+                .ignoreProperties("getResourceMetadata", "toString").printAssertions();
+        errorCollector.checkThat(r.getPath(), r.toString(), is("JcrNodeResource, type=nt:unstructured, superType=null, path=/folder/document2"));
+        errorCollector.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured"));
+        errorCollector.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
+        errorCollector.checkThat(r.getPath(), r.getPath(), is("/folder/document2"));
+        errorCollector.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
+        errorCollector.checkThat(r.getPath(), r.getName(), is("document2"));
+        errorCollector.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder"));
+        errorCollector.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(1));
+        errorCollector.checkThat(r.getPath(), r.hasChildren(), is(true));
+        errorCollector.checkThat(r.getPath(), r.getValueMap(), allOf(
+                mappedMatches(Map::size, is(1)),
+                Matchers.hasEntry(is("jcr:primaryType"), is("nt:unstructured"))
+        ));
+        errorCollector.checkThat(r.getPath(), r.getChildren(), mappedMatches(SlingMatchers::resourcePaths, contains("/folder/document2/jcr:content")));
     }
 
 }

@@ -1,24 +1,17 @@
 package com.composum.sling.platform.staging;
 
 import com.composum.sling.core.ResourceHandle;
-import com.composum.sling.core.mapping.MappingRules;
-import com.composum.sling.core.util.JsonUtil;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.service.DefaultStagingReleaseManager;
 import com.composum.sling.platform.staging.service.ReleaseMapper;
 import com.composum.sling.platform.staging.service.StagingReleaseManager;
-import com.composum.sling.platform.staging.testutil.JcrTestUtils;
-import com.google.gson.stream.JsonWriter;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceResolver;
-import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
 import org.hamcrest.CustomMatcher;
 import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.mockito.Mockito;
@@ -27,12 +20,11 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
-import java.io.IOException;
-import java.io.StringWriter;
 import java.util.Calendar;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -109,7 +101,8 @@ public abstract class AbstractStagingTest {
         builder = builder.resource(CONTENT_NODE, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED, PROP_MIXINTYPES, mixins);
         Resource contentResource = builder.getCurrentParent();
         Resource resource = builder.resource(nodepath, PROP_PRIMARY_TYPE, SELECTED_NODETYPE,
-                PROP_MIXINTYPES, SELECTED_NODE_MIXINS).getCurrentParent();
+                PROP_MIXINTYPES, SELECTED_NODE_MIXINS, PROP_RESOURCE_TYPE, "sling/" +
+                        ResourceUtil.getName(nodepath)).getCurrentParent();
         ResourceHandle handle = ResourceHandle.use(resource);
         if (null != title) {
             handle.setProperty(PROP_TITLE, title);
