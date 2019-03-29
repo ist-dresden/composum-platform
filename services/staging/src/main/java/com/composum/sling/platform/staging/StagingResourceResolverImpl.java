@@ -1,10 +1,12 @@
 package com.composum.sling.platform.staging;
 
+import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.query.QueryBuilder;
 import com.composum.sling.platform.staging.query.QueryBuilderImpl;
 import com.composum.sling.platform.staging.service.ReleaseMapper;
 import com.composum.sling.platform.staging.service.StagingReleaseManager;
+import org.apache.commons.collections4.IteratorUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.*;
@@ -14,8 +16,8 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -65,53 +67,72 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         if (!releaseMapper.releaseMappingAllowed(path) || !release.appliesToPath(path)) {
             return underlyingResolver.resolve(path);
         }
-        Resource releaseWorkspaceCopy = release.getReleaseNode().getChild(StagingConstants.NODE_RELEASE_ROOT);
-        Resource underlyingResource;
-        if (release.getReleaseRoot().getPath().equals(path)) {
-            underlyingResource = releaseWorkspaceCopy;
-        } else {
-            if (!path.startsWith(release.getReleaseRoot().getPath() + '/')) // safety check
-                throw new IllegalStateException("Bug. " + path);
-            String relPath = path.substring(release.getReleaseRoot().getPath().length()); // starts with /
-            String pathIntoWorkspaceCopy = releaseWorkspaceCopy.getPath() + relPath;
-            underlyingResource = underlyingResolver.resolve(pathIntoWorkspaceCopy);
-            StringBuilder restPath = new StringBuilder();
-            while (underlyingResource != null && ResourceUtil.isNonExistingResource(underlyingResource)) {
-                restPath.insert(0, underlyingResource.getName());
-                restPath.insert(0, '/');
-                underlyingResource = underlyingResource.getParent();
+        Resource underlyingResource = release.getReleaseNode().getChild(StagingConstants.NODE_RELEASE_ROOT);
+        if (!release.getReleaseRoot().getPath().equals(path)) {
+            if (!path.startsWith(release.getReleaseRoot().getPath() + '/')) // safety check - can't happen.
+                throw new IllegalArgumentException("Bug. " + path + " vs. " + release.getReleaseRoot().getPath());
+            String relPath = path.substring(release.getReleaseRoot().getPath().length() + 1);
+            String[] levels = relPath.split("/");
+            for (String level : levels) {
+                if (underlyingResource == null) return new NonExistingResource(this, rawPath);
+                underlyingResource = underlyingResource.getChild(level);
+                underlyingResource = stepResource(underlyingResource);
             }
-            if (StagingUtils.isVersionReference(underlyingResource)) {
-                String versionUuid = underlyingResource.getValueMap().get(StagingConstants.PROP_VERSION, String.class);
-                Boolean deactivated = underlyingResource.getValueMap().get(StagingConstants.PROP_DEACTIVATED, false);
-                underlyingResource = null;
-                if (!deactivated) {
-                    try {
-                        underlyingResource = ResourceUtil.getByUuid(underlyingResolver, versionUuid);
-                    } catch (RepositoryException e) { // weird unexpected case
-                        // Returning a NonExistingResource here is not good, but breaking everything seems worse.
-                        LOG.error("Error finding version for " + underlyingResource.getPath(), e);
-                    }
-                    if (underlyingResource != null)
-                        underlyingResource = underlyingResource.getChild(JcrConstants.JCR_FROZENNODE + restPath);
-                }
-            }
-            if (underlyingResource == null) // version disabled or no corresponding frozen node found
-                return new NonExistingResource(this, rawPath);
         }
         return new StagingResourceImpl(release, path, this, underlyingResource,
                 request != null ? request.getRequestPathInfo() : null);
     }
 
+    /**
+     * Checks whether the resource is exactly on one of the points where we move to a different resource:
+     * the release root is actually mapped to the release content root, and a version reference.
+     */
+    protected Resource stepResource(Resource resource) {
+        if (resource == null) {
+            return null;
+        } else if (resource.getPath().equals(release.getReleaseRoot().getPath())) {
+            return release.getReleaseNode().getChild(StagingConstants.NODE_RELEASE_ROOT);
+        } else if (StagingUtils.isInVersionStorage(resource)) {
+            return resource;
+        } else if (ResourceHandle.use(resource).isOfType(StagingConstants.TYPE_VERSIONREFERENCE)) {
+            String versionUuid = resource.getValueMap().get(StagingConstants.PROP_VERSION, String.class);
+            Boolean deactivated = resource.getValueMap().get(StagingConstants.PROP_DEACTIVATED, false);
+            if (deactivated) return null;
+            Resource underlyingResource = null;
+            try {
+                underlyingResource = ResourceUtil.getByUuid(underlyingResolver, versionUuid);
+            } catch (RepositoryException e) { // weird unexpected case
+                // Returning a NonExistingResource here is not good, but breaking everything seems worse.
+                LOG.error("Error finding version for " + resource.getPath(), e);
+            }
+            if (underlyingResource != null)
+                underlyingResource = underlyingResource.getChild(JcrConstants.JCR_FROZENNODE);
+            return underlyingResource;
+        }
+        return resource;
+    }
+
     @Override
     @Nonnull
     public Iterator<Resource> listChildren(@Nonnull Resource parent) {
-        LOG.error("StagingResourceResolverImpl.listChildren");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: StagingResourceResolverImpl.listChildren");
-        // FIXME hps 2019-03-27 implement StagingResourceResolverImpl.listChildren
-        @Nonnull Iterator<Resource> result = null;
-        return result;
+        while (parent instanceof ResourceWrapper) {
+            parent = ((ResourceWrapper) parent).getResource();
+        }
+        StagingResourceImpl stagingResource = null;
+        if (parent instanceof StagingResourceImpl) {
+            stagingResource = (StagingResourceImpl) parent;
+            if (stagingResource.release != release) stagingResource = null;
+        }
+        if (stagingResource == null) {
+            Resource retrieved = retrieveReleasedResource(null, parent.getPath());
+            if (parent instanceof StagingResourceImpl) stagingResource = (StagingResourceImpl) parent;
+            else return Collections.emptyIterator(); // NonExistingResource
+        }
+        Iterator<Resource> children = underlyingResolver.listChildren(stagingResource.underlyingResource);
+        return IteratorUtils.filteredIterator(
+                IteratorUtils.transformedIterator(children, (child) -> stepResource(child)),
+                (child) -> child != null && !ResourceUtil.isNonExistingResource(child)
+        );
     }
 
     @Override

@@ -66,7 +66,7 @@ class StagingResourceImpl extends AbstractResource {
         // FIXME hps check for propertyresource
         ValueMap vm = getValueMap();
         String resourceType = vm.get(ResourceUtil.PROP_RESOURCE_TYPE, String.class);
-        resourceType = StringUtils.isBlank(resourceType) ? vm.get(ResourceUtil.PROP_PRIMARY_TYPE, String.class) : null;
+        resourceType = StringUtils.isBlank(resourceType) ? vm.get(ResourceUtil.PROP_PRIMARY_TYPE, String.class) : resourceType;
         return StringUtils.defaultIfBlank(resourceType, Resource.RESOURCE_TYPE_NON_EXISTING);
     }
 
