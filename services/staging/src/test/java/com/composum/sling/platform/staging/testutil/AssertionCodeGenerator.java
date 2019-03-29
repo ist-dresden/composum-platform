@@ -1,13 +1,16 @@
 package com.composum.sling.platform.staging.testutil;
 
+import org.apache.commons.collections4.ComparatorUtils;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
+import org.apache.commons.lang3.reflect.TypeUtils;
 import org.hamcrest.Matchers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.is;
@@ -31,16 +34,24 @@ public class AssertionCodeGenerator {
     public AssertionCodeGenerator(@Nonnull String variableName, @Nullable Object object) {
         this.variableName = variableName;
         this.object = object;
+    }
+
+    /** Prints the neccesary imports. */
+    public AssertionCodeGenerator printImports() {
         allAssertionsBuf.append("import static org.hamcrest.Matchers.*;\n");
         allAssertionsBuf.append("import static " + SlingMatchers.class.getName() + ".*;\n");
+        if (useErrorCollector)
+            allAssertionsBuf.append("import org.junit.rules.ErrorCollector;\n\n" +
+                    "    @Rule\n" +
+                    "    public final ErrorCollector errorCollector = new ErrorCollector();\n\n");
+        allAssertionsBuf.append("    // ASSERTIONS FOR OBJECT ").append(variableName)
+                .append(" OF CLASS ").append(object.getClass()).append(" : \n");
+        return this;
     }
 
     /** Uses the ErrorCollector rule to catch all errors at the same time. */
     @Nonnull
     public AssertionCodeGenerator useErrorCollector() {
-        allAssertionsBuf.append("import org.junit.rules.ErrorCollector;\n\n" +
-                "    @Rule\n" +
-                "    public final ErrorCollector errorCollector = new ErrorCollector();\n");
         useErrorCollector = true;
         return this;
     }
@@ -74,9 +85,10 @@ public class AssertionCodeGenerator {
                 assertionBuf.append("nullValue()");
                 appendAssertionEnd();
             } else {
-                allAssertionsBuf.append("    // ASSERTIONS FOR OBJECT ").append(variableName)
-                        .append(" OF CLASS ").append(object.getClass()).append(" : \n");
-                for (Method m : object.getClass().getMethods()) {
+                Method[] methods = object.getClass().getMethods();
+                Arrays.sort(methods, Comparator.comparing(
+                        (m) -> m.getName().toLowerCase().replaceAll("^(get|has|list|is)", "") + m.getName()));
+                for (Method m : methods) {
                     if (m.getDeclaringClass().equals(Object.class)) continue;
                     if (m.getParameters().length == 0) {
                         if (checkedMethods.contains(m.getName()) || ignoredPropertySet.contains(m.getName())) continue;
@@ -125,13 +137,25 @@ public class AssertionCodeGenerator {
             if (assertionBuf.length() != prelen) {
                 // OK, was already handled by subclasses
             } else if (value instanceof String) {
-                assertionBuf.append("is(");
-                appendQuotedString((String) value);
-                assertionBuf.append(")");
+                // e251c418-4483-4dfb-84cd-05410cfcf0f8
+                if (((String) value).matches("[0-9a-f-]{36}")) { // assume it's a varible uuid
+                    assertionBuf.append("stringMatchingPattern(\"[0-9a-f-]{36}\")");
+                } else {
+                    assertionBuf.append("is(");
+                    appendQuotedString((String) value);
+                    assertionBuf.append(")");
+                }
             } else if (value instanceof Integer || value instanceof Boolean || value instanceof Double) {
                 assertionBuf.append("is(").append(value).append(")");
             } else if (value instanceof Long) {
                 assertionBuf.append("is(").append(value).append("L)");
+            } else if (value instanceof Calendar) {
+                // Calendar calendar = (Calendar) value;
+                // SlingMatchers.mappedMatches(Calendar::getTimeInMillis, is(calendar.getTimeInMillis()));
+                // assertionBuf.append("SlingMatchers.mappedMatches(Calendar::getTimeInMillis, ");
+                // createMatcher(calendar.getTimeInMillis());
+                // assertionBuf.append(")");
+                assertionBuf.append("notNullValue(java.util.Calendar.class)");
             } else if (value instanceof List) {
                 createMatcherForList((List) value);
             } else if (value instanceof Map) {
@@ -141,6 +165,16 @@ public class AssertionCodeGenerator {
             } else if (value instanceof Iterator) {
                 assertionBuf.append("iteratorWithSize(")
                         .append(IteratorUtils.toList((Iterator) value).size()).append(")");
+            } else if (TypeUtils.isArrayType(value.getClass())) {
+                List<Object> contents = Arrays.asList((Object[]) value);
+                assertionBuf.append("arrayContaining(");
+                boolean first = true;
+                for (Object entry : contents) {
+                    if (!first) assertionBuf.append(",");
+                    createMatcher(entry);
+                    first = false;
+                }
+                assertionBuf.append(")");
             } else {
                 throw new UnsupportedOperationException("Type not yet supported, please extend: " + value.getClass());
             }
@@ -157,18 +191,20 @@ public class AssertionCodeGenerator {
         /* assertionBuf.append("mappedMatches(SlingMatchers::sortedToString, is(");
         appendQuotedString(sortedToString(map));
         assertionBuf.append(")"); */
-        assertionBuf.append("allOf(\n")
-                .append("            mappedMatches(Map::size, ");
-        createMatcher(map.size());
-        assertionBuf.append(")");
-        for (Map.Entry entry : map.entrySet()) {
-            assertionBuf.append(",\n            Matchers.hasEntry(");
-            createMatcher(entry.getKey());
-            assertionBuf.append(", ");
-            createMatcher(entry.getValue());
-            assertionBuf.append(")");
+        if (map.size() == 0) {
+            assertionBuf.append("hasMapSize(0)");
+        } else {
+            assertionBuf.append("allOf(\n")
+                    .append("            hasMapSize(").append(map.size()).append(")");
+            for (Map.Entry entry : map.entrySet()) {
+                assertionBuf.append(",\n            SlingMatchers.hasEntryMatching(");
+                createMatcher(entry.getKey());
+                assertionBuf.append(", ");
+                createMatcher(entry.getValue());
+                assertionBuf.append(")");
+            }
+            assertionBuf.append("\n        )");
         }
-        assertionBuf.append("\n        )");
     }
 
     /** Creates a matcher for a Map. Difficult. We just compare toStrings for a start. */

@@ -102,7 +102,7 @@ public abstract class AbstractStagingTest {
         Resource contentResource = builder.getCurrentParent();
         Resource resource = builder.resource(nodepath, PROP_PRIMARY_TYPE, SELECTED_NODETYPE,
                 PROP_MIXINTYPES, SELECTED_NODE_MIXINS, PROP_RESOURCE_TYPE, "sling/" +
-                        ResourceUtil.getName(nodepath)).getCurrentParent();
+                        ResourceUtil.getName(nodepath) + "res").getCurrentParent();
         ResourceHandle handle = ResourceHandle.use(resource);
         if (null != title) {
             handle.setProperty(PROP_TITLE, title);

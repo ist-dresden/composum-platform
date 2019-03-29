@@ -34,14 +34,18 @@ public class SlingAssertionCodeGenerator extends AssertionCodeGenerator {
     @Override
     protected void createMatcherForIterable(List contents) {
         if (Matchers.everyItem(Matchers.isA(String.class)).matches(contents)) {
-            assertionBuf.append("contains(");
-            boolean first = true;
-            for (Object str : contents) {
-                if (!first) assertionBuf.append(",");
-                appendQuotedString(String.valueOf(str));
-                first = false;
+            if (contents.isEmpty()) {
+                assertionBuf.append("emptyIterable()");
+            } else {
+                assertionBuf.append("contains(");
+                boolean first = true;
+                for (Object str : contents) {
+                    if (!first) assertionBuf.append(",");
+                    appendQuotedString(String.valueOf(str));
+                    first = false;
+                }
+                assertionBuf.append(")");
             }
-            assertionBuf.append(")");
         } else if (Matchers.everyItem(Matchers.isA(Resource.class)).matches(contents)) {
             assertionBuf.append("mappedMatches(SlingMatchers::resourcePaths,");
             createMatcherForIterable(SlingMatchers.resourcePaths(contents));
