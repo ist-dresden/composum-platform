@@ -1,5 +1,13 @@
 package com.composum.sling.platform.staging;
 
+import com.google.common.collect.ImmutableMap;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.apache.jackrabbit.JcrConstants.*;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+
 /**
  * Constants related to the staging mechanisms. See also the nodetypes.cnd .
  */
@@ -69,5 +77,17 @@ public interface StagingConstants {
      * Nodename below a release node or {@link #NODE_CURRENT_RELEASE} that can contain metadata for a release.
      */
     final String NODE_RELEASE_METADATA = "metaData";
+
+    /** maps the frozen property types to their normal names. */
+    final Map<String, String> FROZEN_PROP_NAMES_TO_REAL_NAMES = ImmutableMap.of(
+            JCR_FROZENPRIMARYTYPE, JCR_PRIMARYTYPE,
+            JCR_FROZENUUID, JCR_UUID,
+            JCR_FROZENMIXINTYPES, JCR_MIXINTYPES);
+
+    /** maps the frozen property types to their normal names. */
+    final Map<String, String> REAL_PROPNAMES_TO_FROZEN_NAMES = ImmutableMap.of(
+            JCR_FROZENPRIMARYTYPE, JCR_PRIMARYTYPE,
+            JCR_FROZENUUID, JCR_UUID,
+            JCR_FROZENMIXINTYPES, JCR_MIXINTYPES);
 
 }

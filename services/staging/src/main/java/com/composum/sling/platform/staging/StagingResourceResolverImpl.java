@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
@@ -99,9 +100,11 @@ public class StagingResourceResolverImpl implements ResourceResolver {
             Boolean deactivated = resource.getValueMap().get(StagingConstants.PROP_DEACTIVATED, false);
             if (deactivated) return null;
             Resource underlyingResource = null;
-            try {
-                underlyingResource = ResourceUtil.getByUuid(underlyingResolver, versionUuid);
-            } catch (RepositoryException e) { // weird unexpected case
+            try { // PROP_VERSION is mandatory and version access is needed - no need for checks.
+                Resource propertyResource = resource.getChild(StagingConstants.PROP_VERSION);
+                Node node = propertyResource.adaptTo(Node.class);
+                underlyingResource = underlyingResolver.getResource(node.getPath());
+            } catch (RepositoryException | NullPointerException e) { // weird unexpected case
                 // Returning a NonExistingResource here is not good, but breaking everything seems worse.
                 LOG.error("Error finding version for " + resource.getPath(), e);
             }

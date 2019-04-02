@@ -6,26 +6,18 @@ import org.apache.sling.api.wrappers.ValueMapDecorator;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
+import static com.composum.sling.platform.staging.StagingConstants.FROZEN_PROP_NAMES_TO_REAL_NAMES;
+import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES;
 import static org.apache.jackrabbit.JcrConstants.*;
 
 /**
  * Emulates the normal {@link ValueMap} from the {@link ValueMap} of a frozen resource.
  */
 class StagingResourceValueMap extends ValueMapDecorator {
-
-    private Map<String, String> typesToMap = new HashMap<>();
-
-    {
-        typesToMap.put(JCR_FROZENPRIMARYTYPE, JCR_PRIMARYTYPE);
-        typesToMap.put(JCR_FROZENUUID, JCR_UUID);
-        typesToMap.put(JCR_FROZENMIXINTYPES, JCR_MIXINTYPES);
-    }
 
     /**
      * Creates a new wrapper around a given value map of a frozen node.
@@ -37,23 +29,15 @@ class StagingResourceValueMap extends ValueMapDecorator {
     @Override
     @CheckForNull
     public Object get(Object key) {
-        if (JCR_PRIMARYTYPE.equals(key)) {
-            return super.get(JCR_FROZENPRIMARYTYPE);
-        } else if (JCR_MIXINTYPES.equals(key)) {
-            return super.get(JCR_FROZENMIXINTYPES);
-        } else if (JCR_UUID.equals(key)) {
-            return super.get(JCR_FROZENUUID);
+        if (REAL_PROPNAMES_TO_FROZEN_NAMES.containsKey(key)) {
+            return super.get(REAL_PROPNAMES_TO_FROZEN_NAMES.get(key));
         }
         return super.get(key);
     }
 
     @Override
     public boolean containsKey(Object key) {
-        if (JCR_FROZENPRIMARYTYPE.equals(key)) {
-            return false;
-        } else if (JCR_FROZENMIXINTYPES.equals(key)) {
-            return false;
-        } else if (JCR_FROZENUUID.equals(key)) {
+        if (FROZEN_PROP_NAMES_TO_REAL_NAMES.containsKey(key)) {
             return false;
         }
         return super.containsKey(key);
@@ -63,14 +47,10 @@ class StagingResourceValueMap extends ValueMapDecorator {
     @Nonnull
     public Set<String> keySet() {
         final Set<String> keys = super.keySet();
-        if (keys.remove(JCR_FROZENPRIMARYTYPE)) {
-            keys.add(JCR_PRIMARYTYPE);
-        }
-        if (keys.remove(JCR_FROZENMIXINTYPES)) {
-            keys.add(JCR_MIXINTYPES);
-        }
-        if (keys.remove(JCR_FROZENUUID)) {
-            keys.add(JCR_UUID);
+        for (Entry<String, String> entry : FROZEN_PROP_NAMES_TO_REAL_NAMES.entrySet()) {
+            if (keys.remove(entry.getKey())) {
+                keys.add(entry.getValue());
+            }
         }
         return keys;
     }
@@ -81,9 +61,9 @@ class StagingResourceValueMap extends ValueMapDecorator {
         final Set<Entry<String, Object>> entries = super.entrySet();
         final Set<Entry<String, Object>> result = new HashSet<>();
         for (Entry<String, Object> entry : entries) {
-            if (typesToMap.values().contains(entry.getKey())) {
+            if (FROZEN_PROP_NAMES_TO_REAL_NAMES.values().contains(entry.getKey())) {
                 //nothing
-            } else if (!typesToMap.keySet().contains(entry.getKey())) {
+            } else if (!FROZEN_PROP_NAMES_TO_REAL_NAMES.keySet().contains(entry.getKey())) {
                 result.add(entry);
             } else if (entry.getKey().equals(JCR_FROZENMIXINTYPES)) {
                 final Object value = entry.getValue();
@@ -100,8 +80,8 @@ class StagingResourceValueMap extends ValueMapDecorator {
                 } else {
                     result.add(new PrivateEntry(JCR_MIXINTYPES, entry.getValue()));
                 }
-            } else if (typesToMap.keySet().contains(entry.getKey())) {
-                result.add(new PrivateEntry(typesToMap.get(entry.getKey()), entry.getValue()));
+            } else if (FROZEN_PROP_NAMES_TO_REAL_NAMES.keySet().contains(entry.getKey())) {
+                result.add(new PrivateEntry(FROZEN_PROP_NAMES_TO_REAL_NAMES.get(entry.getKey()), entry.getValue()));
             }
         }
         return result;

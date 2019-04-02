@@ -11,6 +11,9 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.Item;
+import javax.jcr.Node;
+import javax.jcr.Property;
 
 /**
  * Simulates a {@link org.apache.sling.api.resource.Resource}s from a release. It can either be a (writable) real resource,
@@ -112,8 +115,16 @@ class StagingResourceImpl extends AbstractResource {
     @Nullable
     public <AdapterType> AdapterType adaptTo(@Nullable Class<AdapterType> type) {
         if (type == null) return null;
-        if (ModifiableValueMap.class.isAssignableFrom(type))
+        if (ModifiableValueMap.class.isAssignableFrom(type) && release.appliesToPath(path))
             return null; // we currently don't support any modification.
+        if (Node.class.isAssignableFrom(type) && release.appliesToPath(path)) {
+            Node node = underlyingResource.adaptTo(Node.class);
+            return type.cast(UnmodifiableNodeWrapper.wrap(node, this));
+        }
+        if (Property.class.isAssignableFrom(type) && release.appliesToPath(path)) {
+            Property property = underlyingResource.adaptTo(Property.class);
+            return type.cast(UnmodifiablePropertyWrapper.wrap(property, this.path));
+        }
         if (ValueMap.class.isAssignableFrom(type))
             return type.cast(getValueMap());
         return super.adaptTo(type);

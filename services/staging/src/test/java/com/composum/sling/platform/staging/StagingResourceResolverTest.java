@@ -106,7 +106,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     public void unversionedIsReturned() {
         for (String path : new String[]{folder, unversionedNode}) {
             Resource resource = stagingResourceResolver.getResource(path);
-            assertThat(resource, existsInclusiveParents());
+            assertThat(path, resource, existsInclusiveParents());
         }
     }
 
@@ -215,8 +215,12 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     }
 
     @Test
-    public void fullCheck() {
+    public void fullCheckUnstaged() {
         doFullCheck(context.resourceResolver());
+    }
+
+    @Test
+    public void fullCheckStaged() {
         doFullCheck(stagingResourceResolver);
     }
 
