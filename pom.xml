@@ -57,6 +57,8 @@
         <source.encoding>UTF-8</source.encoding>
         <java.source>1.8</java.source>
         <java.target>1.8</java.target>
+        <maven.compiler.source>${java.source}</maven.compiler.source>
+        <maven.compiler.target>${java.target}</maven.compiler.target>
         <sling.starter.version>11</sling.starter.version>
         <com.spotify.dockerfile.version>1.4.10</com.spotify.dockerfile.version>
     </properties>
