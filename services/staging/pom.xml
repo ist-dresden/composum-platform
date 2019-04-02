@@ -69,6 +69,11 @@
             <groupId>com.composum.sling.core</groupId>
             <artifactId>composum-sling-core-commons</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.composum.sling.platform</groupId>
+            <artifactId>composum-sling-platform-commons-bundle</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Sling, JCR -->
         <dependency>

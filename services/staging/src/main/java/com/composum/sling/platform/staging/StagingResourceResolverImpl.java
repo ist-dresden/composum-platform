@@ -66,7 +66,11 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         String path = ResourceUtil.normalize(rawPath);
         if (path == null) return new NonExistingResource(this, rawPath); // weird path like /../..
         if (!releaseMapper.releaseMappingAllowed(path) || !release.appliesToPath(path)) {
-            return underlyingResolver.resolve(path);
+            // we need to return a StagingResourceImpl, too, since e.g. listChildren might go into releasemapped areas.
+            Resource underlyingResource = underlyingResolver.getResource(path);
+            return underlyingResource == null ? null :
+                    new StagingResourceImpl(release, path, this, underlyingResource,
+                            request != null ? request.getRequestPathInfo() : null);
         }
         Resource underlyingResource = release.getReleaseNode().getChild(StagingConstants.NODE_RELEASE_ROOT);
         if (!release.getReleaseRoot().getPath().equals(path)) {
@@ -309,14 +313,14 @@ public class StagingResourceResolverImpl implements ResourceResolver {
     @Override
     @Nonnull
     public Resource create(@Nonnull Resource parent, @Nonnull String name, @Nullable Map<String, Object> properties) throws PersistenceException {
-        throw new UnsupportedOperationException("creating resources not implemented - readonly view.");
+        throw new PersistenceException("creating resources not implemented - readonly view.");
     }
 
 
     /** Not implemented, since this resolver provides an readon view of things. */
     @Override
     public void delete(@Nonnull Resource resource) throws PersistenceException {
-        throw new UnsupportedOperationException("deleting resources not implemented - readonly view.");
+        throw new PersistenceException("deleting resources not implemented - readonly view.");
     }
 
     /** Not implemented, since this resolver provides an readon view of things. */
@@ -328,7 +332,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
     /** Not implemented, since this resolver provides an readon view of things. */
     @Override
     public void commit() throws PersistenceException {
-        throw new UnsupportedOperationException("commit not implemented - readonly view.");
+        throw new PersistenceException("commit not implemented - readonly view.");
     }
 
     /** Always false since this provides an readonly view. */
@@ -346,14 +350,14 @@ public class StagingResourceResolverImpl implements ResourceResolver {
     @Override
     @Nullable
     public Resource copy(@Nullable String srcAbsPath, @Nullable String destAbsPath) throws PersistenceException {
-        throw new UnsupportedOperationException("copy not implemented - readonly view.");
+        throw new PersistenceException("copy not implemented - readonly view.");
     }
 
     /** Not implemented, since this resolver provides an readon view of things. */
     @Override
     @Nullable
     public Resource move(@Nullable String srcAbsPath, @Nullable String destAbsPath) throws PersistenceException {
-        throw new UnsupportedOperationException("move not implemented - readonly view.");
+        throw new PersistenceException("move not implemented - readonly view.");
     }
 
     @Override

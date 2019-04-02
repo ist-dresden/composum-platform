@@ -53,7 +53,8 @@ public abstract class AbstractStagingTest {
 
         releaseMapper = Mockito.mock(ReleaseMapper.class);
         when(releaseMapper.releaseMappingAllowed(anyString())).thenReturn(true);
-        when(releaseMapper.releaseMappingAllowed(anyString(), anyString())).thenReturn(true);
+        // unused:
+        when(releaseMapper.releaseMappingAllowed(anyString(), anyString())).thenThrow(UnsupportedOperationException.class);
         // stagingResourceResolver = new StagingResourceResolver(context.getService(ResourceResolverFactory.class), context
         // .resourceResolver(), RELEASED, releaseMapper);
     }

@@ -127,6 +127,9 @@ class StagingResourceImpl extends AbstractResource {
         }
         if (ValueMap.class.isAssignableFrom(type))
             return type.cast(getValueMap());
+        if (javax.jcr.Session.class.isAssignableFrom(type)) {
+            LOG.warn("adaptTo(Session) called on Staged Resource - using the session might create wrong results.");
+        }
         return super.adaptTo(type);
     }
 

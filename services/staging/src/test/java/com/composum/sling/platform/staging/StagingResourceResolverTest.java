@@ -2,7 +2,6 @@ package com.composum.sling.platform.staging;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.platform.staging.service.ReleaseMapper;
 import com.composum.sling.platform.staging.service.StagingReleaseManager;
 import com.composum.sling.platform.staging.testutil.JcrTestUtils;
 import com.composum.sling.platform.staging.testutil.SlingAssertionCodeGenerator;
@@ -11,34 +10,31 @@ import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.sling.api.resource.*;
-import org.apache.sling.hamcrest.ResourceMatchers;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.experimental.theories.suppliers.TestedOn;
 import org.junit.rules.ErrorCollector;
-import org.mockito.Mockito;
 import org.slf4j.Logger;
 
-import javax.jcr.Node;
-import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.nodetype.NodeType;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
 import static com.composum.sling.platform.staging.testutil.JcrTestUtils.array;
 import static com.composum.sling.platform.staging.testutil.SlingMatchers.*;
-import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -91,22 +87,29 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     }
 
     @Test
-    public void notReleaseMappedIsJustPassedThrough() {
-        ReleaseMapper releaseMapper = Mockito.mock(ReleaseMapper.class);
+    public void notReleaseMappedIsJustPassedThrough() throws PersistenceException {
+        reset(releaseMapper);
         when(releaseMapper.releaseMappingAllowed(anyString())).thenReturn(false);
         when(releaseMapper.releaseMappingAllowed(anyString(), anyString())).thenReturn(false);
 
-        for (String path : new String[]{folder, node1, node2, unversionedNode, unreleasedNode,
-                node1 + "/" + PROP_PRIMARY_TYPE, unreleasedNode + "/" + PROP_PRIMARY_TYPE})
-            assertThat(path, stagingResourceResolver.getResource(path), existsInclusiveParents());
+        for (String path : new String[]{folder, document2, node1, node2, unversionedNode, unreleasedNode,
+                node1 + "/" + PROP_PRIMARY_TYPE, unreleasedNode + "/" + PROP_PRIMARY_TYPE}) {
+                assertThat(path, stagingResourceResolver.getResource(path), existsInclusiveParents());
+        }
 
+        // that deletes the document in JCR but not the version. If it's still there, something's broken.
+        ResourceResolver resolver = context.resourceResolver();
+        Resource resource = resolver.resolve(document2);
+        resolver.delete(resource.getParent());
+        resolver.commit();
+        assertThat(document2, stagingResourceResolver.getResource(document2), nullValue());
     }
 
     @Test
-    public void unversionedIsReturned() {
-        for (String path : new String[]{folder, unversionedNode}) {
+    public void unversionedAndUnreleasedDoesNotExist() {
+        for (String path : new String[]{unreleasedNode, unversionedNode}) {
             Resource resource = stagingResourceResolver.getResource(path);
-            assertThat(path, resource, existsInclusiveParents());
+            assertThat(path, resource, nullValue());
         }
     }
 
@@ -187,12 +190,12 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         }
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = PersistenceException.class)
     public void releasedCannotBeDeleted() throws PersistenceException {
         stagingResourceResolver.delete(stagingResourceResolver.getResource(node2));
     }
 
-    @Test(expected = ConstraintViolationException.class)
+    @Test(expected = UnsupportedRepositoryOperationException.class)
     public void releasedCannotBeModified() throws PersistenceException, RepositoryException {
         ResourceHandle.use(stagingResourceResolver.getResource(node2)).setProperty(PROP_DESCRIPTION, "hallo");
     }

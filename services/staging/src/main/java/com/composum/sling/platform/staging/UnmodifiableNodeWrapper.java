@@ -2,8 +2,9 @@ package com.composum.sling.platform.staging;
 
 import com.composum.sling.core.util.ResourceUtil;
 import org.apache.commons.collections4.IteratorUtils;
-import org.apache.commons.lang3.exception.ContextedRuntimeException;
+import com.composum.platform.commons.util.ExceptionUtil;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
+import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.sling.api.resource.Resource;
 
 import javax.annotation.Nonnull;
@@ -22,6 +23,8 @@ import javax.jcr.version.VersionHistory;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
+
+import static com.composum.sling.platform.staging.StagingConstants.FROZEN_PROP_NAMES_TO_REAL_NAMES;
 
 /**
  * (Not quite complete) wrapper for {@link Node} that disables writing.
@@ -83,21 +86,10 @@ class UnmodifiableNodeWrapper extends AbstractUnmodifiableItem<Node> implements 
     /** We go through the resolver since the simulated children for staging might be in version space or something. */
     @Nonnull
     protected NodeIterator rewrapByPath(NodeIterator nodes) throws RepositoryException {
-        try {
-            return new NodeIteratorAdapter(
-                    IteratorUtils.transformedIterator(nodes,
-                            (Node n) -> {
-                                try {
-                                    return resource.getChild(n.getName()).adaptTo(Node.class);
-                                } catch (RepositoryException e) {
-                                    throw new ContextedRuntimeException(e);
-                                }
-                            }
-                    ));
-        } catch (ContextedRuntimeException e) {
-            if (e.getCause() instanceof RepositoryException) throw (RepositoryException) e.getCause();
-            throw e;
-        }
+        return new NodeIteratorAdapter(
+                IteratorUtils.transformedIterator(nodes,
+                        (Node n) -> ExceptionUtil.callAndSneakExceptions(
+                                () -> resource.getChild(n.getName()).adaptTo(Node.class))));
     }
 
     @Override
@@ -107,22 +99,43 @@ class UnmodifiableNodeWrapper extends AbstractUnmodifiableItem<Node> implements 
 
     @Override
     public Property getProperty(String relPath) throws PathNotFoundException, RepositoryException {
-        throw new UnsupportedOperationException("Not implemented yet."); // FIXME hps 2019-04-02 not implemented
+        if (relPath.contains("/")) {
+            Property prop = resource.getChild(relPath).adaptTo(Property.class);
+            if (prop == null) throw new PathNotFoundException("Can't find " + getPath() + " - " + relPath);
+            return prop;
+        }
+        String simulatedName = FROZEN_PROP_NAMES_TO_REAL_NAMES.getOrDefault(relPath, relPath);
+        Property prop = wrapped.getProperty(relPath);
+        return UnmodifiablePropertyWrapper.wrap(prop, getPath() + "/" + relPath);
     }
 
     @Override
     public PropertyIterator getProperties() throws RepositoryException {
-        throw new UnsupportedOperationException("Not implemented yet."); // FIXME hps 2019-04-02 not implemented
+        PropertyIterator properties = wrapped.getProperties();
+        return rewrapIntoWrappedProperty(properties);
+    }
+
+    @Nonnull
+    protected PropertyIterator rewrapIntoWrappedProperty(PropertyIterator properties) {
+        return new PropertyIteratorAdapter(
+                IteratorUtils.transformedIterator(properties,
+                        (Property p) -> ExceptionUtil.callAndSneakExceptions(() -> {
+                            String simulatedName = FROZEN_PROP_NAMES_TO_REAL_NAMES.getOrDefault(p.getName(), p.getName());
+                            return UnmodifiablePropertyWrapper.wrap(p,
+                                    resource.getPath() + "/" + simulatedName);
+                        })
+                )
+        );
     }
 
     @Override
     public PropertyIterator getProperties(String namePattern) throws RepositoryException {
-        throw new UnsupportedOperationException("Not implemented yet."); // FIXME hps 2019-04-02 not implemented
+        return rewrapIntoWrappedProperty(wrapped.getProperties(namePattern));
     }
 
     @Override
     public PropertyIterator getProperties(String[] nameGlobs) throws RepositoryException {
-        throw new UnsupportedOperationException("Not implemented yet."); // FIXME hps 2019-04-02 not implemented
+        return rewrapIntoWrappedProperty(wrapped.getProperties(nameGlobs));
     }
 
     @Override
