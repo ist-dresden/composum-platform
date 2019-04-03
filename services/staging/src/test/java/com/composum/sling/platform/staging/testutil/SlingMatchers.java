@@ -14,6 +14,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -121,6 +122,15 @@ public class SlingMatchers extends org.hamcrest.Matchers {
         };
     }
 
+    @Nonnull
+    public static <T> Matcher<T> satisfies(@Nonnull Predicate<T> predicate) {
+        return satisfies("predicate " + predicate, predicate);
+    }
+
+    @Nonnull
+    public static <T> Matcher<T> satisfies(@Nullable String message, @Nonnull Predicate<T> predicate) {
+        return mappedMatches(message, predicate::test, is(true));
+    }
 
     public static List<String> resourcePaths(Iterable<Resource> resourceList) {
         return IterableUtils.toList(resourceList).stream().map(Resource::getPath).collect(Collectors.toList());

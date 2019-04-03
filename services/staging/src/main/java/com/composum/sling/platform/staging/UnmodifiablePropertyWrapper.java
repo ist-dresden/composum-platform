@@ -5,7 +5,6 @@ import javax.annotation.Nullable;
 import javax.jcr.*;
 import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.PropertyDefinition;
 import javax.jcr.version.VersionException;
 import java.io.InputStream;
@@ -20,14 +19,15 @@ import java.util.Calendar;
  * We'd rather throw an exception than return a wrong value.
  * If that occurs somewhere please complain, and it'll be done.
  */
+@SuppressWarnings({"DuplicateThrows", "RedundantThrows"})
 class UnmodifiablePropertyWrapper extends AbstractUnmodifiableItem<Property> implements Property {
 
-    UnmodifiablePropertyWrapper(@Nonnull Property wrapped, String path) {
+    UnmodifiablePropertyWrapper(@Nonnull Property wrapped, @Nullable String path) {
         super(wrapped, path);
     }
 
     @Nullable
-    public static UnmodifiablePropertyWrapper wrap(@Nullable Property wrapped, String path) {
+    public static UnmodifiablePropertyWrapper wrap(@Nullable Property wrapped, @Nullable String path) {
         if (wrapped == null)
             return null;
         if (wrapped instanceof UnmodifiablePropertyWrapper)

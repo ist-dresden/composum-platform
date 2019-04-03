@@ -16,6 +16,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.mockito.Mockito;
 
+import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.version.Version;
@@ -23,16 +25,18 @@ import javax.jcr.version.VersionManager;
 import java.util.Calendar;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
+import static com.composum.sling.platform.staging.testutil.MockitoMatchers.argThat;
+import static com.composum.sling.platform.staging.testutil.SlingMatchers.satisfies;
+import static org.hamcrest.Matchers.isA;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
 /**
  * Some common functionality for tests of the Staging functions.
  */
 public abstract class AbstractStagingTest {
-
 
     public static final String SELECTED_NODETYPE = "rep:Unstructured";
     public static final String[] SELECTED_NODE_MIXINS = {TYPE_CREATED, TYPE_LAST_MODIFIED, TYPE_TITLE};
@@ -52,24 +56,20 @@ public abstract class AbstractStagingTest {
         versionManager = context.resourceResolver().adaptTo(Session.class).getWorkspace().getVersionManager();
 
         releaseMapper = Mockito.mock(ReleaseMapper.class);
-        when(releaseMapper.releaseMappingAllowed(anyString())).thenReturn(true);
+        when(releaseMapper.releaseMappingAllowed(argThat(isA(String.class)))).thenReturn(true);
         // unused:
-        when(releaseMapper.releaseMappingAllowed(anyString(), anyString())).thenThrow(UnsupportedOperationException.class);
+        when(releaseMapper.releaseMappingAllowed(argThat(isA(String.class)), argThat(isA(String.class)))).thenThrow(UnsupportedOperationException.class);
         // stagingResourceResolver = new StagingResourceResolver(context.getService(ResourceResolverFactory.class), context
         // .resourceResolver(), RELEASED, releaseMapper);
     }
 
 
     public static Matcher<? super Resource> exists() {
-        return new CustomMatcher<Resource>("Resource should exist") {
-            @Override
-            public boolean matches(Object item) {
-                Resource resource = (Resource) item;
-                return null != resource && !ResourceUtil.isNonExistingResource(resource) &&
-                        ResourceHandle.use(resource).isValid();
-            }
-
-        };
+        return allOf(notNullValue(),
+                not(satisfies(ResourceUtil::isNonExistingResource)),
+                satisfies((r) -> ResourceHandle.use(r).isValid()),
+                satisfies((r) -> r.adaptTo(Node.class) != null || r.adaptTo(Property.class) != null)
+        );
     }
 
     public static Matcher<? super Resource> existsInclusiveParents() {

@@ -10,6 +10,8 @@ import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Some utility methods for JCR.
@@ -46,6 +48,16 @@ public class JcrTestUtils {
     @Nonnull
     public static <T> T[] array(@Nonnull T... objects) {
         return objects;
+    }
+
+    @Nonnull
+    public static List<Resource> ancestorsAndSelf(@Nullable Resource r) {
+        List<Resource> list = new ArrayList<>();
+        while (r != null) {
+            list.add(r);
+            r = r.getParent();
+        }
+        return list;
     }
 
 }

@@ -10,6 +10,8 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.version.VersionException;
 
+/** Common methods for {@link UnmodifiableNodeWrapper} and {@link UnmodifiablePropertyWrapper}. */
+@SuppressWarnings({"RedundantThrows", "DuplicateThrows"})
 class AbstractUnmodifiableItem<T extends Item> implements Item {
 
 

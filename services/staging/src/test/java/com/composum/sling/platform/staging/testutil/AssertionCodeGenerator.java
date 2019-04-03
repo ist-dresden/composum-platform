@@ -41,15 +41,15 @@ public class AssertionCodeGenerator {
         allAssertionsBuf.append("import static org.hamcrest.Matchers.*;\n");
         allAssertionsBuf.append("import static " + SlingMatchers.class.getName() + ".*;\n");
         if (useErrorCollector)
-            allAssertionsBuf.append("import org.junit.rules.ErrorCollector;\n\n" +
+            allAssertionsBuf.append("import " + ErrorCollectorAlwaysPrintingFailures.class.getName() + ";\n\n" +
                     "    @Rule\n" +
-                    "    public final ErrorCollector errorCollector = new ErrorCollector();\n\n");
+                    "    public final ErrorCollectorAlwaysPrintingFailures errorCollector = new ErrorCollectorAlwaysPrintingFailures();\n\n");
         allAssertionsBuf.append("    // ASSERTIONS FOR OBJECT ").append(variableName)
                 .append(" OF CLASS ").append(object.getClass()).append(" : \n");
         return this;
     }
 
-    /** Uses the ErrorCollector rule to catch all errors at the same time. */
+    /** Uses the ErrorCollectorAlwaysPrintingFailures rule to catch all errors at the same time. */
     @Nonnull
     public AssertionCodeGenerator useErrorCollector() {
         useErrorCollector = true;

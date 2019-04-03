@@ -1,25 +1,23 @@
 package com.composum.sling.platform.staging;
 
+import com.composum.platform.commons.util.ExceptionUtil;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.service.StagingReleaseManager;
-import com.composum.sling.platform.staging.testutil.JcrTestUtils;
-import com.composum.sling.platform.staging.testutil.SlingAssertionCodeGenerator;
-import com.composum.sling.platform.staging.testutil.SlingMatchers;
+import com.composum.sling.platform.staging.testutil.*;
 import org.apache.commons.collections4.IterableUtils;
+import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.sling.api.resource.*;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ErrorCollector;
 import org.slf4j.Logger;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.*;
 import javax.jcr.nodetype.NodeType;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -27,13 +25,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
 import static com.composum.sling.platform.staging.testutil.JcrTestUtils.array;
+import static com.composum.sling.platform.staging.testutil.MockitoMatchers.argThat;
 import static com.composum.sling.platform.staging.testutil.SlingMatchers.*;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.*;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -47,6 +47,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
     private String folder;
     private String node1;
+    private String document1;
     private String document2;
     private String node2;
     private String unreleasedNode;
@@ -54,7 +55,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     private ResourceBuilder builderAtFolder;
 
     @Rule
-    public final ErrorCollector errorCollector = new ErrorCollector();
+    public final ErrorCollectorAlwaysPrintingFailures errorCollector = new ErrorCollectorAlwaysPrintingFailures();
 
     @Before
     public void setUpContent() throws Exception {
@@ -66,6 +67,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         builderAtFolder = context.build().resource(folder, ResourceUtil.PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                 ResourceUtil.PROP_MIXINTYPES, array(TYPE_MIX_RELEASE_ROOT)).commit();
         node1 = makeNode(builderAtFolder, "document1", "n1/something", true, true, "n1");
+        document1 = folder + "/" + "document1";
         document2 = folder + "/" + "document2";
         node2 = makeNode(builderAtFolder, "document2", "n2/some/kind/of/hierarchy/something", true, true, "n2");
         releaseManager.updateCurrentReleaseFromWorkspace(builderAtFolder.commit().getCurrentParent());
@@ -89,8 +91,8 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     @Test
     public void notReleaseMappedIsJustPassedThrough() throws PersistenceException {
         reset(releaseMapper);
-        when(releaseMapper.releaseMappingAllowed(anyString())).thenReturn(false);
-        when(releaseMapper.releaseMappingAllowed(anyString(), anyString())).thenReturn(false);
+        when(releaseMapper.releaseMappingAllowed(argThat(isA(String.class)))).thenReturn(false);
+        when(releaseMapper.releaseMappingAllowed(argThat(isA(String.class)), argThat(isA(String.class)))).thenReturn(false);
 
         for (String path : new String[]{folder, document2, node1, node2, unversionedNode, unreleasedNode,
                 node1 + "/" + PROP_PRIMARY_TYPE, unreleasedNode + "/" + PROP_PRIMARY_TYPE}) {
@@ -98,11 +100,18 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         }
 
         // that deletes the document in JCR but not the version. If it's still there, something's broken.
-        ResourceResolver resolver = context.resourceResolver();
-        Resource resource = resolver.resolve(document2);
-        resolver.delete(resource.getParent());
-        resolver.commit();
-        assertThat(document2, stagingResourceResolver.getResource(document2), nullValue());
+        deleteInJcr(this.document2);
+        assertThat(this.document2, stagingResourceResolver.getResource(this.document2), nullValue());
+    }
+
+    protected void deleteInJcr(String... deletePaths) throws PersistenceException {
+        for (String toDelete : deletePaths) {
+            ResourceResolver resolver = context.resourceResolver();
+            Resource resource = resolver.resolve(toDelete);
+            resolver.delete(resource);
+            resolver.commit();
+            assertNull(resolver.getResource(toDelete));
+        }
     }
 
     @Test
@@ -129,22 +138,15 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
     @Test
     public void releasedSubnodeIsFoundEvenAfterDeletion() throws PersistenceException {
-        ResourceResolver resolver = context.resourceResolver();
-        Resource resource = resolver.resolve(node2);
-        resolver.delete(resource.getParent());
-        resolver.commit();
-        assertNull(resolver.getResource(node2));
+        deleteInJcr(ResourceUtil.getParent(node2));
+        assertNull(context.resourceResolver().getResource(node2));
         assertThat(stagingResourceResolver.resolve(node2), existsInclusiveParents());
         assertThat(stagingResourceResolver.getResource(node2), existsInclusiveParents());
     }
 
     @Test
     public void releasedDocumentIsFoundEvenAfterDeletion() throws PersistenceException {
-        ResourceResolver resolver = context.resourceResolver();
-        Resource resource = resolver.resolve(document2);
-        resolver.delete(resource);
-        resolver.commit();
-        assertNull(resolver.getResource(document2));
+        deleteInJcr(document2);
         for (String path : new String[]{node2, node2 + "/" + PROP_PRIMARY_TYPE,
                 document2 + "/" + CONTENT_NODE}) {
             assertThat(path, stagingResourceResolver.resolve(path), exists());
@@ -159,10 +161,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
     @Test
     public void newFolderShadowsDeletedFolder() throws IOException, RepositoryException {
-        ResourceResolver resolver = context.resourceResolver();
-        Resource resource = resolver.resolve(document2);
-        resolver.delete(resource);
-        resolver.commit();
+        deleteInJcr(document2);
         String node2Recreated = makeNode(builderAtFolder, "document2", "n2/some/kind/of/hierarchy/something",
                 true, false, "n2-recreated");
 
@@ -215,6 +214,42 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         Resource resource = stagingResourceResolver.getResource(atApps.substring(6));
         assertThat(resource, existsInclusiveParents());
         assertEquals(atApps, resource.getPath());
+    }
+
+    @Test
+    public void testAdaptToJcrTypes() throws Exception {
+        deleteInJcr(document1, document2); // make sure we read from version space
+
+        List<Resource> resources = JcrTestUtils.ancestorsAndSelf(stagingResourceResolver.resolve(node1));
+        errorCollector.checkThat(resources, allOf(Matchers.iterableWithSize(6), everyItem(instanceOf(StagingResourceImpl.class))));
+
+        for (Resource r : resources) {
+            Node n = r.adaptTo(Node.class);
+            errorCollector.checkThat(r.getPath(), n, allOf(
+                    notNullValue(), instanceOf(UnmodifiableNodeWrapper.class)
+            ));
+            if (n != null) {
+                errorCollector.checkThat(n.getPath(), equalTo(r.getPath()));
+                errorCollector.checkThat(n.getName(), equalTo(r.getName()));
+
+                List<Resource> childResources = IteratorUtils.toList(r.listChildren());
+                errorCollector.checkThat(childResources, everyItem(instanceOf(StagingResourceImpl.class)));
+
+                List<Node> childNodes = IteratorUtils.toList(n.getNodes());
+                errorCollector.checkThat(childNodes, everyItem(instanceOf(UnmodifiableNodeWrapper.class)));
+
+                errorCollector.checkThat(childResources.stream().map(Resource::getName).collect(Collectors.joining()),
+                        equalTo(childNodes.stream().map(ExceptionUtil.sneakExceptions(Node::getName)).collect(Collectors.joining())));
+
+                Property primaryType = n.getProperty(PROP_PRIMARY_TYPE);
+                errorCollector.checkThat(primaryType, notNullValue());
+                errorCollector.checkThat(primaryType.getString(), notNullValue());
+
+                primaryType = r.getChild(PROP_PRIMARY_TYPE).adaptTo(Property.class);
+                errorCollector.checkThat(primaryType, notNullValue());
+                errorCollector.checkThat(primaryType.getString(), notNullValue());
+            }
+        }
     }
 
     @Test

@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.Item;
 import javax.jcr.Node;
 import javax.jcr.Property;
 
@@ -115,13 +114,19 @@ class StagingResourceImpl extends AbstractResource {
     @Nullable
     public <AdapterType> AdapterType adaptTo(@Nullable Class<AdapterType> type) {
         if (type == null) return null;
-        if (ModifiableValueMap.class.isAssignableFrom(type) && release.appliesToPath(path))
-            return null; // we currently don't support any modification.
-        if (Node.class.isAssignableFrom(type) && release.appliesToPath(path)) {
+        if (ModifiableValueMap.class.isAssignableFrom(type)) {
+            if (release.appliesToPath(path) || StagingUtils.isInVersionStorage(underlyingResource))
+                return null; // unmodifiable
+            return type.cast(underlyingResource.adaptTo(ModifiableValueMap.class));
+            // a bit dangerous because of relative paths, but we need this for metadata etc.
+        }
+        // we currently only have r/o support - even outside the release tree, since it'd otherwise be a bit difficult to get listChildren right
+        // that can be extended if neccesary.
+        if (Node.class.isAssignableFrom(type)) {
             Node node = underlyingResource.adaptTo(Node.class);
             return type.cast(UnmodifiableNodeWrapper.wrap(node, this));
         }
-        if (Property.class.isAssignableFrom(type) && release.appliesToPath(path)) {
+        if (Property.class.isAssignableFrom(type)) {
             Property property = underlyingResource.adaptTo(Property.class);
             return type.cast(UnmodifiablePropertyWrapper.wrap(property, this.path));
         }
@@ -134,6 +139,7 @@ class StagingResourceImpl extends AbstractResource {
     }
 
     @Override
+    @Nonnull
     public String toString() {
         final StringBuilder sb = new StringBuilder("StagingResourceImpl{");
         sb.append("release=").append(release);

@@ -23,6 +23,8 @@ import javax.jcr.version.VersionHistory;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.util.Calendar;
+import java.util.Iterator;
+import java.util.Objects;
 
 import static com.composum.sling.platform.staging.StagingConstants.FROZEN_PROP_NAMES_TO_REAL_NAMES;
 
@@ -34,6 +36,7 @@ import static com.composum.sling.platform.staging.StagingConstants.FROZEN_PROP_N
  * We'd rather throw an exception than return a wrong value.
  * If that occurs somewhere please complain, and it'll be done.
  */
+@SuppressWarnings({"RedundantThrows", "DuplicateThrows"})
 class UnmodifiableNodeWrapper extends AbstractUnmodifiableItem<Node> implements Node {
 
     @Nonnull
@@ -73,8 +76,9 @@ class UnmodifiableNodeWrapper extends AbstractUnmodifiableItem<Node> implements 
     @Override
     public NodeIterator getNodes() throws RepositoryException {
         // We go through the resolver since the simulated children for staging might be in version space or something.
-        return new NodeIteratorAdapter(
-                IteratorUtils.transformedIterator(resource.listChildren(), (r) -> r.adaptTo(Node.class)));
+        Iterator<Resource> resourceChildren = resource.listChildren();
+        Iterator<Node> childrenNodes = IteratorUtils.transformedIterator(resourceChildren, (r) -> r.adaptTo(Node.class));
+        return new NodeIteratorAdapter(childrenNodes);
     }
 
     @Override
@@ -84,12 +88,14 @@ class UnmodifiableNodeWrapper extends AbstractUnmodifiableItem<Node> implements 
     }
 
     /** We go through the resolver since the simulated children for staging might be in version space or something. */
+    @SuppressWarnings("unchecked")
     @Nonnull
     protected NodeIterator rewrapByPath(NodeIterator nodes) throws RepositoryException {
         return new NodeIteratorAdapter(
                 IteratorUtils.transformedIterator(nodes,
                         (Node n) -> ExceptionUtil.callAndSneakExceptions(
-                                () -> resource.getChild(n.getName()).adaptTo(Node.class))));
+                                () -> Objects.requireNonNull(resource.getChild(n.getName()), n.getPath())
+                                        .adaptTo(Node.class))));
     }
 
     @Override
@@ -100,12 +106,16 @@ class UnmodifiableNodeWrapper extends AbstractUnmodifiableItem<Node> implements 
     @Override
     public Property getProperty(String relPath) throws PathNotFoundException, RepositoryException {
         if (relPath.contains("/")) {
-            Property prop = resource.getChild(relPath).adaptTo(Property.class);
-            if (prop == null) throw new PathNotFoundException("Can't find " + getPath() + " - " + relPath);
+            Resource child = resource.getChild(relPath); // property resourc
+            Property prop = null;
+            if (child != null) {
+                prop = child.adaptTo(Property.class);
+                if (prop == null) throw new PathNotFoundException("Can't find " + getPath() + " - " + relPath);
+            }
             return prop;
         }
         String simulatedName = FROZEN_PROP_NAMES_TO_REAL_NAMES.getOrDefault(relPath, relPath);
-        Property prop = wrapped.getProperty(relPath);
+        Property prop = wrapped.getProperty(simulatedName);
         return UnmodifiablePropertyWrapper.wrap(prop, getPath() + "/" + relPath);
     }
 
@@ -115,6 +125,7 @@ class UnmodifiableNodeWrapper extends AbstractUnmodifiableItem<Node> implements 
         return rewrapIntoWrappedProperty(properties);
     }
 
+    @SuppressWarnings("unchecked")
     @Nonnull
     protected PropertyIterator rewrapIntoWrappedProperty(PropertyIterator properties) {
         return new PropertyIteratorAdapter(

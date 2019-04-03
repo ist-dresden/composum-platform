@@ -21,6 +21,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * <p>A {@link ResourceResolver} that provides transparent access to releases as defined in {@link StagingReleaseManager}.</p>
@@ -68,9 +69,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         if (!releaseMapper.releaseMappingAllowed(path) || !release.appliesToPath(path)) {
             // we need to return a StagingResourceImpl, too, since e.g. listChildren might go into releasemapped areas.
             Resource underlyingResource = underlyingResolver.getResource(path);
-            return underlyingResource == null ? null :
-                    new StagingResourceImpl(release, path, this, underlyingResource,
-                            request != null ? request.getRequestPathInfo() : null);
+            return wrapIntoStagingResource(path, underlyingResource, request, true);
         }
         Resource underlyingResource = release.getReleaseNode().getChild(StagingConstants.NODE_RELEASE_ROOT);
         if (!release.getReleaseRoot().getPath().equals(path)) {
@@ -84,8 +83,15 @@ public class StagingResourceResolverImpl implements ResourceResolver {
                 underlyingResource = stepResource(underlyingResource);
             }
         }
+        return wrapIntoStagingResource(path, underlyingResource, request, true);
+    }
+
+    protected Resource wrapIntoStagingResource(@Nonnull String path, @Nullable Resource underlyingResource, @Nullable HttpServletRequest request, boolean useNonExisting) {
+        if (underlyingResource == null)
+            return useNonExisting ? new NonExistingResource(this, path) : null;
+        SlingHttpServletRequest slingRequest = (request instanceof SlingHttpServletRequest) ? (SlingHttpServletRequest) request : null;
         return new StagingResourceImpl(release, path, this, underlyingResource,
-                request != null ? request.getRequestPathInfo() : null);
+                slingRequest != null ? slingRequest.getRequestPathInfo() : null);
     }
 
     /**
@@ -100,14 +106,13 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         } else if (StagingUtils.isInVersionStorage(resource)) {
             return resource;
         } else if (ResourceHandle.use(resource).isOfType(StagingConstants.TYPE_VERSIONREFERENCE)) {
-            String versionUuid = resource.getValueMap().get(StagingConstants.PROP_VERSION, String.class);
             Boolean deactivated = resource.getValueMap().get(StagingConstants.PROP_DEACTIVATED, false);
             if (deactivated) return null;
             Resource underlyingResource = null;
             try { // PROP_VERSION is mandatory and version access is needed - no need for checks.
                 Resource propertyResource = resource.getChild(StagingConstants.PROP_VERSION);
-                Node node = propertyResource.adaptTo(Node.class);
-                underlyingResource = underlyingResolver.getResource(node.getPath());
+                Node node = Objects.requireNonNull(propertyResource).adaptTo(Node.class); // follow reference
+                underlyingResource = underlyingResolver.getResource(Objects.requireNonNull(node).getPath());
             } catch (RepositoryException | NullPointerException e) { // weird unexpected case
                 // Returning a NonExistingResource here is not good, but breaking everything seems worse.
                 LOG.error("Error finding version for " + resource.getPath(), e);
@@ -121,23 +126,26 @@ public class StagingResourceResolverImpl implements ResourceResolver {
 
     @Override
     @Nonnull
-    public Iterator<Resource> listChildren(@Nonnull Resource parent) {
-        while (parent instanceof ResourceWrapper) {
-            parent = ((ResourceWrapper) parent).getResource();
+    public Iterator<Resource> listChildren(@Nonnull Resource rawParent) {
+        while (rawParent instanceof ResourceWrapper) {
+            rawParent = ((ResourceWrapper) rawParent).getResource();
         }
+        final Resource parent = rawParent;
         StagingResourceImpl stagingResource = null;
         if (parent instanceof StagingResourceImpl) {
             stagingResource = (StagingResourceImpl) parent;
-            if (stagingResource.release != release) stagingResource = null;
+            if (stagingResource.release.equals(release)) stagingResource = null;
         }
         if (stagingResource == null) {
             Resource retrieved = retrieveReleasedResource(null, parent.getPath());
-            if (parent instanceof StagingResourceImpl) stagingResource = (StagingResourceImpl) parent;
+            if (retrieved instanceof StagingResourceImpl) stagingResource = (StagingResourceImpl) retrieved;
             else return Collections.emptyIterator(); // NonExistingResource
         }
-        Iterator<Resource> children = underlyingResolver.listChildren(stagingResource.underlyingResource);
+        Iterator<Resource> children = stagingResource.underlyingResource.listChildren();
         return IteratorUtils.filteredIterator(
-                IteratorUtils.transformedIterator(children, (child) -> stepResource(child)),
+                IteratorUtils.transformedIterator(children, (r) ->
+                        wrapIntoStagingResource(parent.getPath() + "/" + r.getName(), r, null, false)
+                ),
                 (child) -> child != null && !ResourceUtil.isNonExistingResource(child)
         );
     }
@@ -149,7 +157,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         if (absPath == null) return new NonExistingResource(this, rawAbsPath);
         Resource resource = request != null ? underlyingResolver.resolve(request, absPath) : underlyingResolver.resolve(absPath);
         if (!releaseMapper.releaseMappingAllowed(rawAbsPath) || !release.appliesToPath(absPath))
-            return resource;
+            return wrapIntoStagingResource(absPath, resource, request, true);
         return retrieveReleasedResource((SlingHttpServletRequest) request, resource.getPath());
     }
 
