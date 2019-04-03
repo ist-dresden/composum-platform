@@ -5,10 +5,7 @@ import org.apache.sling.api.wrappers.ValueMapDecorator;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static com.composum.sling.platform.staging.StagingConstants.FROZEN_PROP_NAMES_TO_REAL_NAMES;
 import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES;
@@ -24,15 +21,24 @@ class StagingResourceValueMap extends ValueMapDecorator {
      */
     StagingResourceValueMap(ValueMap frozen) {
         super(frozen);
+        if (!frozen.isEmpty() && frozen.get(JCR_FROZENPRIMARYTYPE) == null) // empty for properties
+            throw new IllegalArgumentException("Wrap only valuemaps of frozen nodes, but is " + frozen);
     }
 
     @Override
     @CheckForNull
     public Object get(Object key) {
-        if (REAL_PROPNAMES_TO_FROZEN_NAMES.containsKey(key)) {
-            return super.get(REAL_PROPNAMES_TO_FROZEN_NAMES.get(key));
-        }
-        return super.get(key);
+        return super.get(REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(key, (String) key));
+    }
+
+    @Override
+    public <T> T get(String name, Class<T> type) {
+        return super.get(REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(name, name), type);
+    }
+
+    @Override
+    public <T> T get(String name, T defaultValue) {
+        return super.get(REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(name, name), defaultValue);
     }
 
     @Override
@@ -40,13 +46,13 @@ class StagingResourceValueMap extends ValueMapDecorator {
         if (FROZEN_PROP_NAMES_TO_REAL_NAMES.containsKey(key)) {
             return false;
         }
-        return super.containsKey(key);
+        return super.containsKey(REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(key, (String) key));
     }
 
     @Override
     @Nonnull
     public Set<String> keySet() {
-        final Set<String> keys = super.keySet();
+        final Set<String> keys = new LinkedHashSet<>(super.keySet());
         for (Entry<String, String> entry : FROZEN_PROP_NAMES_TO_REAL_NAMES.entrySet()) {
             if (keys.remove(entry.getKey())) {
                 keys.add(entry.getValue());
@@ -84,7 +90,32 @@ class StagingResourceValueMap extends ValueMapDecorator {
                 result.add(new PrivateEntry(FROZEN_PROP_NAMES_TO_REAL_NAMES.get(entry.getKey()), entry.getValue()));
             }
         }
-        return result;
+        return Collections.unmodifiableSet(result);
+    }
+
+    @Override
+    public int size() {
+        return keySet().size();
+    }
+
+    @Override
+    public void clear() {
+        throw new UnsupportedOperationException("Not modifiable");
+    }
+
+    @Override
+    public Object put(String key, Object value) {
+        throw new UnsupportedOperationException("Not modifiable");
+    }
+
+    @Override
+    public Object remove(Object key) {
+        throw new UnsupportedOperationException("Not modifiable");
+    }
+
+    @Override
+    public boolean remove(Object key, Object value) {
+        throw new UnsupportedOperationException("Not modifiable");
     }
 
     private class PrivateEntry implements Entry<String, Object> {

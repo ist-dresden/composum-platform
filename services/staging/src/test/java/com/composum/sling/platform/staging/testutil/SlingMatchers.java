@@ -31,30 +31,6 @@ public class SlingMatchers extends org.hamcrest.Matchers {
     @Nonnull
     public static Matcher<Resource> hasResourcePath(@Nullable String path) {
         return ResourceMatchers.path(path);
-
-        /* return new BaseMatcher<Resource>() {
-            @Override
-            public boolean matches(Object item) {
-                return (item instanceof Resource) && path.equals(((Resource) item).getPath());
-            }
-
-            @Override
-            public void describeMismatch(Object item, Description description) {
-                if (item == null) {
-                    super.describeMismatch(item, description);
-                } else if (item instanceof Resource) {
-                    Resource resource = (Resource) item;
-                    description.appendText("was ").appendValue(item.getClass()).appendText(" with path ").appendText(resource.getPath());
-                } else {
-                    description.appendText("was of class ").appendValue(item.getClass());
-                }
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("expected to be Resource with path " + path);
-            }
-        }; */
     }
 
     /** Matcher that passes the item through a function {mapper} and then does the matching with {matcher}. */
@@ -70,7 +46,7 @@ public class SlingMatchers extends org.hamcrest.Matchers {
             @Override
             public void describeMismatch(Object item, Description description) {
                 U mapped = mapper.apply((V) item);
-                if (funcname != null) description.appendText(funcname);
+                if (funcname != null) description.appendText(funcname + " ");
                 matcher.describeMismatch(mapped, description);
             }
 
@@ -94,7 +70,26 @@ public class SlingMatchers extends org.hamcrest.Matchers {
 
     @Nonnull
     public static <U, V> Matcher<Map<U, V>> hasMapSize(int size) {
-        return mappedMatches("size", Map::size, is(size));
+        // return mappedMatches("size", Map::size, is(size));
+        return new BaseMatcher<Map<U, V>>() {
+            @Override
+            public boolean matches(Object item) {
+                Map<U, V> map = (Map<U, V>) item;
+                return size == map.size();
+            }
+
+            @Override
+            public void describeMismatch(Object item, Description description) {
+                Map<U, V> map = (Map<U, V>) item;
+                description.appendText(" was ").appendValue(map.size())
+                        .appendText(" because of keys ").appendValue(map.keySet());
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("is ").appendValue(size);
+            }
+        };
     }
 
     /**

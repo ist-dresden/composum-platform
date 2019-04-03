@@ -89,6 +89,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
     protected Resource wrapIntoStagingResource(@Nonnull String path, @Nullable Resource underlyingResource, @Nullable HttpServletRequest request, boolean useNonExisting) {
         if (underlyingResource == null)
             return useNonExisting ? new NonExistingResource(this, path) : null;
+        if (ResourceUtil.isNonExistingResource(underlyingResource)) return useNonExisting ? underlyingResource : null;
         SlingHttpServletRequest slingRequest = (request instanceof SlingHttpServletRequest) ? (SlingHttpServletRequest) request : null;
         return new StagingResourceImpl(release, path, this, underlyingResource,
                 slingRequest != null ? slingRequest.getRequestPathInfo() : null);

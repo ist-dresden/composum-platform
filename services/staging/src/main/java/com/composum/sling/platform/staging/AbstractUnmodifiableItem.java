@@ -110,7 +110,7 @@ class AbstractUnmodifiableItem<T extends Item> implements Item {
     }
 
     @Override
-    public final Node getParent() throws ItemNotFoundException, AccessDeniedException, RepositoryException {
+    public Node getParent() throws ItemNotFoundException, AccessDeniedException, RepositoryException {
         throw unsupported();
     }
 

@@ -8,6 +8,7 @@ import javax.annotation.CheckReturnValue;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeType;
 
@@ -55,7 +56,7 @@ public class StagingUtils {
 
     @CheckReturnValue
     public static boolean isPropertyResource(@Nullable final Resource resource) {
-        return resource != null && resource.getClass().getSimpleName().equals("JcrPropertyResource");
+        return resource != null && resource.adaptTo(Property.class) != null;
     }
 
     @CheckReturnValue

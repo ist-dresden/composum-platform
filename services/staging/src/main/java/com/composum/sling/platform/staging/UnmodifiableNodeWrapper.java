@@ -194,6 +194,14 @@ class UnmodifiableNodeWrapper extends AbstractUnmodifiableItem<Node> implements 
     }
 
     @Override
+    public final Node getParent() throws ItemNotFoundException, AccessDeniedException, RepositoryException {
+        Resource parent = resource.getParent();
+        Node n = parent != null ? parent.adaptTo(Node.class) : null;
+        if (n == null) throw new ItemNotFoundException("Could not get parent of " + getPath());
+        return n;
+    }
+
+    @Override
     public NodeType getPrimaryNodeType() throws RepositoryException {
         throw new UnsupportedOperationException("Not implemented yet."); // FIXME hps 2019-04-02 not implemented
     }

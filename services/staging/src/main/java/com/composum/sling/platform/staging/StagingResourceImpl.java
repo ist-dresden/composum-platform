@@ -3,8 +3,10 @@ package com.composum.sling.platform.staging;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.service.StagingReleaseManager;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.*;
+import org.apache.sling.jcr.resource.api.JcrResourceConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,11 +67,24 @@ class StagingResourceImpl extends AbstractResource {
     @Override
     @Nonnull
     public String getResourceType() {
-        // FIXME hps check for propertyresource
+        if (StagingUtils.isPropertyResource(underlyingResource)) {
+            return getParent().getResourceType() + "/" + getName();
+        }
         ValueMap vm = getValueMap();
-        String resourceType = vm.get(ResourceUtil.PROP_RESOURCE_TYPE, String.class);
-        resourceType = StringUtils.isBlank(resourceType) ? vm.get(ResourceUtil.PROP_PRIMARY_TYPE, String.class) : resourceType;
-        return StringUtils.defaultIfBlank(resourceType, Resource.RESOURCE_TYPE_NON_EXISTING);
+        String result = vm.get(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY, String.class);
+        if (StringUtils.isBlank(result)) {
+            result = vm.get(JcrConstants.JCR_PRIMARYTYPE, String.class);
+        }
+        return StringUtils.defaultIfBlank(result, Resource.RESOURCE_TYPE_NON_EXISTING);
+    }
+
+    @Override
+    public String getName() {
+        if (StagingUtils.isPropertyResource(underlyingResource) && StagingUtils.isInVersionStorage(underlyingResource)) {
+            String name = underlyingResource.getName();
+            return StagingConstants.FROZEN_PROP_NAMES_TO_REAL_NAMES.getOrDefault(name, name);
+        }
+        return ResourceUtil.getName(path);
     }
 
     @Override

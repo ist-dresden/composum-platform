@@ -119,7 +119,9 @@ public abstract class AbstractStagingTest {
             if (released) {
                 versionManager.getVersionHistory(contentResource.getPath())
                         .addVersionLabel(version.getName(), RELEASED, false);
+                handle.setProperty("released", true);
             }
+            handle.setProperty("versioned", true);
             builder.commit(); // unclear whether this is neccesary.
         }
         return resource.getPath();
