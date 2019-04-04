@@ -102,7 +102,7 @@ public class SlingMatchers extends org.hamcrest.Matchers {
     }
 
     @Nonnull
-    public static <T extends CharSequence> Matcher<? super T> stringMatchingPattern(String regex) {
+    public static <T> Matcher<T> stringMatchingPattern(String regex) {
         Pattern pattern = Pattern.compile(regex);
         return new BaseMatcher<T>() {
             @Override
