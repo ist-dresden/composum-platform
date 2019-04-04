@@ -12,20 +12,21 @@ import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.sling.api.resource.*;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.runners.MethodSorters;
 import org.slf4j.Logger;
 
 import javax.jcr.*;
 import javax.jcr.nodetype.NodeType;
+import javax.jcr.version.Version;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
@@ -42,6 +43,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * Tests for {@link StagingResourceResolver}.
  */
+@FixMethodOrder(value = MethodSorters.NAME_ASCENDING)
 public class StagingResourceResolverTest extends AbstractStagingTest {
 
     private static final Logger LOG = getLogger(StagingResourceResolverTest.class);
@@ -80,6 +82,50 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         List<StagingReleaseManager.Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
         assertEquals(1, releases.size());
         stagingResourceResolver = new StagingResourceResolverImpl(releases.get(0), context.resourceResolver(), releaseMapper, context.getService(ResourceResolverFactory.class));
+    }
+
+    @Test
+    public void checkFrozenValuemap() throws Exception {
+        ResourceBuilder versionableResourceBuilder = context.build().resource("/versioned/node", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+                PROP_MIXINTYPES, array(TYPE_VERSIONABLE, TYPE_TITLE, TYPE_LAST_MODIFIED), "foo", "bar", PROP_TITLE, "title");
+        versionableResourceBuilder.resource("sub", "nix", "nux");
+        Resource versionedNode = versionableResourceBuilder.commit().getCurrentParent();
+        Version version = versionManager.checkin(versionedNode.getPath());
+        Resource frozenNode = context.resourceResolver().resolve(version.getFrozenNode().getPath());
+
+        JcrTestUtils.printResourceRecursivelyAsJson(versionedNode);
+        JcrTestUtils.printResourceRecursivelyAsJson(frozenNode);
+        StagingResourceValueMap vm = new StagingResourceValueMap(frozenNode.getValueMap());
+        StagingResourceValueMap vmsub = new StagingResourceValueMap(frozenNode.getChild("sub").getValueMap());
+
+        new SlingAssertionCodeGenerator("vm", vm).useErrorCollector().printAssertions().printMapAssertions();
+        new SlingAssertionCodeGenerator("vmsub", vmsub).useErrorCollector().printAssertions().printMapAssertions();
+
+        errorCollector.checkThat(vm.get(PROP_MIXINTYPES, String[].class), arrayContainingInAnyOrder(TYPE_TITLE, TYPE_LAST_MODIFIED));
+
+        errorCollector.checkThat(vm.isEmpty(), is(false));
+        errorCollector.checkThat(vm.entrySet(), iterableWithSize(7));
+        errorCollector.checkThat(vm.keySet(), contains("jcr:lastModifiedBy", "jcr:lastModified", "foo", "jcr:uuid", "jcr:primaryType", "jcr:title", "jcr:mixinTypes"));
+        errorCollector.checkThat(vm.size(), is(7));
+        errorCollector.checkThat(vm.values(), iterableWithSize(7));
+
+        errorCollector.checkThat(vm.size(), is(7));
+        errorCollector.checkThat(vm.get("jcr:uuid"), stringMatchingPattern("[0-9a-f-]{36}"));
+        errorCollector.checkThat(vm.get("foo"), is("bar"));
+        errorCollector.checkThat(vm.get("jcr:title"), is("title"));
+        errorCollector.checkThat(vm.get("jcr:lastModifiedBy"), is("admin"));
+        errorCollector.checkThat(vm.get("jcr:lastModified"), instanceOf(java.util.Calendar.class));
+        errorCollector.checkThat(vm.get("jcr:primaryType"), is("nt:unstructured"));
+        errorCollector.checkThat((String[]) vm.get("jcr:mixinTypes"), arrayContainingInAnyOrder("mix:lastModified", "mix:title"));
+
+        errorCollector.checkThat(vmsub.isEmpty(), is(false));
+        errorCollector.checkThat(vmsub.entrySet(), iterableWithSize(2));
+        errorCollector.checkThat(vmsub.keySet(), contains("jcr:primaryType", "nix"));
+        errorCollector.checkThat(vmsub.size(), is(2));
+        errorCollector.checkThat(vmsub.values(), contains("nt:unstructured", "nux"));
+
+        errorCollector.checkThat(vmsub.get("jcr:primaryType"), is("nt:unstructured"));
+        errorCollector.checkThat(vmsub.get("nix"), is("nux"));
     }
 
     @Test
@@ -262,8 +308,12 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         }
     }
 
+    /**
+     * This checks how much the doFullCheck succeeds for the normal resource resolver. There are some differences,
+     * which you want to inspect from time to time.
+     */
     @Test
-    @Ignore("There are differences for the unstaged resolver - so this is just for trying out things.")
+    @Ignore
     public void fullCheckUnstaged() {
         doFullCheck(context.resourceResolver());
     }
@@ -376,7 +426,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
                 // SlingMatchers.hasEntryMatching(is("jcr:baseVersion"), stringMatchingPattern("[0-9a-f-]{36}")),
                 SlingMatchers.hasEntryMatching(is("jcr:mixinTypes"), arrayContaining(is("mix:versionable"))),
                 SlingMatchers.hasEntryMatching(is("jcr:primaryType"), is("nt:unstructured")),
-                SlingMatchers.hasEntryMatching(is("jcr:uuid"), stringMatchingPattern("[0-9a-f-]{36}"))
+                SlingMatchers.<Object, String>hasEntryMatching(is("jcr:uuid"), stringMatchingPattern("[0-9a-f-]{36}"))
         ));
 
 

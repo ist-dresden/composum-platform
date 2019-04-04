@@ -1,11 +1,14 @@
 package com.composum.sling.platform.staging;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.ValueMap;
 import org.apache.sling.api.wrappers.ValueMapDecorator;
+import org.apache.sling.api.wrappers.impl.ObjectConverter;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.composum.sling.platform.staging.StagingConstants.FROZEN_PROP_NAMES_TO_REAL_NAMES;
 import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES;
@@ -21,31 +24,51 @@ class StagingResourceValueMap extends ValueMapDecorator {
      */
     StagingResourceValueMap(ValueMap frozen) {
         super(frozen);
-        if (!frozen.isEmpty() && frozen.get(JCR_FROZENPRIMARYTYPE) == null) // empty for properties
+        // safety check that we are either wrapping a frozen nodes properties, or a property resources empty set
+        if (!frozen.isEmpty() && frozen.get(JCR_FROZENPRIMARYTYPE) == null)
             throw new IllegalArgumentException("Wrap only valuemaps of frozen nodes, but is " + frozen);
+    }
+
+    /**
+     * A frozen node always has a jcr:uuid and jcr:frozenUuid. If the original node had no uuid, the frozenUuid contains a /.
+     * This checks whether jcr:frozenUuid indicates that there originally wasn't a jcr:uuid.
+     */
+    protected boolean haveToRemoveUuid() {
+        return super.get(JCR_UUID) != null && super.get(JCR_FROZENUUID) != null
+                && StringUtils.contains(super.get(JCR_FROZENUUID, String.class), '/');
     }
 
     @Override
     @CheckForNull
-    public Object get(Object key) {
-        return super.get(REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(key, (String) key));
+    public Object get(Object name) {
+        if (JCR_UUID.equals(name) && haveToRemoveUuid()) return null;
+        if (JCR_MIXINTYPES.equals(name)) return cleanupMixinTypes(super.get(JCR_FROZENMIXINTYPES), null);
+        String transformedName = REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(name, (String) name);
+        return super.get(transformedName);
     }
 
     @Override
     public <T> T get(String name, Class<T> type) {
+        if (JCR_UUID.equals(name) && haveToRemoveUuid()) return null;
+        if (JCR_MIXINTYPES.equals(name)) return (T) cleanupMixinTypes(super.get(JCR_FROZENMIXINTYPES), type);
         return super.get(REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(name, name), type);
     }
 
     @Override
     public <T> T get(String name, T defaultValue) {
+        if (JCR_UUID.equals(name) && haveToRemoveUuid()) return defaultValue;
+        if (JCR_MIXINTYPES.equals(name))
+            return (T) cleanupMixinTypes(super.get(JCR_FROZENMIXINTYPES), defaultValue.getClass());
         return super.get(REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(name, name), defaultValue);
     }
 
     @Override
     public boolean containsKey(Object key) {
-        if (FROZEN_PROP_NAMES_TO_REAL_NAMES.containsKey(key)) {
+        if (FROZEN_PROP_NAMES_TO_REAL_NAMES.containsKey(key))
             return false;
-        }
+        if (JCR_UUID.equals(key) && haveToRemoveUuid())
+            return false;
+        if (JCR_MIXINTYPES.equals(key)) return get(JCR_MIXINTYPES, String[].class) != null;
         return super.containsKey(REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(key, (String) key));
     }
 
@@ -58,7 +81,29 @@ class StagingResourceValueMap extends ValueMapDecorator {
                 keys.add(entry.getValue());
             }
         }
+        if (haveToRemoveUuid()) keys.remove(JCR_UUID);
+        if (get(JCR_MIXINTYPES) == null) keys.remove(JCR_MIXINTYPES); // that's cleaned up and might become null.
         return keys;
+    }
+
+    /** Remove mix:versionable since it's attributes do not make sense here. */
+    protected Object cleanupMixinTypes(Object rawMixinTypes, Class<?> expectedClass) {
+        Object result = rawMixinTypes;
+        if (rawMixinTypes != null) {
+            String[] mixins = ObjectConverter.convert(rawMixinTypes, String[].class);
+            if (mixins != null) {
+                mixins = Arrays.asList(mixins).stream()
+                        .filter((m) -> !MIX_VERSIONABLE.equals(m))
+                        .collect(Collectors.toList())
+                        .toArray(new String[0]);
+                if (mixins.length == 0) rawMixinTypes = null;
+                else {
+                    Class<?> type = expectedClass != null ? expectedClass : rawMixinTypes.getClass();
+                    result = ObjectConverter.convert(mixins, type);
+                }
+            }
+        }
+        return result;
     }
 
     @Override
@@ -67,25 +112,15 @@ class StagingResourceValueMap extends ValueMapDecorator {
         final Set<Entry<String, Object>> entries = super.entrySet();
         final Set<Entry<String, Object>> result = new HashSet<>();
         for (Entry<String, Object> entry : entries) {
-            if (FROZEN_PROP_NAMES_TO_REAL_NAMES.values().contains(entry.getKey())) {
+            if ((JCR_FROZENUUID.equals(entry.getKey()) || JCR_UUID.equals(entry.getKey())) && haveToRemoveUuid()) {
+                // nothing
+            } else if (entry.getKey().equals(JCR_FROZENMIXINTYPES)) {
+                Object value = cleanupMixinTypes(entry.getValue(), null);
+                if (value != null) result.add(new PrivateEntry(JCR_MIXINTYPES, value));
+            } else if (REAL_PROPNAMES_TO_FROZEN_NAMES.keySet().contains(entry.getKey())) {
                 //nothing
             } else if (!FROZEN_PROP_NAMES_TO_REAL_NAMES.keySet().contains(entry.getKey())) {
                 result.add(entry);
-            } else if (entry.getKey().equals(JCR_FROZENMIXINTYPES)) {
-                final Object value = entry.getValue();
-                if (value instanceof String[]) {
-                    List<String> ms = new ArrayList<>();
-                    for (String mix : (String[]) value) {
-                        if (!mix.equals(MIX_VERSIONABLE)) {
-                            ms.add(mix);
-                        }
-                    }
-                    if (!ms.isEmpty()) {
-                        result.add(new PrivateEntry(JCR_MIXINTYPES, ms));
-                    }
-                } else {
-                    result.add(new PrivateEntry(JCR_MIXINTYPES, entry.getValue()));
-                }
             } else if (FROZEN_PROP_NAMES_TO_REAL_NAMES.keySet().contains(entry.getKey())) {
                 result.add(new PrivateEntry(FROZEN_PROP_NAMES_TO_REAL_NAMES.get(entry.getKey()), entry.getValue()));
             }
@@ -96,6 +131,11 @@ class StagingResourceValueMap extends ValueMapDecorator {
     @Override
     public int size() {
         return keySet().size();
+    }
+
+    @Override
+    public Collection<Object> values() {
+        return Collections.unmodifiableCollection(entrySet().stream().map(Entry::getValue).collect(Collectors.toList()));
     }
 
     @Override
@@ -116,6 +156,11 @@ class StagingResourceValueMap extends ValueMapDecorator {
     @Override
     public boolean remove(Object key, Object value) {
         throw new UnsupportedOperationException("Not modifiable");
+    }
+
+    @Override
+    public String toString() {
+        return entrySet().toString();
     }
 
     private class PrivateEntry implements Entry<String, Object> {

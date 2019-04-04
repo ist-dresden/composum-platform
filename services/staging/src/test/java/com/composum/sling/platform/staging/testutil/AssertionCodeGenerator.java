@@ -76,7 +76,8 @@ public class AssertionCodeGenerator {
      * You can employ this in your unitest temporarily instead of the assertions,
      * manually check whether it is as expected, and copy the printed code into the test once it was run.
      */
-    public void printAssertions() {
+    @Nonnull
+    public AssertionCodeGenerator printAssertions() {
         allAssertionsBuf.append("\n");
         Set<String> checkedMethods = new HashSet<>();
         try {
@@ -87,10 +88,10 @@ public class AssertionCodeGenerator {
             } else {
                 Method[] methods = object.getClass().getMethods();
                 Arrays.sort(methods, Comparator.comparing(
-                        (m) -> m.getName().toLowerCase().replaceAll("^(get|has|list|is)", "") + m.getName()));
+                        (m) -> m.getName().toLowerCase().replaceAll("^(get|has|list|is)(?!$)", "") + m.getName()));
                 for (Method m : methods) {
                     if (m.getDeclaringClass().equals(Object.class)) continue;
-                    if (m.getParameters().length == 0) {
+                    if (m.getParameters().length == 0 && !void.class.equals(m.getReturnType())) {
                         if (checkedMethods.contains(m.getName()) || ignoredPropertySet.contains(m.getName())) continue;
                         checkedMethods.add(m.getName());
                         Object value;
@@ -118,12 +119,39 @@ public class AssertionCodeGenerator {
             }
         } finally {
             System.out.println(allAssertionsBuf);
+            allAssertionsBuf.setLength(0);
+        }
+        return this;
+    }
+
+    /** Generate assertions for a map - all elements and the size. */
+    @Nonnull
+    public AssertionCodeGenerator printMapAssertions() {
+        try {
+            Map<String, Object> map = (Map<String, Object>) object;
+            allAssertionsBuf.append("\n");
+            appendAssertionStart(".size()");
+            createMatcher(map.size());
+            appendAssertionEnd();
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                appendAssertionStart(".get(" + quoteString(entry.getKey()) + ")");
+                createMatcher(entry.getValue());
+                appendAssertionEnd();
+            }
+            return this;
+        } finally {
+            System.out.println(allAssertionsBuf);
+            allAssertionsBuf.setLength(0);
         }
     }
 
     protected void appendQuotedString(String string) {
-        if (string == null) assertionBuf.append("null");
-        else assertionBuf.append('"').append(string.replaceAll("\"", "\\\"")).append('"');
+        assertionBuf.append(quoteString(string));
+    }
+
+    protected String quoteString(String string) {
+        if (string == null) return "null";
+        return '"' + string.replaceAll("\"", "\\\"") + '"';
         // yes, this is yet missing support for special chars
     }
 
@@ -155,7 +183,7 @@ public class AssertionCodeGenerator {
                 // assertionBuf.append("SlingMatchers.mappedMatches(Calendar::getTimeInMillis, ");
                 // createMatcher(calendar.getTimeInMillis());
                 // assertionBuf.append(")");
-                assertionBuf.append("notNullValue(java.util.Calendar.class)");
+                assertionBuf.append("instanceOf(java.util.Calendar.class)");
             } else if (value instanceof List) {
                 createMatcherForList((List) value);
             } else if (value instanceof Map) {

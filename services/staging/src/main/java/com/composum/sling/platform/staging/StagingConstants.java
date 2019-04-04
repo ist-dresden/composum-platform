@@ -2,11 +2,9 @@ package com.composum.sling.platform.staging;
 
 import com.google.common.collect.ImmutableMap;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import static org.apache.jackrabbit.JcrConstants.*;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 
 /**
  * Constants related to the staging mechanisms. See also the nodetypes.cnd .
@@ -86,8 +84,8 @@ public interface StagingConstants {
 
     /** maps the frozen property types to their normal names. */
     final Map<String, String> REAL_PROPNAMES_TO_FROZEN_NAMES = ImmutableMap.of(
-            JCR_FROZENPRIMARYTYPE, JCR_PRIMARYTYPE,
-            JCR_FROZENUUID, JCR_UUID,
-            JCR_FROZENMIXINTYPES, JCR_MIXINTYPES);
+            JCR_PRIMARYTYPE, JCR_FROZENPRIMARYTYPE,
+            JCR_UUID, JCR_FROZENUUID,
+            JCR_MIXINTYPES, JCR_FROZENMIXINTYPES);
 
 }
