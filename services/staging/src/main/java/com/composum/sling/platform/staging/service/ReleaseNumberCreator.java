@@ -14,24 +14,25 @@ import static java.lang.Math.min;
  * Strategy to create the key for a release. The normal scheme is to use an 'r' with a series of numbers separated by dots,
  * e.g. <code>r2.4.5</code> and increase the first, second or third number (discarding the later numbers),
  * depending on whether you want a new major, minor or bugfix release.
+ * There are the {@link #MAJOR}, {@link #MINOR} and {@link #BUGFIX} strategies.
  */
-public interface ReleaseNumberingScheme {
+public interface ReleaseNumberCreator {
 
     /** Creates a new release key from the last one - e.g. r1.6.0 from r1.5.3 . */
     @Nonnull
     String bumpRelease(@Nonnull String oldname);
 
-    /** New major release - increases the first version number , e.g. r1.5.3 or r1 to r2 . */
-    ReleaseNumberingScheme MAJOR = new DefaultReleaseNumberingScheme(0);
+    /** Creates new major release - increases the first version number , e.g. r1.5.3 or r1 to r2 . */
+    ReleaseNumberCreator MAJOR = new DefaultReleaseNumberCreator(0);
 
-    /** New minor release - increases the second version number , e.g. r1.5.3 or r1.5 to r1.6 . */
-    ReleaseNumberingScheme MINOR = new DefaultReleaseNumberingScheme(1);
+    /** Creates new minor release - increases the second version number , e.g. r1.5.3 or r1.5 to r1.6 . */
+    ReleaseNumberCreator MINOR = new DefaultReleaseNumberCreator(1);
 
-    /** New minor release - increases the second version number , e.g. r1.5.3 or r1.5 to r1.5.4 , r3 to r3.0.1. */
-    ReleaseNumberingScheme BUGFIX = new DefaultReleaseNumberingScheme(2);
+    /** Creates new minor release - increases the second version number , e.g. r1.5.3 or r1.5 to r1.5.4 , r3 to r3.0.1. */
+    ReleaseNumberCreator BUGFIX = new DefaultReleaseNumberCreator(2);
 
     /**
-     * Comparator ordering the numbers according to the {@link DefaultReleaseNumberingScheme} so that the numerical parts
+     * Comparator ordering the numbers according to the {@link DefaultReleaseNumberCreator} so that the numerical parts
      * are compared numerically.
      */
     Comparator<String> COMPARATOR_RELEASES = new Comparator<String>() {
@@ -60,10 +61,10 @@ public interface ReleaseNumberingScheme {
      * We increase the required position (0 for major, 1 for minor, 2 for bugfix) and discard all higher positions. If there
      * are missing numbers, these are set to 0 - e.g. a bugfix increment on r1 goes to r1.0.1 .
      */
-    class DefaultReleaseNumberingScheme implements ReleaseNumberingScheme {
+    class DefaultReleaseNumberCreator implements ReleaseNumberCreator {
         private final int increasePosition;
 
-        public DefaultReleaseNumberingScheme(int increasePosition) {
+        public DefaultReleaseNumberCreator(int increasePosition) {
             if (increasePosition < 0)
                 throw new IllegalArgumentException("Illegal argument: " + increasePosition);
             this.increasePosition = increasePosition;

@@ -9,12 +9,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static com.composum.sling.platform.staging.service.ReleaseNumberingScheme.*;
+import static com.composum.sling.platform.staging.service.ReleaseNumberCreator.*;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
-/** Tests for {@link ReleaseNumberingScheme}. */
-public class ReleaseNumberingSchemeTest {
+/** Tests for {@link ReleaseNumberCreator}. */
+public class ReleaseNumberCreatorTest {
 
     @Rule
     public final ErrorCollectorAlwaysPrintingFailures ec = new ErrorCollectorAlwaysPrintingFailures();
