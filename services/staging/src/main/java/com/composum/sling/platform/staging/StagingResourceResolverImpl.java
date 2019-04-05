@@ -4,6 +4,7 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.query.QueryBuilder;
 import com.composum.sling.platform.staging.query.QueryBuilderImpl;
+import com.composum.sling.platform.staging.service.DefaultStagingReleaseManager.ReleaseImpl;
 import com.composum.sling.platform.staging.service.ReleaseMapper;
 import com.composum.sling.platform.staging.service.StagingReleaseManager;
 import org.apache.commons.collections4.IteratorUtils;
@@ -31,6 +32,7 @@ import java.util.Objects;
  * <li>We also don't support {@link org.apache.sling.resourceresolver.impl.params.ParsedParameters}.</li>
  * <li>We don't include synthetic resources or resources of other resource providers (servlets etc.) into releases.</li>
  * </ul>
+ * // FIXME hps 2019-04-05 use service resolver for accessing version space
  */
 public class StagingResourceResolverImpl implements ResourceResolver {
 
@@ -49,7 +51,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
     @Nonnull
     private final ResourceResolverFactory resourceResolverFactory;
 
-    protected StagingResourceResolverImpl(@Nonnull StagingReleaseManager.Release release, @Nonnull ResourceResolver underlyingResolver, @Nonnull ReleaseMapper releaseMapper, @Nonnull ResourceResolverFactory resourceResolverFactory) {
+    public StagingResourceResolverImpl(@Nonnull StagingReleaseManager.Release release, @Nonnull ResourceResolver underlyingResolver, @Nonnull ReleaseMapper releaseMapper, @Nonnull ResourceResolverFactory resourceResolverFactory) {
         this.underlyingResolver = underlyingResolver;
         this.release = release;
         this.releaseMapper = releaseMapper;
@@ -71,7 +73,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
             Resource underlyingResource = underlyingResolver.getResource(path);
             return wrapIntoStagingResource(path, underlyingResource, request, true);
         }
-        Resource underlyingResource = release.getReleaseNode().getChild(StagingConstants.NODE_RELEASE_ROOT);
+        Resource underlyingResource = ReleaseImpl.unwrap(release).getReleaseNode().getChild(StagingConstants.NODE_RELEASE_ROOT);
         if (!release.getReleaseRoot().getPath().equals(path)) {
             if (!path.startsWith(release.getReleaseRoot().getPath() + '/')) // safety check - can't happen.
                 throw new IllegalArgumentException("Bug. " + path + " vs. " + release.getReleaseRoot().getPath());
@@ -103,7 +105,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         if (resource == null) {
             return null;
         } else if (resource.getPath().equals(release.getReleaseRoot().getPath())) {
-            return release.getReleaseNode().getChild(StagingConstants.NODE_RELEASE_ROOT);
+            return ReleaseImpl.unwrap(release).getReleaseNode().getChild(StagingConstants.NODE_RELEASE_ROOT);
         } else if (StagingUtils.isInVersionStorage(resource)) {
             return resource;
         } else if (ResourceHandle.use(resource).isOfType(StagingConstants.TYPE_VERSIONREFERENCE)) {

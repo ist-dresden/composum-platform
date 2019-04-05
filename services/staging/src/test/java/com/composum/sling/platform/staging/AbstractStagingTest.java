@@ -6,6 +6,7 @@ import com.composum.sling.platform.staging.service.DefaultStagingReleaseManager;
 import com.composum.sling.platform.staging.service.ReleaseMapper;
 import com.composum.sling.platform.staging.service.StagingReleaseManager;
 import org.apache.commons.lang3.RandomUtils;
+import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
@@ -23,6 +24,7 @@ import javax.jcr.Session;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
 import java.util.Calendar;
+import java.util.List;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
 import static com.composum.sling.platform.staging.testutil.MockitoMatchers.argThat;
@@ -96,7 +98,7 @@ public abstract class AbstractStagingTest {
 
     // FIXME hps the attribute released will no longer be used
     protected String makeNode(ResourceBuilder builder, String documentName, String nodepath, boolean versioned,
-                              boolean released, String title) throws RepositoryException {
+                              boolean released, String title) throws RepositoryException, PersistenceException {
         String[] mixins = versioned ? new String[]{TYPE_VERSIONABLE} : new String[]{};
         builder = builder.resource(documentName);
         builder = builder.resource(CONTENT_NODE, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED, PROP_MIXINTYPES, mixins);
@@ -120,6 +122,8 @@ public abstract class AbstractStagingTest {
                 versionManager.getVersionHistory(contentResource.getPath())
                         .addVersionLabel(version.getName(), RELEASED, false);
                 handle.setProperty("released", true);
+                StagingReleaseManager.Release currentRelease = releaseManager.findRelease(handle, releaseManager.NODE_CURRENT_RELEASE);
+                releaseManager.updateRelease(currentRelease, StagingReleaseManager.ReleasedVersionable.forBaseVersion(handle));
             }
             handle.setProperty("versioned", true);
             builder.commit(); // unclear whether this is neccesary.

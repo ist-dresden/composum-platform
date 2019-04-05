@@ -16,4 +16,17 @@ public interface ReleaseMapper {
 
     /** Returns true if the release mapping should be applied to the given path. */
     boolean releaseMappingAllowed(@Nonnull String path);
+
+    public static final ReleaseMapper ALLPERMISSIVE = new ReleaseMapper() {
+        @Override
+        public boolean releaseMappingAllowed(String path, String uri) {
+            return true;
+        }
+
+        @Override
+        public boolean releaseMappingAllowed(@Nonnull String path) {
+            return true;
+        }
+    };
+
 }

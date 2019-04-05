@@ -4,7 +4,10 @@ import com.composum.platform.commons.util.ExceptionUtil;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.service.StagingReleaseManager;
-import com.composum.sling.platform.staging.testutil.*;
+import com.composum.sling.platform.staging.testutil.ErrorCollectorAlwaysPrintingFailures;
+import com.composum.sling.platform.staging.testutil.JcrTestUtils;
+import com.composum.sling.platform.staging.testutil.SlingAssertionCodeGenerator;
+import com.composum.sling.platform.staging.testutil.SlingMatchers;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -21,18 +24,17 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.Version;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
 import static com.composum.sling.platform.staging.testutil.JcrTestUtils.array;
 import static com.composum.sling.platform.staging.testutil.MockitoMatchers.argThat;
+import static com.composum.sling.platform.staging.testutil.SlingMatchers.isA;
 import static com.composum.sling.platform.staging.testutil.SlingMatchers.*;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.*;
@@ -73,7 +75,6 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         document1 = folder + "/" + "document1";
         document2 = folder + "/" + "document2";
         node2 = makeNode(builderAtFolder, "document2", "n2/some/kind/of/hierarchy/something", true, true, "n2");
-        releaseManager.updateCurrentReleaseFromWorkspace(builderAtFolder.commit().getCurrentParent());
         unreleasedNode = makeNode(builderAtFolder, "unreleasedDocument", "un/something", true, false, "un");
         unversionedNode = makeNode(builderAtFolder, "unversionedDocument", "uv/something", false, false, "uv");
         for (String path : new String[]{folder, node1, document2, node2, unreleasedNode, unversionedNode})
@@ -81,7 +82,8 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
         List<StagingReleaseManager.Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
         assertEquals(1, releases.size());
-        stagingResourceResolver = new StagingResourceResolverImpl(releases.get(0), context.resourceResolver(), releaseMapper, context.getService(ResourceResolverFactory.class));
+        stagingResourceResolver = (StagingResourceResolverImpl) releaseManager.getResolverForRelease(releases.get(0), releaseMapper);
+        // new StagingResourceResolverImpl(releases.get(0), context.resourceResolver(), releaseMapper, context.getService(ResourceResolverFactory.class));
     }
 
     @Test

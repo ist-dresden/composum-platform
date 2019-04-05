@@ -6,11 +6,12 @@ import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.testutil.JcrTestUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.sling.api.resource.PersistenceException;
+import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
+import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
-import org.junit.Before;
-import org.junit.Rule;
+import org.junit.*;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -27,10 +28,8 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -38,6 +37,7 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.VersionManager;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.List;
 
 import static com.composum.sling.core.util.ResourceUtil.TYPE_UNSTRUCTURED;
 import static com.composum.sling.platform.staging.testutil.JcrTestUtils.array;
@@ -55,7 +55,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     private Session session;
     private ResourceBuilder builder;
 
-    private StagingReleaseManager service = new DefaultStagingReleaseManager();
+    private StagingReleaseManager service;
     private ResourceHandle releaseRoot;
 
     @Before
@@ -70,16 +70,28 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ResourceBuilder releaseRootBuilder = builder.resource("/content/site", ResourceUtil.PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                 ResourceUtil.PROP_MIXINTYPES, array(TYPE_MIX_RELEASE_ROOT));
         releaseRoot = ResourceHandle.use(releaseRootBuilder.commit().getCurrentParent());
+
+        service = new DefaultStagingReleaseManager() {{
+            this.resourceResolverFactory = context.getService(ResourceResolverFactory.class);
+        }};
+    }
+
+    @After
+    public void printJcr() {
+        JcrTestUtils.printResourceRecursivelyAsJson(releaseRoot);
     }
 
 
     @Test
     public void createCurrentRelease() throws RepositoryException, PersistenceException {
-        service.updateCurrentReleaseFromWorkspace(releaseRoot);
-        JcrTestUtils.printResourceRecursivelyAsJson(releaseRoot);
+        List<StagingReleaseManager.Release> releases = service.getReleases(releaseRoot);
+        assertEquals(1, releases.size());
+        StagingReleaseManager.Release currentRelease = service.findRelease(releaseRoot, StagingConstants.NODE_CURRENT_RELEASE);
+        assertEquals(NODE_CURRENT_RELEASE, currentRelease.getNumber());
+        assertNotNull(currentRelease.getUuid());
+        assertEquals(releaseRoot, currentRelease.getReleaseRoot());
+        assertEquals("/content/site/jcr:content/cpl:releases/cpl:current/metaData", currentRelease.getMetaDataNode().getPath());
         assertNotNull(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root"));
-        // that'd be an unwanted recursion:
-        assertNull(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/jcr:content"));
     }
 
 }
