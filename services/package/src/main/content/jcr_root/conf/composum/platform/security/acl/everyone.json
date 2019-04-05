@@ -25,18 +25,11 @@
     ]
   },
   {
-    "path": "/libs",
+    "path": "/apps",
     "acl": [
       {
         "principal": "everyone",
         "acl": [
-          {
-            "allow": true,
-            "privileges": "jcr:read",
-            "restrictions": {
-              "rep:glob": ""
-            }
-          },
           {
             "allow": true,
             "privileges": "jcr:read",
@@ -91,6 +84,23 @@
             "privileges": "jcr:read",
             "restrictions": {
               "rep:glob": "/*/*.js/jcr:content"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
             }
           }
         ]
@@ -253,72 +263,6 @@
           {
             "allow": true,
             "privileges": "jcr:read"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "path": "/apps",
-    "acl": [
-      {
-        "principal": "everyone",
-        "acl": [
-          {
-            "allow": true,
-            "privileges": "jcr:read",
-            "restrictions": {
-              "rep:glob": "/*/clientlib"
-            }
-          },
-          {
-            "allow": true,
-            "privileges": "jcr:read",
-            "restrictions": {
-              "rep:glob": "/*/clientlib/*"
-            }
-          },
-          {
-            "allow": true,
-            "privileges": "jcr:read",
-            "restrictions": {
-              "rep:glob": "/*/clientlibs"
-            }
-          },
-          {
-            "allow": true,
-            "privileges": "jcr:read",
-            "restrictions": {
-              "rep:glob": "/*/clientlibs/*"
-            }
-          },
-          {
-            "allow": true,
-            "privileges": "jcr:read",
-            "restrictions": {
-              "rep:glob": "/*/*.css"
-            }
-          },
-          {
-            "allow": true,
-            "privileges": "jcr:read",
-            "restrictions": {
-              "rep:glob": "/*/*.css/jcr:content"
-            }
-          },
-          {
-            "allow": true,
-            "privileges": "jcr:read",
-            "restrictions": {
-              "rep:glob": "/*/*.js"
-            }
-          },
-          {
-            "allow": true,
-            "privileges": "jcr:read",
-            "restrictions": {
-              "rep:glob": "/*/*.js/jcr:content"
-            }
           }
         ]
       }
