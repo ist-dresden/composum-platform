@@ -6,6 +6,7 @@ import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingResourceResolverImpl;
 import com.composum.sling.platform.staging.impl.NodeTreeSynchronizer;
 import com.google.common.collect.ImmutableMap;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -36,15 +37,12 @@ import static java.util.Objects.requireNonNull;
                 Constants.SERVICE_DESCRIPTION + "=Staging Release Manager"
         }
 )
-public class DefaultStagingReleaseManager implements StagingReleaseManager, StagingConstants {
+public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultStagingReleaseManager.class);
 
     /** Sub-path from the release root to the releases node. */
     static final String RELPATH_RELEASES_NODE = ResourceUtil.CONTENT_NODE + '/' + NODE_RELEASES;
-
-    /** Sub-path from the release root to the releases node. */
-    static final String RELPATH_CURRENTRELEASE_NODE = ResourceUtil.CONTENT_NODE + '/' + NODE_RELEASES + '/' + NODE_CURRENT_RELEASE;
 
     @Reference
     protected ResourceResolverFactory resourceResolverFactory;
@@ -79,6 +77,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager, Stag
                 }
             }
         }
+        result.sort(Comparator.comparing(Release::getNumber, ReleaseNumberCreator.COMPARATOR_RELEASES));
         return result;
     }
 
@@ -103,7 +102,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager, Stag
     public Release createRelease(@Nonnull Resource resource, @Nonnull ReleaseNumberCreator releaseType) throws PersistenceException, RepositoryException {
         List<Release> releases = getReleases(resource);
         Release lastRelease = releases.stream()
-                .max(Comparator.comparing(Release::getNumber, releaseType.defaultComparator()))
+                .max(Comparator.comparing(Release::getNumber, releaseType.releaseComparator()))
                 .orElse(null);
         try {
             return createRelease(resource, lastRelease, releaseType);
@@ -126,18 +125,21 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager, Stag
         Resource root = requireNonNull(findReleaseRoot(resource));
         ReleaseImpl copyFromRelease = ReleaseImpl.unwrap(rawCopyFromRelease);
         Optional<String> previousReleaseNumber;
+
         if (copyFromRelease != null) {
             previousReleaseNumber = Optional.of(copyFromRelease.getNumber());
         } else {
             previousReleaseNumber = getReleases(resource).stream().map(Release::getNumber).max(ReleaseNumberCreator.COMPARATOR_RELEASES);
         }
         String newReleaseNumber = previousReleaseNumber.map(releaseType::bumpRelease).orElse(releaseType.bumpRelease(""));
+
         try {
             findRelease(root, newReleaseNumber);
             throw new ReleaseExistsException(root, newReleaseNumber);
         } catch (ReleaseNotFoundException e) {
             // expected
         }
+
         ReleaseImpl newRelease = ensureRelease(root, newReleaseNumber);
         if (null != copyFromRelease) {
             new NodeTreeSynchronizer().update(copyFromRelease.getReleaseNode(), newRelease.getReleaseNode());
@@ -150,31 +152,40 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager, Stag
     public List<ReleasedVersionable> listReleaseContents(@Nonnull Release rawRelease) {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         List<ReleasedVersionable> result = new ArrayList<>();
-        String query = release.getReleaseNode() + "//element(*," + TYPE_VERSIONREFERENCE + ")";
+        Resource releaseWorkspaceCopy = requireNonNull(release.getReleaseNode().getChild(NODE_RELEASE_ROOT));
+        String query = "/jcr:root" + releaseWorkspaceCopy.getPath() + "//element(*," + TYPE_VERSIONREFERENCE + ")";
+
+        @SuppressWarnings("deprecation")
         Iterator<Resource> versionReferences = release.getReleaseNode().getResourceResolver()
                 .findResources(query, Query.XPATH);
         while (versionReferences.hasNext())
-            result.add(ReleasedVersionable.fromVersionReference(release.getReleaseNode(), versionReferences.next()));
+            result.add(ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReferences.next()));
         return result;
     }
 
     @Override
     public void updateRelease(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
-        String query = release.getReleaseNode().getPath() + "//element(*," + TYPE_VERSIONREFERENCE + ")"
+        Resource releaseWorkspaceCopy = requireNonNull(release.getReleaseNode().getChild(NODE_RELEASE_ROOT));
+        String newPath = releaseWorkspaceCopy.getPath() + '/' + releasedVersionable.getRelativePath();
+
+        String query = "/jcr:root" + releaseWorkspaceCopy.getPath() + "//element(*," + TYPE_VERSIONREFERENCE + ")"
                 + "[@" + PROP_VERSIONABLEUUID + "='" + releasedVersionable.getVersionableUuid() + "']";
+        @SuppressWarnings("deprecation")
         Iterator<Resource> versionReferences = release.getReleaseNode().getResourceResolver()
                 .findResources(query, Query.XPATH);
         Resource versionReference = versionReferences.hasNext() ? versionReferences.next() : null;
-        String newPath = release.getReleaseNode().getPath() + '/' + NODE_RELEASE_ROOT + '/' + releasedVersionable.getRelativePath();
+
         if (versionReference == null) {
             versionReference = ResourceUtil.getOrCreateResource(release.getReleaseNode().getResourceResolver(), newPath,
                     ResourceUtil.TYPE_UNSTRUCTURED + '/' + TYPE_VERSIONREFERENCE);
         } else if (!versionReference.getPath().equals(newPath)) {
             ResourceResolver resolver = versionReference.getResourceResolver();
-            resolver.move(versionReference.getPath(), newPath);
+            ResourceUtil.getOrCreateResource(resolver, ResourceUtil.getParent(newPath), ResourceUtil.TYPE_UNSTRUCTURED);
+            resolver.move(versionReference.getPath(), ResourceUtil.getParent(newPath));
             versionReference = resolver.getResource(newPath);
         }
+
         releasedVersionable.writeToVersionReference(requireNonNull(versionReference));
         // FIXME hps 2019-04-05 handle ordering and super attributes
     }
@@ -191,17 +202,21 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager, Stag
         ResourceHandle root = ResourceHandle.use(theRoot);
         if (!root.isValid() && !root.isOfType(TYPE_MIX_RELEASE_ROOT))
             throw new IllegalArgumentException("Not a release root: " + theRoot.getPath());
+
         ResourceHandle contentnode = ResourceHandle.use(ResourceHandle.use(root.getChild(ResourceUtil.CONTENT_NODE)));
-        if (!contentnode.isValid()) {
+        if (contentnode.isValid()) { // ensure mixin is there if the node was created otherwise
+            ResourceUtil.addMixin(contentnode, TYPE_MIX_RELEASE_CONFIG);
+        } else {
             contentnode = ResourceHandle.use(root.getResourceResolver().create(root, ResourceUtil.CONTENT_NODE,
                     ImmutableMap.of(ResourceUtil.PROP_PRIMARY_TYPE, ResourceUtil.TYPE_UNSTRUCTURED,
                             ResourceUtil.PROP_MIXINTYPES, TYPE_MIX_RELEASE_CONFIG)));
-        } else {
-            ResourceUtil.addMixin(contentnode, TYPE_MIX_RELEASE_CONFIG); // ensure it's there if the node was created otherwise
         }
+
         Resource currentReleaseNode = ResourceUtil.getOrCreateChild(contentnode, NODE_RELEASES + "/" + releaseLabel, ResourceUtil.TYPE_UNSTRUCTURED);
         ResourceUtil.addMixin(currentReleaseNode, ResourceUtil.TYPE_REFERENCEABLE);
+
         Resource releaseWorkspaceCopy = ResourceUtil.getOrCreateChild(currentReleaseNode, NODE_RELEASE_ROOT, ResourceUtil.TYPE_UNSTRUCTURED);
+
         ResourceHandle metaData = ResourceHandle.use(currentReleaseNode.getChild(NODE_RELEASE_METADATA));
         if (!metaData.isValid()) {
             metaData = ResourceHandle.use(root.getResourceResolver().create(currentReleaseNode, NODE_RELEASE_METADATA,
@@ -209,6 +224,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager, Stag
                             ResourceUtil.PROP_MIXINTYPES,
                             new String[]{ResourceUtil.TYPE_CREATED, ResourceUtil.TYPE_LAST_MODIFIED, ResourceUtil.TYPE_TITLE})));
         }
+
         return new ReleaseImpl(root, currentReleaseNode); // incl. validation
     }
 
@@ -279,7 +295,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager, Stag
         public boolean appliesToPath(@Nullable String path) {
             if (path == null) return false;
             String normalized = ResourceUtil.normalize(path);
-            return releaseRoot.getPath().equals(normalized) || normalized.startsWith(releaseRoot.getPath() + "/");
+            return releaseRoot.getPath().equals(normalized) || StringUtils.startsWith(normalized, releaseRoot.getPath() + "/");
         }
 
         @Override

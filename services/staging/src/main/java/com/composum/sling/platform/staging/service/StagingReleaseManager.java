@@ -4,6 +4,7 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.PropertyUtil;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.StagingConstants;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
@@ -226,16 +227,22 @@ public interface StagingReleaseManager extends StagingConstants {
 
         /** Releasemanager internal: creates a {@link ReleasedVersionable} that corresponds to a {@link StagingConstants#TYPE_VERSIONREFERENCE}. */
         public static ReleasedVersionable fromVersionReference(@Nonnull Resource treeRoot, @Nonnull Resource resource) {
-            if (!ResourceUtil.isResourceType(resource, StagingConstants.TYPE_VERSIONREFERENCE))
+            if (!ResourceUtil.isResourceType(resource, StagingConstants.TYPE_VERSIONREFERENCE)) {
                 throw new IllegalArgumentException("resource is not version reference: " + ResourceUtil.getPath(resource));
-            ReleasedVersionable result = new ReleasedVersionable();
-            if (!resource.getPath().equals(treeRoot) && resource.getPath().startsWith(treeRoot.getPath() + '/'))
+            }
+            if (!resource.getPath().equals(treeRoot) && !resource.getPath().startsWith(treeRoot.getPath() + '/')) {
                 throw new IllegalArgumentException("Resource not in treeroot: " + resource.getPath() + ", " + treeRoot.getPath());
+            }
+
+            ReleasedVersionable result = new ReleasedVersionable();
             ResourceHandle rh = ResourceHandle.use(resource);
+
             result.setActive(!rh.getProperty(StagingConstants.PROP_DEACTIVATED, Boolean.FALSE));
             result.setVersionableUuid(rh.getProperty(StagingConstants.PROP_VERSIONABLEUUID, String.class));
             result.setVersionUuid(rh.getProperty(StagingConstants.PROP_VERSION, String.class));
             result.setVersionHistory(rh.getProperty(StagingConstants.PROP_VERSIONHISTORY, String.class));
+            result.setRelativePath(StringUtils.removeStart(resource.getPath().substring(treeRoot.getPath().length()), "/"));
+
             return result;
         }
 

@@ -34,7 +34,7 @@ public interface ReleaseNumberCreator {
 
     /** Returns the comparator to use when sorting release numbers. */
     @Nonnull
-    default Comparator<String> defaultComparator() {
+    default Comparator<String> releaseComparator() {
         return COMPARATOR_RELEASES;
     }
 

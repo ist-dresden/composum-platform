@@ -9,6 +9,7 @@ import org.hamcrest.*;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -136,6 +137,15 @@ public class SlingMatchers extends org.hamcrest.Matchers {
                 mismatchDescription.appendText("was ").appendValue(item.getMessage());
             }
         };
+    }
+
+    public static Throwable exceptionOf(Callable<?> callable) {
+        try {
+            callable.call();
+            return null;
+        } catch (Throwable t) {
+            return t;
+        }
     }
 
     public static List<String> resourcePaths(Iterable<Resource> resourceList) {
