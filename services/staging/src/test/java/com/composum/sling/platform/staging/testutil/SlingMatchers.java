@@ -2,13 +2,9 @@ package com.composum.sling.platform.staging.testutil;
 
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.collections4.IteratorUtils;
-import org.apache.commons.collections4.ListUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.hamcrest.ResourceMatchers;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
+import org.hamcrest.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -125,6 +121,21 @@ public class SlingMatchers extends org.hamcrest.Matchers {
     @Nonnull
     public static <T> Matcher<T> satisfies(@Nullable String message, @Nonnull Predicate<T> predicate) {
         return mappedMatches(message, predicate::test, is(true));
+    }
+
+    public static Matcher<Throwable> throwableWithMessage(Class<? extends Throwable> clazz, String pattern) {
+        final Pattern pat = Pattern.compile(pattern);
+        return new CustomTypeSafeMatcher<Throwable>("expected exception with message matching \"" + pattern + "\"") {
+            @Override
+            protected boolean matchesSafely(Throwable throwable) {
+                return pat.matcher(throwable.getMessage()).matches();
+            }
+
+            @Override
+            protected void describeMismatchSafely(Throwable item, Description mismatchDescription) {
+                mismatchDescription.appendText("was ").appendValue(item.getMessage());
+            }
+        };
     }
 
     public static List<String> resourcePaths(Iterable<Resource> resourceList) {

@@ -20,10 +20,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Query;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -100,18 +98,40 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager, Stag
         throw new ReleaseNotFoundException();
     }
 
-    @Override
     @Nonnull
-    public Release createRelease(@Nonnull Resource resource, @Nonnull String releaseLabel, @Nullable Release rawCopyFromRelease, @Nonnull ReleaseNumberCreator releasetype) throws ReleaseExistsException, ReleaseNotFoundException, PersistenceException, RepositoryException {
+    @Override
+    public Release createRelease(@Nonnull Resource resource, @Nonnull ReleaseNumberCreator releaseType) throws PersistenceException, RepositoryException {
+        List<Release> releases = getReleases(resource);
+        Release lastRelease = releases.stream()
+                .max(Comparator.comparing(Release::getNumber, releaseType.defaultComparator()))
+                .orElse(null);
+        try {
+            return createRelease(resource, lastRelease, releaseType);
+        } catch (ReleaseExistsException e) { // that should be impossible.
+            LOG.error("Bug: how can the release " + (lastRelease != null ? lastRelease.getNumber() : null) +
+                    " exist for " + releaseType + " and releases "
+                    + releases.stream().map(Release::getNumber).collect(Collectors.joining(", ")));
+            throw new RepositoryException(e);
+        }
+    }
+
+    @Nonnull
+    @Override
+    public Release createRelease(@Nonnull Release copyFromRelease, @Nonnull ReleaseNumberCreator releaseType) throws ReleaseExistsException, PersistenceException, RepositoryException {
+        return createRelease(copyFromRelease.getReleaseRoot(), copyFromRelease, releaseType);
+    }
+
+    @Nonnull
+    protected Release createRelease(@Nonnull Resource resource, @Nullable Release rawCopyFromRelease, @Nonnull ReleaseNumberCreator releaseType) throws ReleaseExistsException, ReleaseNotFoundException, PersistenceException, RepositoryException {
         Resource root = requireNonNull(findReleaseRoot(resource));
         ReleaseImpl copyFromRelease = ReleaseImpl.unwrap(rawCopyFromRelease);
         Optional<String> previousReleaseNumber;
         if (copyFromRelease != null) {
-            previousReleaseNumber = Optional.of(ReleaseImpl.unwrap(copyFromRelease).getNumber());
+            previousReleaseNumber = Optional.of(copyFromRelease.getNumber());
         } else {
             previousReleaseNumber = getReleases(resource).stream().map(Release::getNumber).max(ReleaseNumberCreator.COMPARATOR_RELEASES);
         }
-        String newReleaseNumber = previousReleaseNumber.map(releasetype::bumpRelease).orElse(releasetype.bumpRelease(""));
+        String newReleaseNumber = previousReleaseNumber.map(releaseType::bumpRelease).orElse(releaseType.bumpRelease(""));
         try {
             findRelease(root, newReleaseNumber);
             throw new ReleaseExistsException(root, newReleaseNumber);
@@ -179,7 +199,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager, Stag
         } else {
             ResourceUtil.addMixin(contentnode, TYPE_MIX_RELEASE_CONFIG); // ensure it's there if the node was created otherwise
         }
-        Resource currentReleaseNode = ResourceUtil.getOrCreateChild(contentnode, NODE_RELEASES + "/" + NODE_CURRENT_RELEASE, ResourceUtil.TYPE_UNSTRUCTURED);
+        Resource currentReleaseNode = ResourceUtil.getOrCreateChild(contentnode, NODE_RELEASES + "/" + releaseLabel, ResourceUtil.TYPE_UNSTRUCTURED);
         ResourceUtil.addMixin(currentReleaseNode, ResourceUtil.TYPE_REFERENCEABLE);
         Resource releaseWorkspaceCopy = ResourceUtil.getOrCreateChild(currentReleaseNode, NODE_RELEASE_ROOT, ResourceUtil.TYPE_UNSTRUCTURED);
         ResourceHandle metaData = ResourceHandle.use(currentReleaseNode.getChild(NODE_RELEASE_METADATA));

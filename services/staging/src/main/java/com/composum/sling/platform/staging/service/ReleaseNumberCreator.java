@@ -18,10 +18,6 @@ import static java.lang.Math.min;
  */
 public interface ReleaseNumberCreator {
 
-    /** Creates a new release key from the last one - e.g. r1.6.0 from r1.5.3 . */
-    @Nonnull
-    String bumpRelease(@Nonnull String oldname);
-
     /** Creates new major release - increases the first version number , e.g. r1.5.3 or r1 to r2 . */
     ReleaseNumberCreator MAJOR = new DefaultReleaseNumberCreator(0);
 
@@ -31,9 +27,26 @@ public interface ReleaseNumberCreator {
     /** Creates new minor release - increases the second version number , e.g. r1.5.3 or r1.5 to r1.5.4 , r3 to r3.0.1. */
     ReleaseNumberCreator BUGFIX = new DefaultReleaseNumberCreator(2);
 
+
+    /** Creates a new release key from the last one - e.g. r1.6.0 from r1.5.3 . */
+    @Nonnull
+    String bumpRelease(@Nonnull String oldname);
+
+    /** Returns the comparator to use when sorting release numbers. */
+    @Nonnull
+    default Comparator<String> defaultComparator() {
+        return COMPARATOR_RELEASES;
+    }
+
+
     /**
      * Comparator ordering the numbers according to the {@link DefaultReleaseNumberCreator} so that the numerical parts
-     * are compared numerically.
+     * are compared numerically. If otherwise equal, the longer number wins.
+     * <p>
+     * Actually, it breaks down the release number in numerical and nonnumerical parts, and
+     * compares these one after each other, using numerical comparison when both are numbers. So this is more general
+     * than that, but you are responsible to restrict the release number format so that this comparator fulfills
+     * the comparator requirements (especially being transitive).
      */
     Comparator<String> COMPARATOR_RELEASES = new Comparator<String>() {
 
@@ -83,6 +96,11 @@ public interface ReleaseNumberCreator {
             for (int i = rnum.size(); i < increasePosition + 1; ++i) rnum.add(0);
             rnum.set(increasePosition, rnum.get(increasePosition) + 1);
             return "r" + rnum.stream().map(String::valueOf).collect(Collectors.joining("."));
+        }
+
+        @Override
+        public String toString() {
+            return "DefaultReleaseNumberCreator(" + increasePosition + ")";
         }
     }
 }

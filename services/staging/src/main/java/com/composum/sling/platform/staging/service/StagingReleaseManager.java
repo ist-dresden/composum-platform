@@ -88,18 +88,30 @@ public interface StagingReleaseManager extends StagingConstants {
     Release findReleaseByUuid(@Nonnull Resource resource, @Nonnull String releaseUuid) throws ReleaseNotFoundException;
 
     /**
-     * Creates the named release, optionally copying another release.
+     * Creates a new release. The release content is copied from the latest release (in the sense of
+     * {@link ReleaseNumberCreator#COMPARATOR_RELEASES}) and the release number is created using {releaseType}.
+     * If there was no release yet, it's copied from the {@link StagingConstants#NODE_CURRENT_RELEASE} release
+     * (which can possibly be empty).
      *
      * @param resource             release root or one of it's subnodes
-     * @param releaseLabel         the release to create
-     * @param copyFromRelease optionally, an existing release, whose workspace is copied.
-     * @param releasetype how to create the releae number - major, minor or bugfix release
-     * @throws ReleaseExistsException   if the release already exists
+     * @param releaseType how to create the releae number - major, minor or bugfix release
      */
-    Release createRelease(@Nonnull Resource resource, @Nonnull String releaseLabel, @Nullable Release copyFromRelease,
-                          @Nonnull ReleaseNumberCreator releasetype) throws ReleaseExistsException, PersistenceException, RepositoryException;
+    Release createRelease(@Nonnull Resource resource, @Nonnull ReleaseNumberCreator releaseType)
+            throws PersistenceException, RepositoryException;
 
-    /** Gives information about the releases contents. */
+    /**
+     * Creates a release from another release. This also creates a new version number for that release
+     * based on the copied release - which can lead to conflicts ( {@link ReleaseExistsException} )
+     * if there is already a release with that number.
+     *
+     * @param copyFromRelease optionally, an existing release, whose workspace is copied.
+     * @param releaseType     how to create the releae number - major, minor or bugfix release
+     * @throws ReleaseExistsException if the release already exists
+     */
+    Release createRelease(@Nonnull Release copyFromRelease, @Nonnull ReleaseNumberCreator releaseType)
+            throws ReleaseExistsException, PersistenceException, RepositoryException;
+
+    /** Gives information about a releases contents. */
     @Nonnull
     List<ReleasedVersionable> listReleaseContents(@Nonnull Release release);
 

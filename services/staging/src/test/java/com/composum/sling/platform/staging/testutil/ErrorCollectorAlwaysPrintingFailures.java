@@ -1,11 +1,13 @@
 package com.composum.sling.platform.staging.testutil;
 
+import org.hamcrest.Matcher;
 import org.junit.runner.Description;
 import org.junit.runners.model.MultipleFailureException;
 import org.junit.runners.model.Statement;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * Extends JUnit's {@link org.junit.rules.ErrorCollector} so that it also prints failed checks even when we have an exception in the test, since these might contain
@@ -44,6 +46,20 @@ public class ErrorCollectorAlwaysPrintingFailures extends org.junit.rules.ErrorC
                 verify(); // if test ran through
             }
         };
+    }
+
+    /**
+     * Adds to the table the exception, if any, thrown from {@code callable}.
+     * Execution continues, but the test will fail at the end if
+     * {@code callable} threw an exception.
+     */
+    public void checkFailsWith(Callable<?> callable, Matcher<Throwable> exceptionMatcher) {
+        try {
+            callable.call();
+            checkThat(null, exceptionMatcher);
+        } catch (Throwable e) {
+            checkThat(e, exceptionMatcher);
+        }
     }
 
 }

@@ -289,8 +289,8 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
                 List<Node> childNodes = IteratorUtils.toList(n.getNodes());
                 errorCollector.checkThat(childNodes, everyItem(instanceOf(UnmodifiableNodeWrapper.class)));
 
-                errorCollector.checkThat(childResources.stream().map(Resource::getName).collect(Collectors.joining()),
-                        equalTo(childNodes.stream().map(ExceptionUtil.sneakExceptions(Node::getName)).collect(Collectors.joining())));
+                errorCollector.checkThat(childResources.stream().map(Resource::getName).collect(Collectors.joining(",")),
+                        equalTo(childNodes.stream().map(ExceptionUtil.sneakExceptions(Node::getName)).collect(Collectors.joining(","))));
 
                 if (!StagingUtils.isRoot(r)) {
                     errorCollector.checkThat(n.getParent().getPath(), equalTo(r.getParent().getPath()));
