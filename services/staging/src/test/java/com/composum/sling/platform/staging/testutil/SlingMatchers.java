@@ -79,7 +79,7 @@ public class SlingMatchers extends org.hamcrest.Matchers {
             public void describeMismatch(Object item, Description description) {
                 Map<U, V> map = (Map<U, V>) item;
                 description.appendText(" was ").appendValue(map.size())
-                        .appendText(" because of keys ").appendValue(map.keySet());
+                        .appendText(" because of keys being ").appendValue(map.keySet());
             }
 
             @Override

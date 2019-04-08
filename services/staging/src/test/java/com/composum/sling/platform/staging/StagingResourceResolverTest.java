@@ -261,7 +261,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     @Test
     public void testSearchPathUsage() throws Exception {
         ResourceBuilder builderAtApps = context.build().resource("/apps/bla").commit();
-        String atApps = makeNode(builderAtApps, "someatapps", "something", true, true, "at");
+        String atApps = makeNode(builderAtApps, "someatapps", "something", false, false, "at");
         Resource resource = stagingResourceResolver.getResource(atApps.substring(6));
         assertThat(resource, existsInclusiveParents());
         assertEquals(atApps, resource.getPath());

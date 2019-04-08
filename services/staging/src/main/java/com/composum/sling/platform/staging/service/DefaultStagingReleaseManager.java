@@ -6,6 +6,7 @@ import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingResourceResolverImpl;
 import com.composum.sling.platform.staging.impl.NodeTreeSynchronizer;
 import com.google.common.collect.ImmutableMap;
+import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
@@ -52,7 +53,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     public ResourceHandle findReleaseRoot(@Nonnull Resource resource) {
         ResourceHandle result = ResourceHandle.use(resource);
         while (result.isValid() && !result.isOfType(TYPE_MIX_RELEASE_ROOT))
-            result = result.getParent();
+            result = ResourceHandle.use(result.getParent());
         return result.isValid() ? result : null;
     }
 
@@ -155,7 +156,6 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         Resource releaseWorkspaceCopy = requireNonNull(release.getReleaseNode().getChild(NODE_RELEASE_ROOT));
         String query = "/jcr:root" + releaseWorkspaceCopy.getPath() + "//element(*," + TYPE_VERSIONREFERENCE + ")";
 
-        @SuppressWarnings("deprecation")
         Iterator<Resource> versionReferences = release.getReleaseNode().getResourceResolver()
                 .findResources(query, Query.XPATH);
         while (versionReferences.hasNext())
@@ -166,12 +166,11 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Override
     public void updateRelease(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
-        Resource releaseWorkspaceCopy = requireNonNull(release.getReleaseNode().getChild(NODE_RELEASE_ROOT));
+        Resource releaseWorkspaceCopy = release.getWorkspaceCopyNode();
         String newPath = releaseWorkspaceCopy.getPath() + '/' + releasedVersionable.getRelativePath();
 
         String query = "/jcr:root" + releaseWorkspaceCopy.getPath() + "//element(*," + TYPE_VERSIONREFERENCE + ")"
                 + "[@" + PROP_VERSIONABLEUUID + "='" + releasedVersionable.getVersionableUuid() + "']";
-        @SuppressWarnings("deprecation")
         Iterator<Resource> versionReferences = release.getReleaseNode().getResourceResolver()
                 .findResources(query, Query.XPATH);
         Resource versionReference = versionReferences.hasNext() ? versionReferences.next() : null;
@@ -180,14 +179,50 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             versionReference = ResourceUtil.getOrCreateResource(release.getReleaseNode().getResourceResolver(), newPath,
                     ResourceUtil.TYPE_UNSTRUCTURED + '/' + TYPE_VERSIONREFERENCE);
         } else if (!versionReference.getPath().equals(newPath)) {
+            Resource oldParent = versionReference.getParent();
             ResourceResolver resolver = versionReference.getResourceResolver();
+
             ResourceUtil.getOrCreateResource(resolver, ResourceUtil.getParent(newPath), ResourceUtil.TYPE_UNSTRUCTURED);
             resolver.move(versionReference.getPath(), ResourceUtil.getParent(newPath));
             versionReference = resolver.getResource(newPath);
+
+            cleanupOrphans(releaseWorkspaceCopy.getPath(), oldParent);
         }
 
         releasedVersionable.writeToVersionReference(requireNonNull(versionReference));
-        // FIXME hps 2019-04-05 handle ordering and super attributes
+        // FIXME hps 2019-04-05 handle ordering and super attributes; and removal of obsolete nodes.
+
+        updateParentAttributes(release, releasedVersionable);
+    }
+
+    /** Goes through all parents of the version reference and sets their attributes from the working copy. */
+    protected void updateParentAttributes(ReleaseImpl release, ReleasedVersionable releasedVersionable) throws RepositoryException {
+        String[] levels = releasedVersionable.getRelativePath().split("/");
+        ResourceHandle inWorkspace = ResourceHandle.use(release.getReleaseRoot());
+        ResourceHandle inRelease = ResourceHandle.use(release.getWorkspaceCopyNode());
+        Iterator<String> levelIt = IteratorUtils.arrayIterator(levels);
+        NodeTreeSynchronizer sync = new NodeTreeSynchronizer();
+
+        while (inWorkspace.isValid() && inRelease.isValid() && !inRelease.isOfType(TYPE_VERSIONREFERENCE)) {
+            sync.updateAttributes(inWorkspace, inRelease);
+            if (!levelIt.hasNext()) break;
+            String level = levelIt.next();
+            inWorkspace = ResourceHandle.use(inWorkspace.getChild(level));
+            inRelease = ResourceHandle.use(inRelease.getChild(level));
+        }
+    }
+
+    /**
+     * Removes old nodes that are not version references and have no children. That can happen when a versionreference
+     * is moved to another node and there is no version reference left below it's old parent.
+     */
+    protected void cleanupOrphans(String releaseWorkspaceCopyPath, Resource resource) throws PersistenceException {
+        while (resource != null && !resource.getPath().equals(releaseWorkspaceCopyPath)
+                && !ResourceHandle.use(resource).isOfType(TYPE_VERSIONREFERENCE) && !resource.hasChildren()) {
+            Resource tmp = resource.getParent();
+            resource.getResourceResolver().delete(resource);
+            resource = tmp;
+        }
     }
 
     @Override
@@ -287,8 +322,15 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
          * with the copy of the data. Don't touch {@value StagingConstants#NODE_RELEASE_ROOT} - always use the
          * {@link StagingReleaseManager} for that!
          */
+        @Nonnull
         public Resource getReleaseNode() {
             return releaseNode;
+        }
+
+        /** The node that contains the workspace copy for the release. */
+        @Nonnull
+        public Resource getWorkspaceCopyNode() {
+            return requireNonNull(getReleaseNode().getChild(NODE_RELEASE_ROOT));
         }
 
         @Override
@@ -310,13 +352,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
          */
         @Nullable
         public static ReleaseImpl unwrap(@Nullable Release release) {
-            ReleaseImpl impl = null;
-            if (release != null) {
-                impl = (ReleaseImpl) release;
-                impl.validate();
-            }
-            return impl;
+            if (release != null) ((ReleaseImpl) release).validate();
+            return (ReleaseImpl) release;
         }
-
     }
 }

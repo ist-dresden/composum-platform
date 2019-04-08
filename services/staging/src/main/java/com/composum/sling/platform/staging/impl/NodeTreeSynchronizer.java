@@ -66,7 +66,7 @@ public class NodeTreeSynchronizer {
      * @throws RepositoryException if we couldn't finish the operation
      * @see #ignoreAttribute(ResourceHandle, String, boolean)
      */
-    protected void updateAttributes(ResourceHandle from, ResourceHandle to) throws RepositoryException {
+    public void updateAttributes(ResourceHandle from, ResourceHandle to) throws RepositoryException {
         ValueMap fromAttributes = ResourceUtil.getValueMap(from);
         ModifiableValueMap toAttributes = to.adaptTo(ModifiableValueMap.class);
         // first copy type information since this changes attributes. Use valuemap because of mixin handling

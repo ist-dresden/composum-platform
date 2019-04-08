@@ -35,8 +35,7 @@ import static com.composum.sling.core.util.ResourceUtil.*;
 import static com.composum.sling.platform.staging.testutil.JcrTestUtils.array;
 import static com.composum.sling.platform.staging.testutil.SlingMatchers.exceptionOf;
 import static com.composum.sling.platform.staging.testutil.SlingMatchers.throwableWithMessage;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 /**
  * Tests for {@link DefaultStagingReleaseManager}.
@@ -152,7 +151,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
         service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(newVersionable));
         context.resourceResolver().commit();
-        assertNull(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/a/jcr:content"));
+        ec.checkThat(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/a"), nullValue()); // parent was orphan
         referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/b/c/jcr:content"), newVersionable, version);
 
         Version version2 = versionManager.checkpoint(newPath);

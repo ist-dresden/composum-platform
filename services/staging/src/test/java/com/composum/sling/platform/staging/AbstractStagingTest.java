@@ -8,6 +8,7 @@ import com.composum.sling.platform.staging.service.StagingReleaseManager;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
@@ -24,7 +25,6 @@ import javax.jcr.Session;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
 import java.util.Calendar;
-import java.util.List;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
 import static com.composum.sling.platform.staging.testutil.MockitoMatchers.argThat;
@@ -51,11 +51,15 @@ public abstract class AbstractStagingTest {
     protected VersionManager versionManager;
     protected ReleaseMapper releaseMapper;
 
-    protected final StagingReleaseManager releaseManager = new DefaultStagingReleaseManager();
+    protected StagingReleaseManager releaseManager;
 
     @Before
     public final void setUpResolver() throws Exception {
         versionManager = context.resourceResolver().adaptTo(Session.class).getWorkspace().getVersionManager();
+
+        releaseManager = new DefaultStagingReleaseManager() {{
+            resourceResolverFactory = context.getService(ResourceResolverFactory.class);
+        }};
 
         releaseMapper = Mockito.mock(ReleaseMapper.class);
         when(releaseMapper.releaseMappingAllowed(argThat(isA(String.class)))).thenReturn(true);
