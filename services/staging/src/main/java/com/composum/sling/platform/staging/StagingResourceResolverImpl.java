@@ -114,8 +114,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
             Resource underlyingResource = null;
             try { // PROP_VERSION is mandatory and version access is needed - no need for checks.
                 Resource propertyResource = resource.getChild(StagingConstants.PROP_VERSION);
-                Node node = Objects.requireNonNull(propertyResource).adaptTo(Node.class); // follow reference
-                underlyingResource = underlyingResolver.getResource(Objects.requireNonNull(node).getPath());
+                underlyingResource = ResourceUtil.getReferredResource(propertyResource);
             } catch (RepositoryException | NullPointerException e) { // weird unexpected case
                 // Returning a NonExistingResource here is not good, but breaking everything seems worse.
                 LOG.error("Error finding version for " + resource.getPath(), e);
@@ -130,10 +129,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
     @Override
     @Nonnull
     public Iterator<Resource> listChildren(@Nonnull Resource rawParent) {
-        while (rawParent instanceof ResourceWrapper) {
-            rawParent = ((ResourceWrapper) rawParent).getResource();
-        }
-        final Resource parent = rawParent;
+        final Resource parent = ResourceUtil.unwrap(rawParent);
         StagingResourceImpl stagingResource = null;
         if (parent instanceof StagingResourceImpl) {
             stagingResource = (StagingResourceImpl) parent;

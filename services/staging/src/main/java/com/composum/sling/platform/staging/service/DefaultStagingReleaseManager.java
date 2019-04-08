@@ -141,14 +141,15 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager, Stag
     @Override
     public void updateRelease(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
-        String query = release.getReleaseNode() + "//element(*," + TYPE_VERSIONREFERENCE + ")"
+        String query = release.getReleaseNode().getPath() + "//element(*," + TYPE_VERSIONREFERENCE + ")"
                 + "[@" + PROP_VERSIONABLEUUID + "='" + releasedVersionable.getVersionableUuid() + "']";
         Iterator<Resource> versionReferences = release.getReleaseNode().getResourceResolver()
                 .findResources(query, Query.XPATH);
         Resource versionReference = versionReferences.hasNext() ? versionReferences.next() : null;
-        String newPath = release.getReleaseNode().getPath() + '/' + releasedVersionable.getRelativePath();
+        String newPath = release.getReleaseNode().getPath() + '/' + NODE_RELEASE_ROOT + '/' + releasedVersionable.getRelativePath();
         if (versionReference == null) {
-            versionReference = ResourceUtil.getOrCreateResource(release.getReleaseNode().getResourceResolver(), newPath, TYPE_VERSIONREFERENCE);
+            versionReference = ResourceUtil.getOrCreateResource(release.getReleaseNode().getResourceResolver(), newPath,
+                    ResourceUtil.TYPE_UNSTRUCTURED + '/' + TYPE_VERSIONREFERENCE);
         } else if (!versionReference.getPath().equals(newPath)) {
             ResourceResolver resolver = versionReference.getResourceResolver();
             resolver.move(versionReference.getPath(), newPath);

@@ -11,6 +11,7 @@ import org.apache.sling.api.resource.ResourceResolver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.version.Version;
 import java.util.List;
@@ -233,9 +234,9 @@ public interface StagingReleaseManager extends StagingConstants {
             if (oldVersionHistory != null && !oldVersionHistory.equals(getVersionHistory()))
                 throw new IllegalArgumentException("Trying to write to different versionhistory: " + getVersionHistory() + " to " + oldVersionHistory);
             if (getActive() != null) rh.setProperty(StagingConstants.PROP_DEACTIVATED, !getActive());
-            rh.setProperty(StagingConstants.PROP_VERSIONABLEUUID, getVersionableUuid());
-            rh.setProperty(StagingConstants.PROP_VERSION, getVersionUuid());
-            rh.setProperty(StagingConstants.PROP_VERSIONHISTORY, getVersionHistory());
+            rh.setProperty(StagingConstants.PROP_VERSIONABLEUUID, getVersionableUuid(), PropertyType.WEAKREFERENCE);
+            rh.setProperty(StagingConstants.PROP_VERSION, getVersionUuid(), PropertyType.REFERENCE);
+            rh.setProperty(StagingConstants.PROP_VERSIONHISTORY, getVersionHistory(), PropertyType.REFERENCE);
         }
 
         @Override

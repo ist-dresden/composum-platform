@@ -123,7 +123,8 @@ public abstract class AbstractStagingTest {
                         .addVersionLabel(version.getName(), RELEASED, false);
                 handle.setProperty("released", true);
                 StagingReleaseManager.Release currentRelease = releaseManager.findRelease(handle, releaseManager.NODE_CURRENT_RELEASE);
-                releaseManager.updateRelease(currentRelease, StagingReleaseManager.ReleasedVersionable.forBaseVersion(handle));
+                builder.commit();
+                releaseManager.updateRelease(currentRelease, StagingReleaseManager.ReleasedVersionable.forBaseVersion(contentResource));
             }
             handle.setProperty("versioned", true);
             builder.commit(); // unclear whether this is neccesary.
