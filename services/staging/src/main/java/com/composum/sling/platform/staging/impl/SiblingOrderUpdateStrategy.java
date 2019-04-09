@@ -84,6 +84,7 @@ public class SiblingOrderUpdateStrategy {
 
     protected void adaptSiblingOrder(ResourceHandle destinationNode, List<String> ordering, List<String> originalDestinationOrdering) throws RepositoryException {
         if (!ordering.equals(originalDestinationOrdering)) {
+            LOG.info("Adjusting order of {} from {} to {}", destinationNode.getPath(), originalDestinationOrdering, ordering);
             Node parent = destinationNode.getParent().adaptTo(Node.class);
             if (ordering.size() != parent.getNodes().getSize())
                 throw new IllegalArgumentException("Different size of required ordering and child node count: " + ordering + " , " + destinationNode.getPath());

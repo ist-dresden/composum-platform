@@ -6,6 +6,7 @@ import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingResourceResolverImpl;
 import com.composum.sling.platform.staging.impl.NodeTreeSynchronizer;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
+import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Result;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -167,7 +168,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     }
 
     @Override
-    public void updateRelease(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException {
+    public Map<String, Result> updateRelease(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         Resource releaseWorkspaceCopy = release.getWorkspaceCopyNode();
         String newPath = releaseWorkspaceCopy.getPath() + '/' + releasedVersionable.getRelativePath();
@@ -195,14 +196,18 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         releasedVersionable.writeToVersionReference(requireNonNull(versionReference));
         // FIXME hps 2019-04-05 handle ordering and super attributes; and removal of obsolete nodes.
 
-        updateParents(release, releasedVersionable);
+        return updateParents(release, releasedVersionable);
     }
 
     /**
      * Goes through all parents of the version reference, sets their attributes from the working copy
      * and fixes the node ordering if necessary.
+     * @return a map with paths where we changed the order of children in the release.
      */
-    protected void updateParents(ReleaseImpl release, ReleasedVersionable releasedVersionable) throws RepositoryException {
+    @Nonnull
+    protected Map<String, Result> updateParents(ReleaseImpl release, ReleasedVersionable releasedVersionable) throws RepositoryException {
+        Map<String, Result> resultMap = new LinkedHashMap<>();
+
         String[] levels = releasedVersionable.getRelativePath().split("/");
         ResourceHandle inWorkspace = ResourceHandle.use(release.getReleaseRoot());
         ResourceHandle inRelease = ResourceHandle.use(release.getWorkspaceCopyNode());
@@ -217,10 +222,13 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             inRelease = ResourceHandle.use(inRelease.getChild(level));
             if (inWorkspace.isValid() && inRelease.isValid()) {
                 // we do that for all nodes except the root but including the version reference itself:
-                updateSiblingOrder(inWorkspace, inRelease);
-                // FIXME hps 2019-04-09 use return value to alert user.
+                Result result = updateSiblingOrder(inWorkspace, inRelease);
+                if (result != Result.unchanged)
+                    resultMap.put(inWorkspace.getParent().getPath(), result);
             }
         }
+
+        return resultMap;
     }
 
     /**
@@ -228,7 +236,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
      *
      * @return true if the ordering was deterministic, false if there was heuristics involved and the user should check the result.
      */
-    protected SiblingOrderUpdateStrategy.Result updateSiblingOrder(ResourceHandle inWorkspace, ResourceHandle inRelease) throws RepositoryException {
+    protected Result updateSiblingOrder(ResourceHandle inWorkspace, ResourceHandle inRelease) throws RepositoryException {
         return getSiblingOrderUpdateStrategy().adjustSiblingOrderOfDestination(inWorkspace, inRelease);
     }
 

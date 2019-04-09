@@ -4,6 +4,7 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.PropertyUtil;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.StagingConstants;
+import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.PersistenceException;
@@ -16,6 +17,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.version.Version;
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>Functionality to manage releases that are accessible via the {@link com.composum.sling.platform.staging.StagingResourceResolver}
@@ -120,11 +122,12 @@ public interface StagingReleaseManager extends StagingConstants {
      * Updates the release by adding or updating the versionable denoted by {releasedVersionable} in the release.
      * If {@link ReleasedVersionable#versionUuid} is null, it is removed from the release.
      *
-     * @param release          the release to update
      * @param versionablePaths a number of paths to versionables for which the latest version should be put into the release
+     * @param release          the release to update
      * @throws ReleaseNotFoundException if the copied release doesn't exist
+     * @return a map with paths where we changed the order of children in the release.
      */
-    void updateRelease(@Nonnull Release release, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException;
+    Map<String, SiblingOrderUpdateStrategy.Result> updateRelease(@Nonnull Release release, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException;
 
     /**
      * Creates a {@link com.composum.sling.platform.staging.StagingResourceResolverImpl} that presents the given release.
