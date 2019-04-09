@@ -2,6 +2,8 @@ package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
 import org.apache.commons.collections4.IteratorUtils;
+import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.sling.api.resource.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,11 +11,11 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
+import javax.jcr.nodetype.NodeType;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static java.util.Collections.singleton;
 
 /**
  * Strategy to ensure that the node ordering of a node in a release (= destination) with respect to its siblings is updated from the workspace (= source)
@@ -63,13 +65,14 @@ public class SiblingOrderUpdateStrategy {
         if (!sourceNode.getName().equals(destinationNode.getName())) // bug in caller
             throw new IllegalArgumentException("Different node names for " + sourceNode.getPath() + " , " + destinationNode.getPath());
 
-        if (!destinationNode.getNode().getPrimaryNodeType().hasOrderableChildNodes()) return Result.notOrderable;
+        if (!destinationNode.getParent().getNode().getPrimaryNodeType().hasOrderableChildNodes())
+            return Result.notOrderable;
 
         List<String> sourceOrdering = IteratorUtils.toList(sourceNode.getParent().listChildren()).stream()
                 .map(Resource::getName).collect(Collectors.toList());
         if (sourceOrdering.size() != new HashSet<String>(sourceOrdering).size()) // seems not possible in Jackrabbit
             throw new IllegalArgumentException("Same name siblings not supported but present in " + sourceNode.getPath());
-        List<String> destinationOrdering = IteratorUtils.toList(sourceNode.getParent().listChildren()).stream()
+        List<String> destinationOrdering = IteratorUtils.toList(destinationNode.getParent().listChildren()).stream()
                 .map(Resource::getName).collect(Collectors.toList());
         if (destinationOrdering.size() != new HashSet<String>(destinationOrdering).size())  // seems not possible in Jackrabbit
             throw new IllegalArgumentException("Same name siblings not supported but present in " + destinationNode.getPath());
@@ -90,6 +93,47 @@ public class SiblingOrderUpdateStrategy {
         }
     }
 
+    static class Relationships {
+
+        final List<String> predecessors;
+        final List<String> successors;
+        final String node;
+
+        public Relationships(String node, List<String> allnodes) {
+            this.node = node;
+            int position = allnodes.indexOf(node);
+            predecessors = allnodes.subList(0, position);
+            successors = allnodes.subList(position + 1, allnodes.size());
+        }
+
+        /**
+         * Ratio of violations of predecessors being before position and successors being after position
+         * if node was inserted into newNodes at the given position. It doesn't matter whether node is already in
+         * the list - that'll be automatically ignored.
+         */
+        public double violationRatio(List<String> newNodes, int position) {
+            List<String> beforePosition = newNodes.subList(0, position);
+            List<String> afterPosition = newNodes.subList(position, newNodes.size());
+            int countRelevantElements = ListUtils.retainAll(newNodes, ListUtils.union(predecessors, successors)).size();
+            int violations = ListUtils.retainAll(beforePosition, successors).size()
+                    + ListUtils.retainAll(afterPosition, predecessors).size();
+            return violations / (double) countRelevantElements;
+        }
+
+        /** Returns the positions in a node list that have the least violations. */
+        public List<Pair<Integer, Double>> bestPositions(List<String> newNodes) {
+            List<String> cleanedUpNodes = ListUtils.removeAll(newNodes, singleton(node));
+            List<Pair<Integer, Double>> result = new ArrayList<>();
+            for (int pos = 0; pos <= cleanedUpNodes.size(); ++pos) {
+                result.add(Pair.of(pos, violationRatio(cleanedUpNodes, pos)));
+            }
+            Double bestRatio = result.stream().map(Pair::getRight).min(Comparator.naturalOrder()).get();
+            result = ListUtils.select(result, (n) -> n.getRight().equals(bestRatio));
+            return result;
+        }
+    }
+
+
     static class Orderer {
 
         @Nonnull
@@ -99,10 +143,12 @@ public class SiblingOrderUpdateStrategy {
         @Nonnull
         final String node;
         @Nonnull
-        final List<String> ordering;
+        List<String> ordering;
         Result result;
 
         public Orderer(@Nonnull List<String> sourceOrdering, @Nonnull List<String> destinationOrdering, @Nonnull String node) {
+            if (!sourceOrdering.contains(node) || !destinationOrdering.contains(node))
+                throw new IllegalArgumentException(node + " not in " + sourceOrdering + " or " + destinationOrdering);
             this.sourceOrdering = Collections.unmodifiableList(sourceOrdering);
             this.originalDestinationOrdering = Collections.unmodifiableList(destinationOrdering);
             this.node = node;
@@ -111,7 +157,62 @@ public class SiblingOrderUpdateStrategy {
         }
 
         public Orderer run() {
+            Relationships relationships = new Relationships(node, sourceOrdering);
+            List<Pair<Integer, Double>> bestPositions = relationships.bestPositions(originalDestinationOrdering);
+            Double bestRatio = bestPositions.stream().map(Pair::getRight).min(Comparator.naturalOrder()).get();
+            if (bestRatio > 0)
+                processContradictions();
+            else {
+                if (bestPositions.size() == 1) {
+
+                    ordering.removeAll(singleton(node));
+                    ordering.add(bestPositions.get(0).getKey(), node);
+                    result = ordering.equals(originalDestinationOrdering) ? Result.unchanged : Result.deterministicallyReordered;
+
+                } else { // several possible positions where all constraints are satisfied.
+
+                    Integer currentPosition = ordering.indexOf(node);
+                    if (bestPositions.stream().map(Pair::getLeft).anyMatch(currentPosition::equals)) {
+                        result = Result.unchanged;
+                    } else {
+                        result = Result.heuristicallyReordered;
+                        ordering.removeAll(singleton(node));
+                        ordering.add(bestPositions.get(0).getKey(), node);
+                    }
+
+                }
+            }
             return this;
+        }
+
+        protected void processContradictions() {
+            result = Result.deterministicallyReordered; // will change if there is something nondeterministic
+
+            ordering = ListUtils.select(sourceOrdering, (n) -> originalDestinationOrdering.contains(n));
+            List<String> missingNodes = ListUtils.removeAll(originalDestinationOrdering, ordering);
+
+            missingNodes:
+            while (!missingNodes.isEmpty()) {
+                for (String checkNode : missingNodes) {
+                    Relationships checkNodeRelations = new Relationships(checkNode, originalDestinationOrdering);
+                    List<Pair<Integer, Double>> bestPositions = checkNodeRelations.bestPositions(ordering);
+                    if (bestPositions.size() == 1) {
+                        if (bestPositions.get(0).getRight() > 0) // unique but not fully satisfied
+                            result = Result.heuristicallyReordered;
+                        ordering.add(bestPositions.get(0).getLeft(), checkNode);
+                        missingNodes.remove(checkNode);
+                        continue missingNodes;
+                    }
+                }
+
+                // all nodes have ambiguous positions - just take first one and put it on one of the possible positions
+                result = Result.heuristicallyReordered;
+                String nextNode = missingNodes.get(0);
+                missingNodes.remove(nextNode);
+                Relationships nextNodeRelations = new Relationships(nextNode, originalDestinationOrdering);
+                List<Pair<Integer, Double>> bestPositions = nextNodeRelations.bestPositions(ordering);
+                ordering.add(bestPositions.get(0).getLeft(), nextNode);
+            }
         }
     }
 }

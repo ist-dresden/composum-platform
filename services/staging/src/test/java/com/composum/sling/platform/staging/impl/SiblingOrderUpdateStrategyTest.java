@@ -25,8 +25,8 @@ public class SiblingOrderUpdateStrategyTest {
     public void simpleCases() {
         src("a").node("a").dest("a").ordersTo(unchanged, "a");
         src("a").node("a").dest("a", "b").ordersTo(unchanged, "a", "b");
-        src("b").node("a").dest("a", "b").ordersTo(unchanged, "a", "b");
-        src("a", "b", "c", "d").node("a").dest("b").ordersTo(unchanged, "b");
+        src("b").node("b").dest("a", "b").ordersTo(unchanged, "a", "b");
+        src("a", "b", "c", "d").node("b").dest("b").ordersTo(unchanged, "b");
     }
 
     @Test
@@ -42,9 +42,9 @@ public class SiblingOrderUpdateStrategyTest {
 
     @Test
     public void ambiguousButNoNeedToChange() {
-        src("a", "b", "c").dest("a", "b", "i", "c").node("b").ordersTo(unchanged, "a", "b", "i", "d");
-        src("a", "b", "c").dest("a", "i", "b", "j", "d").node("b").ordersTo(unchanged, "a", "i", "b", "j", "d");
-        src("a", "b", "c").dest("a", "i", "b", "d").node("b").ordersTo(unchanged, "a", "i", "b", "d");
+        src("a", "b", "c").dest("a", "b", "i", "c").node("b").ordersTo(unchanged, "a", "b", "i", "c");
+        src("a", "b", "c").dest("a", "i", "b", "j", "c").node("b").ordersTo(unchanged, "a", "i", "b", "j", "c");
+        src("a", "b", "c").dest("a", "i", "b", "c").node("b").ordersTo(unchanged, "a", "i", "b", "c");
     }
 
     @Test
@@ -52,13 +52,13 @@ public class SiblingOrderUpdateStrategyTest {
         src("a", "b", "c").dest("b", "a", "c").node("b").ordersTo(deterministicallyReordered, "a", "b", "c");
         src("a", "b", "c").dest("a", "c", "b").node("b").ordersTo(deterministicallyReordered, "a", "b", "c");
 
-        src("a", "b", "c", "d", "e").node("c").dest("e", "b", "c", "d", "a").ordersTo(heuristicallyReordered, "a", "b", "c", "d", "e");
+        src("a", "b", "c", "d", "e").node("c").dest("e", "b", "c", "d", "a").ordersTo(deterministicallyReordered, "a", "b", "c", "d", "e");
     }
 
     @Test
     public void ambiguousReorder() {
-        src("a", "b", "c").dest("b", "a", "i", "j", "c").node("b").ordersTo(heuristicallyReordered, "a", "b", "i", "j", "d");
-        src("a", "b", "c").dest("a", "i", "j", "c", "b").node("b").ordersTo(heuristicallyReordered, "a", "b", "i", "j", "d");
+        src("a", "b", "c").dest("b", "a", "i", "j", "c").node("b").ordersTo(heuristicallyReordered, "a", "b", "i", "j", "c");
+        src("a", "b", "c").dest("a", "i", "j", "c", "b").node("b").ordersTo(heuristicallyReordered, "a", "b", "i", "j", "c");
     }
 
     @Test
@@ -72,13 +72,14 @@ public class SiblingOrderUpdateStrategyTest {
         src("a", "b", "c").node("b").dest("i", "c", "b", "a").ordersTo(deterministicallyReordered, "i", "a", "b", "c");
         src("a", "b", "c").node("b").dest("c", "b", "a", "i", "j").ordersTo(deterministicallyReordered, "a", "b", "c", "i", "j");
         src("a", "b", "c").node("b").dest("i", "j", "c", "a", "b", "k").ordersTo(deterministicallyReordered, "i", "j", "a", "b", "c", "k");
+
+        src("a", "b", "c").node("b").dest("c", "b", "a", "i").ordersTo(deterministicallyReordered, "a", "b", "c", "i");
     }
 
     @Test
     public void indeterministicContradiction() { // additional nodes in dest could have several places
         src("a", "b", "c").node("b").dest("c", "i", "b", "a").ordersTo(heuristicallyReordered, "i", "a", "b", "c");
-        src("a", "b", "c").node("b").dest("c", "b", "a", "i").ordersTo(heuristicallyReordered, "a", "b", "c", "i");
-        src("a", "b", "c").node("b").dest("c", "b", "i", "a", "i").ordersTo(heuristicallyReordered, "a", "b", "c", "i");
+        src("a", "b", "c").node("b").dest("c", "b", "i", "a").ordersTo(heuristicallyReordered, "a", "b", "c", "i");
 
         // majority of relationships decides about ordering of the additional nodes
         src("a", "b", "c", "d", "e", "f", "g").node("d")
@@ -113,9 +114,10 @@ public class SiblingOrderUpdateStrategyTest {
             return this;
         }
 
-        @Nonnull
+        /** Checks that the result of applying the orderer confirms to the given result and ordering. */
         public void ordersTo(Result result, String... resultNodes) {
-            SiblingOrderUpdateStrategy.Orderer orderer = new SiblingOrderUpdateStrategy.Orderer(src, dest, node).run();
+            SiblingOrderUpdateStrategy.Orderer orderer = new SiblingOrderUpdateStrategy.Orderer(src, dest, node)
+                    .run();
             ec.checkThat(orderer.result, equalTo(result));
             ec.checkThat(orderer.ordering, equalTo(Arrays.asList(resultNodes)));
         }

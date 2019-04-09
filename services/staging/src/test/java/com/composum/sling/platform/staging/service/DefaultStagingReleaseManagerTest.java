@@ -7,6 +7,7 @@ import com.composum.sling.platform.staging.service.StagingReleaseManager.Release
 import com.composum.sling.platform.staging.service.StagingReleaseManager.ReleasedVersionable;
 import com.composum.sling.platform.staging.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.staging.testutil.JcrTestUtils;
+import com.composum.sling.platform.staging.testutil.SlingMatchers;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.sling.api.resource.PersistenceException;
@@ -196,6 +197,31 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
                         .sorted(ReleaseNumberCreator.COMPARATOR_RELEASES)
                         .collect(Collectors.joining(", ")),
                 equalTo("cpl:current, r1, r1.0.1, r1.1, r1.2, r2"));
+    }
+
+    @Test
+    public void checkOrdering() throws RepositoryException, PersistenceException {
+        Resource document1 = releaseRootBuilder.resource("document1", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+                PROP_MIXINTYPES, array(TYPE_VERSIONABLE)).commit().getCurrentParent();
+        versionManager.checkpoint(document1.getPath());
+        service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(document1));
+
+        Resource document2 = releaseRootBuilder.resource("document2", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+                PROP_MIXINTYPES, array(TYPE_VERSIONABLE)).commit().getCurrentParent();
+        versionManager.checkpoint(document2.getPath());
+        service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(document2));
+
+        ResourceResolver stagedResolver = service.getResolverForRelease(currentRelease, null);
+        ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("document1", "document2"));
+
+        releaseRoot.getNode().orderBefore("document1", null);
+
+        // no change after staging yet
+        ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("document1", "document2"));
+
+        service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(document1));
+
+        ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("document2", "document1"));
     }
 
 }
