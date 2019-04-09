@@ -73,7 +73,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
             Resource underlyingResource = underlyingResolver.getResource(path);
             return wrapIntoStagingResource(path, underlyingResource, request, true);
         }
-        Resource underlyingResource = ReleaseImpl.unwrap(release).getReleaseNode().getChild(StagingConstants.NODE_RELEASE_ROOT);
+        Resource underlyingResource = ReleaseImpl.unwrap(release).getWorkspaceCopyNode();
         if (!release.getReleaseRoot().getPath().equals(path)) {
             if (!path.startsWith(release.getReleaseRoot().getPath() + '/')) // safety check - can't happen.
                 throw new IllegalArgumentException("Bug. " + path + " vs. " + release.getReleaseRoot().getPath());
@@ -105,7 +105,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         if (resource == null) {
             return null;
         } else if (resource.getPath().equals(release.getReleaseRoot().getPath())) {
-            return ReleaseImpl.unwrap(release).getReleaseNode().getChild(StagingConstants.NODE_RELEASE_ROOT);
+            return ReleaseImpl.unwrap(release).getWorkspaceCopyNode();
         } else if (StagingUtils.isInVersionStorage(resource)) {
             return resource;
         } else if (ResourceHandle.use(resource).isOfType(StagingConstants.TYPE_VERSIONREFERENCE)) {

@@ -21,7 +21,7 @@ import java.util.List;
  * <p>Functionality to manage releases that are accessible via the {@link com.composum.sling.platform.staging.StagingResourceResolver}
  * or via replication.</p>
  * <p>
- * For a folder / site to be releasable it's root has to have the mixin {@value StagingConstants#NODE_RELEASES},
+ * For a folder / site to be releasable its root has to have the mixin {@value StagingConstants#NODE_RELEASES},
  * and it needs have a jcr:content node with mixin {@value StagingConstants#TYPE_MIX_RELEASE_CONFIG}
  * with a subnode {@value StagingConstants#NODE_RELEASES} that contains one subnode for each release.
  * The current (open) release is named {@value StagingConstants#NODE_CURRENT_RELEASE}.
@@ -59,7 +59,7 @@ public interface StagingReleaseManager extends StagingConstants {
      * Looks up the next higher {@link StagingConstants#TYPE_MIX_RELEASE_ROOT} of the resource and returns
      * information about all releases at this release root.
      *
-     * @param resource a release root or it's subnodes
+     * @param resource a release root or its subnodes
      * @return possibly empty list of releases
      */
     @Nonnull
@@ -69,7 +69,7 @@ public interface StagingReleaseManager extends StagingConstants {
      * Looks up the next higher {@link StagingConstants#TYPE_MIX_RELEASE_ROOT} of the resource and returns
      * the release with the given <code>releaseNumber</code> ( {@link Release#getNumber()} ), if there is one.
      *
-     * @param resource     a release root or it's subnodes
+     * @param resource     a release root or its subnodes
      * @param releaseNumber a label for a release, possibly {@value StagingConstants#NODE_CURRENT_RELEASE} for the current release.
      * @return the release
      * @throws ReleaseNotFoundException if the release wasn't found
@@ -81,7 +81,7 @@ public interface StagingReleaseManager extends StagingConstants {
      * Looks up the next higher {@link StagingConstants#TYPE_MIX_RELEASE_ROOT} of the resource and returns
      * the release with the given uuid <code>releaseUuid</code> (see {@link Release#getUuid()} , if there is one.
      *
-     * @param resource    a release root or it's subnodes
+     * @param resource    a release root or its subnodes
      * @param releaseUuid the {@link Release#getUuid()}
      * @throws ReleaseNotFoundException if the release wasn't found
      */
@@ -94,7 +94,7 @@ public interface StagingReleaseManager extends StagingConstants {
      * If there was no release yet, it's copied from the {@link StagingConstants#NODE_CURRENT_RELEASE} release
      * (which can possibly be empty).
      *
-     * @param resource             release root or one of it's subnodes
+     * @param resource             release root or one of its subnodes
      * @param releaseType how to create the releae number - major, minor or bugfix release
      */
     Release createRelease(@Nonnull Resource resource, @Nonnull ReleaseNumberCreator releaseType)

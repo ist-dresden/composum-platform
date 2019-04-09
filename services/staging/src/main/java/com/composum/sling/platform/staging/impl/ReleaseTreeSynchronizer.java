@@ -8,6 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
+import org.osgi.service.component.annotations.Deactivate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +22,10 @@ import java.util.stream.Collectors;
 
 /**
  * Specialization of {@link NodeTreeSynchronizer} that replaces versionable nodes by cpl:VersionReference .
+ * @deprecated not used in release mechanism after all
+ * // TODO hps 2019-04-09 remove this once unused
  */
+@Deprecated
 public class ReleaseTreeSynchronizer extends NodeTreeSynchronizer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReleaseTreeSynchronizer.class);

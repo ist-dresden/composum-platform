@@ -5,6 +5,7 @@ import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingResourceResolverImpl;
 import com.composum.sling.platform.staging.impl.NodeTreeSynchronizer;
+import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -44,6 +45,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     /** Sub-path from the release root to the releases node. */
     static final String RELPATH_RELEASES_NODE = ResourceUtil.CONTENT_NODE + '/' + NODE_RELEASES;
+
+    private SiblingOrderUpdateStrategy siblingOrderUpdateStrategy = new SiblingOrderUpdateStrategy();
 
     @Reference
     protected ResourceResolverFactory resourceResolverFactory;
@@ -192,11 +195,14 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         releasedVersionable.writeToVersionReference(requireNonNull(versionReference));
         // FIXME hps 2019-04-05 handle ordering and super attributes; and removal of obsolete nodes.
 
-        updateParentAttributes(release, releasedVersionable);
+        updateParents(release, releasedVersionable);
     }
 
-    /** Goes through all parents of the version reference and sets their attributes from the working copy. */
-    protected void updateParentAttributes(ReleaseImpl release, ReleasedVersionable releasedVersionable) throws RepositoryException {
+    /**
+     * Goes through all parents of the version reference, sets their attributes from the working copy
+     * and fixes the node ordering if necessary.
+     */
+    protected void updateParents(ReleaseImpl release, ReleasedVersionable releasedVersionable) throws RepositoryException {
         String[] levels = releasedVersionable.getRelativePath().split("/");
         ResourceHandle inWorkspace = ResourceHandle.use(release.getReleaseRoot());
         ResourceHandle inRelease = ResourceHandle.use(release.getWorkspaceCopyNode());
@@ -209,7 +215,25 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             String level = levelIt.next();
             inWorkspace = ResourceHandle.use(inWorkspace.getChild(level));
             inRelease = ResourceHandle.use(inRelease.getChild(level));
+            if (inWorkspace.isValid() && inRelease.isValid()) {
+                // we do that for all nodes except the root but including the version reference itself:
+                updateSiblingOrder(inWorkspace, inRelease);
+                // FIXME hps 2019-04-09 use return value to alert user.
+            }
         }
+    }
+
+    /**
+     * Adjusts the place of inRelease wrt. it's siblings to be consistent with inWorkspace.
+     *
+     * @return true if the ordering was deterministic, false if there was heuristics involved and the user should check the result.
+     */
+    protected SiblingOrderUpdateStrategy.Result updateSiblingOrder(ResourceHandle inWorkspace, ResourceHandle inRelease) throws RepositoryException {
+        return getSiblingOrderUpdateStrategy().adjustSiblingOrderOfDestination(inWorkspace, inRelease);
+    }
+
+    protected SiblingOrderUpdateStrategy getSiblingOrderUpdateStrategy() {
+        return siblingOrderUpdateStrategy;
     }
 
     /**
