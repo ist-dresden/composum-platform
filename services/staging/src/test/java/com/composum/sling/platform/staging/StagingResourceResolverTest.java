@@ -154,6 +154,23 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         assertThat(this.document2, stagingResourceResolver.getResource(this.document2), nullValue());
     }
 
+    @Test
+    public void checkDefaultAttributeBehaviourOnMove() throws Exception {
+        Resource versionable = context.build().resource("/somewhere/node", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+                PROP_MIXINTYPES, array(TYPE_VERSIONABLE)).commit().getCurrentParent();
+        Version version = versionManager.checkpoint(versionable.getPath());
+        context.resourceResolver().commit();
+        String originaldefaultpath = version.getParent().getProperty("default").getString();
+        assertNotNull(originaldefaultpath);
+        context.build().resource("/movedaround");
+        context.resourceResolver().move("/somewhere/node", "/movedaround");
+        context.resourceResolver().commit();
+        Version version2 = versionManager.checkpoint("/movedaround/node");
+        assertEquals(version.getParent().getPath(), version2.getParent().getPath());
+        String newdefaultpath = version2.getParent().getProperty("default").getString();
+        assertEquals("/movedaround/node", newdefaultpath); // changes on move and fresh checkin.
+    }
+
     protected void deleteInJcr(String... deletePaths) throws PersistenceException {
         for (String toDelete : deletePaths) {
             ResourceResolver resolver = context.resourceResolver();
@@ -226,9 +243,9 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     public void childrenAreOnlyReleased() throws Exception {
         deleteInJcr(document1, document2);
         Resource folderResource = stagingResourceResolver.resolve(folder);
-        JcrTestUtils.printResourceRecursivelyAsJson(folderResource);
+        // JcrTestUtils.printResourceRecursivelyAsJson(folderResource);
         checkChildren(folderResource);
-        assertEquals(2, IterableUtils.size(folderResource.getChildren()));
+        assertEquals(3, IterableUtils.size(folderResource.getChildren()));
         // unreleasedDocument is not contained in release, and thus not found.
         assertNull(folderResource.getChild("unreleasedDocument"));
     }
@@ -256,6 +273,16 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         Resource resolved = stagingResourceResolver.resolve("/something/that/does/not/exist");
         assertNotNull(resolved);
         assertTrue(ResourceUtil.isNonExistingResource(resolved));
+    }
+
+    @Test
+    public void filteredChildren() {
+        assertNotNull(context.resourceResolver().getResource(folder + "/jcr:content/cpl:releases"));
+        assertTrue(context.resourceResolver().getResource(folder + "/jcr:content/cpl:releases").listChildren().hasNext());
+        assertNotNull(context.resourceResolver().getResource(folder + "/jcr:content/cpl:releases/cpl:current"));
+        assertNotNull(stagingResourceResolver.getResource(folder + "/jcr:content/cpl:releases"));
+        assertNull(stagingResourceResolver.getResource(folder + "/jcr:content/cpl:releases/cpl:current"));
+        assertFalse(stagingResourceResolver.getResource(folder + "/jcr:content/cpl:releases").listChildren().hasNext());
     }
 
     @Test
@@ -359,9 +386,9 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         r = resourceResolver.getResource("/folder");
         errorCollector.checkThat(r.getPath(), r, existsInclusiveParents());
 
-        errorCollector.checkThat(r.getPath(), r.getChildren(), mappedMatches(SlingMatchers::resourcePaths, contains("/folder/document1", "/folder/document2"))); // FIXME hps 2019-04-03 map jcr:content
+        errorCollector.checkThat(r.getPath(), r.getChildren(), mappedMatches(SlingMatchers::resourcePaths, contains("/folder/jcr:content", "/folder/document1", "/folder/document2")));
         errorCollector.checkThat(r.getPath(), r.hasChildren(), is(true));
-        errorCollector.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(2));
+        errorCollector.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(3));
         errorCollector.checkThat(r.getPath(), r.getName(), is("folder"));
         errorCollector.checkThat(r.getPath(), r.getParent(), hasResourcePath("/"));
         errorCollector.checkThat(r.getPath(), r.getPath(), is("/folder"));

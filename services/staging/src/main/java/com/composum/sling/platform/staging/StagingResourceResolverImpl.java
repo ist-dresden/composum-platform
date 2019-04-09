@@ -16,13 +16,14 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
+
+import static com.composum.sling.core.util.ResourceUtil.CONTENT_NODE;
+import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASES;
 
 /**
  * <p>A {@link ResourceResolver} that provides transparent access to releases as defined in {@link StagingReleaseManager}.</p>
@@ -58,6 +59,30 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         this.resourceResolverFactory = resourceResolverFactory;
     }
 
+    /** Checks whether the path is one of the special paths that are overlayed from the workspace. */
+    protected boolean isDirectlyMappedPath(String path) {
+        return release.appliesToPath(path)
+                && path.startsWith(release.getReleaseRoot().getPath() + '/' + CONTENT_NODE);
+    }
+
+    /** Checks whether the path is one of the special paths that are not passed through the resolver. */
+    protected boolean isFilteredPath(String path) {
+        return release.appliesToPath(path)
+                && path.startsWith(release.getReleaseRoot().getPath() + '/' + CONTENT_NODE + '/' + NODE_RELEASES + '/');
+    }
+
+    /** Returns additional wrapped children overlayed into the release - primarily for {@link #isDirectlyMappedPath(String)}. */
+    @Nullable
+    protected Iterator<Resource> overlayedChildren(@Nonnull Resource parent) {
+        if (release.getReleaseRoot().getPath().equals(parent.getPath())) {
+            Resource child = release.getReleaseRoot().getChild(CONTENT_NODE);
+            return Collections.singletonList(
+                    wrapIntoStagingResource(child.getPath(), child, null, false)
+            ).iterator();
+        }
+        return null;
+    }
+
     /**
      * Finds the simulated resource. The meat of the actual retrieval algorithm.  @param request the request
      *
@@ -67,8 +92,9 @@ public class StagingResourceResolverImpl implements ResourceResolver {
     @Nonnull
     protected Resource retrieveReleasedResource(@Nullable SlingHttpServletRequest request, @Nonnull String rawPath) {
         String path = ResourceUtil.normalize(rawPath);
-        if (path == null) return new NonExistingResource(this, rawPath); // weird path like /../..
-        if (!releaseMapper.releaseMappingAllowed(path) || !release.appliesToPath(path)) {
+        if (path == null || isFilteredPath(path)) // weird path like /../.. or explicitly removed
+            return new NonExistingResource(this, rawPath);
+        if (!releaseMapper.releaseMappingAllowed(path) || !release.appliesToPath(path) || isDirectlyMappedPath(path)) {
             // we need to return a StagingResourceImpl, too, since e.g. listChildren might go into releasemapped areas.
             Resource underlyingResource = underlyingResolver.getResource(path);
             return wrapIntoStagingResource(path, underlyingResource, request, true);
@@ -141,12 +167,16 @@ public class StagingResourceResolverImpl implements ResourceResolver {
             else return Collections.emptyIterator(); // NonExistingResource
         }
         Iterator<Resource> children = stagingResource.underlyingResource.listChildren();
-        return IteratorUtils.filteredIterator(
+        Iterator<Resource> resourceIterator = IteratorUtils.filteredIterator(
                 IteratorUtils.transformedIterator(children, (r) ->
                         wrapIntoStagingResource(parent.getPath() + "/" + r.getName(), r, null, false)
                 ),
-                (child) -> child != null && !ResourceUtil.isNonExistingResource(child)
+                (child) -> child != null && !ResourceUtil.isNonExistingResource(child) && !isFilteredPath(child.getPath())
         );
+        Iterator<Resource> additionalChildren = this.overlayedChildren(parent);
+        if (additionalChildren != null)
+            resourceIterator = IteratorUtils.chainedIterator(additionalChildren, resourceIterator);
+        return resourceIterator;
     }
 
     @Override

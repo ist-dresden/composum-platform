@@ -212,16 +212,16 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(document2));
 
         ResourceResolver stagedResolver = service.getResolverForRelease(currentRelease, null);
-        ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("document1", "document2"));
+        ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document1", "document2"));
 
         releaseRoot.getNode().orderBefore("document1", null);
 
         // no change after staging yet
-        ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("document1", "document2"));
+        ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document1", "document2"));
 
         service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(document1));
 
-        ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("document2", "document1"));
+        ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document2", "document1"));
     }
 
 }
