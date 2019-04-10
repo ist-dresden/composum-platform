@@ -93,6 +93,14 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/jcr:system/jcr:versionStorage"));
     }
 
+    @Test
+    public void printStagedResolver() throws Exception {
+        Resource resource = stagingResourceResolver.getResource(folder);
+        JcrTestUtils.printResourceRecursivelyAsJson(resource);
+        assertNotNull(resource);
+    }
+
+
     @SuppressWarnings("deprecation")
     @Test
     public void notReleaseMappedIsJustPassedThrough() throws PersistenceException {
@@ -251,7 +259,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     }
 
     @Test
-    public void testAdaptToJcrTypes() throws Exception {
+    public void aaatestAdaptToJcrTypes() throws Exception {
         deleteInJcr(document1, document2); // make sure we read from version space
 
         List<Resource> resources = JcrTestUtils.ancestorsAndSelf(stagingResourceResolver.resolve(node1));
@@ -280,15 +288,16 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
                     errorCollector.checkThat(n.getParent().getName(), equalTo(r.getParent().getName()));
                 }
 
+                String realPrimaryType = r.getValueMap().get(PROP_PRIMARY_TYPE, String.class);
                 Property primaryType = n.getProperty(PROP_PRIMARY_TYPE);
-                errorCollector.checkThat(primaryType, notNullValue());
-                errorCollector.checkThat(primaryType.getString(), notNullValue());
+                errorCollector.checkThat(r.getPath(), primaryType, notNullValue());
+                errorCollector.checkThat(r.getPath(), primaryType.getString(), equalTo(realPrimaryType));
 
                 Resource primaryTypePropertyResource = r.getChild(PROP_PRIMARY_TYPE);
                 primaryType = primaryTypePropertyResource.adaptTo(Property.class);
-                errorCollector.checkThat(primaryType, notNullValue());
-                errorCollector.checkThat(primaryType.getString(), notNullValue());
-                errorCollector.checkThat(primaryType.getName(), is(PROP_PRIMARY_TYPE));
+                errorCollector.checkThat(primaryTypePropertyResource.getPath(), primaryType, notNullValue());
+                errorCollector.checkThat(primaryTypePropertyResource.getPath(), primaryType.getString(), equalTo(realPrimaryType));
+                errorCollector.checkThat(primaryTypePropertyResource.getPath(), primaryType.getName(), is(PROP_PRIMARY_TYPE));
             }
         }
     }

@@ -135,7 +135,7 @@ class StagingResourceImpl extends AbstractResource implements JcrResource {
     @Nullable
     public <AdapterType> AdapterType adaptTo(@Nullable Class<AdapterType> type) {
         if (type == null) return null;
-        if (ModifiableValueMap.class.isAssignableFrom(type)) {
+        if (ModifiableValueMap.class.isAssignableFrom(type)) { // FIXME hps 2019-04-10 overlayed nodes are modifiable
             if (release.appliesToPath(path) || StagingUtils.isInVersionStorage(underlyingResource))
                 return null; // unmodifiable
             return type.cast(underlyingResource.adaptTo(ModifiableValueMap.class));

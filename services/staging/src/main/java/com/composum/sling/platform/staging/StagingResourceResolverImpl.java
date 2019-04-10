@@ -23,7 +23,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import static com.composum.sling.core.util.ResourceUtil.CONTENT_NODE;
-import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASES;
+import static com.composum.sling.platform.staging.StagingConstants.*;
 
 /**
  * <p>A {@link ResourceResolver} that provides transparent access to releases as defined in {@link StagingReleaseManager}.</p>
@@ -125,7 +125,10 @@ public class StagingResourceResolverImpl implements ResourceResolver {
             String[] levels = relPath.split("/");
             for (String level : levels) {
                 if (underlyingResource == null) return new NonExistingResource(this, rawPath);
-                underlyingResource = underlyingResource.getChild(level);
+                String actualname = StagingUtils.isInVersionStorage(underlyingResource) ?
+                        REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(level, level)
+                        : level;
+                underlyingResource = underlyingResource.getChild(actualname);
                 underlyingResource = stepResource(underlyingResource);
             }
         }
