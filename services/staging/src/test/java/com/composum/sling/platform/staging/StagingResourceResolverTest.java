@@ -259,7 +259,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     }
 
     @Test
-    public void aaatestAdaptToJcrTypes() throws Exception {
+    public void testAdaptToJcrTypes() throws Exception {
         deleteInJcr(document1, document2); // make sure we read from version space
 
         List<Resource> resources = JcrTestUtils.ancestorsAndSelf(stagingResourceResolver.resolve(node1));
@@ -300,6 +300,12 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
                 errorCollector.checkThat(primaryTypePropertyResource.getPath(), primaryType.getName(), is(PROP_PRIMARY_TYPE));
             }
         }
+
+        List<Property> props = IteratorUtils.toList(stagingResourceResolver.resolve(node1).adaptTo(Node.class).getProperties());
+        props.sort(Comparator.comparing(ExceptionUtil.sneakExceptions(Property::getName)));
+        errorCollector.checkThat(
+                props.stream().map(ExceptionUtil.sneakExceptions(Property::getName)).collect(Collectors.joining(", ")),
+                equalTo("jcr:created, jcr:createdBy, jcr:lastModified, jcr:lastModifiedBy, jcr:mixinTypes, jcr:primaryType, jcr:title, jcr:uuid, sling:resourceType"));
     }
 
     @Test

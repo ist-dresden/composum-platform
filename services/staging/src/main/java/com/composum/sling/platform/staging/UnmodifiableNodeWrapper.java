@@ -125,15 +125,24 @@ class UnmodifiableNodeWrapper extends AbstractUnmodifiableItem<Node> implements 
 
     @SuppressWarnings("unchecked")
     @Nonnull
-    protected PropertyIterator rewrapIntoWrappedProperty(PropertyIterator properties) {
+    protected PropertyIterator rewrapIntoWrappedProperty(PropertyIterator properties) throws RepositoryException {
+        Iterator filteredproperties = properties;
+        if (wrapped.isNodeType("nt:frozenNode")) {
+            filteredproperties = IteratorUtils.filteredIterator(properties,
+                    (Property p) ->
+                            ExceptionUtil.callAndSneakExceptions(
+                                    () -> !REAL_PROPNAMES_TO_FROZEN_NAMES.keySet().contains(p.getName()))
+            );
+        }
+        Iterator renamedProps = IteratorUtils.transformedIterator(filteredproperties,
+                (Property p) -> ExceptionUtil.callAndSneakExceptions(() -> {
+                    String simulatedName = FROZEN_PROP_NAMES_TO_REAL_NAMES.getOrDefault(p.getName(), p.getName());
+                    return UnmodifiablePropertyWrapper.wrap(p,
+                            resource.getPath() + "/" + simulatedName);
+                })
+        );
         return new PropertyIteratorAdapter(
-                IteratorUtils.transformedIterator(properties,
-                        (Property p) -> ExceptionUtil.callAndSneakExceptions(() -> {
-                            String simulatedName = FROZEN_PROP_NAMES_TO_REAL_NAMES.getOrDefault(p.getName(), p.getName());
-                            return UnmodifiablePropertyWrapper.wrap(p,
-                                    resource.getPath() + "/" + simulatedName);
-                        })
-                )
+                renamedProps
         );
     }
 
