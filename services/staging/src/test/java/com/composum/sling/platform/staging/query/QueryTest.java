@@ -2,7 +2,6 @@ package com.composum.sling.platform.staging.query;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.platform.staging.AbstractStagingTest;
-import com.composum.sling.platform.staging.StagingResourceResolver;
 import com.composum.sling.platform.staging.testutil.JcrTestUtils;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -34,11 +33,6 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 import static org.slf4j.LoggerFactory.getLogger;
 
-/**
- * Tests for {@link StagingResourceResolver}.
- *
- * @author Hans-Peter Stoerr
- */
 @Ignore("Doesn't work yet, but the implementation waits a little.")
 // // FIXME hps 2019-04-04 REWORK QUERIES
 public class QueryTest extends AbstractStagingTest {

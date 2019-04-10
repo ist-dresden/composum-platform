@@ -8,9 +8,7 @@ import javax.annotation.Nonnull;
  */
 public interface ReleaseMapper {
 
-    /**
-     * @deprecated that was never actually used.
-     */
+    /** Returns true if the release mapping should be applied to the given path, accessed from the given URI. */
     @Deprecated
     boolean releaseMappingAllowed(String path, String uri);
 

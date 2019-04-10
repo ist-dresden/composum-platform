@@ -1,9 +1,9 @@
 package com.composum.sling.platform.staging.query;
 
-import com.composum.sling.platform.staging.StagingException;
-import com.composum.sling.platform.staging.StagingResource;
-import com.composum.sling.platform.staging.StagingResourceResolver;
+import com.composum.platform.commons.util.ExceptionUtil;
+import com.composum.sling.platform.staging.StagingResourceResolverImpl;
 import com.composum.sling.platform.staging.service.ReleaseMapper;
+import com.composum.sling.platform.staging.service.StagingReleaseManager;
 import org.apache.commons.collections4.ComparatorUtils;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.Predicate;
@@ -12,6 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.sling.api.SlingException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.slf4j.Logger;
@@ -61,7 +62,8 @@ public class Query {
     protected static final Logger LOG = getLogger(Query.class);
 
     @CheckForNull
-    protected final String releasedLabel;
+    protected final StagingReleaseManager.Release release;
+
     @Nullable
     protected final ReleaseMapper releaseMapper;
     @Nonnull
@@ -90,8 +92,8 @@ public class Query {
      */
     Query(ResourceResolver resourceResolver) {
         this.resourceResolver = resourceResolver;
-        StagingResourceResolver stagingResolver = resourceResolver.adaptTo(StagingResourceResolver.class);
-        this.releasedLabel = null != stagingResolver ? stagingResolver.getReleasedLabel() : null;
+        StagingResourceResolverImpl stagingResolver = resourceResolver.adaptTo(StagingResourceResolverImpl.class);
+        this.release = null != stagingResolver ? stagingResolver.getRelease() : null;
         this.releaseMapper = null != stagingResolver ? stagingResolver.getReleaseMapper() : null;
     }
 
@@ -307,7 +309,7 @@ public class Query {
         final Workspace workspace = session.getWorkspace();
         final QueryManager queryManager = workspace.getQueryManager();
 
-        if (isBlank(releasedLabel)) {
+        if (release == null) {
             String statement = buildSQL24();
             LOG.debug("JCR-SQL2:\n{}", statement);
             javax.jcr.query.Query query = initJcrQuery(queryManager, statement);
@@ -372,7 +374,7 @@ public class Query {
     }
 
     /** A historic version of a resource is only used if it is releasemapped. */
-    protected Iterator<Row> filterOnlyReleaseMappedAndByType(Iterator<Row> rowsFromVersionStorage) {
+    protected Iterator<Row> filterOnlyReleaseMappedAndByType(Iterator<Row> rowsFromVersionStorage) throws RepositoryException {
         Predicate<Row> filter = new Predicate<Row>() {
             @Override
             public boolean evaluate(Row row) {
@@ -386,7 +388,7 @@ public class Query {
                     return hasAppropriateType(frozenPath, getString(row, "query:type"),
                             getString(row, "query:mixin"));
                 } catch (RepositoryException e) {
-                    throw new StagingException(e);
+                    throw new SlingException("Unexpected JCR exception", e);
                 }
             }
         };
@@ -434,7 +436,7 @@ public class Query {
                 try {
                     return row.getValue("query:orderBy");
                 } catch (RepositoryException e) {
-                    throw new StagingException(e);
+                    throw new SlingException("Unexpected JCR exception", e);
                 }
             }
         };
@@ -456,7 +458,7 @@ public class Query {
                     }
                     return path;
                 } catch (RepositoryException e) {
-                    throw new StagingException(e);
+                    throw new SlingException("Unexpected JCR exception", e);
                 }
             }
         };
@@ -472,7 +474,7 @@ public class Query {
             if (null != value) return value.getString();
             return null;
         } catch (RepositoryException e) {
-            throw new StagingException(e);
+            throw new SlingException("Unexpected JCR exception", e);
         }
     }
 
@@ -524,7 +526,7 @@ public class Query {
                 orderBySelect() + additionalSelect() + joinSelects(true) + "\n" +
                 "FROM [nt:versionHistory] AS history \n" +
                 "INNER JOIN [nt:version] AS version ON ISCHILDNODE(version, history) \n" +
-                "INNER JOIN [nt:versionLabels] AS labels ON version.[jcr:uuid] = labels.[" + releasedLabel + "] \n" +
+                "INNER JOIN [nt:versionLabels] AS labels ON version.[jcr:uuid] = labels.[" + release.getNumber() + "] \n" +
                 "INNER JOIN [nt:frozenNode] AS n ON ISDESCENDANTNODE(n, version) \n" +
                 joins(true) +
                 "WHERE ISDESCENDANTNODE(history, '/jcr:system/jcr:versionStorage') \n" +
@@ -565,10 +567,10 @@ public class Query {
             throws RepositoryException {
         String pathToTest = path + "/";
         StringBuilder statement = new StringBuilder("SELECT history.default AS default, " +
-                "labels.[" + releasedLabel + "] as uuid \n" +
+                "labels.[" + release.getNumber() + "] as uuid \n" +
                 "FROM [nt:versionHistory] as history \n" +
                 "INNER JOIN [nt:versionLabels] AS labels ON ISCHILDNODE(labels, history) \n" +
-                "WHERE labels.[" + releasedLabel + "] IS NOT NULL AND (");
+                "WHERE labels.[" + release.getNumber() + "] IS NOT NULL AND (");
         int pos = 0;
         boolean first = true;
         while (0 <= (pos = pathToTest.indexOf('/', pos + 1))) {
@@ -667,24 +669,24 @@ public class Query {
             Value value = input.getValue(selector + ".jcr:path");
             if (null == value) return null;
             final String path = value.getString();
-            if (resourceResolver instanceof StagingResourceResolver) {
+            if (resourceResolver instanceof StagingResourceResolverImpl) {
                 // for speed, skips various checks by the resolver that aren't needed here
-                StagingResourceResolver stagingResolver = (StagingResourceResolver) resourceResolver;
+                StagingResourceResolverImpl stagingResolver = (StagingResourceResolverImpl) resourceResolver;
                 final Resource resource;
-                resource = stagingResolver.getDelegateeResourceResolver().getResource(path);
-                return StagingResource.wrap(resource, stagingResolver);
+                resource = stagingResolver.getUnderlyingResolver().getResource(path);
+                return stagingResolver.wrapIntoStagingResource(path, resource, null, false);
             } else {
                 return resourceResolver.getResource(path);
             }
         } catch (RepositoryException e) {
-            throw new StagingException(e);
+            throw new SlingException("Unexpected JCR exception", e);
         }
     }
 
     @Override
     public String toString() {
         return new ToStringBuilder(this)
-                .append("releasedLabel", releasedLabel)
+                .append("release", release)
                 .append("queryCondition", queryCondition)
                 .append("path", path)
                 .append("element", element)

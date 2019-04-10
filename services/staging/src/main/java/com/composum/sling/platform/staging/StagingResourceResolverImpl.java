@@ -59,6 +59,24 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         this.resourceResolverFactory = resourceResolverFactory;
     }
 
+    /** The release that is presented by this resolver. */
+    @Nonnull
+    public StagingReleaseManager.Release getRelease() {
+        return release;
+    }
+
+    /** The {@link ReleaseMapper} we're applying. */
+    @Nonnull
+    public ReleaseMapper getReleaseMapper() {
+        return releaseMapper;
+    }
+
+    /** The resolver we use inside to access the release data. */
+    @Nonnull
+    public ResourceResolver getUnderlyingResolver() {
+        return underlyingResolver;
+    }
+
     /** Checks whether the path is one of the special paths that are overlayed from the workspace. */
     protected boolean isDirectlyMappedPath(String path) {
         return release.appliesToPath(path)
@@ -114,7 +132,8 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         return wrapIntoStagingResource(path, underlyingResource, request, true);
     }
 
-    protected Resource wrapIntoStagingResource(@Nonnull String path, @Nullable Resource underlyingResource, @Nullable HttpServletRequest request, boolean useNonExisting) {
+    /** Internal-use: Wrap a resource into a {@link StagingResourceImpl} if it exists. */
+    public Resource wrapIntoStagingResource(@Nonnull String path, @Nullable Resource underlyingResource, @Nullable HttpServletRequest request, boolean useNonExisting) {
         if (underlyingResource == null)
             return useNonExisting ? new NonExistingResource(this, path) : null;
         if (ResourceUtil.isNonExistingResource(underlyingResource)) return useNonExisting ? underlyingResource : null;

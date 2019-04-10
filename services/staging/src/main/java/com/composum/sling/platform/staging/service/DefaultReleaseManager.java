@@ -26,18 +26,14 @@ import java.util.List;
 
 import static com.composum.sling.platform.staging.StagingUtils.isVersionable;
 
-@Component(
-        label = "Default Release Manager",
-        description = "manges release of versionable content",
-        immediate = true
-)
-@Service
 @Deprecated
-public class DefaultReleaseManager implements ReleaseManager {
+// FIXME hps 2019-04-10 remove this - unused but left as refererence at the moment
+class DefaultReleaseManager {
+
+    String RELEASE_LABEL_PREFIX = "composum-release-";
 
     // getReleases
 
-    @Override
     public List<String> getReleases(final ResourceResolver resolver, final Iterable<String> rootPaths)
             throws RepositoryException {
         List<String> releases = new ArrayList<>();
@@ -86,7 +82,6 @@ public class DefaultReleaseManager implements ReleaseManager {
 
     // createRelease
 
-    @Override
     public void updateToRelease(final ResourceResolver resolver, final String sitePath, String releaseLabel)
             throws RepositoryException {
         final Resource siteResource = resolver.getResource(sitePath);
@@ -133,7 +128,6 @@ public class DefaultReleaseManager implements ReleaseManager {
         }
     }
 
-    @Override
     public void createRelease(final ResourceResolver resolver, final Iterable<String> rootPaths, String releaseLabel)
             throws RepositoryException {
         releaseLabel = adjustReleaseLabel(releaseLabel);
@@ -174,7 +168,6 @@ public class DefaultReleaseManager implements ReleaseManager {
 
     // removeRelease
 
-    @Override
     public void removeRelease(final ResourceResolver resolver, final Iterable<String> rootPaths,
                               String releaseLabel, boolean deleteVersions)
             throws RepositoryException {
@@ -225,7 +218,6 @@ public class DefaultReleaseManager implements ReleaseManager {
 
     // purgeReleases
 
-    @Override
     public void purgeReleases(final ResourceResolver resolver, final Iterable<String> rootPaths,
                               Calendar keepDate, int keepCount) {
 
@@ -233,7 +225,6 @@ public class DefaultReleaseManager implements ReleaseManager {
 
     // rollbackToRelease
 
-    @Override
     public void rollbackToRelease(final ResourceResolver resolver, final Iterable<String> rootPaths,
                                   String releaseLabel) {
 

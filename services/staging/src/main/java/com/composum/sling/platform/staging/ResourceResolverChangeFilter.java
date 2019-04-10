@@ -2,6 +2,7 @@ package com.composum.sling.platform.staging;
 
 
 import com.composum.sling.platform.staging.service.ReleaseMapper;
+import com.composum.sling.platform.staging.service.StagingReleaseManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Modified;
@@ -107,6 +108,10 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
     @Reference
     private ServletResolver servletResolver;
 
+    @Reference
+    private StagingReleaseManager releaseManager;
+
+    @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 
         if (enabled) {
@@ -122,6 +127,7 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
 
                     final String releasedLabel =
                             (String) request.getAttribute(ResourceResolverChangeFilter.ATTRIBUTE_NAME);
+
                     if (StringUtils.isNotBlank(releasedLabel)) {
                         if (LOGGER.isDebugEnabled()) {
                             LOGGER.debug("using release '" + releasedLabel + "'...");
@@ -130,6 +136,7 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
                         final ResourceResolver resourceResolver = slingRequestImpl.getResourceResolver();
                         try {
 
+                            StagingReleaseManager.Release release = releaseManager.findRelease(requestedResource, releasedLabel);
                             // if we try to cache this method object, we had to synchronize it - so leave it for now
                             // org.apache.sling.engine.impl.SlingHttpServletRequestImpl.getRequestData()
                             final Method getRequestData = slingRequestImpl.getClass().getMethod("getRequestData");
@@ -139,8 +146,8 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
                             // org.apache.sling.engine.impl.request.RequestData.initResource(ResourceResolver resourceResolver)
                             final Method initResource = requestData.getClass()
                                     .getMethod("initResource", ResourceResolver.class);
-                            final StagingResourceResolver stagingResourceResolver =
-                                    new StagingResourceResolver(delegatee, resourceResolver, releasedLabel, this);
+                            final ResourceResolver stagingResourceResolver =
+                                    releaseManager.getResolverForRelease(release, this);
                             final Object resource = initResource.invoke(requestData, stagingResourceResolver);
 
                             // if we try to cache this method object, we had to synchronize it - so leave it for now
@@ -153,6 +160,8 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
                             LOGGER.info("ResourceResolver changed to StagingResourceResolver, release: '"
                                     + releasedLabel + "'");
 
+                        } catch (StagingReleaseManager.ReleaseNotFoundException e) {
+                            LOGGER.warn("Release {} not found for {}", releasedLabel, path);
                         } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
                             LOGGER.error("can not change ResourceResolver: ", e);
                             throw new ServletException("can't switch to release '" + releasedLabel + "'");
@@ -173,11 +182,13 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
                 : null;
     }
 
+    @Override
     public boolean releaseMappingAllowed(String path, String uri) {
         return releaseMappingAllowed(path, true, allowPathPatterns, denyPathPatterns) &&
                 releaseMappingAllowed(uri, true, allowUriPatterns, denyUriPatterns);
     }
 
+    @Override
     public boolean releaseMappingAllowed(String path) {
         return releaseMappingAllowed(path, true, allowPathPatterns, denyPathPatterns);
     }
@@ -204,9 +215,11 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
         return defaultValue;
     }
 
+    @Override
     public void init(FilterConfig filterConfig) throws ServletException {
     }
 
+    @Override
     public void destroy() {
     }
 

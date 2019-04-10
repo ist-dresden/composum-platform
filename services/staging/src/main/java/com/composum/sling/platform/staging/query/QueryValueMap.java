@@ -87,7 +87,7 @@ public class QueryValueMap extends AbstractMap<String, Object> implements ValueM
             Validate.isTrue(String.class.equals(type) || Object.class.equals(type),
                     "For " + name + " only type String is supported.");
             String path = query.getString(row, columnname);
-            if (path.startsWith("/jcr:system/jcr:versionStorage") && null != query.releasedLabel && !query.path
+            if (path.startsWith("/jcr:system/jcr:versionStorage") && null != query.release.getNumber() && !query.path
                     .startsWith("/jcr:system/jcr:versionStorage")) {
                 // create real historical path for something contained in a release
                 String originalPath = query.getString(row, "query:originalPath");
