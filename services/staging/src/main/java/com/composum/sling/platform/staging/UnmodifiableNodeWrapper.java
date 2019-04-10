@@ -1,8 +1,8 @@
 package com.composum.sling.platform.staging;
 
+import com.composum.platform.commons.util.ExceptionUtil;
 import com.composum.sling.core.util.ResourceUtil;
 import org.apache.commons.collections4.IteratorUtils;
-import com.composum.platform.commons.util.ExceptionUtil;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.sling.api.resource.Resource;
@@ -12,21 +12,17 @@ import javax.annotation.Nullable;
 import javax.jcr.*;
 import javax.jcr.lock.Lock;
 import javax.jcr.lock.LockException;
-import javax.jcr.nodetype.ConstraintViolationException;
-import javax.jcr.nodetype.NoSuchNodeTypeException;
-import javax.jcr.nodetype.NodeDefinition;
-import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.*;
 import javax.jcr.version.ActivityViolationException;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.util.Calendar;
-import java.util.Iterator;
-import java.util.Objects;
+import java.util.*;
 
 import static com.composum.sling.platform.staging.StagingConstants.FROZEN_PROP_NAMES_TO_REAL_NAMES;
+import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES;
 
 /**
  * (Not quite complete) wrapper for {@link Node} that disables writing.
@@ -114,8 +110,10 @@ class UnmodifiableNodeWrapper extends AbstractUnmodifiableItem<Node> implements 
             }
             return prop;
         }
-        String simulatedName = FROZEN_PROP_NAMES_TO_REAL_NAMES.getOrDefault(relPath, relPath);
-        Property prop = wrapped.getProperty(simulatedName);
+        String realName = wrapped.isNodeType("nt:frozenNode") ?
+                REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(relPath, relPath)
+                : relPath;
+        Property prop = wrapped.getProperty(realName);
         return UnmodifiablePropertyWrapper.wrap(prop, getPath() + "/" + relPath);
     }
 
@@ -203,17 +201,51 @@ class UnmodifiableNodeWrapper extends AbstractUnmodifiableItem<Node> implements 
 
     @Override
     public NodeType getPrimaryNodeType() throws RepositoryException {
-        throw new UnsupportedOperationException("Not implemented yet."); // FIXME hps 2019-04-02 not implemented
+        try {
+            return getNodeTypeManager()
+                    .getNodeType(getProperty(ResourceUtil.PROP_PRIMARY_TYPE).getString());
+        } catch (PathNotFoundException e) {
+            return null; // no primary type property
+        }
     }
 
     @Override
     public NodeType[] getMixinNodeTypes() throws RepositoryException {
-        throw new UnsupportedOperationException("Not implemented yet."); // FIXME hps 2019-04-02 not implemented
+        Property mixinProp;
+        try {
+            mixinProp = getProperty(ResourceUtil.PROP_MIXINTYPES);
+        } catch (PathNotFoundException e) {
+            return new NodeType[0];
+        }
+        NodeTypeManager nodeTypeManager = getNodeTypeManager();
+        List<NodeType> result = new ArrayList<>();
+        for (Value val : mixinProp.getValues()) {
+            result.add(nodeTypeManager.getNodeType(val.getString()));
+        }
+        return result.toArray(new NodeType[0]);
     }
 
     @Override
     public boolean isNodeType(String nodeTypeName) throws RepositoryException {
-        throw new UnsupportedOperationException("Not implemented yet."); // FIXME hps 2019-04-02 not implemented
+        NodeType primaryNodeType = getPrimaryNodeType();
+        if (primaryNodeType != null && primaryNodeType.isNodeType(nodeTypeName))
+            return true;
+        for (NodeType nodeType : getMixinNodeTypes()) {
+            if (nodeType.isNodeType(nodeTypeName))
+                return true;
+        }
+        return false;
+    }
+
+    @Nonnull
+    protected NodeTypeManager getNodeTypeManager() throws RepositoryException {
+        try {
+            Session session = resource.getResourceResolver().adaptTo(Session.class);
+            Workspace workspace = session.getWorkspace();
+            return Objects.requireNonNull(workspace.getNodeTypeManager());
+        } catch (NullPointerException e) {
+            throw new RepositoryException("Cannot get NodeTypeManager", e);
+        }
     }
 
     // ========================= Stuff we probably don't need, but what could in theory be supported.

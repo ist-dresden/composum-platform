@@ -90,9 +90,10 @@ class StagingResourceValueMap extends ValueMapDecorator {
     }
 
     /** Remove mix:versionable since it's attributes do not make sense here. */
-    protected Object cleanupMixinTypes(Object rawMixinTypes, @Nonnull Class<?> expectedClass) {
+    protected Object cleanupMixinTypes(Object rawMixinTypes, Class<?> expectedClass) {
         Object result = rawMixinTypes;
-        if (rawMixinTypes instanceof String[]) {
+        if (rawMixinTypes instanceof String[] &&
+                (expectedClass == null || expectedClass.isAssignableFrom(String[].class))) {
             String[] mixins = (String[]) rawMixinTypes;
             if (mixins != null) {
                 mixins = Arrays.asList(mixins).stream()
@@ -104,8 +105,9 @@ class StagingResourceValueMap extends ValueMapDecorator {
                     result = mixins;
                 }
             }
-        } else {
-            LOG.warn("Requesting mixins with unsupported type {}", expectedClass.getName());
+        } else if (rawMixinTypes != null) {
+            LOG.warn("Requesting mixins with unsupported type {} expecting {}",
+                    rawMixinTypes.getClass().getName(), expectedClass != null ? expectedClass.getName() : null);
         }
         return result;
     }

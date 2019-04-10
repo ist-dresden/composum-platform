@@ -87,50 +87,6 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     }
 
     @Test
-    public void checkFrozenValuemap() throws Exception {
-        ResourceBuilder versionableResourceBuilder = context.build().resource("/versioned/node", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
-                PROP_MIXINTYPES, array(TYPE_VERSIONABLE, TYPE_TITLE, TYPE_LAST_MODIFIED), "foo", "bar", PROP_TITLE, "title");
-        versionableResourceBuilder.resource("sub", "nix", "nux");
-        Resource versionedNode = versionableResourceBuilder.commit().getCurrentParent();
-        Version version = versionManager.checkin(versionedNode.getPath());
-        Resource frozenNode = context.resourceResolver().resolve(version.getFrozenNode().getPath());
-
-        JcrTestUtils.printResourceRecursivelyAsJson(versionedNode);
-        JcrTestUtils.printResourceRecursivelyAsJson(frozenNode);
-        StagingResourceValueMap vm = new StagingResourceValueMap(frozenNode.getValueMap());
-        StagingResourceValueMap vmsub = new StagingResourceValueMap(frozenNode.getChild("sub").getValueMap());
-
-        new SlingAssertionCodeGenerator("vm", vm).useErrorCollector().printAssertions().printMapAssertions();
-        new SlingAssertionCodeGenerator("vmsub", vmsub).useErrorCollector().printAssertions().printMapAssertions();
-
-        errorCollector.checkThat(vm.get(PROP_MIXINTYPES, String[].class), arrayContainingInAnyOrder(TYPE_TITLE, TYPE_LAST_MODIFIED));
-
-        errorCollector.checkThat(vm.isEmpty(), is(false));
-        errorCollector.checkThat(vm.entrySet(), iterableWithSize(7));
-        errorCollector.checkThat(vm.keySet(), contains("jcr:lastModifiedBy", "jcr:lastModified", "foo", "jcr:uuid", "jcr:primaryType", "jcr:title", "jcr:mixinTypes"));
-        errorCollector.checkThat(vm.size(), is(7));
-        errorCollector.checkThat(vm.values(), iterableWithSize(7));
-
-        errorCollector.checkThat(vm.size(), is(7));
-        errorCollector.checkThat(vm.get("jcr:uuid"), stringMatchingPattern("[0-9a-f-]{36}"));
-        errorCollector.checkThat(vm.get("foo"), is("bar"));
-        errorCollector.checkThat(vm.get("jcr:title"), is("title"));
-        errorCollector.checkThat(vm.get("jcr:lastModifiedBy"), is("admin"));
-        errorCollector.checkThat(vm.get("jcr:lastModified"), instanceOf(java.util.Calendar.class));
-        errorCollector.checkThat(vm.get("jcr:primaryType"), is("nt:unstructured"));
-        errorCollector.checkThat((String[]) vm.get("jcr:mixinTypes"), arrayContainingInAnyOrder("mix:lastModified", "mix:title"));
-
-        errorCollector.checkThat(vmsub.isEmpty(), is(false));
-        errorCollector.checkThat(vmsub.entrySet(), iterableWithSize(2));
-        errorCollector.checkThat(vmsub.keySet(), contains("jcr:primaryType", "nix"));
-        errorCollector.checkThat(vmsub.size(), is(2));
-        errorCollector.checkThat(vmsub.values(), contains("nt:unstructured", "nux"));
-
-        errorCollector.checkThat(vmsub.get("jcr:primaryType"), is("nt:unstructured"));
-        errorCollector.checkThat(vmsub.get("nix"), is("nux"));
-    }
-
-    @Test
     public void printSetup() throws Exception {
         assertNotNull(context.resourceResolver().getResource(folder));
         JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource(folder));
@@ -335,6 +291,60 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
                 errorCollector.checkThat(primaryType.getName(), is(PROP_PRIMARY_TYPE));
             }
         }
+    }
+
+    @Test
+    public void testPrimaryType() throws RepositoryException {
+        errorCollector.checkThat(ResourceUtil.getPrimaryType(context.resourceResolver().getResource(node1)), equalTo("rep:Unstructured"));
+        errorCollector.checkThat(context.resourceResolver().getResource(node1).adaptTo(Node.class).isNodeType("rep:Unstructured"), equalTo(true));
+        errorCollector.checkThat(ResourceUtil.getPrimaryType(stagingResourceResolver.getResource(node1)), equalTo("rep:Unstructured"));
+        errorCollector.checkThat(stagingResourceResolver.getResource(node1).adaptTo(Node.class).isNodeType("rep:Unstructured"), equalTo(true));
+        errorCollector.checkThat(ResourceUtil.getPrimaryType(context.resourceResolver().getResource(node1).getChild(PROP_PRIMARY_TYPE)), nullValue());
+        errorCollector.checkThat(ResourceUtil.getPrimaryType(stagingResourceResolver.getResource(node1).getChild(PROP_PRIMARY_TYPE)), nullValue());
+    }
+
+    @Test
+    public void checkFrozenValuemap() throws Exception {
+        ResourceBuilder versionableResourceBuilder = context.build().resource("/versioned/node", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+                PROP_MIXINTYPES, array(TYPE_VERSIONABLE, TYPE_TITLE, TYPE_LAST_MODIFIED), "foo", "bar", PROP_TITLE, "title");
+        versionableResourceBuilder.resource("sub", "nix", "nux");
+        Resource versionedNode = versionableResourceBuilder.commit().getCurrentParent();
+        Version version = versionManager.checkin(versionedNode.getPath());
+        Resource frozenNode = context.resourceResolver().resolve(version.getFrozenNode().getPath());
+
+        JcrTestUtils.printResourceRecursivelyAsJson(versionedNode);
+        JcrTestUtils.printResourceRecursivelyAsJson(frozenNode);
+        StagingResourceValueMap vm = new StagingResourceValueMap(frozenNode.getValueMap());
+        StagingResourceValueMap vmsub = new StagingResourceValueMap(frozenNode.getChild("sub").getValueMap());
+
+        new SlingAssertionCodeGenerator("vm", vm).useErrorCollector().printAssertions().printMapAssertions();
+        new SlingAssertionCodeGenerator("vmsub", vmsub).useErrorCollector().printAssertions().printMapAssertions();
+
+        errorCollector.checkThat(vm.get(PROP_MIXINTYPES, String[].class), arrayContainingInAnyOrder(TYPE_TITLE, TYPE_LAST_MODIFIED));
+
+        errorCollector.checkThat(vm.isEmpty(), is(false));
+        errorCollector.checkThat(vm.entrySet(), iterableWithSize(7));
+        errorCollector.checkThat(vm.keySet(), contains("jcr:lastModifiedBy", "jcr:lastModified", "foo", "jcr:uuid", "jcr:primaryType", "jcr:title", "jcr:mixinTypes"));
+        errorCollector.checkThat(vm.size(), is(7));
+        errorCollector.checkThat(vm.values(), iterableWithSize(7));
+
+        errorCollector.checkThat(vm.size(), is(7));
+        errorCollector.checkThat(vm.get("jcr:uuid"), stringMatchingPattern("[0-9a-f-]{36}"));
+        errorCollector.checkThat(vm.get("foo"), is("bar"));
+        errorCollector.checkThat(vm.get("jcr:title"), is("title"));
+        errorCollector.checkThat(vm.get("jcr:lastModifiedBy"), is("admin"));
+        errorCollector.checkThat(vm.get("jcr:lastModified"), instanceOf(java.util.Calendar.class));
+        errorCollector.checkThat(vm.get("jcr:primaryType"), is("nt:unstructured"));
+        errorCollector.checkThat((String[]) vm.get("jcr:mixinTypes"), arrayContainingInAnyOrder("mix:lastModified", "mix:title"));
+
+        errorCollector.checkThat(vmsub.isEmpty(), is(false));
+        errorCollector.checkThat(vmsub.entrySet(), iterableWithSize(2));
+        errorCollector.checkThat(vmsub.keySet(), contains("jcr:primaryType", "nix"));
+        errorCollector.checkThat(vmsub.size(), is(2));
+        errorCollector.checkThat(vmsub.values(), contains("nt:unstructured", "nux"));
+
+        errorCollector.checkThat(vmsub.get("jcr:primaryType"), is("nt:unstructured"));
+        errorCollector.checkThat(vmsub.get("nix"), is("nux"));
     }
 
     /**
