@@ -183,7 +183,7 @@ public class PlaceholderServiceImpl implements PlaceholderService {
 
         @Override
         public int compareTo(@Nonnull final ValueProviderReference other) {
-            return Integer.compare(getRanking(), other.getRanking());
+            return Integer.compare(other.getRanking(), getRanking()); // sort descending
         }
 
         // Object
