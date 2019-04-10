@@ -3,7 +3,8 @@ package com.composum.sling.platform.staging;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.ValueMap;
 import org.apache.sling.api.wrappers.ValueMapDecorator;
-import org.apache.sling.api.wrappers.impl.ObjectConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -18,6 +19,8 @@ import static org.apache.jackrabbit.JcrConstants.*;
  * Emulates the normal {@link ValueMap} from the {@link ValueMap} of a frozen resource.
  */
 class StagingResourceValueMap extends ValueMapDecorator {
+
+    private static final Logger LOG = LoggerFactory.getLogger(StagingResourceValueMap.class);
 
     /**
      * Creates a new wrapper around a given value map of a frozen node.
@@ -87,10 +90,10 @@ class StagingResourceValueMap extends ValueMapDecorator {
     }
 
     /** Remove mix:versionable since it's attributes do not make sense here. */
-    protected Object cleanupMixinTypes(Object rawMixinTypes, Class<?> expectedClass) {
+    protected Object cleanupMixinTypes(Object rawMixinTypes, @Nonnull Class<?> expectedClass) {
         Object result = rawMixinTypes;
-        if (rawMixinTypes != null) {
-            String[] mixins = ObjectConverter.convert(rawMixinTypes, String[].class);
+        if (rawMixinTypes instanceof String[]) {
+            String[] mixins = (String[]) rawMixinTypes;
             if (mixins != null) {
                 mixins = Arrays.asList(mixins).stream()
                         .filter((m) -> !MIX_VERSIONABLE.equals(m))
@@ -98,10 +101,11 @@ class StagingResourceValueMap extends ValueMapDecorator {
                         .toArray(new String[0]);
                 if (mixins.length == 0) rawMixinTypes = null;
                 else {
-                    Class<?> type = expectedClass != null ? expectedClass : rawMixinTypes.getClass();
-                    result = ObjectConverter.convert(mixins, type);
+                    result = mixins;
                 }
             }
+        } else {
+            LOG.warn("Requesting mixins with unsupported type {}", expectedClass.getName());
         }
         return result;
     }
