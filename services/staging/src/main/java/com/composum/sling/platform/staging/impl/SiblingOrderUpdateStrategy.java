@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeType;
@@ -41,6 +42,7 @@ public class SiblingOrderUpdateStrategy {
     private static final Logger LOG = LoggerFactory.getLogger(SiblingOrderUpdateStrategy.class);
 
     public enum Result {
+        /** The node's siblings are in a parent that supports no child ordering. */
         notOrderable,
         /** The node seemed to be at its right place - nothing changed. */
         unchanged,
@@ -50,7 +52,17 @@ public class SiblingOrderUpdateStrategy {
          * The algorithm had to use some sort of heuristic, which means that the user should be alerted since that might
          * not have been his/her intention.
          */
-        heuristicallyReordered
+        heuristicallyReordered;
+
+        /** The "worst" result of r1 and r2 - the one that has the largest likelyhood of attention by the user. */
+        @Nullable
+        public static Result max(@Nullable Result r1, @Nullable Result r2) {
+            if (r1 == null) return r2;
+            if (r2 == null) return r1;
+            int i1 = Arrays.asList(Result.values()).indexOf(r1);
+            int i2 = Arrays.asList(Result.values()).indexOf(r2);
+            return Result.values()[Math.max(i1, i2)];
+        }
     }
 
     /**
@@ -79,7 +91,7 @@ public class SiblingOrderUpdateStrategy {
 
         Orderer orderer = new Orderer(sourceOrdering, destinationOrdering, sourceNode.getName()).run();
         adaptSiblingOrder(destinationNode, orderer.ordering, destinationOrdering);
-        return Result.unchanged;
+        return orderer.result;
     }
 
     protected void adaptSiblingOrder(ResourceHandle destinationNode, List<String> ordering, List<String> originalDestinationOrdering) throws RepositoryException {

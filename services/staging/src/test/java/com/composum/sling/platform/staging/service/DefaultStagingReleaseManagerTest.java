@@ -3,6 +3,7 @@ package com.composum.sling.platform.staging.service;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.StagingConstants;
+import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import com.composum.sling.platform.staging.service.StagingReleaseManager.Release;
 import com.composum.sling.platform.staging.service.StagingReleaseManager.ReleasedVersionable;
 import com.composum.sling.platform.staging.testutil.ErrorCollectorAlwaysPrintingFailures;
@@ -29,7 +30,9 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
@@ -81,7 +84,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
     @After
     public void printJcr() {
-        JcrTestUtils.printResourceRecursivelyAsJson(releaseRoot);
+        if (0 == 0) JcrTestUtils.printResourceRecursivelyAsJson(releaseRoot);
     }
 
 
@@ -150,16 +153,18 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         context.resourceResolver().commit();
         Resource newVersionable = context.resourceResolver().getResource(newPath);
 
-        service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(newVersionable));
+        Map<String, SiblingOrderUpdateStrategy.Result> updateResult = service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(newVersionable));
         context.resourceResolver().commit();
+        ec.checkThat(updateResult.toString(), equalTo("{}"));
         ec.checkThat(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/a"), nullValue()); // parent was orphan
         referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/b/c/jcr:content"), newVersionable, version);
 
         Version version2 = versionManager.checkpoint(newPath);
         referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/b/c/jcr:content"), newVersionable, version);
 
-        service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(newVersionable));
+        updateResult = service.updateRelease(currentRelease, Arrays.asList(ReleasedVersionable.forBaseVersion(newVersionable), ReleasedVersionable.forBaseVersion(newVersionable)));
         context.resourceResolver().commit();
+        ec.checkThat(updateResult.toString(), equalTo("{}"));
         referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/b/c/jcr:content"), newVersionable, version2);
 
         ResourceResolver stagedResolver = service.getResolverForRelease(currentRelease, null);
@@ -197,6 +202,17 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
                         .sorted(ReleaseNumberCreator.COMPARATOR_RELEASES)
                         .collect(Collectors.joining(", ")),
                 equalTo("cpl:current, r1, r1.0.1, r1.1, r1.2, r2"));
+
+        service.removeRelease(rel101);
+        service.removeRelease(rel12);
+
+        ec.checkThat(service.getReleases(releaseRoot).stream()
+                        .map(Release::getNumber)
+                        .sorted(ReleaseNumberCreator.COMPARATOR_RELEASES)
+                        .collect(Collectors.joining(", ")),
+                equalTo("cpl:current, r1, r1.1, r2"));
+
+        ec.checkThat(service.findReleaseByUuid(releaseRoot, rel11.getUuid()).getNumber(), equalTo("r1.1"));
     }
 
     @Test
@@ -204,12 +220,14 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         Resource document1 = releaseRootBuilder.resource("document1", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                 PROP_MIXINTYPES, array(TYPE_VERSIONABLE)).commit().getCurrentParent();
         versionManager.checkpoint(document1.getPath());
-        service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(document1));
+        Map<String, SiblingOrderUpdateStrategy.Result> updateResult = service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(document1));
+        ec.checkThat(updateResult.toString(), equalTo("{}"));
 
         Resource document2 = releaseRootBuilder.resource("document2", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                 PROP_MIXINTYPES, array(TYPE_VERSIONABLE)).commit().getCurrentParent();
         versionManager.checkpoint(document2.getPath());
-        service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(document2));
+        updateResult = service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(document2));
+        ec.checkThat(updateResult.toString(), equalTo("{}"));
 
         ResourceResolver stagedResolver = service.getResolverForRelease(currentRelease, null);
         ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document1", "document2"));
@@ -219,7 +237,8 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         // no change after staging yet
         ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document1", "document2"));
 
-        service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(document1));
+        updateResult = service.updateRelease(currentRelease, Arrays.asList(ReleasedVersionable.forBaseVersion(document1), ReleasedVersionable.forBaseVersion(document2)));
+        ec.checkThat(updateResult.toString(), equalTo("{/content/site=deterministicallyReordered}"));
 
         ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document2", "document1"));
     }

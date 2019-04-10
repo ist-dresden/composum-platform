@@ -31,6 +31,7 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * Default implementation of {@link StagingReleaseManager} - description see there.
+ * // FIXME hps 2019-04-10 change lastupdate on release node.
  *
  * @see StagingReleaseManager
  */
@@ -168,6 +169,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     }
 
     @Override
+    @Nonnull
     public Map<String, Result> updateRelease(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         Resource releaseWorkspaceCopy = release.getWorkspaceCopyNode();
@@ -194,9 +196,30 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         }
 
         releasedVersionable.writeToVersionReference(requireNonNull(versionReference));
-        // FIXME hps 2019-04-05 handle ordering and super attributes; and removal of obsolete nodes.
 
         return updateParents(release, releasedVersionable);
+    }
+
+    @Override
+    public Map<String, Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException {
+        Map<String, Result> result = new TreeMap<>();
+        for (ReleasedVersionable releasedVersionable : releasedVersionableList) {
+            Map<String, Result> partialResult = updateRelease(release, releasedVersionable);
+            for (Map.Entry<String, Result> entry : partialResult.entrySet()) {
+                Result oldResult = result.get(entry.getKey());
+                Result combinedResult = Result.max(oldResult, entry.getValue());
+                result.put(entry.getKey(), combinedResult);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public void removeRelease(@Nonnull Release rawRelease) throws PersistenceException {
+        ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
+        LOG.info("removeRelease {}", release);
+        Resource releaseNode = release.getReleaseNode();
+        releaseNode.getResourceResolver().delete(releaseNode);
     }
 
     /**
@@ -206,7 +229,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
      */
     @Nonnull
     protected Map<String, Result> updateParents(ReleaseImpl release, ReleasedVersionable releasedVersionable) throws RepositoryException {
-        Map<String, Result> resultMap = new LinkedHashMap<>();
+        Map<String, Result> resultMap = new TreeMap<>();
 
         String[] levels = releasedVersionable.getRelativePath().split("/");
         ResourceHandle inWorkspace = ResourceHandle.use(release.getReleaseRoot());
@@ -252,6 +275,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         while (resource != null && !resource.getPath().equals(releaseWorkspaceCopyPath)
                 && !ResourceHandle.use(resource).isOfType(TYPE_VERSIONREFERENCE) && !resource.hasChildren()) {
             Resource tmp = resource.getParent();
+            LOG.info("Deleting obsolete {}", resource.getPath());
             resource.getResourceResolver().delete(resource);
             resource = tmp;
         }

@@ -1,7 +1,6 @@
 package com.composum.sling.platform.staging.service;
 
 import com.composum.sling.core.ResourceHandle;
-import com.composum.sling.core.util.PropertyUtil;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
@@ -122,12 +121,34 @@ public interface StagingReleaseManager extends StagingConstants {
      * Updates the release by adding or updating the versionable denoted by {releasedVersionable} in the release.
      * If {@link ReleasedVersionable#versionUuid} is null, it is removed from the release.
      *
-     * @param versionablePaths a number of paths to versionables for which the latest version should be put into the release
      * @param release          the release to update
+     * @param releasedVersionable information of the versionable to update
      * @throws ReleaseNotFoundException if the copied release doesn't exist
      * @return a map with paths where we changed the order of children in the release.
      */
+    @Nonnull
     Map<String, SiblingOrderUpdateStrategy.Result> updateRelease(@Nonnull Release release, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException;
+
+    /**
+     * Updates the release by adding or updating a number of versionables denoted by {releasedVersionable} in the release.
+     * If {@link ReleasedVersionable#versionUuid} is null, it is removed from the release.
+     *
+     * @param release                 the release to update
+     * @param releasedVersionableList a number of paths to versionables for which the latest version should be put into the release
+     * @return a map with paths where we changed the order of children in the release.
+     * @throws ReleaseNotFoundException if the copied release doesn't exist
+     */
+    @Nonnull
+    Map<String, SiblingOrderUpdateStrategy.Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException;
+
+    /**
+     * Removes the release. Deleting the {@link StagingConstants#NODE_CURRENT_RELEASE} is also possible, though it'll
+     * be recreated automatically when calling one of the get / find release methods.
+     *
+     * @param release the release, as given by {@link #findRelease(Resource, String)} or {@link #findReleaseByUuid(Resource, String)}.
+     * @throws PersistenceException can happen e.g. when deleting a release that is referenced somewhere
+     */
+    void removeRelease(@Nonnull Release release) throws PersistenceException;
 
     /**
      * Creates a {@link com.composum.sling.platform.staging.StagingResourceResolverImpl} that presents the given release.
