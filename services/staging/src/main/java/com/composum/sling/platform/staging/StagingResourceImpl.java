@@ -58,6 +58,11 @@ class StagingResourceImpl extends AbstractResource implements JcrResource {
         this.resolver = resolver;
         this.underlyingResource = underlyingResource;
         this.pathInfo = pathInfo;
+        if (underlyingResource.isResourceType(StagingConstants.TYPE_VERSIONREFERENCE) ||
+                underlyingResource.isResourceType(StagingConstants.TYPE_MIX_RELEASE_ROOT)) {
+            // safety check - these are boundaries where the resolver should have switched to another resource.
+            throw new IllegalArgumentException("Bug: underlying resource is " + underlyingResource.getPath());
+        }
     }
 
     @Override
