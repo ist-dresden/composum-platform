@@ -91,6 +91,7 @@ public abstract class AbstractStagingTest {
                         Resource sameChild = parent.getChild(resource.getName());
                         assertThat("Parent should have resource as child: " + resource, sameChild, exists());
                         assertEquals(resource.getPath(), sameChild.getPath());
+                        assertEquals(resource.getValueMap().get(PROP_PRIMARY_TYPE), sameChild.getValueMap().get(PROP_PRIMARY_TYPE));
                         resource = parent;
                     }
                 }

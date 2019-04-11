@@ -3,6 +3,7 @@ package com.composum.sling.platform.staging;
 import com.composum.platform.commons.util.ExceptionUtil;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.service.StagingReleaseManager;
 import com.composum.sling.platform.staging.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.staging.testutil.JcrTestUtils;
@@ -11,6 +12,8 @@ import com.composum.sling.platform.staging.testutil.SlingMatchers;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.sling.api.resource.*;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
@@ -88,6 +91,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
     @Test
     public void printSetup() throws Exception {
+        System.out.println(ReflectionToStringBuilder.toString(this, ToStringStyle.MULTI_LINE_STYLE));
         assertNotNull(context.resourceResolver().getResource(folder));
         JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource(folder));
         JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/jcr:system/jcr:versionStorage"));
@@ -259,6 +263,20 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     }
 
     @Test
+    public void deepRead() throws Exception {
+        String relPath = SlingResourceUtil.relativePath(folder + "/..", node2);
+        { // deep read works normally
+            Resource top = context.resourceResolver().getResource(folder).getParent();
+            errorCollector.checkThat(top.getValueMap().get(relPath + "/jcr:title"), equalTo("n2"));
+        }
+        { // and also here.
+            deleteInJcr(document1, document2); // make sure we read from version space
+            Resource top = stagingResourceResolver.getResource(folder).getParent();
+            errorCollector.checkThat(top.getValueMap().get(relPath + "/jcr:title"), equalTo("n2"));
+        }
+    }
+
+    @Test
     public void testAdaptToJcrTypes() throws Exception {
         deleteInJcr(document1, document2); // make sure we read from version space
 
@@ -301,7 +319,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
             }
         }
 
-        List<Property> props = IteratorUtils.toList(stagingResourceResolver.resolve(node1).adaptTo(Node.class).getProperties());
+        List<Property> props = IteratorUtils.<Property>toList(stagingResourceResolver.resolve(node1).adaptTo(Node.class).getProperties());
         props.sort(Comparator.comparing(ExceptionUtil.sneakExceptions(Property::getName)));
         errorCollector.checkThat(
                 props.stream().map(ExceptionUtil.sneakExceptions(Property::getName)).collect(Collectors.joining(", ")),

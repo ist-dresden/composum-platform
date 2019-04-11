@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.*;
+import org.apache.sling.api.wrappers.DeepReadValueMapDecorator;
 import org.apache.sling.jcr.resource.api.JcrResourceConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -127,8 +128,9 @@ class StagingResourceImpl extends AbstractResource implements JcrResource {
     @Nonnull
     @Override
     public ValueMap getValueMap() {
-        return StagingUtils.isInVersionStorage(underlyingResource) ?
+        ValueMap valueMap = StagingUtils.isInVersionStorage(underlyingResource) ?
                 new StagingResourceValueMap(underlyingResource.getValueMap()) : underlyingResource.getValueMap();
+        return new DeepReadValueMapDecorator(this, valueMap);
     }
 
     @Override

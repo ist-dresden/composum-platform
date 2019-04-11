@@ -191,7 +191,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         Iterator<Resource> children = stagingResource.underlyingResource.listChildren();
         Iterator<Resource> resourceIterator = IteratorUtils.filteredIterator(
                 IteratorUtils.transformedIterator(children, (r) ->
-                        wrapIntoStagingResource(parent.getPath() + "/" + r.getName(), r, null, false)
+                        wrapIntoStagingResource(parent.getPath() + "/" + r.getName(), stepResource(r), null, false)
                 ),
                 (child) -> child != null && !ResourceUtil.isNonExistingResource(child) && !isFilteredPath(child.getPath())
         );
