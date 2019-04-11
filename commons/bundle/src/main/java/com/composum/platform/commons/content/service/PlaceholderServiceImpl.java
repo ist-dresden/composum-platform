@@ -5,6 +5,7 @@
  */
 package com.composum.platform.commons.content.service;
 
+import com.composum.platform.commons.osgi.ServiceManager;
 import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.util.ValueEmbeddingReader;
 import org.apache.commons.io.IOUtils;
@@ -28,10 +29,8 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -43,7 +42,8 @@ import java.util.regex.Pattern;
                 Constants.SERVICE_DESCRIPTION + "=Composum Platform Placeholder Service"
         }
 )
-public class PlaceholderServiceImpl implements PlaceholderService {
+public class PlaceholderServiceImpl extends ServiceManager<PlaceholderService.ValueProvider>
+        implements PlaceholderService {
 
     private static final Logger LOG = LoggerFactory.getLogger(PlaceholderServiceImpl.class);
 
@@ -51,20 +51,29 @@ public class PlaceholderServiceImpl implements PlaceholderService {
 
     protected static final Object NULL = "";
 
-    protected BundleContext bundleContext;
+    @Reference(
+            service = ValueProvider.class,
+            policy = ReferencePolicy.DYNAMIC,
+            cardinality = ReferenceCardinality.MULTIPLE
+    )
+    protected void bindValueProvider(@Nonnull final ServiceReference<ValueProvider> serviceReference) {
+        bindReference(serviceReference);
+    }
 
-    protected List<ValueProviderReference> valueProviders = Collections.synchronizedList(new ArrayList<>());
+    protected void unbindValueProvider(@Nonnull final ServiceReference<ValueProvider> serviceReference) {
+        unbindReference(serviceReference);
+    }
 
     @Activate
     protected void activate(final BundleContext bundleContext) {
-        this.bundleContext = bundleContext;
+        super.activate(bundleContext);
     }
 
     protected <T> T getProviderValue(@Nonnull final BeanContext context,
                                      @Nonnull final String key, @Nonnull final Class<T> type) {
         T value;
-        for (ValueProviderReference reference : valueProviders) {
-            if ((value = reference.getProvider().getValue(context, key, type)) != null) {
+        for (ManagedReference reference : references) {
+            if ((value = reference.getService().getValue(context, key, type)) != null) {
                 return value;
             }
         }
@@ -147,74 +156,5 @@ public class PlaceholderServiceImpl implements PlaceholderService {
     public Reader getEmbeddingReader(@Nonnull final BeanContext context,
                                      @Nonnull final Reader reader, @Nonnull final Map<String, Object> values) {
         return new ValueEmbeddingReader(reader, getValueMap(context, values), context.getLocale(), getClass());
-    }
-
-    // value provider management
-
-    protected class ValueProviderReference implements Comparable<ValueProviderReference> {
-
-        public final ServiceReference<ValueProvider> reference;
-        public final long serviceId;
-        public final int ranking;
-
-        private transient ValueProvider provider;
-
-        public ValueProviderReference(ServiceReference<ValueProvider> reference) {
-            this.reference = reference;
-            this.serviceId = (Long) reference.getProperty(Constants.SERVICE_ID);
-            final Object property = reference.getProperty(Constants.SERVICE_RANKING);
-            this.ranking = !(property instanceof Integer) ? 0 : (Integer) property;
-        }
-
-        public ValueProvider getProvider() {
-            if (provider == null) {
-                provider = bundleContext.getService(reference);
-            }
-            return provider;
-        }
-
-        public long getServieId() {
-            return serviceId;
-        }
-
-        public int getRanking() {
-            return ranking;
-        }
-
-        @Override
-        public int compareTo(@Nonnull final ValueProviderReference other) {
-            return Integer.compare(other.getRanking(), getRanking()); // sort descending
-        }
-
-        // Object
-
-        @Override
-        public boolean equals(Object other) {
-            return other instanceof ValueProviderReference
-                    && ((ValueProviderReference) other).getServieId() == getServieId();
-        }
-
-        @Override
-        public int hashCode() {
-            return reference.hashCode();
-        }
-    }
-
-    @Reference(
-            service = ValueProvider.class,
-            policy = ReferencePolicy.DYNAMIC,
-            cardinality = ReferenceCardinality.MULTIPLE
-    )
-    protected void bindValueProvider(@Nonnull final ServiceReference<ValueProvider> serviceReference) {
-        final ValueProviderReference reference = new ValueProviderReference(serviceReference);
-        LOG.info("bindValueProvider: {}", reference);
-        valueProviders.add(reference);
-        Collections.sort(valueProviders);
-    }
-
-    protected void unbindValueProvider(@Nonnull final ServiceReference<ValueProvider> serviceReference) {
-        final ValueProviderReference reference = new ValueProviderReference(serviceReference);
-        LOG.info("unbindValueProvider: {}", reference);
-        valueProviders.remove(reference);
     }
 }
