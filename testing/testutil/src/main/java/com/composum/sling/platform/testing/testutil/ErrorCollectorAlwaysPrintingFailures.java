@@ -1,4 +1,4 @@
-package com.composum.sling.platform.staging.testutil;
+package com.composum.sling.platform.testing.testutil;
 
 import org.hamcrest.Matcher;
 import org.junit.runner.Description;

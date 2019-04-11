@@ -2,7 +2,7 @@ package com.composum.sling.platform.staging.query;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.platform.staging.AbstractStagingTest;
-import com.composum.sling.platform.staging.testutil.JcrTestUtils;
+import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;

@@ -1,7 +1,7 @@
 package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Result;
-import com.composum.sling.platform.staging.testutil.ErrorCollectorAlwaysPrintingFailures;
+import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import org.junit.Rule;
 import org.junit.Test;
 

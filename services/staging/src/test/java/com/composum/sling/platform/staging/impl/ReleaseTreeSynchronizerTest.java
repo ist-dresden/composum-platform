@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
-import static com.composum.sling.platform.staging.testutil.JcrTestUtils.array;
+import static com.composum.sling.platform.testing.testutil.JcrTestUtils.array;
 import static org.junit.Assert.*;
 
 /**

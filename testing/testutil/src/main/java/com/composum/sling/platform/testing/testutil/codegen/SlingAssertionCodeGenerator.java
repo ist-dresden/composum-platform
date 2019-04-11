@@ -1,7 +1,6 @@
-package com.composum.sling.platform.staging.testutil;
+package com.composum.sling.platform.testing.testutil.codegen;
 
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.ListUtils;
+import com.composum.sling.platform.testing.testutil.SlingMatchers;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.hamcrest.Matchers;
@@ -9,7 +8,6 @@ import org.hamcrest.Matchers;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.StringJoiner;
 
 /** Extends the {@link AssertionCodeGenerator} with some Sling specific stuff. */
 public class SlingAssertionCodeGenerator extends AssertionCodeGenerator {

@@ -1,6 +1,7 @@
-package com.composum.sling.platform.staging.testutil;
+package com.composum.sling.platform.testing.testutil.codegen;
 
-import org.apache.commons.collections4.ComparatorUtils;
+import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
+import com.composum.sling.platform.testing.testutil.SlingMatchers;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.commons.lang3.reflect.TypeUtils;
@@ -10,7 +11,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.is;

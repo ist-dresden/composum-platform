@@ -1,4 +1,4 @@
-package com.composum.sling.platform.staging.testutil;
+package com.composum.sling.platform.testing.testutil;
 
 import com.composum.sling.core.mapping.MappingRules;
 import com.composum.sling.core.util.JsonUtil;

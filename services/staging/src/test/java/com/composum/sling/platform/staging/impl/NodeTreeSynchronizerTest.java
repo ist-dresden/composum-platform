@@ -1,7 +1,6 @@
 package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
-import com.composum.sling.platform.staging.testutil.JcrTestUtils;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
@@ -15,7 +14,7 @@ import javax.jcr.Session;
 import java.util.Arrays;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
-import static com.composum.sling.platform.staging.testutil.JcrTestUtils.array;
+import static com.composum.sling.platform.testing.testutil.JcrTestUtils.array;
 import static org.junit.Assert.*;
 
 @SuppressWarnings("ConstantConditions")

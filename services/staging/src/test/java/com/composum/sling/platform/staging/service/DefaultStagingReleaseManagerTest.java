@@ -6,9 +6,8 @@ import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import com.composum.sling.platform.staging.service.StagingReleaseManager.Release;
 import com.composum.sling.platform.staging.service.StagingReleaseManager.ReleasedVersionable;
-import com.composum.sling.platform.staging.testutil.ErrorCollectorAlwaysPrintingFailures;
-import com.composum.sling.platform.staging.testutil.JcrTestUtils;
-import com.composum.sling.platform.staging.testutil.SlingMatchers;
+import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
+import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.sling.api.resource.PersistenceException;
@@ -25,7 +24,6 @@ import org.junit.runners.MethodSorters;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NodeType;
-import javax.jcr.query.Query;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
 import java.io.IOException;
@@ -36,9 +34,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
-import static com.composum.sling.platform.staging.testutil.JcrTestUtils.array;
-import static com.composum.sling.platform.staging.testutil.SlingMatchers.exceptionOf;
-import static com.composum.sling.platform.staging.testutil.SlingMatchers.throwableWithMessage;
+import static com.composum.sling.platform.testing.testutil.JcrTestUtils.array;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.exceptionOf;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.throwableWithMessage;
 import static org.hamcrest.Matchers.*;
 
 /**

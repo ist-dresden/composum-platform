@@ -27,9 +27,8 @@ import javax.jcr.version.VersionManager;
 import java.util.Calendar;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
-import static com.composum.sling.platform.staging.testutil.MockitoMatchers.argThat;
-import static com.composum.sling.platform.staging.testutil.SlingMatchers.satisfies;
-import static org.hamcrest.Matchers.isA;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.satisfies;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;

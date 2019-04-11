@@ -1,4 +1,4 @@
-package com.composum.sling.platform.staging.testutil;
+package com.composum.sling.platform.testing.testutil;
 
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.collections4.IteratorUtils;
@@ -121,7 +121,7 @@ public class SlingMatchers extends org.hamcrest.Matchers {
 
     @Nonnull
     public static <T> Matcher<T> satisfies(@Nullable String message, @Nonnull Predicate<T> predicate) {
-        return mappedMatches(message, predicate::test, is(true));
+        return mappedMatches(message, predicate::test, Matchers.is(true));
     }
 
     public static Matcher<Throwable> throwableWithMessage(Class<? extends Throwable> clazz, String pattern) {

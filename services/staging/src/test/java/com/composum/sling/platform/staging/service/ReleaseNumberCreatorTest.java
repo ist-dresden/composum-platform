@@ -1,6 +1,6 @@
 package com.composum.sling.platform.staging.service;
 
-import com.composum.sling.platform.staging.testutil.ErrorCollectorAlwaysPrintingFailures;
+import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import org.junit.Rule;
 import org.junit.Test;
 
