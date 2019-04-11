@@ -72,8 +72,9 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         assertEquals(3, nodeTypes.length);
 
         folder = "/folder";
-        builderAtFolder = context.build().resource(folder, ResourceUtil.PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
-                ResourceUtil.PROP_MIXINTYPES, array(TYPE_MIX_RELEASE_ROOT)).commit();
+        builderAtFolder = context.build().resource(folder, PROP_PRIMARY_TYPE, TYPE_SLING_ORDERED_FOLDER,
+                ResourceUtil.PROP_MIXINTYPES, array(TYPE_MIX_RELEASE_ROOT))
+                .withIntermediatePrimaryType(TYPE_UNSTRUCTURED).commit();
         node1 = makeNode(builderAtFolder, "document1", "n1/something", true, true, "n1");
         document1 = folder + "/" + "document1";
         document2 = folder + "/" + "document2";
@@ -337,6 +338,15 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     }
 
     @Test
+    public void resourceType() {
+        errorCollector.checkThat(ResourceUtil.isResourceType(context.resourceResolver().getResource(folder), TYPE_SLING_ORDERED_FOLDER), equalTo(true));
+        errorCollector.checkThat(ResourceUtil.isResourceType(stagingResourceResolver.getResource(folder), TYPE_SLING_ORDERED_FOLDER), equalTo(true));
+        errorCollector.checkThat(ResourceUtil.isResourceType(context.resourceResolver().getResource(folder), TYPE_SLING_FOLDER), equalTo(true));
+        errorCollector.checkThat(ResourceUtil.isResourceType(stagingResourceResolver.getResource(folder), TYPE_SLING_FOLDER), equalTo(true));
+    }
+
+
+    @Test
     public void checkFrozenValuemap() throws Exception {
         ResourceBuilder versionableResourceBuilder = context.build().resource("/versioned/node", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                 PROP_MIXINTYPES, array(TYPE_VERSIONABLE, TYPE_TITLE, TYPE_LAST_MODIFIED), "foo", "bar", PROP_TITLE, "title");
@@ -437,11 +447,11 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         errorCollector.checkThat(r.getPath(), r.getPath(), is("/folder"));
         errorCollector.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
         errorCollector.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
-        errorCollector.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured"));
+        errorCollector.checkThat(r.getPath(), r.getResourceType(), is("sling:OrderedFolder"));
         errorCollector.checkThat(r.getPath(), r.getValueMap(), allOf(
                 hasMapSize(2),
                 SlingMatchers.hasEntryMatching(is("jcr:mixinTypes"), arrayContaining(is("cpl:releaseRoot"))),
-                SlingMatchers.hasEntryMatching(is("jcr:primaryType"), is("nt:unstructured"))
+                SlingMatchers.hasEntryMatching(is("jcr:primaryType"), is("sling:OrderedFolder"))
         ));
 
 
@@ -474,7 +484,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         errorCollector.checkThat(r.getPath(), r.getPath(), is("/folder/jcr:primaryType"));
         errorCollector.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
         errorCollector.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
-        errorCollector.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured/jcr:primaryType"));
+        errorCollector.checkThat(r.getPath(), r.getResourceType(), is("sling:OrderedFolder/jcr:primaryType"));
         errorCollector.checkThat(r.getPath(), r.getValueMap(), hasMapSize(0));
 
 

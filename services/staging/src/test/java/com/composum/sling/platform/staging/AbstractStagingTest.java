@@ -104,7 +104,7 @@ public abstract class AbstractStagingTest {
     protected String makeNode(ResourceBuilder builder, String documentName, String nodepath, boolean versioned,
                               boolean released, String title) throws RepositoryException, PersistenceException {
         String[] mixins = versioned ? new String[]{TYPE_VERSIONABLE} : new String[]{};
-        builder = builder.resource(documentName);
+        builder = builder.resource(documentName, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED);
         builder = builder.resource(CONTENT_NODE, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED, PROP_MIXINTYPES, mixins);
         Resource contentResource = builder.getCurrentParent();
         Resource resource = builder.resource(nodepath, PROP_PRIMARY_TYPE, SELECTED_NODETYPE,
