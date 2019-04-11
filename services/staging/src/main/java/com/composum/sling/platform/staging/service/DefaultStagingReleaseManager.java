@@ -2,6 +2,7 @@ package com.composum.sling.platform.staging.service;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingResourceResolverImpl;
 import com.composum.sling.platform.staging.impl.NodeTreeSynchronizer;
@@ -296,7 +297,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         ResourceHandle contentnode = ResourceHandle.use(ResourceHandle.use(root.getChild(ResourceUtil.CONTENT_NODE)));
         if (contentnode.isValid()) { // ensure mixin is there if the node was created otherwise
-            ResourceUtil.addMixin(contentnode, TYPE_MIX_RELEASE_CONFIG);
+            SlingResourceUtil.addMixin(contentnode, TYPE_MIX_RELEASE_CONFIG);
         } else {
             contentnode = ResourceHandle.use(root.getResourceResolver().create(root, ResourceUtil.CONTENT_NODE,
                     ImmutableMap.of(ResourceUtil.PROP_PRIMARY_TYPE, ResourceUtil.TYPE_UNSTRUCTURED,
@@ -304,7 +305,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         }
 
         Resource currentReleaseNode = ResourceUtil.getOrCreateChild(contentnode, NODE_RELEASES + "/" + releaseLabel, ResourceUtil.TYPE_UNSTRUCTURED);
-        ResourceUtil.addMixin(currentReleaseNode, ResourceUtil.TYPE_REFERENCEABLE);
+        SlingResourceUtil.addMixin(currentReleaseNode, ResourceUtil.TYPE_REFERENCEABLE);
 
         Resource releaseWorkspaceCopy = ResourceUtil.getOrCreateChild(currentReleaseNode, NODE_RELEASE_ROOT, ResourceUtil.TYPE_UNSTRUCTURED);
 

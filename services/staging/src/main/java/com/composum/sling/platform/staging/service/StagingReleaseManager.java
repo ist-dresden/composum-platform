@@ -2,6 +2,7 @@ package com.composum.sling.platform.staging.service;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import org.apache.commons.lang3.StringUtils;
@@ -232,7 +233,7 @@ public interface StagingReleaseManager extends StagingConstants {
         /** Creates a {@link ReleasedVersionable} that corresponds to the base version of the given versionable. */
         public static ReleasedVersionable forBaseVersion(@Nonnull Resource resource) {
             if (!ResourceUtil.isResourceType(resource, ResourceUtil.TYPE_VERSIONABLE))
-                throw new IllegalArgumentException("resource is not versionable: " + ResourceUtil.getPath(resource));
+                throw new IllegalArgumentException("resource is not versionable: " + SlingResourceUtil.getPath(resource));
             ReleasedVersionable result = new ReleasedVersionable();
             Resource releaseRoot = resource;
             StringBuilder relPath = new StringBuilder();
@@ -252,7 +253,7 @@ public interface StagingReleaseManager extends StagingConstants {
         /** Releasemanager internal: creates a {@link ReleasedVersionable} that corresponds to a {@link StagingConstants#TYPE_VERSIONREFERENCE}. */
         public static ReleasedVersionable fromVersionReference(@Nonnull Resource treeRoot, @Nonnull Resource resource) {
             if (!ResourceUtil.isResourceType(resource, StagingConstants.TYPE_VERSIONREFERENCE)) {
-                throw new IllegalArgumentException("resource is not version reference: " + ResourceUtil.getPath(resource));
+                throw new IllegalArgumentException("resource is not version reference: " + SlingResourceUtil.getPath(resource));
             }
             if (!resource.getPath().equals(treeRoot) && !resource.getPath().startsWith(treeRoot.getPath() + '/')) {
                 throw new IllegalArgumentException("Resource not in treeroot: " + resource.getPath() + ", " + treeRoot.getPath());
