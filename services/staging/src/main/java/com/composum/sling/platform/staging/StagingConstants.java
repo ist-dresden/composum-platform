@@ -67,7 +67,7 @@ public interface StagingConstants {
     /**
      * Nodename below a release node or {@link #NODE_CURRENT_RELEASE} that contains a copy of the working tree of the site
      * with versionable nodes replaced with {@link #TYPE_VERSIONREFERENCE}.<br/>
-     * <b>Caution</b>: Don't touch this node and its subnodes - always use the * {@link com.composum.sling.platform.staging.service.StagingReleaseManager} for that!
+     * <b>Caution</b>: Don't touch this node and its subnodes - always use the * {@link StagingReleaseManager} for that!
      */
     final String NODE_RELEASE_ROOT = "root";
 

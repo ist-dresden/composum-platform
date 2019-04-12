@@ -1,4 +1,4 @@
-package com.composum.sling.platform.staging.query;
+package com.composum.sling.platform.staging.query.impl;
 
 import org.slf4j.Logger;
 

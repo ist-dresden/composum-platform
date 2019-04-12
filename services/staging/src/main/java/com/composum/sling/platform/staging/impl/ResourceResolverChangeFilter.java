@@ -1,8 +1,8 @@
-package com.composum.sling.platform.staging;
+package com.composum.sling.platform.staging.impl;
 
 
-import com.composum.sling.platform.staging.service.ReleaseMapper;
-import com.composum.sling.platform.staging.service.StagingReleaseManager;
+import com.composum.sling.platform.staging.ReleaseMapper;
+import com.composum.sling.platform.staging.StagingReleaseManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Modified;

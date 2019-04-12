@@ -1,4 +1,4 @@
-package com.composum.sling.platform.staging;
+package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.util.ResourceUtil;
 
@@ -10,9 +10,9 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.version.VersionException;
 
-/** Common methods for {@link UnmodifiableNodeWrapper} and {@link UnmodifiablePropertyWrapper}. */
+/** Common methods for {@link FrozenNodeWrapper} and {@link FrozenPropertyWrapper}. */
 @SuppressWarnings({"RedundantThrows", "DuplicateThrows"})
-class AbstractUnmodifiableItem<T extends Item> implements Item {
+public abstract class AbstractFrozenItem<T extends Item> implements Item {
 
 
     @Nonnull
@@ -22,7 +22,7 @@ class AbstractUnmodifiableItem<T extends Item> implements Item {
     @Nullable
     protected final String pathOverride;
 
-    protected AbstractUnmodifiableItem(@Nonnull T wrapped, @Nullable String pathOverride) {
+    protected AbstractFrozenItem(@Nonnull T wrapped, @Nullable String pathOverride) {
         this.wrapped = wrapped;
         this.pathOverride = pathOverride;
     }

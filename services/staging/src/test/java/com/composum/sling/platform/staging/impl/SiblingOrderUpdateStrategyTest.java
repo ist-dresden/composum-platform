@@ -14,7 +14,7 @@ import static org.hamcrest.Matchers.equalTo;
 
 /**
  * Tests for {@link SiblingOrderUpdateStrategy}. We just test the ordering results here - the JCR methods are tested through
- * {@link com.composum.sling.platform.staging.service.DefaultStagingReleaseManager}.
+ * {@link DefaultStagingReleaseManager}.
  */
 public class SiblingOrderUpdateStrategyTest {
 

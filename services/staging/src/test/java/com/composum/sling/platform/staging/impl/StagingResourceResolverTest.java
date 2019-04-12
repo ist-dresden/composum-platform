@@ -1,10 +1,11 @@
-package com.composum.sling.platform.staging;
+package com.composum.sling.platform.staging.impl;
 
 import com.composum.platform.commons.util.ExceptionUtil;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
-import com.composum.sling.platform.staging.service.StagingReleaseManager;
+import com.composum.sling.platform.staging.AbstractStagingTest;
+import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import com.composum.sling.platform.testing.testutil.codegen.SlingAssertionCodeGenerator;
@@ -287,7 +288,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         for (Resource r : resources) {
             Node n = r.adaptTo(Node.class);
             errorCollector.checkThat(r.getPath(), n, allOf(
-                    notNullValue(), instanceOf(UnmodifiableNodeWrapper.class)
+                    notNullValue(), instanceOf(FrozenNodeWrapper.class)
             ));
             if (n != null) {
                 errorCollector.checkThat(n.getPath(), equalTo(r.getPath()));
@@ -297,7 +298,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
                 errorCollector.checkThat(childResources, everyItem(instanceOf(StagingResourceImpl.class)));
 
                 List<Node> childNodes = IteratorUtils.toList(n.getNodes());
-                errorCollector.checkThat(childNodes, everyItem(instanceOf(UnmodifiableNodeWrapper.class)));
+                errorCollector.checkThat(childNodes, everyItem(instanceOf(FrozenNodeWrapper.class)));
 
                 errorCollector.checkThat(childResources.stream().map(Resource::getName).collect(Collectors.joining(",")),
                         equalTo(childNodes.stream().map(ExceptionUtil.sneakExceptions(Node::getName)).collect(Collectors.joining(","))));

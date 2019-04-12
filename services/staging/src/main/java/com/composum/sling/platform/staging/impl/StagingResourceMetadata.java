@@ -1,4 +1,4 @@
-package com.composum.sling.platform.staging;
+package com.composum.sling.platform.staging.impl;
 
 import org.apache.sling.api.resource.ResourceMetadata;
 

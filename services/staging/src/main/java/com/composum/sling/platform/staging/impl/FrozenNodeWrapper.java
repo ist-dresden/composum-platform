@@ -1,4 +1,4 @@
-package com.composum.sling.platform.staging;
+package com.composum.sling.platform.staging.impl;
 
 import com.composum.platform.commons.util.ExceptionUtil;
 import com.composum.sling.core.util.ResourceUtil;
@@ -33,31 +33,31 @@ import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAME
  * If that occurs somewhere please complain, and it'll be done.
  */
 @SuppressWarnings({"RedundantThrows", "DuplicateThrows"})
-class UnmodifiableNodeWrapper extends AbstractUnmodifiableItem<Node> implements Node {
+class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node {
 
     @Nonnull
     private final Resource resource;
 
-    UnmodifiableNodeWrapper(@Nonnull Node wrapped, @Nonnull Resource resource) {
+    FrozenNodeWrapper(@Nonnull Node wrapped, @Nonnull Resource resource) {
         super(wrapped, resource.getPath());
         this.resource = resource;
     }
 
     @Nullable
-    public static UnmodifiableNodeWrapper wrap(@Nullable Node wrapped, @Nonnull Resource resource) {
+    public static FrozenNodeWrapper wrap(@Nullable Node wrapped, @Nonnull Resource resource) {
         if (wrapped == null)
             return null;
-        if (wrapped instanceof UnmodifiableNodeWrapper) {
-            Node unwrapped = ((UnmodifiableNodeWrapper) wrapped).getWrapped();
+        if (wrapped instanceof FrozenNodeWrapper) {
+            Node unwrapped = ((FrozenNodeWrapper) wrapped).getWrapped();
             try {
                 if (wrapped.getPath().equals(resource.getPath()))
                     throw new IllegalArgumentException("Something's broken: wrapping " + wrapped.getPath() + " as " + resource.getPath());
             } catch (RepositoryException e) {
                 throw new IllegalStateException(e);
             }
-            return new UnmodifiableNodeWrapper(unwrapped, resource);
+            return new FrozenNodeWrapper(unwrapped, resource);
         }
-        return new UnmodifiableNodeWrapper(wrapped, resource);
+        return new FrozenNodeWrapper(wrapped, resource);
     }
 
     @Override
@@ -114,7 +114,7 @@ class UnmodifiableNodeWrapper extends AbstractUnmodifiableItem<Node> implements 
                 REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(relPath, relPath)
                 : relPath;
         Property prop = wrapped.getProperty(realName);
-        return UnmodifiablePropertyWrapper.wrap(prop, getPath() + "/" + relPath);
+        return FrozenPropertyWrapper.wrap(prop, getPath() + "/" + relPath);
     }
 
     @Override
@@ -137,7 +137,7 @@ class UnmodifiableNodeWrapper extends AbstractUnmodifiableItem<Node> implements 
         Iterator renamedProps = IteratorUtils.transformedIterator(filteredproperties,
                 (Property p) -> ExceptionUtil.callAndSneakExceptions(() -> {
                     String simulatedName = FROZEN_PROP_NAMES_TO_REAL_NAMES.getOrDefault(p.getName(), p.getName());
-                    return UnmodifiablePropertyWrapper.wrap(p,
+                    return FrozenPropertyWrapper.wrap(p,
                             resource.getPath() + "/" + simulatedName);
                 })
         );

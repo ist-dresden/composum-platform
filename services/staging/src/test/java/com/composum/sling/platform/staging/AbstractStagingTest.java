@@ -2,9 +2,8 @@ package com.composum.sling.platform.staging;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.platform.staging.service.DefaultStagingReleaseManager;
-import com.composum.sling.platform.staging.service.ReleaseMapper;
-import com.composum.sling.platform.staging.service.StagingReleaseManager;
+import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
+import com.composum.sling.platform.staging.impl.StagingResourceResolverImpl;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;

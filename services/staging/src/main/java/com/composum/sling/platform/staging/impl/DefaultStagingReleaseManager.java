@@ -1,12 +1,9 @@
-package com.composum.sling.platform.staging.service;
+package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
-import com.composum.sling.platform.staging.StagingConstants;
-import com.composum.sling.platform.staging.StagingResourceResolverImpl;
-import com.composum.sling.platform.staging.impl.NodeTreeSynchronizer;
-import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
+import com.composum.sling.platform.staging.*;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Result;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections4.IteratorUtils;

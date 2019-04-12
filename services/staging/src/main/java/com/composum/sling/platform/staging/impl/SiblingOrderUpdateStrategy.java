@@ -12,7 +12,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-import javax.jcr.nodetype.NodeType;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -82,11 +81,11 @@ public class SiblingOrderUpdateStrategy {
 
         List<String> sourceOrdering = IteratorUtils.toList(sourceNode.getParent().listChildren()).stream()
                 .map(Resource::getName).collect(Collectors.toList());
-        if (sourceOrdering.size() != new HashSet<String>(sourceOrdering).size()) // seems not possible in Jackrabbit
+        if (sourceOrdering.size() != new HashSet<>(sourceOrdering).size()) // seems not possible in Jackrabbit
             throw new IllegalArgumentException("Same name siblings not supported but present in " + sourceNode.getPath());
         List<String> destinationOrdering = IteratorUtils.toList(destinationNode.getParent().listChildren()).stream()
                 .map(Resource::getName).collect(Collectors.toList());
-        if (destinationOrdering.size() != new HashSet<String>(destinationOrdering).size())  // seems not possible in Jackrabbit
+        if (destinationOrdering.size() != new HashSet<>(destinationOrdering).size())  // seems not possible in Jackrabbit
             throw new IllegalArgumentException("Same name siblings not supported but present in " + destinationNode.getPath());
 
         Orderer orderer = new Orderer(sourceOrdering, destinationOrdering, sourceNode.getName()).run();
@@ -94,7 +93,14 @@ public class SiblingOrderUpdateStrategy {
         return orderer.result;
     }
 
-    protected void adaptSiblingOrder(ResourceHandle destinationNode, List<String> ordering, List<String> originalDestinationOrdering) throws RepositoryException {
+    /**
+     * Adjusts the order of siblings of a node with orderable parents according to a given ordering.  @param destinationNode the destination node
+     *
+     * @param ordering                    the wanted ordering
+     * @param originalDestinationOrdering the original destination ordering, for logging purposes
+     * @throws RepositoryException if there are problems to move stuff
+     */
+    public void adaptSiblingOrder(ResourceHandle destinationNode, @Nonnull List<String> ordering, @Nullable List<String> originalDestinationOrdering) throws RepositoryException {
         if (!ordering.equals(originalDestinationOrdering)) {
             LOG.info("Adjusting order of {} from {} to {}", destinationNode.getPath(), originalDestinationOrdering, ordering);
             Node parent = destinationNode.getParent().adaptTo(Node.class);
@@ -106,7 +112,7 @@ public class SiblingOrderUpdateStrategy {
         }
     }
 
-    static class Relationships {
+    protected static class Relationships {
 
         final List<String> predecessors;
         final List<String> successors;
@@ -147,7 +153,7 @@ public class SiblingOrderUpdateStrategy {
     }
 
 
-    static class Orderer {
+    protected static class Orderer {
 
         @Nonnull
         final List<String> sourceOrdering;
@@ -166,7 +172,7 @@ public class SiblingOrderUpdateStrategy {
             this.originalDestinationOrdering = Collections.unmodifiableList(destinationOrdering);
             this.node = node;
             this.result = Result.unchanged;
-            this.ordering = new ArrayList<String>(originalDestinationOrdering);
+            this.ordering = new ArrayList<>(originalDestinationOrdering);
         }
 
         public Orderer run() {
@@ -201,7 +207,7 @@ public class SiblingOrderUpdateStrategy {
         protected void processContradictions() {
             result = Result.deterministicallyReordered; // will change if there is something nondeterministic
 
-            ordering = ListUtils.select(sourceOrdering, (n) -> originalDestinationOrdering.contains(n));
+            ordering = ListUtils.select(sourceOrdering, originalDestinationOrdering::contains);
             List<String> missingNodes = ListUtils.removeAll(originalDestinationOrdering, ordering);
 
             missingNodes:

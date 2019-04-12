@@ -1,5 +1,6 @@
 package com.composum.sling.platform.staging.service;
 
+import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import org.junit.Rule;
 import org.junit.Test;
@@ -9,7 +10,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static com.composum.sling.platform.staging.service.ReleaseNumberCreator.*;
+import static com.composum.sling.platform.staging.ReleaseNumberCreator.*;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 

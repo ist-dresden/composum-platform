@@ -1,12 +1,13 @@
-package com.composum.sling.platform.staging;
+package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.platform.staging.ReleaseMapper;
+import com.composum.sling.platform.staging.StagingConstants;
+import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.query.QueryBuilder;
 import com.composum.sling.platform.staging.query.QueryBuilderImpl;
-import com.composum.sling.platform.staging.service.DefaultStagingReleaseManager.ReleaseImpl;
-import com.composum.sling.platform.staging.service.ReleaseMapper;
-import com.composum.sling.platform.staging.service.StagingReleaseManager;
+import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager.ReleaseImpl;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.SlingHttpServletRequest;

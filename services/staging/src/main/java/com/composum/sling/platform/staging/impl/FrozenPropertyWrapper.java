@@ -1,4 +1,4 @@
-package com.composum.sling.platform.staging;
+package com.composum.sling.platform.staging.impl;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -20,19 +20,19 @@ import java.util.Calendar;
  * If that occurs somewhere please complain, and it'll be done.
  */
 @SuppressWarnings({"DuplicateThrows", "RedundantThrows"})
-class UnmodifiablePropertyWrapper extends AbstractUnmodifiableItem<Property> implements Property {
+class FrozenPropertyWrapper extends AbstractFrozenItem<Property> implements Property {
 
-    UnmodifiablePropertyWrapper(@Nonnull Property wrapped, @Nullable String path) {
+    FrozenPropertyWrapper(@Nonnull Property wrapped, @Nullable String path) {
         super(wrapped, path);
     }
 
     @Nullable
-    public static UnmodifiablePropertyWrapper wrap(@Nullable Property wrapped, @Nullable String path) {
+    public static FrozenPropertyWrapper wrap(@Nullable Property wrapped, @Nullable String path) {
         if (wrapped == null)
             return null;
-        if (wrapped instanceof UnmodifiablePropertyWrapper)
-            return new UnmodifiablePropertyWrapper(((UnmodifiablePropertyWrapper) wrapped).getWrapped(), path);
-        return new UnmodifiablePropertyWrapper(wrapped, path);
+        if (wrapped instanceof FrozenPropertyWrapper)
+            return new FrozenPropertyWrapper(((FrozenPropertyWrapper) wrapped).getWrapped(), path);
+        return new FrozenPropertyWrapper(wrapped, path);
     }
 
     @Override

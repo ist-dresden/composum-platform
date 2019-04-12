@@ -1,4 +1,4 @@
-package com.composum.sling.platform.staging.service;
+package com.composum.sling.platform.staging;
 
 import org.apache.commons.lang3.StringUtils;
 

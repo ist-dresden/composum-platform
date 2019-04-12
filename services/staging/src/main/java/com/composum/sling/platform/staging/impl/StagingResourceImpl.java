@@ -1,8 +1,9 @@
-package com.composum.sling.platform.staging;
+package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.JcrResource;
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.platform.staging.service.StagingReleaseManager;
+import com.composum.sling.platform.staging.StagingConstants;
+import com.composum.sling.platform.staging.StagingReleaseManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.request.RequestPathInfo;
@@ -152,11 +153,11 @@ class StagingResourceImpl extends AbstractResource implements JcrResource {
         // that can be extended if neccesary.
         if (Node.class.isAssignableFrom(type)) {
             Node node = underlyingResource.adaptTo(Node.class);
-            return type.cast(UnmodifiableNodeWrapper.wrap(node, this));
+            return type.cast(FrozenNodeWrapper.wrap(node, this));
         }
         if (Property.class.isAssignableFrom(type)) {
             Property property = underlyingResource.adaptTo(Property.class);
-            return type.cast(UnmodifiablePropertyWrapper.wrap(property, this.path));
+            return type.cast(FrozenPropertyWrapper.wrap(property, this.path));
         }
         if (ValueMap.class.isAssignableFrom(type))
             return type.cast(getValueMap());

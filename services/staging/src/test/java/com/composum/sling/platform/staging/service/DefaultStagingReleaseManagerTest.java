@@ -2,10 +2,13 @@ package com.composum.sling.platform.staging.service;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.StagingConstants;
+import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
-import com.composum.sling.platform.staging.service.StagingReleaseManager.Release;
-import com.composum.sling.platform.staging.service.StagingReleaseManager.ReleasedVersionable;
+import com.composum.sling.platform.staging.StagingReleaseManager.Release;
+import com.composum.sling.platform.staging.StagingReleaseManager.ReleasedVersionable;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;

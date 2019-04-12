@@ -1,5 +1,7 @@
-package com.composum.sling.platform.staging.query;
+package com.composum.sling.platform.staging.query.impl;
 
+import com.composum.sling.platform.staging.query.QueryBuilder;
+import com.composum.sling.platform.staging.query.QueryBuilderImpl;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
 import org.apache.felix.scr.annotations.Property;

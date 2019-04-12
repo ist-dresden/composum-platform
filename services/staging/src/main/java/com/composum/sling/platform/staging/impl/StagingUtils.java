@@ -1,5 +1,6 @@
-package com.composum.sling.platform.staging;
+package com.composum.sling.platform.staging.impl;
 
+import com.composum.sling.platform.staging.StagingConstants;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.Resource;
 import com.composum.sling.core.util.ResourceUtil;

@@ -1,9 +1,9 @@
 package com.composum.sling.platform.staging.query;
 
-import com.composum.platform.commons.util.ExceptionUtil;
-import com.composum.sling.platform.staging.StagingResourceResolverImpl;
-import com.composum.sling.platform.staging.service.ReleaseMapper;
-import com.composum.sling.platform.staging.service.StagingReleaseManager;
+import com.composum.sling.platform.staging.impl.StagingResourceResolverImpl;
+import com.composum.sling.platform.staging.ReleaseMapper;
+import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.composum.sling.platform.staging.query.impl.ValueComparatorFactory;
 import org.apache.commons.collections4.ComparatorUtils;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.Predicate;
@@ -90,7 +90,7 @@ public class Query {
      * Constructor called by {@link QueryBuilder}. We use {@link StagingResourceResolver#adaptTo(Class)} to find out
      * whether we have a StagingResourceResolver, since it might be wrapped.
      */
-    Query(ResourceResolver resourceResolver) {
+    protected Query(ResourceResolver resourceResolver) {
         this.resourceResolver = resourceResolver;
         StagingResourceResolverImpl stagingResolver = resourceResolver.adaptTo(StagingResourceResolverImpl.class);
         this.release = null != stagingResolver ? stagingResolver.getRelease() : null;
