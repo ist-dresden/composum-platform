@@ -133,10 +133,12 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
                             LOGGER.debug("using release '" + releasedLabel + "'...");
                         }
 
+                        String releaseNumber = StringUtils.removeStart(releasedLabel, "composum-release-");
+
                         final ResourceResolver resourceResolver = slingRequestImpl.getResourceResolver();
                         try {
 
-                            StagingReleaseManager.Release release = releaseManager.findRelease(requestedResource, releasedLabel);
+                            StagingReleaseManager.Release release = releaseManager.findRelease(requestedResource, releaseNumber);
                             // if we try to cache this method object, we had to synchronize it - so leave it for now
                             // org.apache.sling.engine.impl.SlingHttpServletRequestImpl.getRequestData()
                             final Method getRequestData = slingRequestImpl.getClass().getMethod("getRequestData");
@@ -156,15 +158,13 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
                                     .getMethod("initServlet", Resource.class, ServletResolver.class);
                             initServlet.invoke(requestData, resource, servletResolver);
 
-                            request.setAttribute(ATTRIBUTE_NAME, releasedLabel);
                             LOGGER.info("ResourceResolver changed to StagingResourceResolver, release: '"
-                                    + releasedLabel + "'");
-
+                                    + releaseNumber + "'");
                         } catch (StagingReleaseManager.ReleaseNotFoundException e) {
-                            LOGGER.warn("Release {} not found for {}", releasedLabel, path);
+                            LOGGER.warn("Release {} not found for {}", releaseNumber, path);
                         } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
                             LOGGER.error("can not change ResourceResolver: ", e);
-                            throw new ServletException("can't switch to release '" + releasedLabel + "'");
+                            throw new ServletException("can't switch to release '" + releaseNumber + "'");
                         }
                     }
                 }

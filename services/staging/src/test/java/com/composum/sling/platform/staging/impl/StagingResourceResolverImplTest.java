@@ -50,9 +50,9 @@ import static org.slf4j.LoggerFactory.getLogger;
  * Tests for {@link StagingResourceResolver}.
  */
 @FixMethodOrder(value = MethodSorters.NAME_ASCENDING)
-public class StagingResourceResolverTest extends AbstractStagingTest {
+public class StagingResourceResolverImplTest extends AbstractStagingTest {
 
-    private static final Logger LOG = getLogger(StagingResourceResolverTest.class);
+    private static final Logger LOG = getLogger(StagingResourceResolverImplTest.class);
 
     private String folder;
     private String node1;

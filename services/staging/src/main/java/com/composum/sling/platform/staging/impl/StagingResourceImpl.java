@@ -18,6 +18,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.Property;
+import java.io.InputStream;
 
 /**
  * Simulates a {@link org.apache.sling.api.resource.Resource}s from a release. It can either be a (writable) real resource,
@@ -161,6 +162,9 @@ class StagingResourceImpl extends AbstractResource implements JcrResource {
         }
         if (ValueMap.class.isAssignableFrom(type))
             return type.cast(getValueMap());
+        if (InputStream.class.isAssignableFrom(type)) {
+            return type.cast(underlyingResource.adaptTo(type));
+        }
         if (javax.jcr.Session.class.isAssignableFrom(type)) {
             LOG.warn("adaptTo(Session) called on Staged Resource - using the session might create wrong results.");
         }

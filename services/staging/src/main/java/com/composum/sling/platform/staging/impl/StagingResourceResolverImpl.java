@@ -230,7 +230,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         if (absPath == null) return new NonExistingResource(this, rawAbsPath);
         Resource resource = request != null ? underlyingResolver.resolve(request, absPath) : underlyingResolver.resolve(absPath);
         if (!releaseMapper.releaseMappingAllowed(rawAbsPath) || !release.appliesToPath(absPath))
-            return wrapIntoStagingResource(absPath, resource, request, true);
+            return wrapIntoStagingResource(resource.getPath(), resource, request, true);
         return retrieveReleasedResource((SlingHttpServletRequest) request, resource.getPath());
     }
 
