@@ -4,6 +4,7 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
 import com.composum.sling.platform.staging.impl.StagingResourceResolverImpl;
+import com.composum.sling.platform.testing.testutil.AnnotationWithDefaults;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
@@ -57,14 +58,13 @@ public abstract class AbstractStagingTest {
 
         releaseManager = new DefaultStagingReleaseManager() {{
             resourceResolverFactory = context.getService(ResourceResolverFactory.class);
+            configuration = AnnotationWithDefaults.of(DefaultStagingReleaseManager.Configuration.class);
         }};
 
         releaseMapper = Mockito.mock(ReleaseMapper.class);
         when(releaseMapper.releaseMappingAllowed(argThat(isA(String.class)))).thenReturn(true);
         // unused:
         when(releaseMapper.releaseMappingAllowed(argThat(isA(String.class)), argThat(isA(String.class)))).thenThrow(UnsupportedOperationException.class);
-        // stagingResourceResolver = new StagingResourceResolver(context.getService(ResourceResolverFactory.class), context
-        // .resourceResolver(), RELEASED, releaseMapper);
     }
 
 
@@ -98,8 +98,6 @@ public abstract class AbstractStagingTest {
         };
     }
 
-
-    // FIXME hps the attribute released will no longer be used
     protected String makeNode(ResourceBuilder builder, String documentName, String nodepath, boolean versioned,
                               boolean released, String title) throws RepositoryException, PersistenceException {
         String[] mixins = versioned ? new String[]{TYPE_VERSIONABLE} : new String[]{};

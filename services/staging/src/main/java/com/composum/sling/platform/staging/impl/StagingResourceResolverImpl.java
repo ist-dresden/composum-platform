@@ -2,6 +2,7 @@ package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
@@ -19,9 +20,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.servlet.http.HttpServletRequest;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.ResourceUtil.CONTENT_NODE;
 import static com.composum.sling.platform.staging.StagingConstants.*;
@@ -51,13 +51,17 @@ public class StagingResourceResolverImpl implements ResourceResolver {
 
     /** ResourceResolverFactory injected into the SlingFilter. Can be used to create new default ResourceResolver. */
     @Nonnull
-    private final ResourceResolverFactory resourceResolverFactory;
+    protected final ResourceResolverFactory resourceResolverFactory;
 
-    public StagingResourceResolverImpl(@Nonnull StagingReleaseManager.Release release, @Nonnull ResourceResolver underlyingResolver, @Nonnull ReleaseMapper releaseMapper, @Nonnull ResourceResolverFactory resourceResolverFactory) {
+    @Nonnull
+    protected final DefaultStagingReleaseManager.Configuration configuration;
+
+    protected StagingResourceResolverImpl(@Nonnull StagingReleaseManager.Release release, @Nonnull ResourceResolver underlyingResolver, @Nonnull ReleaseMapper releaseMapper, @Nonnull ResourceResolverFactory resourceResolverFactory, @Nonnull DefaultStagingReleaseManager.Configuration configuration) {
         this.underlyingResolver = underlyingResolver;
         this.release = release;
         this.releaseMapper = releaseMapper;
         this.resourceResolverFactory = resourceResolverFactory;
+        this.configuration = configuration;
     }
 
     /** The release that is presented by this resolver. */
@@ -80,24 +84,41 @@ public class StagingResourceResolverImpl implements ResourceResolver {
 
     /** Checks whether the path is one of the special paths that are overlayed from the workspace. */
     protected boolean isDirectlyMappedPath(String path) {
-        return release.appliesToPath(path)
-                && path.startsWith(release.getReleaseRoot().getPath() + '/' + CONTENT_NODE);
+        String rootPath = release.getReleaseRoot().getPath();
+        if (release.appliesToPath(path)) {
+            for (String node : configuration.overlayed_nodes()) {
+                if (SlingResourceUtil.isSameOrDescendant(rootPath + '/' + node, path))
+                    return true;
+            }
+        }
+        return false;
     }
 
-    /** Checks whether the path is one of the special paths that are not passed through the resolver. */
+    /** Checks whether the path is below one of the special paths whose descendants are removed by the resolver. */
     protected boolean isFilteredPath(String path) {
-        return release.appliesToPath(path)
-                && path.startsWith(release.getReleaseRoot().getPath() + '/' + CONTENT_NODE + '/' + NODE_RELEASES + '/');
+        String rootPath = release.getReleaseRoot().getPath();
+        if (release.appliesToPath(path)) {
+            for (String removedPath : configuration.removed_paths()) {
+                if (path.startsWith(rootPath + '/' + removedPath + '/'))
+                    return true;
+            }
+        }
+        return false;
     }
 
     /** Returns additional wrapped children overlayed into the release - primarily for {@link #isDirectlyMappedPath(String)}. */
     @Nullable
     protected Iterator<Resource> overlayedChildren(@Nonnull Resource parent) {
         if (release.getReleaseRoot().getPath().equals(parent.getPath())) {
-            Resource child = release.getReleaseRoot().getChild(CONTENT_NODE);
-            return Collections.singletonList(
-                    wrapIntoStagingResource(child.getPath(), child, null, false)
-            ).iterator();
+            List<Resource> overlayedNodes =
+                    Arrays.stream(configuration.overlayed_nodes())
+                            .map(release.getReleaseRoot()::getChild)
+                            .filter(Objects::nonNull)
+                            .map(
+                                    (child) -> wrapIntoStagingResource(child.getPath(), child, null, false)
+                            )
+                            .collect(Collectors.toList());
+            return overlayedNodes.iterator();
         }
         return null;
     }
@@ -338,7 +359,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         if (resolver instanceof StagingResourceResolverImpl)
             return resolver;
         else
-            return new StagingResourceResolverImpl(release, resolver, releaseMapper, resourceResolverFactory);
+            return new StagingResourceResolverImpl(release, resolver, releaseMapper, resourceResolverFactory, configuration);
     }
 
     @Override

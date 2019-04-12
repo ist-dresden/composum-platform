@@ -1,6 +1,7 @@
 package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.*;
@@ -8,13 +9,16 @@ import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Resul
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.osgi.framework.Constants;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.*;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +29,7 @@ import javax.jcr.query.Query;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.composum.sling.core.util.CoreConstants.CONTENT_NODE;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -36,9 +41,10 @@ import static java.util.Objects.requireNonNull;
 @Component(
         service = {StagingReleaseManager.class},
         property = {
-                Constants.SERVICE_DESCRIPTION + "=Staging Release Manager"
+                Constants.SERVICE_DESCRIPTION + "=Composum Platform Staging Release Manager"
         }
 )
+@Designate(ocd = DefaultStagingReleaseManager.Configuration.class)
 public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultStagingReleaseManager.class);
@@ -50,6 +56,15 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Reference
     protected ResourceResolverFactory resourceResolverFactory;
+
+    protected Configuration configuration;
+
+    @Activate
+    @Deactivate
+    @Modified
+    public void updateConfig(Configuration configuration) {
+        this.configuration = configuration;
+    }
 
     @Nullable
     @Override
@@ -283,7 +298,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Nonnull
     public ResourceResolver getResolverForRelease(@Nonnull Release release, @Nullable ReleaseMapper releaseMapper) {
         return new StagingResourceResolverImpl(release, ReleaseImpl.unwrap(release).getReleaseRoot().getResourceResolver(),
-                releaseMapper != null ? releaseMapper : ReleaseMapper.ALLPERMISSIVE, resourceResolverFactory);
+                releaseMapper != null ? releaseMapper : ReleaseMapper.ALLPERMISSIVE, resourceResolverFactory, configuration);
     }
 
     /** Ensures the technical resources for a release are there. If the release is created, the root is completely empty. */
@@ -410,4 +425,23 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             return (ReleaseImpl) release;
         }
     }
+
+    @ObjectClassDefinition(
+            name = "Composum Platform Staging Release Manager Configuration"
+    )
+    public @interface Configuration {
+
+        @AttributeDefinition(
+                name = "Overlayed Nodes",
+                description = "Some nodes that are overlayed from the top level of the working content into the release"
+        )
+        String[] overlayed_nodes() default {CONTENT_NODE, "assets"};
+
+        @AttributeDefinition(
+                name = "Removed Paths",
+                description = "Some paths that are removed frm the overlayed nodes (relative to the release top level)"
+        )
+        String[] removed_paths() default {CONTENT_NODE + '/' + NODE_RELEASES};
+    }
+
 }

@@ -9,6 +9,7 @@ import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
 import com.composum.sling.platform.staging.StagingReleaseManager.ReleasedVersionable;
+import com.composum.sling.platform.testing.testutil.AnnotationWithDefaults;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
@@ -78,6 +79,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
         service = new DefaultStagingReleaseManager() {{
             this.resourceResolverFactory = context.getService(ResourceResolverFactory.class);
+            this.configuration = AnnotationWithDefaults.of(DefaultStagingReleaseManager.Configuration.class);
         }};
 
         currentRelease = service.findRelease(releaseRoot, StagingConstants.NODE_CURRENT_RELEASE);
