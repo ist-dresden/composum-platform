@@ -8,14 +8,15 @@ import com.composum.sling.platform.staging.AbstractStagingTest;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
-import com.composum.sling.platform.testing.testutil.codegen.SlingAssertionCodeGenerator;
 import com.composum.sling.platform.testing.testutil.SlingMatchers;
+import com.composum.sling.platform.testing.testutil.codegen.SlingAssertionCodeGenerator;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
+import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.sling.api.resource.*;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.hamcrest.Matchers;
@@ -37,13 +38,13 @@ import java.util.stream.Collectors;
 import static com.composum.sling.core.util.ResourceUtil.*;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
 import static com.composum.sling.platform.testing.testutil.JcrTestUtils.array;
-import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import static com.composum.sling.platform.testing.testutil.SlingMatchers.isA;
 import static com.composum.sling.platform.testing.testutil.SlingMatchers.*;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
+import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -89,6 +90,23 @@ public class StagingResourceResolverImplTest extends AbstractStagingTest {
         assertEquals(1, releases.size());
         stagingResourceResolver = (StagingResourceResolverImpl) releaseManager.getResolverForRelease(releases.get(0), releaseMapper);
         // new StagingResourceResolverImpl(releases.get(0), context.resourceResolver(), releaseMapper, context.getService(ResourceResolverFactory.class));
+    }
+
+
+    /**
+     * Test to check behaviour of versionStorage wrt. rights - doesn't work yet because that'd require a working login
+     * process in the mock, which isn't there.
+     */
+    @Test
+    @Ignore
+    public void checkVersionStorePermissions() throws Exception {
+        Session session = context.resourceResolver().adaptTo(Session.class);
+        AccessControlUtils.denyAllToEveryone(session, document2);
+        session.save();
+        JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource(document2));
+        ResourceResolver anonRes = context.getService(ResourceResolverFactory.class).getResourceResolver(null);
+        assertNotNull(anonRes.getResource(document1));
+        assertNull(anonRes.getResource(node2));
     }
 
     @Test
