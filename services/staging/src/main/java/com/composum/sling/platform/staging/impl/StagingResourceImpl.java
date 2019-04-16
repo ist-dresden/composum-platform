@@ -24,7 +24,7 @@ import java.io.InputStream;
  * Simulates a {@link org.apache.sling.api.resource.Resource}s from a release. It can either be a (writable) real resource,
  * a (read only) resource from the working tree of the release, or a wrapped frozen node from version storage.
  */
-class StagingResourceImpl extends AbstractResource implements JcrResource {
+public class StagingResourceImpl extends AbstractResource implements JcrResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(StagingResourceImpl.class);
 
@@ -54,7 +54,7 @@ class StagingResourceImpl extends AbstractResource implements JcrResource {
      * @param underlyingResource the underlying resource
      * @param pathInfo           the path info from the request if the resource wraps a request resource
      */
-    StagingResourceImpl(@Nonnull StagingReleaseManager.Release release, @Nonnull String path, @Nonnull ResourceResolver resolver, @Nonnull Resource underlyingResource, @Nullable RequestPathInfo pathInfo) {
+    protected StagingResourceImpl(@Nonnull StagingReleaseManager.Release release, @Nonnull String path, @Nonnull ResourceResolver resolver, @Nonnull Resource underlyingResource, @Nullable RequestPathInfo pathInfo) {
         this.release = release;
         this.path = path;
         this.resolver = resolver;

@@ -13,7 +13,7 @@ import java.util.Set;
  * Wrapper for {@link ResourceMetadata} overriding the {@link ResourceMetadata#RESOLUTION_PATH}
  * and {@link ResourceMetadata#RESOLUTION_PATH_INFO} with specified values.
  */
-class StagingResourceMetadata extends ResourceMetadata {
+public class StagingResourceMetadata extends ResourceMetadata {
 
     @Nonnull
     private final ResourceMetadata frozenMetaData;

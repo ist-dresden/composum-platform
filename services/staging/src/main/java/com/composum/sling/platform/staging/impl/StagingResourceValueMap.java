@@ -18,7 +18,7 @@ import static org.apache.jackrabbit.JcrConstants.*;
 /**
  * Emulates the normal {@link ValueMap} from the {@link ValueMap} of a frozen resource.
  */
-class StagingResourceValueMap extends ValueMapDecorator {
+public class StagingResourceValueMap extends ValueMapDecorator {
 
     private static final Logger LOG = LoggerFactory.getLogger(StagingResourceValueMap.class);
 

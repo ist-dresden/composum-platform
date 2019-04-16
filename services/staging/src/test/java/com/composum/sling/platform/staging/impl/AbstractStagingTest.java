@@ -1,7 +1,9 @@
-package com.composum.sling.platform.staging;
+package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.platform.staging.ReleaseMapper;
+import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
 import com.composum.sling.platform.staging.impl.StagingResourceResolverImpl;
 import com.composum.sling.platform.testing.testutil.AnnotationWithDefaults;

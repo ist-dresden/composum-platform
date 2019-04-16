@@ -1,7 +1,9 @@
 package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.core.util.SlingResourceUtil;
 import com.google.common.base.Predicates;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.IteratorUtils;
@@ -52,8 +54,13 @@ public class NodeTreeSynchronizer {
      * @see #ignoreAttribute(ResourceHandle, String, boolean)
      */
     protected void updateSubtree(@Nonnull ResourceHandle from, @Nonnull ResourceHandle to) throws RepositoryException, PersistenceException {
-        updateAttributes(from, to);
-        updateChildren(from, to);
+        try {
+            updateAttributes(from, to);
+            updateChildren(from, to);
+        } catch (RuntimeException | RepositoryException | PersistenceException e) {
+            LOG.warn("Exception during updating from {} : {}", SlingResourceUtil.getPath(from), e.toString());
+            throw e;
+        }
     }
 
     /**
@@ -108,7 +115,7 @@ public class NodeTreeSynchronizer {
                     toProp.remove();
                 } catch (IllegalArgumentException | RepositoryException e) {
                     // shouldn't be possible - how come that it isn't there on node from?
-                    LOG.error("Couldn't copy remove protected attribute {} - {}", name, e.toString());
+                    LOG.error("Could not remove protected attribute {} from {} - {}", name, SlingResourceUtil.getPath(from), e.toString());
                 }
             }
         }
@@ -171,8 +178,17 @@ public class NodeTreeSynchronizer {
         }
     }
 
-    /** Can be overridden to remove nodes from the source - nodes matching this aren't copied. */
+    /**
+     * Can be overridden to remove nodes from the source - nodes matching this aren't copied. Default: just nodes with
+     * primary type rep:ACL (acls can't be copied this way.)
+     *
+     * @return true if the node shall be skipped.
+     */
     protected boolean skipNode(@Nonnull Resource from) {
+        if ("rep:ACL".equals(from.getValueMap().get(CoreConstants.JCR_PRIMARYTYPE, String.class))) {
+            LOG.warn("Not duplicating ACL in {}", SlingResourceUtil.getPath(from));
+            return true;
+        }
         return false;
     }
 

@@ -296,9 +296,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Override
     @Nonnull
-    public ResourceResolver getResolverForRelease(@Nonnull Release release, @Nullable ReleaseMapper releaseMapper) {
+    public ResourceResolver getResolverForRelease(@Nonnull Release release, @Nullable ReleaseMapper releaseMapper, boolean closeResolverOnClose) {
         return new StagingResourceResolverImpl(release, ReleaseImpl.unwrap(release).getReleaseRoot().getResourceResolver(),
-                releaseMapper != null ? releaseMapper : ReleaseMapper.ALLPERMISSIVE, resourceResolverFactory, configuration);
+                releaseMapper != null ? releaseMapper : ReleaseMapper.ALLPERMISSIVE, resourceResolverFactory, configuration, closeResolverOnClose);
     }
 
     /** Ensures the technical resources for a release are there. If the release is created, the root is completely empty. */
@@ -419,7 +419,6 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
          * and performs a sanity check that the release is still there - that's also a weak
          * measure to ensure this was created in the {@link DefaultStagingReleaseManager}, not outside.
          */
-        @Nullable
         public static ReleaseImpl unwrap(@Nullable Release release) {
             if (release != null) ((ReleaseImpl) release).validate();
             return (ReleaseImpl) release;

@@ -20,7 +20,7 @@ import java.util.Calendar;
  * If that occurs somewhere please complain, and it'll be done.
  */
 @SuppressWarnings({"DuplicateThrows", "RedundantThrows"})
-class FrozenPropertyWrapper extends AbstractFrozenItem<Property> implements Property {
+public class FrozenPropertyWrapper extends AbstractFrozenItem<Property> implements Property {
 
     FrozenPropertyWrapper(@Nonnull Property wrapped, @Nullable String path) {
         super(wrapped, path);

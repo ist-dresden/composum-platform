@@ -1,7 +1,7 @@
 package com.composum.sling.platform.staging.query;
 
 import com.composum.sling.core.ResourceHandle;
-import com.composum.sling.platform.staging.AbstractStagingTest;
+import com.composum.sling.platform.staging.impl.AbstractStagingTest;
 import com.composum.sling.platform.staging.query.impl.QueryBuilderAdapterFactory;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import org.apache.commons.collections4.IterableUtils;

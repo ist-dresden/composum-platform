@@ -14,7 +14,6 @@ import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrinting
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
-import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
@@ -57,7 +56,6 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     public final ErrorCollectorAlwaysPrintingFailures ec = new ErrorCollectorAlwaysPrintingFailures();
 
     private VersionManager versionManager;
-    private Session session;
     private ResourceBuilder releaseRootBuilder;
 
     private StagingReleaseManager service;
@@ -67,7 +65,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     @Before
     public void setup() throws ParseException, RepositoryException, IOException {
         ResourceBuilder builder = context.build().withIntermediatePrimaryType(TYPE_UNSTRUCTURED);
-        session = context.resourceResolver().adaptTo(Session.class);
+        Session session = context.resourceResolver().adaptTo(Session.class);
         versionManager = session.getWorkspace().getVersionManager();
         InputStreamReader cndReader = new InputStreamReader(getClass().getResourceAsStream("/testsetup/nodetypes.cnd"));
         NodeType[] nodeTypes = CndImporter.registerNodeTypes(cndReader, session);
@@ -92,7 +90,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
 
     @Test
-    public void createCurrentRelease() throws RepositoryException, PersistenceException {
+    public void createCurrentRelease() {
         List<Release> releases = service.getReleases(releaseRoot);
         assertEquals(1, releases.size());
 
@@ -104,7 +102,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     }
 
     @Test
-    public void addDocument() throws PersistenceException, RepositoryException {
+    public void addDocument() throws Exception {
         Resource versionable = releaseRootBuilder.resource("a/jcr:content", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                 PROP_MIXINTYPES, array(TYPE_VERSIONABLE, TYPE_TITLE, TYPE_LAST_MODIFIED), "foo", "bar", PROP_TITLE, "title")
                 .commit().getCurrentParent();
@@ -118,7 +116,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         context.resourceResolver().delete(versionable); // make sure stagedresolver doesn't read it from the workspace
         context.resourceResolver().commit();
 
-        ResourceResolver stagedResolver = service.getResolverForRelease(currentRelease, null);
+        ResourceResolver stagedResolver = service.getResolverForRelease(currentRelease, null, false);
         Resource staged = stagedResolver.getResource(versionable.getPath());
         ec.checkThat(String.valueOf(staged), ResourceHandle.use(staged).isValid(), is(true));
     }
@@ -132,7 +130,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     }
 
     @Test
-    public void createNewReleaseAndmoveDocument() throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseExistsException {
+    public void createNewReleaseAndmoveDocument() throws Exception {
         Resource versionable = releaseRootBuilder.resource("a/jcr:content", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                 PROP_MIXINTYPES, array(TYPE_VERSIONABLE, TYPE_TITLE, TYPE_LAST_MODIFIED), "foo", "bar", PROP_TITLE, "title")
                 .commit().getCurrentParent();
@@ -170,17 +168,17 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ec.checkThat(updateResult.toString(), equalTo("{}"));
         referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/b/c/jcr:content"), newVersionable, version2);
 
-        ResourceResolver stagedResolver = service.getResolverForRelease(currentRelease, null);
+        ResourceResolver stagedResolver = service.getResolverForRelease(currentRelease, null, false);
         ec.checkThat(ResourceHandle.use(stagedResolver.getResource(newPath)).isValid(), is(true));
         ec.checkThat(ResourceHandle.use(stagedResolver.getResource(versionable.getPath())).isValid(), is(false));
 
-        stagedResolver = service.getResolverForRelease(r1, null);
+        stagedResolver = service.getResolverForRelease(r1, null, false);
         ec.checkThat(ResourceHandle.use(stagedResolver.getResource(newPath)).isValid(), is(false));
         ec.checkThat(ResourceHandle.use(stagedResolver.getResource(versionable.getPath())).isValid(), is(true));
     }
 
     @Test
-    public void releaseNumbering() throws RepositoryException, PersistenceException, StagingReleaseManager.ReleaseExistsException {
+    public void releaseNumbering() throws Exception {
         final Release rel1 = service.createRelease(releaseRoot, ReleaseNumberCreator.MAJOR);
         ec.checkThat(rel1.getNumber(), equalTo("r1"));
 
@@ -219,7 +217,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     }
 
     @Test
-    public void checkOrdering() throws RepositoryException, PersistenceException {
+    public void checkOrdering() throws Exception {
         Resource document1 = releaseRootBuilder.resource("document1", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                 PROP_MIXINTYPES, array(TYPE_VERSIONABLE)).commit().getCurrentParent();
         versionManager.checkpoint(document1.getPath());
@@ -232,7 +230,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         updateResult = service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(document2));
         ec.checkThat(updateResult.toString(), equalTo("{}"));
 
-        ResourceResolver stagedResolver = service.getResolverForRelease(currentRelease, null);
+        ResourceResolver stagedResolver = service.getResolverForRelease(currentRelease, null, false);
         ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document1", "document2"));
 
         releaseRoot.getNode().orderBefore("document1", null);

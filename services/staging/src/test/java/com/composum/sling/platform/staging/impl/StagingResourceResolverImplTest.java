@@ -4,7 +4,6 @@ import com.composum.platform.commons.util.ExceptionUtil;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
-import com.composum.sling.platform.staging.AbstractStagingTest;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
@@ -88,7 +87,7 @@ public class StagingResourceResolverImplTest extends AbstractStagingTest {
 
         List<StagingReleaseManager.Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
         assertEquals(1, releases.size());
-        stagingResourceResolver = (StagingResourceResolverImpl) releaseManager.getResolverForRelease(releases.get(0), releaseMapper);
+        stagingResourceResolver = (StagingResourceResolverImpl) releaseManager.getResolverForRelease(releases.get(0), releaseMapper, false);
         // new StagingResourceResolverImpl(releases.get(0), context.resourceResolver(), releaseMapper, context.getService(ResourceResolverFactory.class));
     }
 
@@ -379,8 +378,8 @@ public class StagingResourceResolverImplTest extends AbstractStagingTest {
         StagingResourceValueMap vm = new StagingResourceValueMap(frozenNode.getValueMap());
         StagingResourceValueMap vmsub = new StagingResourceValueMap(frozenNode.getChild("sub").getValueMap());
 
-        new SlingAssertionCodeGenerator("vm", vm).useErrorCollector().printAssertions().printMapAssertions();
-        new SlingAssertionCodeGenerator("vmsub", vmsub).useErrorCollector().printAssertions().printMapAssertions();
+        // new SlingAssertionCodeGenerator("vm", vm).useErrorCollector().printAssertions().printMapAssertions();
+        // new SlingAssertionCodeGenerator("vmsub", vmsub).useErrorCollector().printAssertions().printMapAssertions();
 
         errorCollector.checkThat(vm.get(PROP_MIXINTYPES, String[].class), arrayContainingInAnyOrder(TYPE_TITLE, TYPE_LAST_MODIFIED));
 
@@ -430,6 +429,7 @@ public class StagingResourceResolverImplTest extends AbstractStagingTest {
      * can check that the StagingResourceResolver does exactly the same.
      */
     @Test
+    @Ignore
     public void generateFullcheckSource() throws Exception {
         ResourceResolver resourceResolver = context.resourceResolver();
         List<String> paths = new ArrayList<>();

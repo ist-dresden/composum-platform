@@ -15,10 +15,11 @@ import javax.jcr.nodetype.NodeType;
 
 public class StagingUtils {
 
+    /** {@value VERSIONS_ROOT} */
     public static final String VERSIONS_ROOT = "/" + JcrConstants.JCR_SYSTEM + "/" + JcrConstants.JCR_VERSIONSTORAGE;
 
     @CheckReturnValue
-    static boolean isInVersionStorage(@Nullable Resource resource) {
+    public static boolean isInVersionStorage(@Nullable Resource resource) {
         return resource != null && resource.getPath().startsWith(VERSIONS_ROOT);
     }
 

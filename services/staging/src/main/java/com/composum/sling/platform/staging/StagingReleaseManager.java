@@ -156,11 +156,12 @@ public interface StagingReleaseManager extends StagingConstants {
      *
      * @param release the release for which the resolver is created
      * @param releaseMapper controls what is mapped into the release. If null, we just use one that always returns true
+     * @param closeResolverOnClose if true, the resolver for the resources contained in {release} is closed when the returned resolver is closed
      * @return the resolver
      * @see #getReleases(Resource)
      */
     @Nonnull
-    ResourceResolver getResolverForRelease(@Nonnull Release release, @Nullable ReleaseMapper releaseMapper);
+    ResourceResolver getResolverForRelease(@Nonnull Release release, @Nullable ReleaseMapper releaseMapper, boolean closeResolverOnClose);
 
     /** Describes the state of a versionable in a release. Can also be used as parameter object to update the release. */
     public class ReleasedVersionable {

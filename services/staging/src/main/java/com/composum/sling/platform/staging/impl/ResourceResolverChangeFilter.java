@@ -114,6 +114,8 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 
+        ResourceResolver toClose = null;
+
         if (enabled) {
             SlingHttpServletRequest slingRequestImpl = determineRequestImpl(request);
 
@@ -149,8 +151,9 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
                             final Method initResource = requestData.getClass()
                                     .getMethod("initResource", ResourceResolver.class);
                             final ResourceResolver stagingResourceResolver =
-                                    releaseManager.getResolverForRelease(release, this);
+                                    releaseManager.getResolverForRelease(release, this, true);
                             final Object resource = initResource.invoke(requestData, stagingResourceResolver);
+                            toClose = stagingResourceResolver;
 
                             // if we try to cache this method object, we had to synchronize it - so leave it for now
                             // org.apache.sling.engine.impl.request.RequestData.initServlet(Resource resource, ServletResolver sr)
@@ -170,7 +173,12 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
                 }
             }
         }
-        chain.doFilter(request, response);
+        try {
+            chain.doFilter(request, response);
+        } finally {
+            if (toClose != null)
+                toClose.close();
+        }
     }
 
     private SlingHttpServletRequest determineRequestImpl(ServletRequest request) {

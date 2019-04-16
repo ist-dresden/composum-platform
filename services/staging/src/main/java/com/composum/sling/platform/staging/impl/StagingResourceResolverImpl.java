@@ -6,9 +6,9 @@ import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager.ReleaseImpl;
 import com.composum.sling.platform.staging.query.QueryBuilder;
 import com.composum.sling.platform.staging.query.QueryBuilderImpl;
-import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager.ReleaseImpl;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -23,18 +23,18 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.composum.sling.core.util.ResourceUtil.CONTENT_NODE;
-import static com.composum.sling.platform.staging.StagingConstants.*;
+import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES;
 
 /**
- * <p>A {@link ResourceResolver} that provides transparent access to releases as defined in {@link StagingReleaseManager}.</p>
+ * <p>A {@link ResourceResolver} that provides transparent access to releases as defined in {@link StagingReleaseManager}.
+ * This is always instantiated through {@link StagingReleaseManager#getResolverForRelease(StagingReleaseManager.Release, ReleaseMapper, boolean)}.
+ * </p>
  * <h3>Limitations:</h3>
  * <ul>
  * <li>This returns read-only resources, and querying is only supported through {@link QueryBuilder}.</li>
- * <li>We also don't support {@link org.apache.sling.resourceresolver.impl.params.ParsedParameters}.</li>
+ * <li>We also don't support {@link org.apache.sling.resourceresolver.impl.params.ParsedParameters} (yet).</li>
  * <li>We don't include synthetic resources or resources of other resource providers (servlets etc.) into releases.</li>
  * </ul>
- * // FIXME hps 2019-04-05 use service resolver for accessing version space
  */
 public class StagingResourceResolverImpl implements ResourceResolver {
 
@@ -42,6 +42,8 @@ public class StagingResourceResolverImpl implements ResourceResolver {
 
     @Nonnull
     protected final ResourceResolver underlyingResolver;
+
+    protected final boolean closeResolverOnClose;
 
     @Nonnull
     protected final StagingReleaseManager.Release release;
@@ -56,12 +58,23 @@ public class StagingResourceResolverImpl implements ResourceResolver {
     @Nonnull
     protected final DefaultStagingReleaseManager.Configuration configuration;
 
-    protected StagingResourceResolverImpl(@Nonnull StagingReleaseManager.Release release, @Nonnull ResourceResolver underlyingResolver, @Nonnull ReleaseMapper releaseMapper, @Nonnull ResourceResolverFactory resourceResolverFactory, @Nonnull DefaultStagingReleaseManager.Configuration configuration) {
+    /**
+     * Instantiates a new Staging resource resolver.
+     *
+     * @param release                 the release
+     * @param underlyingResolver      the resolver used to access resources outside of the version space
+     * @param releaseMapper           the release mapper that determines which resources are release-mapped
+     * @param resourceResolverFactory used for {@link #clone(Map)}
+     * @param configuration           the configuration
+     * @param closeResolverOnClose    if true, the underlyingResolver is closed when this resolver is closed
+     */
+    protected StagingResourceResolverImpl(@Nonnull StagingReleaseManager.Release release, @Nonnull ResourceResolver underlyingResolver, @Nonnull ReleaseMapper releaseMapper, @Nonnull ResourceResolverFactory resourceResolverFactory, @Nonnull DefaultStagingReleaseManager.Configuration configuration, boolean closeResolverOnClose) {
         this.underlyingResolver = underlyingResolver;
         this.release = release;
         this.releaseMapper = releaseMapper;
         this.resourceResolverFactory = resourceResolverFactory;
         this.configuration = configuration;
+        this.closeResolverOnClose = closeResolverOnClose;
     }
 
     /** The release that is presented by this resolver. */
@@ -76,8 +89,13 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         return releaseMapper;
     }
 
-    /** The resolver we use inside to access the release data. */
+    /**
+     * The resolver we use inside to access the release data.
+     *
+     * @deprecated that should go somehow through resolver methods.
+     */
     @Nonnull
+    @Deprecated
     public ResourceResolver getUnderlyingResolver() {
         return underlyingResolver;
     }
@@ -169,7 +187,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
 
     /**
      * Checks whether the resource is exactly on one of the points where we move to a different resource:
-     * the release root is actually mapped to the release content root, and a version reference.
+     * the release root is actually mapped to the release content root, and a version reference mapped to version space.
      */
     protected Resource stepResource(Resource resource) {
         if (resource == null) {
@@ -359,7 +377,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         if (resolver instanceof StagingResourceResolverImpl)
             return resolver;
         else
-            return new StagingResourceResolverImpl(release, resolver, releaseMapper, resourceResolverFactory, configuration);
+            return new StagingResourceResolverImpl(release, resolver, releaseMapper, resourceResolverFactory, configuration, true);
     }
 
     @Override
@@ -369,7 +387,8 @@ public class StagingResourceResolverImpl implements ResourceResolver {
 
     @Override
     public void close() {
-        underlyingResolver.close();
+        if (closeResolverOnClose)
+            underlyingResolver.close();
     }
 
     @Override
@@ -434,7 +453,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         throw new PersistenceException("copy not implemented - readonly view.");
     }
 
-    /** Not implemented, since this resolver provides an readon view of things. */
+    /** Not implemented, since this resolver provides an readonly view of things. */
     @Override
     @Nullable
     public Resource move(@Nullable String srcAbsPath, @Nullable String destAbsPath) throws PersistenceException {

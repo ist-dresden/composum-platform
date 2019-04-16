@@ -33,7 +33,7 @@ import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAME
  * If that occurs somewhere please complain, and it'll be done.
  */
 @SuppressWarnings({"RedundantThrows", "DuplicateThrows"})
-class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node {
+public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node {
 
     @Nonnull
     private final Resource resource;
