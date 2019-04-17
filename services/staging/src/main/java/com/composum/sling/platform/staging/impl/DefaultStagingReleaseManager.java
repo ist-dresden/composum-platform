@@ -1,7 +1,6 @@
 package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
-import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.*;
@@ -9,7 +8,6 @@ import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Resul
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -297,7 +295,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Override
     @Nonnull
     public ResourceResolver getResolverForRelease(@Nonnull Release release, @Nullable ReleaseMapper releaseMapper, boolean closeResolverOnClose) {
-        return new StagingResourceResolverImpl(release, ReleaseImpl.unwrap(release).getReleaseRoot().getResourceResolver(),
+        return new StagingResourceResolver(release, ReleaseImpl.unwrap(release).getReleaseRoot().getResourceResolver(),
                 releaseMapper != null ? releaseMapper : ReleaseMapper.ALLPERMISSIVE, resourceResolverFactory, configuration, closeResolverOnClose);
     }
 

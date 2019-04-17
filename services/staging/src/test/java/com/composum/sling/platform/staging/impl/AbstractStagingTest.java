@@ -4,8 +4,6 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.StagingReleaseManager;
-import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
-import com.composum.sling.platform.staging.impl.StagingResourceResolverImpl;
 import com.composum.sling.platform.testing.testutil.AnnotationWithDefaults;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.sling.api.resource.PersistenceException;
@@ -48,7 +46,7 @@ public abstract class AbstractStagingTest {
     public final SlingContext context = new SlingContext(ResourceResolverType.JCR_OAK);
 
     protected static final String RELEASED = "theRelease";
-    protected StagingResourceResolverImpl stagingResourceResolver;
+    protected StagingResourceResolver stagingResourceResolver;
     protected VersionManager versionManager;
     protected ReleaseMapper releaseMapper;
 

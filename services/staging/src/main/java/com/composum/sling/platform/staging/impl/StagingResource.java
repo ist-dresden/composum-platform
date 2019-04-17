@@ -24,9 +24,9 @@ import java.io.InputStream;
  * Simulates a {@link org.apache.sling.api.resource.Resource}s from a release. It can either be a (writable) real resource,
  * a (read only) resource from the working tree of the release, or a wrapped frozen node from version storage.
  */
-public class StagingResourceImpl extends AbstractResource implements JcrResource {
+public class StagingResource extends AbstractResource implements JcrResource {
 
-    private static final Logger LOG = LoggerFactory.getLogger(StagingResourceImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(StagingResource.class);
 
     @Nonnull
     protected final StagingReleaseManager.Release release;
@@ -35,7 +35,7 @@ public class StagingResourceImpl extends AbstractResource implements JcrResource
     @Nonnull
     protected final String path;
 
-    /** StagingResourceResolverImpl */
+    /** StagingResourceResolver */
     @Nonnull
     protected final ResourceResolver resolver;
 
@@ -50,11 +50,11 @@ public class StagingResourceImpl extends AbstractResource implements JcrResource
      *
      * @param release            the release this applies to
      * @param path               the simulated path
-     * @param resolver           the {@link StagingResourceResolverImpl} resolver
+     * @param resolver           the {@link StagingResourceResolver} resolver
      * @param underlyingResource the underlying resource
      * @param pathInfo           the path info from the request if the resource wraps a request resource
      */
-    protected StagingResourceImpl(@Nonnull StagingReleaseManager.Release release, @Nonnull String path, @Nonnull ResourceResolver resolver, @Nonnull Resource underlyingResource, @Nullable RequestPathInfo pathInfo) {
+    protected StagingResource(@Nonnull StagingReleaseManager.Release release, @Nonnull String path, @Nonnull ResourceResolver resolver, @Nonnull Resource underlyingResource, @Nullable RequestPathInfo pathInfo) {
         this.release = release;
         this.path = path;
         this.resolver = resolver;
@@ -174,7 +174,7 @@ public class StagingResourceImpl extends AbstractResource implements JcrResource
     @Override
     @Nonnull
     public String toString() {
-        final StringBuilder sb = new StringBuilder("StagingResourceImpl{");
+        final StringBuilder sb = new StringBuilder("StagingResource{");
         sb.append("release=").append(release);
         sb.append(", path='").append(path).append('\'');
         sb.append(", underlying='").append(underlyingResource.getPath()).append('\'');

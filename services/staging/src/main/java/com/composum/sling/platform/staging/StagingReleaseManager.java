@@ -4,7 +4,7 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
-import com.composum.sling.platform.staging.impl.StagingResourceResolverImpl;
+import com.composum.sling.platform.staging.impl.StagingResourceResolver;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.PersistenceException;
@@ -152,7 +152,7 @@ public interface StagingReleaseManager extends StagingConstants {
     void removeRelease(@Nonnull Release release) throws PersistenceException;
 
     /**
-     * Creates a {@link StagingResourceResolverImpl} that presents the given release.
+     * Creates a {@link StagingResourceResolver} that presents the given release.
      *
      * @param release the release for which the resolver is created
      * @param releaseMapper controls what is mapped into the release. If null, we just use one that always returns true

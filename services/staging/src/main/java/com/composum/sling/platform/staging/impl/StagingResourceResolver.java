@@ -36,9 +36,9 @@ import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAME
  * <li>We don't include synthetic resources or resources of other resource providers (servlets etc.) into releases.</li>
  * </ul>
  */
-public class StagingResourceResolverImpl implements ResourceResolver {
+public class StagingResourceResolver implements ResourceResolver {
 
-    private static final Logger LOG = LoggerFactory.getLogger(StagingResourceResolverImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(StagingResourceResolver.class);
 
     @Nonnull
     protected final ResourceResolver underlyingResolver;
@@ -68,7 +68,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
      * @param configuration           the configuration
      * @param closeResolverOnClose    if true, the underlyingResolver is closed when this resolver is closed
      */
-    protected StagingResourceResolverImpl(@Nonnull StagingReleaseManager.Release release, @Nonnull ResourceResolver underlyingResolver, @Nonnull ReleaseMapper releaseMapper, @Nonnull ResourceResolverFactory resourceResolverFactory, @Nonnull DefaultStagingReleaseManager.Configuration configuration, boolean closeResolverOnClose) {
+    protected StagingResourceResolver(@Nonnull StagingReleaseManager.Release release, @Nonnull ResourceResolver underlyingResolver, @Nonnull ReleaseMapper releaseMapper, @Nonnull ResourceResolverFactory resourceResolverFactory, @Nonnull DefaultStagingReleaseManager.Configuration configuration, boolean closeResolverOnClose) {
         this.underlyingResolver = underlyingResolver;
         this.release = release;
         this.releaseMapper = releaseMapper;
@@ -153,7 +153,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         if (path == null || isFilteredPath(path)) // weird path like /../.. or explicitly removed
             return new NonExistingResource(this, rawPath);
         if (!releaseMapper.releaseMappingAllowed(path) || !release.appliesToPath(path) || isDirectlyMappedPath(path)) {
-            // we need to return a StagingResourceImpl, too, since e.g. listChildren might go into releasemapped areas.
+            // we need to return a StagingResource, too, since e.g. listChildren might go into releasemapped areas.
             Resource underlyingResource = underlyingResolver.getResource(path);
             return wrapIntoStagingResource(path, underlyingResource, request, true);
         }
@@ -175,13 +175,13 @@ public class StagingResourceResolverImpl implements ResourceResolver {
         return wrapIntoStagingResource(path, underlyingResource, request, true);
     }
 
-    /** Internal-use: Wrap a resource into a {@link StagingResourceImpl} if it exists. */
+    /** Internal-use: Wrap a resource into a {@link StagingResource} if it exists. */
     public Resource wrapIntoStagingResource(@Nonnull String path, @Nullable Resource underlyingResource, @Nullable HttpServletRequest request, boolean useNonExisting) {
         if (underlyingResource == null)
             return useNonExisting ? new NonExistingResource(this, path) : null;
         if (ResourceUtil.isNonExistingResource(underlyingResource)) return useNonExisting ? underlyingResource : null;
         SlingHttpServletRequest slingRequest = (request instanceof SlingHttpServletRequest) ? (SlingHttpServletRequest) request : null;
-        return new StagingResourceImpl(release, path, this, underlyingResource,
+        return new StagingResource(release, path, this, underlyingResource,
                 slingRequest != null ? slingRequest.getRequestPathInfo() : null);
     }
 
@@ -218,14 +218,14 @@ public class StagingResourceResolverImpl implements ResourceResolver {
     @Nonnull
     public Iterator<Resource> listChildren(@Nonnull Resource rawParent) {
         final Resource parent = ResourceUtil.unwrap(rawParent);
-        StagingResourceImpl stagingResource = null;
-        if (parent instanceof StagingResourceImpl) {
-            stagingResource = (StagingResourceImpl) parent;
+        StagingResource stagingResource = null;
+        if (parent instanceof StagingResource) {
+            stagingResource = (StagingResource) parent;
             if (stagingResource.release.equals(release)) stagingResource = null;
         }
         if (stagingResource == null) {
             Resource retrieved = retrieveReleasedResource(null, parent.getPath());
-            if (retrieved instanceof StagingResourceImpl) stagingResource = (StagingResourceImpl) retrieved;
+            if (retrieved instanceof StagingResource) stagingResource = (StagingResource) retrieved;
             else return Collections.emptyIterator(); // NonExistingResource
         }
         Iterator<Resource> children = stagingResource.underlyingResource.listChildren();
@@ -374,10 +374,10 @@ public class StagingResourceResolverImpl implements ResourceResolver {
     @Nonnull
     public ResourceResolver clone(@Nullable Map<String, Object> authenticationInfo) throws LoginException {
         ResourceResolver resolver = underlyingResolver.clone(authenticationInfo);
-        if (resolver instanceof StagingResourceResolverImpl)
+        if (resolver instanceof StagingResourceResolver)
             return resolver;
         else
-            return new StagingResourceResolverImpl(release, resolver, releaseMapper, resourceResolverFactory, configuration, true);
+            return new StagingResourceResolver(release, resolver, releaseMapper, resourceResolverFactory, configuration, true);
     }
 
     @Override
@@ -465,7 +465,7 @@ public class StagingResourceResolverImpl implements ResourceResolver {
     public <AdapterType> AdapterType adaptTo(@Nonnull Class<AdapterType> type) {
         if (QueryBuilder.class.equals(type))
             return type.cast(new QueryBuilderImpl(this));
-        else if (StagingResourceResolverImpl.class.isAssignableFrom(type))
+        else if (StagingResourceResolver.class.isAssignableFrom(type))
             return type.cast(this);
         return underlyingResolver.adaptTo(type);
     }

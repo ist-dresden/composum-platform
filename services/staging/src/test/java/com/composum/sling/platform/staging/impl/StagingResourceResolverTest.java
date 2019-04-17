@@ -50,9 +50,9 @@ import static org.slf4j.LoggerFactory.getLogger;
  * Tests for {@link StagingResourceResolver}.
  */
 @FixMethodOrder(value = MethodSorters.NAME_ASCENDING)
-public class StagingResourceResolverImplTest extends AbstractStagingTest {
+public class StagingResourceResolverTest extends AbstractStagingTest {
 
-    private static final Logger LOG = getLogger(StagingResourceResolverImplTest.class);
+    private static final Logger LOG = getLogger(StagingResourceResolverTest.class);
 
     private String folder;
     private String node1;
@@ -87,8 +87,8 @@ public class StagingResourceResolverImplTest extends AbstractStagingTest {
 
         List<StagingReleaseManager.Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
         assertEquals(1, releases.size());
-        stagingResourceResolver = (StagingResourceResolverImpl) releaseManager.getResolverForRelease(releases.get(0), releaseMapper, false);
-        // new StagingResourceResolverImpl(releases.get(0), context.resourceResolver(), releaseMapper, context.getService(ResourceResolverFactory.class));
+        stagingResourceResolver = (StagingResourceResolver) releaseManager.getResolverForRelease(releases.get(0), releaseMapper, false);
+        // new StagingResourceResolver(releases.get(0), context.resourceResolver(), releaseMapper, context.getService(ResourceResolverFactory.class));
     }
 
 
@@ -300,7 +300,7 @@ public class StagingResourceResolverImplTest extends AbstractStagingTest {
         deleteInJcr(document1, document2); // make sure we read from version space
 
         List<Resource> resources = JcrTestUtils.ancestorsAndSelf(stagingResourceResolver.resolve(node1));
-        errorCollector.checkThat(resources, allOf(Matchers.iterableWithSize(6), everyItem(instanceOf(StagingResourceImpl.class))));
+        errorCollector.checkThat(resources, allOf(Matchers.iterableWithSize(6), everyItem(instanceOf(StagingResource.class))));
 
         for (Resource r : resources) {
             Node n = r.adaptTo(Node.class);
@@ -312,7 +312,7 @@ public class StagingResourceResolverImplTest extends AbstractStagingTest {
                 errorCollector.checkThat(n.getName(), equalTo(r.getName()));
 
                 List<Resource> childResources = IteratorUtils.toList(r.listChildren());
-                errorCollector.checkThat(childResources, everyItem(instanceOf(StagingResourceImpl.class)));
+                errorCollector.checkThat(childResources, everyItem(instanceOf(StagingResource.class)));
 
                 List<Node> childNodes = IteratorUtils.toList(n.getNodes());
                 errorCollector.checkThat(childNodes, everyItem(instanceOf(FrozenNodeWrapper.class)));

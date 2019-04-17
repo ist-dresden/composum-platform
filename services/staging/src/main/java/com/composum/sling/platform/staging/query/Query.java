@@ -1,6 +1,6 @@
 package com.composum.sling.platform.staging.query;
 
-import com.composum.sling.platform.staging.impl.StagingResourceResolverImpl;
+import com.composum.sling.platform.staging.impl.StagingResourceResolver;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.query.impl.ValueComparatorFactory;
@@ -92,7 +92,7 @@ public class Query {
      */
     protected Query(ResourceResolver resourceResolver) {
         this.resourceResolver = resourceResolver;
-        StagingResourceResolverImpl stagingResolver = resourceResolver.adaptTo(StagingResourceResolverImpl.class);
+        StagingResourceResolver stagingResolver = resourceResolver.adaptTo(StagingResourceResolver.class);
         this.release = null != stagingResolver ? stagingResolver.getRelease() : null;
         this.releaseMapper = null != stagingResolver ? stagingResolver.getReleaseMapper() : null;
     }
@@ -669,9 +669,9 @@ public class Query {
             Value value = input.getValue(selector + ".jcr:path");
             if (null == value) return null;
             final String path = value.getString();
-            if (resourceResolver instanceof StagingResourceResolverImpl) {
+            if (resourceResolver instanceof StagingResourceResolver) {
                 // for speed, skips various checks by the resolver that aren't needed here
-                StagingResourceResolverImpl stagingResolver = (StagingResourceResolverImpl) resourceResolver;
+                StagingResourceResolver stagingResolver = (StagingResourceResolver) resourceResolver;
                 final Resource resource;
                 resource = stagingResolver.getUnderlyingResolver().getResource(path);
                 return stagingResolver.wrapIntoStagingResource(path, resource, null, false);
