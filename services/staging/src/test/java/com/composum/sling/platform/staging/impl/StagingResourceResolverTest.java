@@ -68,10 +68,6 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
     @Before
     public void setUpContent() throws Exception {
-        InputStreamReader cndReader = new InputStreamReader(getClass().getResourceAsStream("/testsetup/nodetypes.cnd"));
-        NodeType[] nodeTypes = CndImporter.registerNodeTypes(cndReader, context.resourceResolver().adaptTo(Session.class));
-        assertEquals(3, nodeTypes.length);
-
         folder = "/folder";
         builderAtFolder = context.build().resource(folder, PROP_PRIMARY_TYPE, TYPE_SLING_ORDERED_FOLDER,
                 ResourceUtil.PROP_MIXINTYPES, array(TYPE_MIX_RELEASE_ROOT))
@@ -88,7 +84,6 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         List<StagingReleaseManager.Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
         assertEquals(1, releases.size());
         stagingResourceResolver = (StagingResourceResolver) releaseManager.getResolverForRelease(releases.get(0), releaseMapper, false);
-        // new StagingResourceResolver(releases.get(0), context.resourceResolver(), releaseMapper, context.getService(ResourceResolverFactory.class));
     }
 
 

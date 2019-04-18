@@ -699,7 +699,19 @@ public class Query {
 
     public enum JoinType {Inner, LeftOuter, RightOuter}
 
-    public enum JoinCondition {Descendant, Child}
+    public enum JoinCondition {
+        /**
+         * Specifies that the joined node is a descendant. Caution: this fails if it crosses the boundary into a
+         * versionable - that is, the boundary between the release tree and the versioned documents in version storage.
+         */
+        Descendant,
+        /**
+         * Specifies that the joined node is a child. Caution: this fails if it crosses the boundary into a
+         * versionable - that is, the boundary between the release tree and the versioned documents in version storage,
+         * and if it crosses the boundary from outside the release tree into the release tree.
+         */
+        Child
+    }
 
     protected String joinSelects(boolean versioned) {
         if (joins.isEmpty()) return "";

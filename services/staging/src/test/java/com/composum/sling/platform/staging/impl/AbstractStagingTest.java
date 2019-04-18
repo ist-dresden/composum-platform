@@ -6,6 +6,7 @@ import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.testing.testutil.AnnotationWithDefaults;
 import org.apache.commons.lang3.RandomUtils;
+import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolverFactory;
@@ -22,8 +23,10 @@ import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
+import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
+import java.io.InputStreamReader;
 import java.util.Calendar;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
@@ -54,6 +57,10 @@ public abstract class AbstractStagingTest {
 
     @Before
     public final void setUpResolver() throws Exception {
+        InputStreamReader cndReader = new InputStreamReader(getClass().getResourceAsStream("/testsetup/nodetypes.cnd"));
+        NodeType[] nodeTypes = CndImporter.registerNodeTypes(cndReader, context.resourceResolver().adaptTo(Session.class));
+        assertEquals(3, nodeTypes.length);
+
         versionManager = context.resourceResolver().adaptTo(Session.class).getWorkspace().getVersionManager();
 
         releaseManager = new DefaultStagingReleaseManager() {{

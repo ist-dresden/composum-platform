@@ -1,7 +1,10 @@
 package com.composum.sling.platform.staging.query;
 
 import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.AbstractStagingTest;
+import com.composum.sling.platform.staging.impl.StagingResourceResolver;
 import com.composum.sling.platform.staging.query.impl.QueryBuilderAdapterFactory;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import org.apache.commons.collections4.IterableUtils;
@@ -24,8 +27,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.*;
 
+import static com.composum.sling.core.util.CoreConstants.PROP_MIXINTYPES;
 import static com.composum.sling.core.util.ResourceUtil.*;
+import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
 import static com.composum.sling.platform.staging.query.Query.*;
+import static com.composum.sling.platform.testing.testutil.JcrTestUtils.array;
 import static java.util.Arrays.*;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.sling.api.resource.ResourceUtil.getParent;
@@ -34,8 +40,6 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 import static org.slf4j.LoggerFactory.getLogger;
 
-@Ignore("Doesn't work yet, but the implementation waits a little.")
-// // FIXME hps 2019-04-04 REWORK QUERIES
 public class QueryTest extends AbstractStagingTest {
 
     private static final Logger LOG = getLogger(QueryTest.class);
@@ -67,7 +71,8 @@ public class QueryTest extends AbstractStagingTest {
     @Before
     public void setUpContent() throws Exception {
         folder = "/folder";
-        ResourceBuilder builderAtFolder = context.build().resource(folder).commit();
+        ResourceBuilder builderAtFolder = context.build().resource(folder, PROP_PRIMARY_TYPE, TYPE_SLING_ORDERED_FOLDER,
+                PROP_MIXINTYPES, array(TYPE_MIX_RELEASE_ROOT)).commit();
         document1 = folder + "/" + "document1";
         node1version = makeNode(builderAtFolder, "document1", "n1/something", true, true, "3 third title");
         node1current = node1version.replaceAll("n1/something", "n1c/something");
@@ -94,6 +99,10 @@ public class QueryTest extends AbstractStagingTest {
         resolver.commit();
         assertNotNull(resolver.getResource(node1current));
         assertNull(resolver.getResource(node1version));
+
+        List<StagingReleaseManager.Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
+        assertEquals(1, releases.size());
+        stagingResourceResolver = (StagingResourceResolver) releaseManager.getResolverForRelease(releases.get(0), releaseMapper, false);
     }
 
     @Test
