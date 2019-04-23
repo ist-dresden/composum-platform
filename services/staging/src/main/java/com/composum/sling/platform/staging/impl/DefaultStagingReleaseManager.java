@@ -1,6 +1,8 @@
 package com.composum.sling.platform.staging.impl;
 
+import com.composum.platform.commons.util.JcrIteratorUtil;
 import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.*;
@@ -23,16 +25,21 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.query.Query;
+import javax.jcr.version.Version;
+import javax.jcr.version.VersionException;
+import javax.jcr.version.VersionHistory;
+import javax.jcr.version.VersionManager;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.composum.sling.core.util.CoreConstants.CONTENT_NODE;
+import static com.composum.sling.core.util.CoreConstants.*;
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 
 /**
  * Default implementation of {@link StagingReleaseManager} - description see there.
- * // FIXME hps 2019-04-10 change lastupdate on release node.
  *
  * @see StagingReleaseManager
  */
@@ -48,9 +55,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultStagingReleaseManager.class);
 
     /** Sub-path from the release root to the releases node. */
-    static final String RELPATH_RELEASES_NODE = ResourceUtil.CONTENT_NODE + '/' + NODE_RELEASES;
+    static final String RELPATH_RELEASES_NODE = CONTENT_NODE + '/' + NODE_RELEASES;
 
-    private SiblingOrderUpdateStrategy siblingOrderUpdateStrategy = new SiblingOrderUpdateStrategy();
+    private final SiblingOrderUpdateStrategy siblingOrderUpdateStrategy = new SiblingOrderUpdateStrategy();
 
     @Reference
     protected ResourceResolverFactory resourceResolverFactory;
@@ -194,23 +201,58 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         if (versionReference == null) {
             versionReference = ResourceUtil.getOrCreateResource(release.getReleaseNode().getResourceResolver(), newPath,
-                    ResourceUtil.TYPE_UNSTRUCTURED + '/' + TYPE_VERSIONREFERENCE);
+                    TYPE_UNSTRUCTURED + '/' + TYPE_VERSIONREFERENCE);
         } else if (!versionReference.getPath().equals(newPath)) {
             Resource oldParent = versionReference.getParent();
             ResourceResolver resolver = versionReference.getResourceResolver();
 
-            ResourceUtil.getOrCreateResource(resolver, ResourceUtil.getParent(newPath), ResourceUtil.TYPE_UNSTRUCTURED);
+            ResourceUtil.getOrCreateResource(resolver, ResourceUtil.getParent(newPath), TYPE_UNSTRUCTURED);
             resolver.move(versionReference.getPath(), ResourceUtil.getParent(newPath));
             versionReference = resolver.getResource(newPath);
 
             cleanupOrphans(releaseWorkspaceCopy.getPath(), oldParent);
         }
 
+        updateReleaseLabel(release, releasedVersionable);
+
         releasedVersionable.writeToVersionReference(requireNonNull(versionReference));
+
+        release.updateLastModified();
 
         return updateParents(release, releasedVersionable);
     }
 
+    /** Sets the label {@link StagingConstants#RELEASE_LABEL_PREFIX}-{releasenumber} on the version the releasedVersionable refers to. */
+    protected void updateReleaseLabel(ReleaseImpl release, ReleasedVersionable releasedVersionable) throws RepositoryException {
+        Session session = release.getReleaseRoot().getResourceResolver().adaptTo(Session.class);
+        if (session == null) // impossible.
+            throw new RepositoryException("No session for " + release.getReleaseRoot().getPath());
+
+        VersionManager versionManager = session.getWorkspace().getVersionManager();
+        VersionHistory versionHistory = versionManager.getVersionHistory(release.getReleaseRoot().getPath() + '/' + releasedVersionable.getRelativePath());
+        String label = StagingConstants.RELEASE_LABEL_PREFIX + release.getNumber().replace("cpl:", "");
+
+        if (StringUtils.isBlank(releasedVersionable.getVersionUuid())) {
+            try {
+                versionHistory.removeVersionLabel(label);
+            } catch (VersionException e) {
+                LOG.debug("Label {} wasn't set - OK.", label);
+            }
+            return;
+        }
+
+        for (Version version : JcrIteratorUtil.asIterable(versionHistory.getAllVersions())) {
+            if (releasedVersionable.getVersionUuid().equals(version.getIdentifier())) {
+                versionHistory.addVersionLabel(version.getName(), label, true);
+                LOG.debug("Setting label {} on version {}", label, version.getIdentifier());
+                return;
+            }
+        }
+
+        throw new IllegalArgumentException("Version not found for " + releasedVersionable + " in release " + release);
+    }
+
+    @Nonnull
     @Override
     public Map<String, Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException {
         Map<String, Result> result = new TreeMap<>();
@@ -305,26 +347,26 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         if (!root.isValid() && !root.isOfType(TYPE_MIX_RELEASE_ROOT))
             throw new IllegalArgumentException("Not a release root: " + theRoot.getPath());
 
-        ResourceHandle contentnode = ResourceHandle.use(ResourceHandle.use(root.getChild(ResourceUtil.CONTENT_NODE)));
+        ResourceHandle contentnode = ResourceHandle.use(ResourceHandle.use(root.getChild(CONTENT_NODE)));
         if (contentnode.isValid()) { // ensure mixin is there if the node was created otherwise
             SlingResourceUtil.addMixin(contentnode, TYPE_MIX_RELEASE_CONFIG);
         } else {
-            contentnode = ResourceHandle.use(root.getResourceResolver().create(root, ResourceUtil.CONTENT_NODE,
-                    ImmutableMap.of(ResourceUtil.PROP_PRIMARY_TYPE, ResourceUtil.TYPE_UNSTRUCTURED,
-                            ResourceUtil.PROP_MIXINTYPES, TYPE_MIX_RELEASE_CONFIG)));
+            contentnode = ResourceHandle.use(root.getResourceResolver().create(root, CONTENT_NODE,
+                    ImmutableMap.of(PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+                            PROP_MIXINTYPES, TYPE_MIX_RELEASE_CONFIG)));
         }
 
-        Resource currentReleaseNode = ResourceUtil.getOrCreateChild(contentnode, NODE_RELEASES + "/" + releaseLabel, ResourceUtil.TYPE_UNSTRUCTURED);
-        SlingResourceUtil.addMixin(currentReleaseNode, ResourceUtil.TYPE_REFERENCEABLE);
+        Resource currentReleaseNode = ResourceUtil.getOrCreateChild(contentnode, NODE_RELEASES + "/" + releaseLabel, TYPE_UNSTRUCTURED);
+        SlingResourceUtil.addMixin(currentReleaseNode, TYPE_REFERENCEABLE);
 
-        Resource releaseWorkspaceCopy = ResourceUtil.getOrCreateChild(currentReleaseNode, NODE_RELEASE_ROOT, ResourceUtil.TYPE_UNSTRUCTURED);
+        Resource releaseWorkspaceCopy = ResourceUtil.getOrCreateChild(currentReleaseNode, NODE_RELEASE_ROOT, TYPE_UNSTRUCTURED);
 
         ResourceHandle metaData = ResourceHandle.use(currentReleaseNode.getChild(NODE_RELEASE_METADATA));
         if (!metaData.isValid()) {
             metaData = ResourceHandle.use(root.getResourceResolver().create(currentReleaseNode, NODE_RELEASE_METADATA,
-                    ImmutableMap.of(ResourceUtil.PROP_PRIMARY_TYPE, ResourceUtil.TYPE_UNSTRUCTURED,
-                            ResourceUtil.PROP_MIXINTYPES,
-                            new String[]{ResourceUtil.TYPE_CREATED, ResourceUtil.TYPE_LAST_MODIFIED, ResourceUtil.TYPE_TITLE})));
+                    ImmutableMap.of(PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+                            PROP_MIXINTYPES,
+                            new String[]{TYPE_CREATED, TYPE_LAST_MODIFIED, TYPE_TITLE})));
         }
 
         return new ReleaseImpl(root, currentReleaseNode); // incl. validation
@@ -352,7 +394,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             ResourceHandle node = ResourceHandle.use(releaseNode);
             if (!node.getPath().startsWith(root.getPath() + "/") ||
                     !node.getParent().getName().equals(NODE_RELEASES) ||
-                    !node.getParent().getParent().getName().equals(ResourceUtil.CONTENT_NODE) ||
+                    !node.getParent().getParent().getName().equals(CONTENT_NODE) ||
                     !node.getParent().getParent().isOfType(TYPE_MIX_RELEASE_CONFIG) ||
                     !node.getParent(3).getPath().equals(root.getPath()))
                 throw new IllegalArgumentException("Suspicious release node in " + this);
@@ -363,7 +405,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         @Override
         @Nonnull
         public String getUuid() {
-            return ResourceHandle.use(releaseNode).getProperty(ResourceUtil.PROP_UUID);
+            return ResourceHandle.use(releaseNode).getProperty(PROP_UUID);
         }
 
         @Override
@@ -420,6 +462,14 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         public static ReleaseImpl unwrap(@Nullable Release release) {
             if (release != null) ((ReleaseImpl) release).validate();
             return (ReleaseImpl) release;
+        }
+
+        protected void updateLastModified() throws RepositoryException {
+            ResourceHandle metaData = ResourceHandle.use(getMetaDataNode());
+            if (metaData.isOfType(TYPE_LAST_MODIFIED)) {
+                metaData.setProperty(JCR_LASTMODIFIED, Calendar.getInstance());
+                metaData.setProperty(CoreConstants.JCR_LASTMODIFIED_BY, getReleaseRoot().getResourceResolver().getUserID());
+            }
         }
     }
 

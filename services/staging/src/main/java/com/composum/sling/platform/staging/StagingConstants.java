@@ -12,6 +12,13 @@ import static org.apache.jackrabbit.JcrConstants.*;
 public interface StagingConstants {
 
     /**
+     * Prefix for the release number when added as a label to the released version of a versionable. i.e. composum-release-r3.1.4 .
+     * This is added as an additional mark to be able to easily create queries into version store restricted to the contents of
+     * one release.
+     */
+    public static final String RELEASE_LABEL_PREFIX = "composum-release-";
+
+    /**
      * Mixin for the versionable node that contains the structure of all releases in a subnode cpl:releases.
      * We also save the full path at which the release node was created in cpl:pathOnCheckin.
      * The subnode cpl:releases

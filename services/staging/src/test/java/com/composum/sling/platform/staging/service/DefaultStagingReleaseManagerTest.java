@@ -5,10 +5,10 @@ import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
-import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
-import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
 import com.composum.sling.platform.staging.StagingReleaseManager.ReleasedVersionable;
+import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
+import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import com.composum.sling.platform.testing.testutil.AnnotationWithDefaults;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
@@ -119,6 +119,9 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ResourceResolver stagedResolver = service.getResolverForRelease(currentRelease, null, false);
         Resource staged = stagedResolver.getResource(versionable.getPath());
         ec.checkThat(String.valueOf(staged), ResourceHandle.use(staged).isValid(), is(true));
+
+        ec.checkThat(version.getContainingHistory().getVersionLabels(version),
+                arrayContaining(StagingConstants.RELEASE_LABEL_PREFIX + currentRelease.getNumber().replace("cpl:", "")));
     }
 
     protected void referenceRefersToVersionableVersion(Resource rawVersionReference, Resource versionable, Version version) throws RepositoryException {
@@ -130,51 +133,88 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     }
 
     @Test
-    public void createNewReleaseAndmoveDocument() throws Exception {
+    public void createNewReleaseAndMoveDocument() throws Exception {
+        // create and check in a version
         Resource versionable = releaseRootBuilder.resource("a/jcr:content", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                 PROP_MIXINTYPES, array(TYPE_VERSIONABLE, TYPE_TITLE, TYPE_LAST_MODIFIED), "foo", "bar", PROP_TITLE, "title")
                 .commit().getCurrentParent();
         Version version = versionManager.checkpoint(versionable.getPath());
-
         service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(versionable));
         context.resourceResolver().commit();
 
+        // check that it's returned as release content and has the right label
         referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/a/jcr:content"), versionable, version);
         List<ReleasedVersionable> contents = service.listReleaseContents(currentRelease);
         ec.checkThat(contents.size(), is(1));
         ec.checkThat(contents.get(0).getRelativePath(), is("a/jcr:content"));
         ec.checkThat(contents.get(0).getVersionUuid(), is(version.getUUID()));
 
+        ec.checkThat(version.getContainingHistory().getVersionLabels(version),
+                arrayContaining(StagingConstants.RELEASE_LABEL_PREFIX + currentRelease.getNumber().replace("cpl:", "")));
+
+        // a newly created release references the same version.
         Release r1 = service.createRelease(currentRelease, ReleaseNumberCreator.MAJOR);
         referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/r1/root/a/jcr:content"), versionable, version);
         ec.checkThat(service.listReleaseContents(currentRelease).size(), is(1));
 
+        // move the document and put a new version of the document into the release
         String newPath = releaseRootBuilder.resource("b/c").commit().getCurrentParent().getPath() + "/jcr:content";
         context.resourceResolver().move(versionable.getPath(), ResourceUtil.getParent(newPath));
         context.resourceResolver().commit();
         Resource newVersionable = context.resourceResolver().getResource(newPath);
 
-        Map<String, SiblingOrderUpdateStrategy.Result> updateResult = service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(newVersionable));
+        ec.checkThat(service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(newVersionable)).toString(), equalTo("{}"));
         context.resourceResolver().commit();
-        ec.checkThat(updateResult.toString(), equalTo("{}"));
-        ec.checkThat(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/a"), nullValue()); // parent was orphan
+        ec.checkThat(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/a"), nullValue()); // parent was now an orphan and is removed
         referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/b/c/jcr:content"), newVersionable, version);
 
         Version version2 = versionManager.checkpoint(newPath);
-        referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/b/c/jcr:content"), newVersionable, version);
-
-        updateResult = service.updateRelease(currentRelease, Arrays.asList(ReleasedVersionable.forBaseVersion(newVersionable), ReleasedVersionable.forBaseVersion(newVersionable)));
+        // see that updating to a new version works as expected
+        ec.checkThat(service.updateRelease(currentRelease,
+                Arrays.asList(ReleasedVersionable.forBaseVersion(newVersionable), ReleasedVersionable.forBaseVersion(newVersionable))).toString(),
+                equalTo("{}"));
         context.resourceResolver().commit();
-        ec.checkThat(updateResult.toString(), equalTo("{}"));
         referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/b/c/jcr:content"), newVersionable, version2);
 
+        ec.checkThat(version.getContainingHistory().getVersionLabels(version2),
+                arrayContaining(StagingConstants.RELEASE_LABEL_PREFIX + currentRelease.getNumber().replace("cpl:", "")));
+
+        // the document is available at the old path in the current release
         ResourceResolver stagedResolver = service.getResolverForRelease(currentRelease, null, false);
         ec.checkThat(ResourceHandle.use(stagedResolver.getResource(newPath)).isValid(), is(true));
         ec.checkThat(ResourceHandle.use(stagedResolver.getResource(versionable.getPath())).isValid(), is(false));
 
+        // ... but at the old path in the old release.
         stagedResolver = service.getResolverForRelease(r1, null, false);
         ec.checkThat(ResourceHandle.use(stagedResolver.getResource(newPath)).isValid(), is(false));
         ec.checkThat(ResourceHandle.use(stagedResolver.getResource(versionable.getPath())).isValid(), is(true));
+
+        // check that setting inactive hides the document
+        ReleasedVersionable releasedVersionable = ReleasedVersionable.forBaseVersion(newVersionable);
+        releasedVersionable.setActive(false);
+        ec.checkThat(service.updateRelease(currentRelease, releasedVersionable).toString(), is("{}"));
+        stagedResolver = service.getResolverForRelease(currentRelease, null, false);
+        ec.checkThat(ResourceHandle.use(stagedResolver.getResource(newPath)).isValid(), is(false));
+        releasedVersionable.setActive(true);
+        ec.checkThat(service.updateRelease(currentRelease, releasedVersionable).toString(), is("{}"));
+        ec.checkThat(ResourceHandle.use(stagedResolver.getResource(newPath)).isValid(), is(true));
+
+        // delete the document and remove it from the current release, too
+
+        // releasedVersionable.setVersionUuid(null);
+        // ec.checkThat(service.updateRelease(currentRelease, releasedVersionable), is("{}"));
+        // ec.checkThat(ResourceHandle.use(stagedResolver.getResource(newPath)).isValid(), is(false));
+
+        // context.resourceResolver().delete(newVersionable);
+        // context.resourceResolver().commit();
+
+        // versionManager.restore(newPath, version2, false);
+        // ec.checkThat(ResourceHandle.use(stagedResolver.getResource(newPath)).isValid(), is(true));
+
+        // crashes: ec.checkThat(versionManager.getVersionHistory(newPath), notNullValue());
+        // FIXME hps 2019-04-23 how to do that ? https://stackoverflow.com/questions/55807593
+        // we want to delete the document first, and then update it in the release, but can't get the
+        // version from VersionManager
     }
 
     @Test

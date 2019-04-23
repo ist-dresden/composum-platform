@@ -44,7 +44,8 @@ import java.util.Map;
  *                     ... copy of the working tree for the release
  *                 {@value StagingConstants#NODE_RELEASE_METADATA}
  * </pre>
- * <p>TODO: perhaps rename it to ReleaseManager once the old ReleaseManager is removed.</p>
+ * <p>We also set a label {@value StagingConstants#RELEASE_LABEL_PREFIX}{releasenumber} on each version contained in the release,
+ * for easier referencing versions. Caution: the current release is called {@value StagingConstants#RELEASE_LABEL_PREFIX}current .</p>
  * // FIXME hps 2019-04-05 introduce open / immutable release state
  */
 public interface StagingReleaseManager extends StagingConstants {
@@ -121,6 +122,8 @@ public interface StagingReleaseManager extends StagingConstants {
     /**
      * Updates the release by adding or updating the versionable denoted by {releasedVersionable} in the release.
      * If {@link ReleasedVersionable#versionUuid} is null, it is removed from the release.
+     * We also set a label {@value StagingConstants#RELEASE_LABEL_PREFIX}{releasenumber} on each version contained in the release,
+     * for easier referencing versions. Caution: the current release is called {@value StagingConstants#RELEASE_LABEL_PREFIX}current .
      *
      * @param release          the release to update
      * @param releasedVersionable information of the versionable to update
@@ -133,6 +136,8 @@ public interface StagingReleaseManager extends StagingConstants {
     /**
      * Updates the release by adding or updating a number of versionables denoted by {releasedVersionable} in the release.
      * If {@link ReleasedVersionable#versionUuid} is null, it is removed from the release.
+     * We also set a label {@value StagingConstants#RELEASE_LABEL_PREFIX}{releasenumber} on each version contained in the release,
+     * for easier referencing versions. Caution: the current release is called {@value StagingConstants#RELEASE_LABEL_PREFIX}current .
      *
      * @param release                 the release to update
      * @param releasedVersionableList a number of paths to versionables for which the latest version should be put into the release
@@ -167,15 +172,17 @@ public interface StagingReleaseManager extends StagingConstants {
     public class ReleasedVersionable {
 
         /** @see #getRelativePath() */
+        @Nonnull
         private String relativePath;
 
         /** Path relative to release root. */
+        @Nonnull
         public String getRelativePath() {
             return relativePath;
         }
 
         /** @see #getRelativePath() */
-        public void setRelativePath(String relativePath) {
+        public void setRelativePath(@Nonnull String relativePath) {
             this.relativePath = relativePath;
         }
 
@@ -193,28 +200,32 @@ public interface StagingReleaseManager extends StagingConstants {
         }
 
         /** @see #getVersionUuid() */
+        @Nonnull
         private String versionUuid;
 
         /** {@link Version#getUUID()} of the version of the versionable that is in the release / is to be put into the release.. */
+        @Nonnull
         public String getVersionUuid() {
             return versionUuid;
         }
 
         /** @see #getVersionUuid() */
-        public void setVersionUuid(String versionUuid) {
+        public void setVersionUuid(@Nonnull String versionUuid) {
             this.versionUuid = versionUuid;
         }
 
         /** @see #getVersionHistory() */
+        @Nonnull
         private String versionHistory;
 
         /** The UUID of the version history, as unchangeable identifier. */
+        @Nonnull
         public String getVersionHistory() {
             return versionHistory;
         }
 
         /** @see #getVersionHistory() */
-        public void setVersionHistory(String versionHistory) {
+        public void setVersionHistory(@Nonnull String versionHistory) {
             this.versionHistory = versionHistory;
         }
 
@@ -311,7 +322,9 @@ public interface StagingReleaseManager extends StagingConstants {
 
         /**
          * Release number (JCR compatible) of the release: this is automatically created with {@link ReleaseNumberCreator}
-         * and will be something like r4 or r2.4.5 .
+         * and will be something like r4 or r2.4.5 . The current release is called {@value StagingConstants#NODE_CURRENT_RELEASE}.
+         * Not that there is a label {@value StagingConstants#RELEASE_LABEL_PREFIX}{number} at the version - except for the current
+         * release where it's called {@value StagingConstants#RELEASE_LABEL_PREFIX}current, since a label must not contain a colon.
          */
         @Nonnull
         String getNumber();
