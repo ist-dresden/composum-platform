@@ -380,9 +380,13 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         @Nonnull
         final Resource releaseNode;
 
+        @Nonnull
+        final Resource workspaceCopyNode;
+
         ReleaseImpl(@Nonnull Resource releaseRoot, @Nonnull Resource releaseNode) {
             this.releaseRoot = requireNonNull(releaseRoot);
             this.releaseNode = requireNonNull(releaseNode);
+            this.workspaceCopyNode = requireNonNull(getReleaseNode().getChild(NODE_RELEASE_ROOT));
             validate();
         }
 
@@ -439,7 +443,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         /** The node that contains the workspace copy for the release. */
         @Nonnull
         public Resource getWorkspaceCopyNode() {
-            return requireNonNull(getReleaseNode().getChild(NODE_RELEASE_ROOT));
+            return workspaceCopyNode;
         }
 
         @Override

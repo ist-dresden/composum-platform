@@ -1,6 +1,7 @@
 package com.composum.sling.platform.staging.query.impl;
 
 import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.AbstractStagingTest;
 import com.composum.sling.platform.staging.impl.StagingResourceResolver;
@@ -118,19 +119,19 @@ public class QueryTest extends AbstractStagingTest {
         errorCollector.checkThat(q.buildSQL2(), is("SELECT n.[jcr:path] , n.[jcr:created] AS [query:orderBy] \n" +
                 "FROM [nt:base] AS n \n" +
                 "WHERE ISDESCENDANTNODE(n, '/folder') \n" +
-                "( ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/cpl:current/root') OR NOT ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases') )\n" +
+                "AND ( ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/cpl:current/root') OR NOT ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases') )\n" +
                 "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
 
         q.path(folder + "/xyz");
         errorCollector.checkThat(q.buildSQL2(), is("SELECT n.[jcr:path] , n.[jcr:created] AS [query:orderBy] \n" +
                 "FROM [nt:base] AS n \n" +
-                "WHERE ISDESCENDANTNODE(n, '/folder/xyz') \n" +
+                "WHERE ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/cpl:current/root/xyz') \n" +
                 "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
 
         errorCollector.checkThat(q.buildSQL2Version(), is("SELECT n.[jcr:path], version.[jcr:uuid] AS [query:versionUuid], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] , n.[jcr:created] AS [query:orderBy] \n" +
                 "FROM [nt:versionHistory] AS history \n" +
                 "INNER JOIN [nt:version] AS version ON ISCHILDNODE(version, history) \n" +
-                "INNER JOIN [nt:versionLabels] AS labels ON version.[jcr:uuid] = labels.[cpl:current] \n" +
+                "INNER JOIN [nt:versionLabels] AS labels ON version.[jcr:uuid] = labels.[current] \n" +
                 "INNER JOIN [nt:frozenNode] AS n ON ISDESCENDANTNODE(n, version) \n" +
                 "WHERE ISDESCENDANTNODE(history, '/jcr:system/jcr:versionStorage') \n" +
                 "AND history.[default] like '/folder/%' \n" +
@@ -189,15 +190,29 @@ public class QueryTest extends AbstractStagingTest {
     }
 
     @Test
-    public void queryBuilder() throws RepositoryException, IOException {
+    public void findReleaseNode() throws RepositoryException, IOException {
+        Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
+        q.path(folder).type(CoreConstants.TYPE_SLING_ORDERED_FOLDER).orderBy(JcrConstants.JCR_PRIMARYTYPE);
+        assertResults(q, folder);
+    }
+
+    @Test
+    public void findHierarchyNode() throws RepositoryException, IOException {
+        Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
+        q.path(folder).element("document1").type(NT_UNSTRUCTURED).orderBy(JcrConstants.JCR_PATH);
+        assertResults(q, document1);
+    }
+
+    @Test
+    public void findNodesInVersionStorage() throws RepositoryException, IOException {
         Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
         q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(JcrConstants.JCR_CREATED);
-        assertResults(q, node2oldandnew, node1version, unversionedNode);
+        assertResults(q, node2oldandnew, node1version);
     }
 
     @Test
     public void limitsOnPlainResolver() throws Exception {
-        Query q = context.resourceResolver().adaptTo(QueryBuilder.class).createQuery();
+        Query q = QueryBuilder.makeQuery(context.resourceResolver());
         q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(COLUMN_PATH);
         assertResults(q, node1current, node2new, node2oldandnew, unreleasedNode, unversionedNode);
 
@@ -211,7 +226,7 @@ public class QueryTest extends AbstractStagingTest {
 
     @Test
     public void limitsOnStagingResolver() throws RepositoryException, IOException {
-        Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
+        Query q = QueryBuilder.makeQuery(stagingResourceResolver);
         q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(COLUMN_PATH);
         assertResults(q, node1version, node2oldandnew, unversionedNode);
 
@@ -294,17 +309,15 @@ public class QueryTest extends AbstractStagingTest {
 
         Mockito.reset(releaseMapper);
         // only checked in release from document2; only current from document1; unreleased has no release -> not there
-        when(releaseMapper.releaseMappingAllowed(Mockito.startsWith(unreleasedDocument))).thenReturn(true);
         when(releaseMapper.releaseMappingAllowed(Mockito.startsWith(document1))).thenReturn(false);
         when(releaseMapper.releaseMappingAllowed(Mockito.startsWith(document2))).thenReturn(true);
-        assertResults(q, node2oldandnew, node1current, unversionedNode);
+        assertResults(q, node2oldandnew, node1current);
 
         Mockito.reset(releaseMapper);
         // only checked in release from document1; only current from document2 and unreleasedDocument
-        when(releaseMapper.releaseMappingAllowed(Mockito.startsWith(unreleasedDocument))).thenReturn(false);
         when(releaseMapper.releaseMappingAllowed(Mockito.startsWith(document1))).thenReturn(true);
         when(releaseMapper.releaseMappingAllowed(Mockito.startsWith(document2))).thenReturn(false);
-        assertResults(q, node2oldandnew, node2new, node1version, unversionedNode, unreleasedNode);
+        assertResults(q, node2oldandnew, node2new, node1version);
     }
 
     @Test
@@ -337,7 +350,7 @@ public class QueryTest extends AbstractStagingTest {
 
         q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
         q.path(folder).element("something").type(SELECTED_NODETYPE);
-        assertResults(q, node1version, node2oldandnew, unversionedNode);
+        assertResults(q, node1version, node2oldandnew);
 
         q.type("rep:MergeConflict");
         assertEquals(0, IterableUtils.size(q.execute()));
@@ -355,8 +368,7 @@ public class QueryTest extends AbstractStagingTest {
         QueryConditionDsl.QueryCondition join = q.joinConditionBuilder().isNotNull(PROP_CREATED);
         q.path(folder).element(PROP_JCR_CONTENT).type(TYPE_UNSTRUCTURED).orderBy(JcrConstants.JCR_CREATED);
         q.join(JoinType.Inner, JoinCondition.Descendant, SELECTED_NODETYPE, join);
-        assertResults(q, document1 + "/" + PROP_JCR_CONTENT, document2 + "/" + PROP_JCR_CONTENT,
-                unversionedDocument + "/" + PROP_JCR_CONTENT);
+        assertResults(q, document1 + "/" + PROP_JCR_CONTENT, document2 + "/" + PROP_JCR_CONTENT);
     }
 
     @Test

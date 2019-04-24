@@ -101,7 +101,7 @@ public class StagingResourceResolver implements ResourceResolver {
     }
 
     /** Checks whether the path is one of the special paths that are overlayed from the workspace. */
-    protected boolean isDirectlyMappedPath(String path) {
+    public boolean isDirectlyMappedPath(String path) {
         String rootPath = release.getReleaseRoot().getPath();
         if (release.appliesToPath(path)) {
             for (String node : configuration.overlayed_nodes()) {
