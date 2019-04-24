@@ -1,5 +1,6 @@
-package com.composum.sling.platform.staging.query;
+package com.composum.sling.platform.staging.query.impl;
 
+import com.composum.sling.platform.staging.query.QueryConditionDsl;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.context.SlingContextImpl;
@@ -83,11 +84,12 @@ public class QueryConditionDsl2Test {
     }
 
     private static QueryConditionDsl.QueryConditionBuilder builder() {
-        return new QueryConditionDsl("n").builder();
+        return new QueryConditionDsl("n") {
+        }.builder();
     }
 
     @Parameterized.Parameter(0)
-    public QueryConditionDsl.QueryCondition queryCondition;
+    public QueryConditionDsl.QueryConditionImpl queryCondition;
 
     @Parameterized.Parameter(1)
     public String expected;

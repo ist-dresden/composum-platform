@@ -1,8 +1,9 @@
-package com.composum.sling.platform.staging.query;
+package com.composum.sling.platform.staging.query.impl;
 
+import com.composum.sling.platform.staging.query.Query;
+import com.composum.sling.platform.staging.query.QueryBuilder;
+import com.composum.sling.platform.staging.query.impl.StagingQueryImpl;
 import org.apache.sling.api.resource.ResourceResolver;
-
-import javax.jcr.Session;
 
 public class QueryBuilderImpl implements QueryBuilder {
 
@@ -14,6 +15,6 @@ public class QueryBuilderImpl implements QueryBuilder {
 
     @Override
     public Query createQuery() {
-        return new Query(resourceResolver);
+        return new StagingQueryImpl(resourceResolver);
     }
 }

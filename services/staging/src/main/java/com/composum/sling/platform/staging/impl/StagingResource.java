@@ -37,7 +37,7 @@ public class StagingResource extends AbstractResource implements JcrResource {
 
     /** StagingResourceResolver */
     @Nonnull
-    protected final ResourceResolver resolver;
+    protected final StagingResourceResolver resolver;
 
     @Nonnull
     protected final Resource underlyingResource;
@@ -54,7 +54,7 @@ public class StagingResource extends AbstractResource implements JcrResource {
      * @param underlyingResource the underlying resource
      * @param pathInfo           the path info from the request if the resource wraps a request resource
      */
-    protected StagingResource(@Nonnull StagingReleaseManager.Release release, @Nonnull String path, @Nonnull ResourceResolver resolver, @Nonnull Resource underlyingResource, @Nullable RequestPathInfo pathInfo) {
+    protected StagingResource(@Nonnull StagingReleaseManager.Release release, @Nonnull String path, @Nonnull StagingResourceResolver resolver, @Nonnull Resource underlyingResource, @Nullable RequestPathInfo pathInfo) {
         this.release = release;
         this.path = path;
         this.resolver = resolver;
@@ -144,8 +144,9 @@ public class StagingResource extends AbstractResource implements JcrResource {
     @Nullable
     public <AdapterType> AdapterType adaptTo(@Nullable Class<AdapterType> type) {
         if (type == null) return null;
-        if (ModifiableValueMap.class.isAssignableFrom(type)) { // FIXME hps 2019-04-10 overlayed nodes are modifiable
-            if (release.appliesToPath(path) || StagingUtils.isInVersionStorage(underlyingResource))
+        if (ModifiableValueMap.class.isAssignableFrom(type)) {
+            if (release.appliesToPath(path) && !resolver.isDirectlyMappedPath(path)
+                    || StagingUtils.isInVersionStorage(underlyingResource))
                 return null; // unmodifiable
             return type.cast(underlyingResource.adaptTo(ModifiableValueMap.class));
             // a bit dangerous because of relative paths, but we need this for metadata etc.

@@ -8,11 +8,11 @@ import javax.annotation.Nonnull;
  */
 public interface ReleaseMapper {
 
-    /** Returns true if the release mapping should be applied to the given path, accessed from the given URI. */
+    /** Returns true if the release mapping should be applied to the given (absolute) path, accessed from the given URI. */
     @Deprecated
     boolean releaseMappingAllowed(String path, String uri);
 
-    /** Returns true if the release mapping should be applied to the given path. */
+    /** Returns true if the release mapping should be applied to the given (absolute) path. */
     boolean releaseMappingAllowed(@Nonnull String path);
 
     public static final ReleaseMapper ALLPERMISSIVE = new ReleaseMapper() {

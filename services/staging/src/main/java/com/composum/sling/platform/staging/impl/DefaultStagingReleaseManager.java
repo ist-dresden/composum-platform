@@ -230,7 +230,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         VersionManager versionManager = session.getWorkspace().getVersionManager();
         VersionHistory versionHistory = versionManager.getVersionHistory(release.getReleaseRoot().getPath() + '/' + releasedVersionable.getRelativePath());
-        String label = StagingConstants.RELEASE_LABEL_PREFIX + release.getNumber().replace("cpl:", "");
+        String label = release.getReleaseLabel();
 
         if (StringUtils.isBlank(releasedVersionable.getVersionUuid())) {
             try {
@@ -444,9 +444,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         @Override
         public boolean appliesToPath(@Nullable String path) {
-            if (path == null) return false;
-            String normalized = ResourceUtil.normalize(path);
-            return releaseRoot.getPath().equals(normalized) || StringUtils.startsWith(normalized, releaseRoot.getPath() + "/");
+            return SlingResourceUtil.isSameOrDescendant(releaseRoot.getPath(), path);
         }
 
         @Override
@@ -470,6 +468,22 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 metaData.setProperty(JCR_LASTMODIFIED, Calendar.getInstance());
                 metaData.setProperty(CoreConstants.JCR_LASTMODIFIED_BY, getReleaseRoot().getResourceResolver().getUserID());
             }
+        }
+
+        /** Maps paths pointing into the release content to the release content copy. */
+        @Nonnull
+        public String mapToContentCopy(@Nonnull String path) {
+            if (appliesToPath(path)) {
+                path = ResourceUtil.normalize(path);
+                if (releaseRoot.getPath().equals(path))
+                    path = getWorkspaceCopyNode().getPath();
+                else if (null != path) {
+                    assert path.startsWith(releaseRoot.getPath());
+                    path = getWorkspaceCopyNode().getPath() + '/'
+                            + path.substring(releaseRoot.getPath().length() + 1);
+                }
+            }
+            return path;
         }
     }
 

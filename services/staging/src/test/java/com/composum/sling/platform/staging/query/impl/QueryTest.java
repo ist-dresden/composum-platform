@@ -1,11 +1,14 @@
-package com.composum.sling.platform.staging.query;
+package com.composum.sling.platform.staging.query.impl;
 
 import com.composum.sling.core.ResourceHandle;
-import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.AbstractStagingTest;
 import com.composum.sling.platform.staging.impl.StagingResourceResolver;
-import com.composum.sling.platform.staging.query.impl.QueryBuilderAdapterFactory;
+import com.composum.sling.platform.staging.query.Query;
+import com.composum.sling.platform.staging.query.QueryBuilder;
+import com.composum.sling.platform.staging.query.QueryConditionDsl;
+import com.composum.sling.platform.staging.query.QueryValueMap;
+import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -13,9 +16,8 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.runners.MethodSorters;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 
@@ -40,9 +42,13 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 import static org.slf4j.LoggerFactory.getLogger;
 
+@FixMethodOrder(value = MethodSorters.NAME_ASCENDING)
 public class QueryTest extends AbstractStagingTest {
 
     private static final Logger LOG = getLogger(QueryTest.class);
+
+    @Rule
+    public final ErrorCollectorAlwaysPrintingFailures errorCollector = new ErrorCollectorAlwaysPrintingFailures();
 
     protected String folder;
 
@@ -106,6 +112,37 @@ public class QueryTest extends AbstractStagingTest {
     }
 
     @Test
+    public void queryQuickCheck() throws Exception {
+        StagingQueryImpl q = (StagingQueryImpl) stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
+        q.path(folder).element(PROP_JCR_CONTENT).orderBy(JcrConstants.JCR_CREATED);
+        errorCollector.checkThat(q.buildSQL2(), is("SELECT n.[jcr:path] , n.[jcr:created] AS [query:orderBy] \n" +
+                "FROM [nt:base] AS n \n" +
+                "WHERE ISDESCENDANTNODE(n, '/folder') \n" +
+                "( ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/cpl:current/root') OR NOT ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases') )\n" +
+                "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
+
+        q.path(folder + "/xyz");
+        errorCollector.checkThat(q.buildSQL2(), is("SELECT n.[jcr:path] , n.[jcr:created] AS [query:orderBy] \n" +
+                "FROM [nt:base] AS n \n" +
+                "WHERE ISDESCENDANTNODE(n, '/folder/xyz') \n" +
+                "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
+
+        errorCollector.checkThat(q.buildSQL2Version(), is("SELECT n.[jcr:path], history.[default] AS [query:originalPath], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] , n.[jcr:created] AS [query:orderBy] \n" +
+                "FROM [nt:versionHistory] AS history \n" +
+                "INNER JOIN [nt:version] AS version ON ISCHILDNODE(version, history) \n" +
+                "INNER JOIN [nt:versionLabels] AS labels ON version.[jcr:uuid] = labels.[cpl:current] \n" +
+                "INNER JOIN [nt:frozenNode] AS n ON ISDESCENDANTNODE(n, version) \n" +
+                "WHERE ISDESCENDANTNODE(history, '/jcr:system/jcr:versionStorage') \n" +
+                "AND history.[default] like '/folder/%' \n" +
+                "AND (NAME(n) = 'jcr:content' OR (NAME(n) = 'jcr:frozenNode' AND history.default LIKE '%/jcr:content')) ORDER BY n.[jcr:created] ASC \n"));
+        errorCollector.checkThat(q.buildSQL24SingleVersion("inside/path"), is("SELECT n.[jcr:path], history.[default] AS [query:originalPath], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] , n.[jcr:created] AS [query:orderBy] \n" +
+                "FROM [nt:frozenNode] AS n \n" +
+                "INNER JOIN [nt:versionHistory] as history ON ISDESCENDANTNODE(n, history) \n" +
+                "WHERE ISDESCENDANTNODE(n, 'inside/path') \n" +
+                "AND (NAME(n) = 'jcr:content' OR (NAME(n) = 'jcr:frozenNode' AND history.default LIKE '%/jcr:content')) ORDER BY n.[jcr:created] ASC \n"));
+    }
+
+    @Test
     public void findTopmostVersionedNodeByName() throws RepositoryException, IOException {
         Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
         q.path(folder).element(PROP_JCR_CONTENT).orderBy(JcrConstants.JCR_CREATED);
@@ -133,25 +170,15 @@ public class QueryTest extends AbstractStagingTest {
     }
 
     @Test
-    @Ignore("Only for development, as needed")
+    // @Ignore("Only for development, as needed")
     public void printContent() throws Exception {
         JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource(folder));
     }
 
     @Test
-    @Ignore("Only for development, as needed")
+    // @Ignore("Only for development, as needed")
     public void printVersionStorage() throws Exception {
         JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/jcr:system/jcr:versionStorage"));
-    }
-
-    @Test
-    public void findPathPrefix() throws RepositoryException, IOException {
-        Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery().path(node2oldandnew);
-        String prefix = q.searchpathForPathPrefixInVersionStorage(queryManager);
-        // for example /jcr:system/jcr:versionStorage/73/ae/3b/73ae3bf3-c829-4b07-a217-fabe19b95a40/1.0/jcr
-        // :frozenNode/n2/some/kind/of/hierarchy/something
-        assertEquals("/jcr:system/jcr:versionStorage/X/X/X/X/1.0/jcr:frozenNode/n2/some/kind/of/hierarchy/something",
-                prefix.replaceAll("/[a-f0-9-]{2,}", "/X"));
     }
 
     @Test

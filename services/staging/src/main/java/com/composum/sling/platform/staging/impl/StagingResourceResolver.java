@@ -8,7 +8,7 @@ import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager.ReleaseImpl;
 import com.composum.sling.platform.staging.query.QueryBuilder;
-import com.composum.sling.platform.staging.query.QueryBuilderImpl;
+import com.composum.sling.platform.staging.query.impl.QueryBuilderImpl;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.SlingHttpServletRequest;

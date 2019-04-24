@@ -44,8 +44,8 @@ import java.util.Map;
  *                     ... copy of the working tree for the release
  *                 {@value StagingConstants#NODE_RELEASE_METADATA}
  * </pre>
- * <p>We also set a label {@value StagingConstants#RELEASE_LABEL_PREFIX}{releasenumber} on each version contained in the release,
- * for easier referencing versions. Caution: the current release is called {@value StagingConstants#RELEASE_LABEL_PREFIX}current .</p>
+ * <p>We also set a label {@link Release#getReleaseLabel()} on each version contained in the release,
+ * for easier referencing versions. </p>
  * // FIXME hps 2019-04-05 introduce open / immutable release state
  */
 public interface StagingReleaseManager extends StagingConstants {
@@ -323,11 +323,20 @@ public interface StagingReleaseManager extends StagingConstants {
         /**
          * Release number (JCR compatible) of the release: this is automatically created with {@link ReleaseNumberCreator}
          * and will be something like r4 or r2.4.5 . The current release is called {@value StagingConstants#NODE_CURRENT_RELEASE}.
-         * Not that there is a label {@value StagingConstants#RELEASE_LABEL_PREFIX}{number} at the version - except for the current
-         * release where it's called {@value StagingConstants#RELEASE_LABEL_PREFIX}current, since a label must not contain a colon.
          */
         @Nonnull
         String getNumber();
+
+        /**
+         * Returns the label that is set on the versions, additionally to being stored in the content copy.
+         * This is {@value StagingConstants#RELEASE_LABEL_PREFIX}{number} - except for the current
+         * release where it's called {@value StagingConstants#RELEASE_LABEL_PREFIX}current,
+         * since a label must not contain a colon.
+         */
+        @Nonnull
+        default String getReleaseLabel() {
+            return getNumber().replace("cpl:", "");
+        }
 
         /** The resource that is the top of the working tree - a {@value StagingConstants#TYPE_MIX_RELEASE_ROOT}. */
         @Nonnull

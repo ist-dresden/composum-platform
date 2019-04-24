@@ -49,7 +49,7 @@ public class QueryConditionDsl {
     /** Maps val1, val2, ... to the values bound */
     protected Map<String, Object> bindingVariables = new LinkedHashMap<>();
 
-    protected final QueryCondition queryCondition = new QueryCondition();
+    protected final QueryConditionImpl queryCondition = new QueryConditionImpl();
     protected final ComparisonOperator comparisonOperator = new ComparisonOperator();
     protected final ConditionStaticValue conditionStaticValue = new ConditionStaticValue();
 
@@ -453,25 +453,44 @@ public class QueryConditionDsl {
             return queryCondition;
         }
 
+        /**
+         * The selector of the condition. A query can contain other selectors, too, when temporarily overridden within
+         * the query with {@link ComparisonStart#selector(String)}.
+         */
+        public String getSelector() {
+            return selector;
+        }
+
+        /** A selector for the join described with this condition for the given property. */
+        public String joinSelector(String property) {
+            Validate.isTrue(isNotBlank(property));
+            Validate.isTrue(!"*".equals(property), "Can't select all properties in a join");
+            return getSelector() + ".[" + property + "]";
+        }
+    }
+
+    /** Implementation a query condition, separated from that so we don't mess up the DSL by passing these methods outside. */
+    public class QueryConditionImpl extends QueryCondition {
+
         /** Returns the generated SQL2 for use with querying the nodes as they are outside the version storage. */
-        protected String getSQL2() {
+        public String getSQL2() {
             while (parenthesesNestingLevel > 0) queryCondition.endGroup();
             return unversionedQuery.toString();
         }
 
         /** Returns the generated SQL2 for use with querying the nodes as they are inside the version storage. */
-        protected String getVersionedSQL2() {
+        public String getVersionedSQL2() {
             while (parenthesesNestingLevel > 0) queryCondition.endGroup();
-            return unversionedQuery.toString();
+            return versionedQuery.toString();
         }
 
         /** Returns the values of the binding variables contained in the SQL queries. */
-        protected Map<String, Object> getBindingValues() {
+        public Map<String, Object> getBindingValues() {
             return Collections.unmodifiableMap(bindingVariables);
         }
 
         /** Sets the saved binding values on a jcrQuery. */
-        protected void applyBindingValues(javax.jcr.query.Query jcrQuery, ResourceResolver resolver)
+        public void applyBindingValues(javax.jcr.query.Query jcrQuery, ResourceResolver resolver)
                 throws RepositoryException {
             ValueFactory valueFactory = resolver.adaptTo(Session.class).getValueFactory();
             for (Map.Entry<String, Object> entry : bindingVariables.entrySet()) {
@@ -500,20 +519,5 @@ public class QueryConditionDsl {
             return QueryConditionDsl.this.toString();
         }
 
-        /**
-         * The selector of the condition. A query can contain other selectors, too, when temporarily overridden within
-         * the query with {@link ComparisonStart#selector(String)}.
-         */
-        public String getSelector() {
-            return selector;
-        }
-
-        /** A selector for the join described with this condition for the given property. */
-
-        public String joinSelector(String property) {
-            Validate.isTrue(isNotBlank(property));
-            Validate.isTrue(!"*".equals(property), "Can't select all properties in a join");
-            return getSelector() + ".[" + property + "]";
-        }
     }
 }
