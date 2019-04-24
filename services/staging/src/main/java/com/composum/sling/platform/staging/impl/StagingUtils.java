@@ -24,6 +24,11 @@ public class StagingUtils {
     }
 
     @CheckReturnValue
+    public static boolean isInVersionStorage(@Nullable String path) {
+        return path != null && path.startsWith(VERSIONS_ROOT);
+    }
+
+    @CheckReturnValue
     public static boolean isVersionable(@Nullable Node node) throws RepositoryException {
         return node != null && node.isNodeType(NodeType.MIX_VERSIONABLE);
     }

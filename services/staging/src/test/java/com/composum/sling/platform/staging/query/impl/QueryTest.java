@@ -127,7 +127,7 @@ public class QueryTest extends AbstractStagingTest {
                 "WHERE ISDESCENDANTNODE(n, '/folder/xyz') \n" +
                 "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
 
-        errorCollector.checkThat(q.buildSQL2Version(), is("SELECT n.[jcr:path], history.[default] AS [query:originalPath], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] , n.[jcr:created] AS [query:orderBy] \n" +
+        errorCollector.checkThat(q.buildSQL2Version(), is("SELECT n.[jcr:path], version.[jcr:uuid] AS [query:versionUuid], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] , n.[jcr:created] AS [query:orderBy] \n" +
                 "FROM [nt:versionHistory] AS history \n" +
                 "INNER JOIN [nt:version] AS version ON ISCHILDNODE(version, history) \n" +
                 "INNER JOIN [nt:versionLabels] AS labels ON version.[jcr:uuid] = labels.[cpl:current] \n" +
@@ -135,7 +135,7 @@ public class QueryTest extends AbstractStagingTest {
                 "WHERE ISDESCENDANTNODE(history, '/jcr:system/jcr:versionStorage') \n" +
                 "AND history.[default] like '/folder/%' \n" +
                 "AND (NAME(n) = 'jcr:content' OR (NAME(n) = 'jcr:frozenNode' AND history.default LIKE '%/jcr:content')) ORDER BY n.[jcr:created] ASC \n"));
-        errorCollector.checkThat(q.buildSQL24SingleVersion("inside/path"), is("SELECT n.[jcr:path], history.[default] AS [query:originalPath], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] , n.[jcr:created] AS [query:orderBy] \n" +
+        errorCollector.checkThat(q.buildSQL24SingleVersion("inside/path"), is("SELECT n.[jcr:path], version.[jcr:uuid] AS [query:versionUuid], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] , n.[jcr:created] AS [query:orderBy] \n" +
                 "FROM [nt:frozenNode] AS n \n" +
                 "INNER JOIN [nt:versionHistory] as history ON ISDESCENDANTNODE(n, history) \n" +
                 "WHERE ISDESCENDANTNODE(n, 'inside/path') \n" +

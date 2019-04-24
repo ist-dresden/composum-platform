@@ -485,6 +485,17 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             }
             return path;
         }
+
+        /** Reverse of {@link #mapToContentCopy(String)}: reconstructs original path from a path pointing to the content copy. */
+        @Nonnull
+        public String unmapFromContentCopy(@Nonnull String contentCopyPath) {
+            String path = ResourceUtil.normalize(contentCopyPath);
+            if (SlingResourceUtil.isSameOrDescendant(getWorkspaceCopyNode().getPath(), path)) {
+                path = contentCopyPath.substring(0, getReleaseRoot().getPath().length()) +
+                        path.substring(getWorkspaceCopyNode().getPath().length());
+            }
+            return path != null ? path : contentCopyPath;
+        }
     }
 
     @ObjectClassDefinition(

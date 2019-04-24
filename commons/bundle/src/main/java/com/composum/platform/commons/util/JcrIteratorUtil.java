@@ -4,6 +4,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
+import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionIterator;
 import java.util.Collections;
@@ -37,6 +39,19 @@ public class JcrIteratorUtil {
             }
         };
     }
+
+    /** Turns a NodeIterator into a onetime iterable usable with for-each loops. */
+    @Nonnull
+    public static final Iterable<Row> asIterable(@Nullable RowIterator iterator) {
+        if (iterator == null) return Collections.emptyList();
+        return new Iterable<Row>() {
+            @Override
+            public Iterator<Row> iterator() {
+                return iterator;
+            }
+        };
+    }
+
 
     /** Turns a VersionIterator into a stream. */
     public static final Stream<Version> asStream(@Nullable VersionIterator iterator) {

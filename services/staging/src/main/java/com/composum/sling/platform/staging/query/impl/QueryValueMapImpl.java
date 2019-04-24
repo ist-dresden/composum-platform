@@ -5,11 +5,9 @@ import com.composum.sling.platform.staging.query.Query;
 import com.composum.sling.platform.staging.query.QueryValueMap;
 import org.apache.commons.lang3.Validate;
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ValueMap;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Row;
 import java.util.*;
@@ -78,21 +76,20 @@ public class QueryValueMapImpl extends AbstractMap<String, Object> implements Qu
             throw new IllegalArgumentException("Trying to access column " + name + " that was not selected.");
         String normalized = normalizeKey(name);
         String columnname = normalized.contains(".") ? normalized : "n." + name;
-        if (Query.COLUMN_EXCERPT.equals(name)) columnname = name;
-        if (Query.COLUMN_PATH.equals(name) || columnname.endsWith("." + Query.COLUMN_PATH)) {
-            Validate.isTrue(String.class.equals(type) || Object.class.equals(type),
-                    "For " + name + " only type String is supported.");
-            String path = query.getString(row, columnname);
-            if (path.startsWith("/jcr:system/jcr:versionStorage") && null != query.release.getNumber() && !query.getPath()
-                    .startsWith("/jcr:system/jcr:versionStorage")) {
-                // create real historical path for something contained in a release
-                String originalPath = query.getString(row, "query:originalPath");
-                path = originalPath + path.substring(path.indexOf("jcr:frozenNode") + "jcr:frozenNode".length());
-            }
-            return type.cast(path);
-        }
-
         try {
+            if (Query.COLUMN_EXCERPT.equals(name)) columnname = name;
+            if (Query.COLUMN_PATH.equals(name) || columnname.endsWith("." + Query.COLUMN_PATH)) {
+                Validate.isTrue(type.isAssignableFrom(String.class), "For " + name + " only type String is supported.");
+                String path = query.getString(row, columnname);
+                if (path.startsWith("/jcr:system/jcr:versionStorage") && null != query.release &&
+                        !query.getPath().startsWith("/jcr:system/jcr:versionStorage")) {
+                    // create real historical path for something contained in a release
+                    String versionUuid = query.getString(row, "query:versionUuid");
+                    path = query.calculateSimulatedPath(versionUuid, path);
+                }
+                return type.cast(path);
+            }
+
             return PropertyUtil.readValue(row.getValue(columnname), type);
         } catch (RepositoryException e) {
             throw new IllegalArgumentException("Could not select " + name, e);
