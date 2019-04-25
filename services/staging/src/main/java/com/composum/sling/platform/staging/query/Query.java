@@ -1,5 +1,7 @@
 package com.composum.sling.platform.staging.query;
 
+import com.composum.sling.platform.staging.StagingConstants;
+import com.composum.sling.platform.staging.impl.StagingResource;
 import com.composum.sling.platform.staging.impl.StagingResourceResolver;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -65,7 +67,8 @@ public abstract class Query {
     protected long offset = 0;
 
     /**
-     * Sets the absolute path from which we query child resources. Mandatory.
+     * Mandatory absolute path below which we query descendant resources.
+     * As with SQL2 ISDESCENDANTNODE or XPATH /somewhere//* this finds only descendants, not the node at path itself.
      *
      * @return this for chaining calls in builder-style
      */
@@ -274,6 +277,8 @@ public abstract class Query {
         String direction = ascending ? "ASC" : "DESC";
         if (COLUMN_PATH.equals(orderBy) && versioned)
             return "ORDER BY history.[default] " + direction + ", n.[" + orderBy + "] " + direction + " \n";
+        if (versioned)
+            orderBy = StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(orderBy, orderBy);
         return "ORDER BY n.[" + orderBy + "] " + direction + " \n";
     }
 

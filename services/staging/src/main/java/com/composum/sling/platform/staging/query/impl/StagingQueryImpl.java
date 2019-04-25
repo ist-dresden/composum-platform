@@ -373,8 +373,8 @@ public class StagingQueryImpl extends Query {
         String querypath = path;
         if (null != release) {
             if (isSameOrDescendant(path, release.getReleaseRoot().getPath())) {
-                notReleaseTree = "AND ( ISDESCENDANTNODE(n, '" + release.getWorkspaceCopyNode().getPath() + "') OR NOT " +
-                        "ISDESCENDANTNODE(n, '" + release.getWorkspaceCopyNode().getParent().getParent().getPath() + "') )\n";
+                notReleaseTree = "AND ( ISDESCENDANTNODE(n, '" + release.getReleaseNode().getPath() + "') OR NOT " +
+                        "ISDESCENDANTNODE(n, '" + release.getReleaseNode().getParent().getPath() + "') )\n";
             } else if (isSameOrDescendant(release.getReleaseRoot().getPath(), path)
                     && releaseMapper.releaseMappingAllowed(path)) {
                 // path goes into release and is therefore mapped the content copy
@@ -460,7 +460,9 @@ public class StagingQueryImpl extends Query {
             if (null == value) return null;
             final String rowPath = value.getString();
             Resource resource;
-            if (resourceResolver instanceof StagingResourceResolver) {
+
+            StagingResourceResolver stagingResolver = resourceResolver.adaptTo(StagingResourceResolver.class);
+            if (stagingResolver != null) {
                 String realPath = rowPath;
                 if (StagingUtils.isInVersionStorage(rowPath)) {
                     String versionUuid = getString(input, "query:versionUuid");
@@ -469,7 +471,6 @@ public class StagingQueryImpl extends Query {
                     realPath = release.unmapFromContentCopy(rowPath);
                 }
                 // for speed, skips various checks by the resolver that aren't needed here
-                StagingResourceResolver stagingResolver = (StagingResourceResolver) resourceResolver;
                 Resource underlyingResource = stagingResolver.getUnderlyingResolver().getResource(rowPath);
                 resource = stagingResolver.wrapIntoStagingResource(realPath, underlyingResource, null, false);
                 return resource;

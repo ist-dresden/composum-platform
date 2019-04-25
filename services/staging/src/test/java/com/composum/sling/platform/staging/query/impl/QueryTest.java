@@ -146,11 +146,10 @@ public class QueryTest extends AbstractStagingTest {
     @Test
     public void findTopmostVersionedNodeByName() throws RepositoryException, IOException {
         Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
-        q.path(folder).element(PROP_JCR_CONTENT).orderBy(JcrConstants.JCR_CREATED);
+        q.path("/").element(PROP_JCR_CONTENT).type(TYPE_UNSTRUCTURED).orderBy(JcrConstants.JCR_CREATED);
         // TODO: this doesn't work right, but would be very hard to fix:
         // q.condition(q.conditionBuilder().name().eq().val(PROP_JCR_CONTENT));
-        assertResults(q, document1 + "/" + PROP_JCR_CONTENT, document2 + "/" + PROP_JCR_CONTENT,
-                unversionedDocument + "/" + PROP_JCR_CONTENT);
+        assertResults(q, folder + "/" + PROP_JCR_CONTENT, document1 + "/" + PROP_JCR_CONTENT, document2 + "/" + PROP_JCR_CONTENT);
     }
 
     @Test
@@ -192,7 +191,7 @@ public class QueryTest extends AbstractStagingTest {
     @Test
     public void findReleaseNode() throws RepositoryException, IOException {
         Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
-        q.path(folder).type(CoreConstants.TYPE_SLING_ORDERED_FOLDER).orderBy(JcrConstants.JCR_PRIMARYTYPE);
+        q.path("/").type(CoreConstants.TYPE_SLING_ORDERED_FOLDER).orderBy(JcrConstants.JCR_PRIMARYTYPE);
         assertResults(q, folder);
     }
 
