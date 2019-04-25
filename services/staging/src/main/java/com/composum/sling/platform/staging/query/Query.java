@@ -149,7 +149,7 @@ public abstract class Query {
      * @return this for chaining calls in builder-style
      */
     public Query join(JoinType type, JoinCondition joinCondition,
-                      QueryConditionDsl.QueryConditionImpl joinSelectCondition) {
+                      QueryConditionDsl.QueryCondition joinSelectCondition) {
         return join(type, joinCondition, null, joinSelectCondition);
     }
 
