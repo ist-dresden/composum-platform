@@ -1,7 +1,6 @@
 package com.composum.sling.platform.staging.query;
 
 import com.composum.sling.platform.staging.StagingConstants;
-import com.composum.sling.platform.staging.impl.StagingResource;
 import com.composum.sling.platform.staging.impl.StagingResourceResolver;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -81,7 +80,9 @@ public abstract class Query {
     }
 
     /**
-     * Restricts the name of nodes to return.
+     * Restricts the name of nodes to return. <br>
+     * <b>Caution</b>: for StagingResourceResolver, this doesn't work reliably for
+     * the site name and also not for names of versionables.
      *
      * @return this for chaining calls in builder-style
      */

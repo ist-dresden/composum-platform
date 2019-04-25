@@ -108,7 +108,7 @@ public class QueryTest extends AbstractStagingTest {
         assertNull(resolver.getResource(node1version));
 
         List<StagingReleaseManager.Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
-        assertEquals(1, releases.size());
+        errorCollector.checkThat(releases.size(), is(1));
         stagingResourceResolver = (StagingResourceResolver) releaseManager.getResolverForRelease(releases.get(0), releaseMapper, false);
     }
 
@@ -269,7 +269,7 @@ public class QueryTest extends AbstractStagingTest {
 
                 assertNotNull(valueMap.get(PROP_CREATED, Calendar.class));
                 assertNotNull(valueMap.get(PROP_CREATED, Date.class));
-                assertEquals(resource.getPath(), valueMap.get(COLUMN_PATH, String.class));
+                errorCollector.checkThat(valueMap.get(COLUMN_PATH, String.class), is(resource.getPath()));
             }
             assertTrue(resultCount > 0);
         }
@@ -324,27 +324,27 @@ public class QueryTest extends AbstractStagingTest {
         Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
         q.path("/jcr:system/jcr:nodeTypes").type("rep:NodeType");
         List<Resource> result = IterableUtils.toList(q.execute());
-        assertEquals(81, result.size());
-        /* List<String> nodetypenames = new ArrayList<>();
+        errorCollector.checkThat(result.size(), is(81));
+    /* List<String> nodetypenames = new ArrayList<>();
         for (Resource r : result) nodetypenames.add(r.getName());
         Collections.sort(nodetypenames);
         LOG.debug("Nodetypes: {}", nodetypenames); */
 
         q.type("rep:MergeConflict");
-        assertEquals(0, IterableUtils.size(q.execute()));
+        errorCollector.checkThat(IterableUtils.size(q.execute()), is(0));
 
         q = context.resourceResolver().adaptTo(QueryBuilder.class).createQuery();
         q.path(folder).element("something").type(SELECTED_NODETYPE);
         assertResults(q, node1current, node2oldandnew, node2new, unversionedNode, unreleasedNode);
 
         q.type(TYPE_TITLE); // a mixin of the nodes
-        assertEquals(5, IterableUtils.size(q.execute()));
+        errorCollector.checkThat(IterableUtils.size(q.execute()), is(5));
 
         q.type("nt:base"); // supertype
-        assertEquals(5, IterableUtils.size(q.execute()));
+        errorCollector.checkThat(IterableUtils.size(q.execute()), is(5));
 
         q.type("rep:MergeConflict"); // nonsense
-        assertEquals(0, IterableUtils.size(q.execute()));
+        errorCollector.checkThat(IterableUtils.size(q.execute()), is(0));
 
 
         q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
@@ -352,14 +352,15 @@ public class QueryTest extends AbstractStagingTest {
         assertResults(q, node1version, node2oldandnew);
 
         q.type("rep:MergeConflict");
-        assertEquals(0, IterableUtils.size(q.execute()));
+        errorCollector.checkThat(IterableUtils.size(q.execute()), is(0));
 
         q.type("nt:base"); // supertype
-        assertEquals(3, IterableUtils.size(q.execute()));
+        errorCollector.checkThat(IterableUtils.size(q.execute()), is(2));
 
         q.type(TYPE_TITLE); // a mixin of the nodes
-        assertEquals(3, IterableUtils.size(q.execute()));
+        errorCollector.checkThat(IterableUtils.size(q.execute()), is(2));
     }
+
 
     @Test
     public void joinVersioned() throws RepositoryException, IOException {
@@ -398,18 +399,18 @@ public class QueryTest extends AbstractStagingTest {
             resultCount++;
             Resource resource = valueMap.getResource();
             assertTrue(ResourceHandle.isValid(resource));
-            assertEquals(resource.getPath(), valueMap.get(COLUMN_PATH));
+            errorCollector.checkThat(valueMap.get(COLUMN_PATH), is(resource.getPath()));
             assertFalse(valueMap.get(COLUMN_PATH, String.class).startsWith("/jcr:system"));
-            assertEquals(JCR_CONTENT, resource.getName());
+            errorCollector.checkThat(resource.getName(), is(JCR_CONTENT));
 
             assertNotNull(valueMap.get(joinCreatedSelector));
 
             String joinPath = valueMap.get(joinPathSelector, String.class);
             assertFalse(joinPath.startsWith("/jcr:system"));
             assertFalse(joinPath.endsWith(JCR_CONTENT));
-            assertEquals(valueMap.getJoinResource(join.getSelector()).getPath(), joinPath);
+            errorCollector.checkThat(joinPath, is(valueMap.getJoinResource(join.getSelector()).getPath()));
         }
-        assertEquals(3, resultCount);
+        errorCollector.checkThat(resultCount, is(3));
     }
 
 
@@ -422,7 +423,7 @@ public class QueryTest extends AbstractStagingTest {
         for (Resource r : results) resultPaths.add(r.getPath());
         assertThat("In results: " + resultPaths, resultPaths, everyItem(isIn(asList(expected))));
         assertThat("In results: " + resultPaths, resultPaths, containsInAnyOrder(expected));
-        assertEquals("In results: " + resultPaths, expected.length, results.size());
+        errorCollector.checkThat("In results: " + resultPaths, results.size(), is(expected.length));
     }
 
 }
