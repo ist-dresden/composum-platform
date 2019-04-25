@@ -42,6 +42,7 @@ import static org.mockito.Mockito.when;
  */
 public abstract class AbstractStagingTest {
 
+    /** Nodetype used for the specifically created inner nodes of versionables created with {@link #makeNode(ResourceBuilder, String, String, boolean, boolean, String)} (nodepath). */
     public static final String SELECTED_NODETYPE = "rep:Unstructured";
     public static final String[] SELECTED_NODE_MIXINS = {TYPE_CREATED, TYPE_LAST_MODIFIED, TYPE_TITLE};
 

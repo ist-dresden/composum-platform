@@ -119,7 +119,7 @@ public class QueryTest extends AbstractStagingTest {
         errorCollector.checkThat(q.buildSQL2(), is("SELECT n.[jcr:path] , n.[jcr:created] AS [query:orderBy] \n" +
                 "FROM [nt:base] AS n \n" +
                 "WHERE ISDESCENDANTNODE(n, '/folder') \n" +
-                "AND ( ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/cpl:current/root') OR NOT ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases') )\n" +
+                "AND ( ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/cpl:current') OR NOT ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases') )\n" +
                 "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
 
         q.path(folder + "/xyz");
@@ -156,12 +156,12 @@ public class QueryTest extends AbstractStagingTest {
     public void examplesForConditions() throws RepositoryException, IOException {
         Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
         q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(PROP_TITLE).descending();
-        assertResults(q, node2oldandnew, node1version, unversionedNode);
+        assertResults(q, node2oldandnew, node1version);
 
         QueryConditionDsl.QueryCondition condition = q.conditionBuilder().name().eq().val("something")
-                .and().property(PROP_TITLE).eq().val("1 first title");
+                .and().isNull(PROP_TITLE);
         q.condition(condition);
-        assertResults(q, unversionedNode);
+        assertResults(q, node2oldandnew);
 
         condition = q.conditionBuilder().isNotNull(PROP_CREATED).and().startGroup()
                 .upper().property(PROP_TITLE).eq().val("3 THIRD TITLE").or().contains(PROP_TITLE, "THIRD");
@@ -227,10 +227,10 @@ public class QueryTest extends AbstractStagingTest {
     public void limitsOnStagingResolver() throws RepositoryException, IOException {
         Query q = QueryBuilder.makeQuery(stagingResourceResolver);
         q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(COLUMN_PATH);
-        assertResults(q, node1version, node2oldandnew, unversionedNode);
+        assertResults(q, node1version, node2oldandnew);
 
         q.offset(1);
-        assertResults(q, node2oldandnew, unversionedNode);
+        assertResults(q, node2oldandnew);
         q.limit(1).offset(1);
         assertResults(q, node2oldandnew);
         q.offset(0).limit(1);
@@ -283,14 +283,14 @@ public class QueryTest extends AbstractStagingTest {
         List<String> resultPaths = new ArrayList<>();
         for (Resource r : results) resultPaths.add(r.getPath());
         assertThat("Wrong order of " + resultPaths, resultPaths.toArray(new String[0]),
-                arrayContaining(node2oldandnew, unversionedNode, node1version));
+                arrayContaining(node2oldandnew, node1version));
 
         q.descending();
         results = IterableUtils.toList(q.execute());
         resultPaths.clear();
         for (Resource r : results) resultPaths.add(r.getPath());
         assertThat("Wrong order of " + resultPaths, resultPaths.toArray(new String[0]),
-                arrayContaining(node1version, unversionedNode, node2oldandnew));
+                arrayContaining(node1version, node2oldandnew));
     }
 
     @Test
@@ -386,7 +386,7 @@ public class QueryTest extends AbstractStagingTest {
     public void joinWithSelects() throws RepositoryException, IOException {
         Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
         QueryConditionDsl.QueryCondition join = q.joinConditionBuilder().isNotNull(PROP_CREATED);
-        q.path(folder).element(PROP_JCR_CONTENT).type(TYPE_UNSTRUCTURED).orderBy(JcrConstants.JCR_CREATED);
+        q.path(folder).element(PROP_JCR_CONTENT).type(TYPE_UNSTRUCTURED).orderBy(JcrConstants.JCR_PATH);
         q.join(JoinType.Inner, JoinCondition.Descendant, SELECTED_NODETYPE, join);
 
         String joinPathSelector = join.joinSelector(COLUMN_PATH);
@@ -394,11 +394,11 @@ public class QueryTest extends AbstractStagingTest {
         String[] selectedColumns = new String[]{COLUMN_PATH, joinPathSelector, joinCreatedSelector};
         Iterable<QueryValueMap> res = q.selectAndExecute(selectedColumns);
 
-        int resultCount = 0;
+        List<String> results = new ArrayList<>();
         for (QueryValueMap valueMap : res) {
-            resultCount++;
             Resource resource = valueMap.getResource();
             assertTrue(ResourceHandle.isValid(resource));
+            results.add(resource.getPath());
             errorCollector.checkThat(valueMap.get(COLUMN_PATH), is(resource.getPath()));
             assertFalse(valueMap.get(COLUMN_PATH, String.class).startsWith("/jcr:system"));
             errorCollector.checkThat(resource.getName(), is(JCR_CONTENT));
@@ -409,8 +409,10 @@ public class QueryTest extends AbstractStagingTest {
             assertFalse(joinPath.startsWith("/jcr:system"));
             assertFalse(joinPath.endsWith(JCR_CONTENT));
             errorCollector.checkThat(joinPath, is(valueMap.getJoinResource(join.getSelector()).getPath()));
+            errorCollector.checkThat(stagingResourceResolver.getResource(joinPath).getValueMap().get(PROP_PRIMARY_TYPE),
+                    is(SELECTED_NODETYPE));
         }
-        errorCollector.checkThat(resultCount, is(3));
+        errorCollector.checkThat(results, contains(document1 + "/" + PROP_JCR_CONTENT, document2 + "/" + PROP_JCR_CONTENT));
     }
 
 
