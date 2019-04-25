@@ -51,7 +51,7 @@ public class ErrorCollectorAlwaysPrintingFailures extends org.junit.rules.ErrorC
     /**
      * Adds to the table the exception, if any, thrown from {@code callable}.
      * Execution continues, but the test will fail at the end if
-     * {@code callable} threw an exception.
+     * {@code runnable} threw an exception and {@code exceptionMatcher} does not accept that.
      */
     public void checkFailsWith(Callable<?> callable, Matcher<Throwable> exceptionMatcher) {
         try {
@@ -61,5 +61,27 @@ public class ErrorCollectorAlwaysPrintingFailures extends org.junit.rules.ErrorC
             checkThat(e, exceptionMatcher);
         }
     }
+
+    /**
+     * Adds to the table the exception, if any, thrown from {@code runnable}.
+     * Execution continues, but the test will fail at the end if
+     * {@code runnable} threw an exception and {@code exceptionMatcher} does not accept that.
+     */
+    public void checkFailsWith(RunnableWithException runnable, Matcher<Throwable> exceptionMatcher) {
+        try {
+            runnable.run();
+            checkThat(null, exceptionMatcher);
+        } catch (Throwable e) {
+            checkThat(e, exceptionMatcher);
+        }
+    }
+
+    /** A runnable that can throw an exception. */
+    @FunctionalInterface
+    public interface RunnableWithException<E extends Throwable> {
+        /** Do something perhaps throwing an exception. */
+        void run() throws Throwable;
+    }
+
 
 }

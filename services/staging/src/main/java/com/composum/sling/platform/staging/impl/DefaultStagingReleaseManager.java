@@ -3,6 +3,7 @@ package com.composum.sling.platform.staging.impl;
 import com.composum.platform.commons.util.JcrIteratorUtil;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.CoreConstants;
+import com.composum.sling.core.util.PropertyUtil;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.*;
@@ -24,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
@@ -270,6 +272,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Override
     public void removeRelease(@Nonnull Release rawRelease) throws PersistenceException {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
+        if (!release.getMarks().isEmpty())
+            throw new PersistenceException("Cannot remove marked release " + release + " - marks " + release.getMarks());
         LOG.info("removeRelease {}", release);
         Resource releaseNode = release.getReleaseNode();
         releaseNode.getResourceResolver().delete(releaseNode);
@@ -341,6 +345,41 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 releaseMapper != null ? releaseMapper : ReleaseMapper.ALLPERMISSIVE, resourceResolverFactory, configuration, closeResolverOnClose);
     }
 
+    @Override
+    public void setMark(@Nonnull String mark, @Nullable Release rawRelease) throws RepositoryException {
+        ReleaseImpl release = ReleaseImpl.unwrap(rawRelease);
+        ResourceHandle releasesnode = ResourceHandle.use(release.getReleaseNode().getParent()); // the cpl:releases node
+        // property type REFERENCE prevents deleting it accidentially
+        releasesnode.setProperty(mark, release.getUuid(), PropertyType.REFERENCE);
+    }
+
+    @Override
+    public void deleteMark(@Nonnull String mark, @Nonnull Release rawRelease) throws RepositoryException {
+        ReleaseImpl release = ReleaseImpl.unwrap(rawRelease);
+        ResourceHandle releasesnode = ResourceHandle.use(release.getReleaseNode().getParent()); // the cpl:releases node
+        if (StringUtils.equals(mark, releasesnode.getProperty(mark, String.class)))
+            throw new IllegalArgumentException("Release does not carry mark " + mark + " : " + rawRelease);
+        releasesnode.setProperty(mark, null, PropertyType.REFERENCE);
+    }
+
+    @Nullable
+    @Override
+    public Release findReleaseByMark(@Nonnull Resource resource, @Nonnull String mark) {
+        ResourceHandle root = ResourceHandle.use(requireNonNull(findReleaseRoot(resource)));
+        if (!root.isValid()) return null;
+        if (root.isValid()) {
+            ResourceHandle releasesNode = ResourceHandle.use(root.getChild(RELPATH_RELEASES_NODE));
+            if (!releasesNode.isValid()) return null;
+            String uuid = releasesNode.getProperty(mark, String.class);
+            if (StringUtils.isBlank(uuid)) return null;
+            for (Resource releaseNode : releasesNode.getChildren()) {
+                if (uuid.equals(releaseNode.getValueMap().get(PROP_UUID, String.class)))
+                    return new ReleaseImpl(root, releaseNode);
+            }
+        }
+        return null;
+    }
+
     /** Ensures the technical resources for a release are there. If the release is created, the root is completely empty. */
     protected ReleaseImpl ensureRelease(@Nonnull Resource theRoot, @Nonnull String releaseLabel) throws RepositoryException, PersistenceException {
         ResourceHandle root = ResourceHandle.use(theRoot);
@@ -382,6 +421,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         @Nonnull
         final Resource workspaceCopyNode;
+
+        private List<String> marks;
 
         ReleaseImpl(@Nonnull Resource releaseRoot, @Nonnull Resource releaseNode) {
             this.releaseRoot = requireNonNull(releaseRoot);
@@ -430,6 +471,19 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             return requireNonNull(releaseNode.getChild(NODE_RELEASE_METADATA), "No metadata node on " + releaseNode.getPath());
         }
 
+        @Nonnull
+        @Override
+        public List<String> getMarks() {
+            if (marks == null) {
+                marks = new ArrayList<>();
+                for (Map.Entry entry : releaseNode.getParent().getValueMap().entrySet()) {
+                    if (getUuid().equals(entry.getValue()))
+                        marks.add(String.valueOf(entry.getKey()));
+                }
+            }
+            return Collections.unmodifiableList(marks);
+        }
+
         /**
          * The resource that contains the data for the release - including the subnode {@value StagingConstants#NODE_RELEASE_ROOT}
          * with the copy of the data. Don't touch {@value StagingConstants#NODE_RELEASE_ROOT} - always use the
@@ -453,7 +507,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         @Override
         public String toString() {
-            return "Release('" + releaseNode.getName() + "'," + releaseRoot.getPath() + ")";
+            return "Release('" + getNumber() + "'," + releaseRoot.getPath() + ")";
         }
 
         /**

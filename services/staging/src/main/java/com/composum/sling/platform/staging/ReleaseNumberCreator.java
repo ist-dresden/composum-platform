@@ -38,6 +38,24 @@ public interface ReleaseNumberCreator {
         return COMPARATOR_RELEASES;
     }
 
+    /**
+     * Returns the appropriate creator of the standard creators {@link #MAJOR}, {@link #MINOR} and {@link #BUGFIX}.
+     *
+     * @throws IllegalArgumentException if the name isn't any of major, minor or bugfix - case is ignored.
+     */
+    static ReleaseNumberCreator valueOf(String name) throws IllegalArgumentException {
+        if (StringUtils.isBlank(name)) throw new IllegalArgumentException("Empty name " + name);
+        switch (name.toUpperCase().trim()) {
+            case "MAJOR":
+                return MAJOR;
+            case "MINOR":
+                return MINOR;
+            case "BUGFIX":
+                return BUGFIX;
+            default:
+                throw new IllegalArgumentException("Unknown name " + name);
+        }
+    }
 
     /**
      * Comparator ordering the numbers according to the {@link DefaultReleaseNumberCreator} so that the numerical parts

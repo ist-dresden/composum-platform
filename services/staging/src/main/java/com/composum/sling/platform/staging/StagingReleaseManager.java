@@ -168,6 +168,35 @@ public interface StagingReleaseManager extends StagingConstants {
     @Nonnull
     ResourceResolver getResolverForRelease(@Nonnull Release release, @Nullable ReleaseMapper releaseMapper, boolean closeResolverOnClose);
 
+    /**
+     * Sets a mark to the given release. Each mark (e.g. public, preview) can apply only to at most one release.
+     * If a release is marked, it cannot be deleted by {@link #removeRelease(Release)}.
+     *
+     * @param mark    a nonempty string usable as attribute name
+     * @param release a release
+     */
+    void setMark(@Nonnull String mark, @Nonnull Release release) throws RepositoryException;
+
+    /**
+     * Removes the mark from the given release.
+     *
+     * @param mark    a nonempty string usable as attribute name
+     * @param release a release
+     * @throws IllegalArgumentException if the release does not carry that mark
+     */
+    void deleteMark(@Nonnull String mark, @Nonnull Release release) throws RepositoryException;
+
+    /**
+     * Looks up the next higher {@link StagingConstants#TYPE_MIX_RELEASE_ROOT} of the resource and returns
+     * the release with the given <code>mark</code> ( e.g. public or preview ), if there is one.
+     *
+     * @param resource a release root or its subnodes
+     * @param mark     a nonempty string usable as attribute name
+     * @return the marked release, or null if the mark isn't set.
+     */
+    @Nullable
+    Release findReleaseByMark(@Nonnull Resource resource, @Nonnull String mark);
+
     /** Describes the state of a versionable in a release. Can also be used as parameter object to update the release. */
     public class ReleasedVersionable {
 
@@ -348,6 +377,10 @@ public interface StagingReleaseManager extends StagingConstants {
          */
         @Nonnull
         Resource getMetaDataNode();
+
+        /** The marks that point to this release. Each mark can only point to exactly one release. */
+        @Nonnull
+        List<String> getMarks();
 
         /**
          * Checks whether the given path is in the range of the release root. This does not check whether the resource actually exists.

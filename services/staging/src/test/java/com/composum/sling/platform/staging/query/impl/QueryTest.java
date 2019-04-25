@@ -215,7 +215,6 @@ public class QueryTest extends AbstractStagingTest {
         Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
         q.path(getParent(node2oldandnew, 3));
         q.element("something").type(SELECTED_NODETYPE);
-        JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/jcr:system/jcr:versionStorage"));
         assertResults(q, node2oldandnew);
     }
 

@@ -14,6 +14,7 @@ import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrinting
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
+import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
@@ -254,6 +255,21 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
                 equalTo("cpl:current, r1, r1.1, r2"));
 
         ec.checkThat(service.findReleaseByUuid(releaseRoot, rel11.getUuid()).getNumber(), equalTo("r1.1"));
+    }
+
+    @Test
+    public void releaseMarking() throws Exception {
+        final Release rel1 = service.createRelease(releaseRoot, ReleaseNumberCreator.MAJOR);
+        final Release rel2 = service.createRelease(rel1, ReleaseNumberCreator.MAJOR);
+        service.setMark("public", rel1);
+        service.setMark("preview", rel1);
+        ec.checkThat(service.findReleaseByMark(releaseRoot, "public").getMarks(), containsInAnyOrder("public", "preview"));
+        service.setMark("preview", rel2);
+        ec.checkThat(service.findReleaseByMark(releaseRoot, "public").getNumber(), is(rel1.getNumber()));
+        ec.checkThat(service.findReleaseByMark(releaseRoot, "preview").getNumber(), is(rel2.getNumber()));
+        ec.checkThat(service.findReleaseByMark(releaseRoot, "public").getMarks(), contains("public"));
+        ec.checkThat(service.findReleaseByMark(releaseRoot, "preview").getMarks(), contains("preview"));
+        ec.checkFailsWith(() -> service.removeRelease(rel1), instanceOf(PersistenceException.class));
     }
 
     @Test
