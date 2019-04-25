@@ -37,8 +37,7 @@ import javax.jcr.query.RowIterator;
 import java.util.*;
 
 import static com.composum.sling.core.util.SlingResourceUtil.isSameOrDescendant;
-import static com.composum.sling.platform.staging.StagingConstants.PROP_DEACTIVATED;
-import static com.composum.sling.platform.staging.StagingConstants.PROP_VERSION;
+import static com.composum.sling.platform.staging.StagingConstants.*;
 import static javax.jcr.query.Query.JCR_SQL2;
 import static org.apache.commons.collections4.ComparatorUtils.*;
 import static org.apache.commons.collections4.IteratorUtils.*;
@@ -441,13 +440,14 @@ public class StagingQueryImpl extends Query {
 
     protected Iterator<Resource> extractResources(Iterator<Row> rows) {
         Transformer<Row, Resource> transformer = input -> getResource(input, "n");
-        return IteratorUtils.transformedIterator(rows, transformer);
+        return IteratorUtils.filteredIterator(IteratorUtils.transformedIterator(rows, transformer), Objects::nonNull);
     }
 
     protected Iterator<QueryValueMap> extractColumns(Iterator<Row> rows, final String[] columns) {
         Transformer<Row, QueryValueMap> transformer =
                 input -> new QueryValueMapImpl(StagingQueryImpl.this, input, columns);
-        return IteratorUtils.transformedIterator(rows, transformer);
+        return IteratorUtils.filteredIterator(IteratorUtils.transformedIterator(rows, transformer),
+                valuemap -> valuemap.getResource() != null);
     }
 
     /**
@@ -472,6 +472,8 @@ public class StagingQueryImpl extends Query {
                 }
                 // for speed, skips various checks by the resolver that aren't needed here
                 Resource underlyingResource = stagingResolver.getUnderlyingResolver().getResource(rowPath);
+                if (underlyingResource.getResourceType().equals(TYPE_VERSIONREFERENCE))
+                    return null;
                 resource = stagingResolver.wrapIntoStagingResource(realPath, underlyingResource, null, false);
                 return resource;
             } else {
