@@ -335,7 +335,7 @@ public interface StagingReleaseManager extends StagingConstants {
          */
         @Nonnull
         default String getReleaseLabel() {
-            return getNumber().replace("cpl:", "");
+            return StagingConstants.RELEASE_LABEL_PREFIX + getNumber().replace("cpl:", "");
         }
 
         /** The resource that is the top of the working tree - a {@value StagingConstants#TYPE_MIX_RELEASE_ROOT}. */

@@ -42,6 +42,7 @@ import static javax.jcr.query.Query.JCR_SQL2;
 import static org.apache.commons.collections4.ComparatorUtils.*;
 import static org.apache.commons.collections4.IteratorUtils.*;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENNODE;
+import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
 
 /**
  * This contains the parts of the implementation to {@link com.composum.sling.platform.staging.query.Query} that are
@@ -118,11 +119,12 @@ public class StagingQueryImpl extends Query {
         final QueryManager queryManager = session.getWorkspace().getQueryManager();
         ResourceResolver underlyingResolver = release != null ? release.getReleaseRoot().getResourceResolver() : null;
         boolean withinRelease = release != null && release.appliesToPath(path);
-        boolean mappingAllowed = releaseMapper.releaseMappingAllowed(path);
+        boolean mappingAllowed = withinRelease && releaseMapper.releaseMappingAllowed(path);
+        boolean releaseIsWithinPath = release != null && isSameOrDescendant(path, release.getReleaseRoot().getPath());
 
         if (release == null
                 || withinRelease && !mappingAllowed
-                || !withinRelease && !isSameOrDescendant(path, release.getReleaseRoot().getPath())) {
+                || !withinRelease && !releaseIsWithinPath) {
             String statement = buildSQL2();
             LOG.debug("JCR-SQL2 not controlled:\n{}", statement);
             return executeNotReleasecontrolledQuery(queryManager, statement);
@@ -148,7 +150,8 @@ public class StagingQueryImpl extends Query {
                     return emptyIterator();
                 Resource propertyResource = versionReference.getChild(PROP_VERSION);
                 Resource version = ResourceUtil.getReferredResource(propertyResource);
-                Resource frozenNode = version != null && relativePath.length() > 0 ? version.getChild(relativePath.toString()) : version;
+                Resource frozenNode = version != null ? version.getChild(JCR_FROZENNODE) : version;
+                frozenNode = frozenNode != null && relativePath.length() > 0 ? frozenNode.getChild(relativePath.toString()) : version;
                 if (frozenNode == null)
                     return emptyIterator();
                 String statement = buildSQL24SingleVersion(frozenNode.getPath());
@@ -431,6 +434,7 @@ public class StagingQueryImpl extends Query {
                 orderBySelect() + additionalSelect() + "\n" +
                 "FROM [nt:frozenNode] AS n \n" +
                 "INNER JOIN [nt:versionHistory] as history ON ISDESCENDANTNODE(n, history) \n" +
+                "INNER JOIN [nt:version] AS version ON ISCHILDNODE(version, history) \n" +
                 "WHERE ISDESCENDANTNODE(n, '" + pathInsideVersionStorage + "') \n" +
                 elementConstraint(true) +
                 // deliberately no typeConstraint() since we need to check for subtypes, too

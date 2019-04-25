@@ -131,7 +131,7 @@ public class QueryTest extends AbstractStagingTest {
         errorCollector.checkThat(q.buildSQL2Version(), is("SELECT n.[jcr:path], version.[jcr:uuid] AS [query:versionUuid], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] , n.[jcr:created] AS [query:orderBy] \n" +
                 "FROM [nt:versionHistory] AS history \n" +
                 "INNER JOIN [nt:version] AS version ON ISCHILDNODE(version, history) \n" +
-                "INNER JOIN [nt:versionLabels] AS labels ON version.[jcr:uuid] = labels.[current] \n" +
+                "INNER JOIN [nt:versionLabels] AS labels ON version.[jcr:uuid] = labels.[composum-release-current] \n" +
                 "INNER JOIN [nt:frozenNode] AS n ON ISDESCENDANTNODE(n, version) \n" +
                 "WHERE ISDESCENDANTNODE(history, '/jcr:system/jcr:versionStorage') \n" +
                 "AND history.[default] like '/folder/%' \n" +
@@ -139,6 +139,7 @@ public class QueryTest extends AbstractStagingTest {
         errorCollector.checkThat(q.buildSQL24SingleVersion("inside/path"), is("SELECT n.[jcr:path], version.[jcr:uuid] AS [query:versionUuid], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] , n.[jcr:created] AS [query:orderBy] \n" +
                 "FROM [nt:frozenNode] AS n \n" +
                 "INNER JOIN [nt:versionHistory] as history ON ISDESCENDANTNODE(n, history) \n" +
+                "INNER JOIN [nt:version] AS version ON ISCHILDNODE(version, history) \n" +
                 "WHERE ISDESCENDANTNODE(n, 'inside/path') \n" +
                 "AND (NAME(n) = 'jcr:content' OR (NAME(n) = 'jcr:frozenNode' AND history.default LIKE '%/jcr:content')) ORDER BY n.[jcr:created] ASC \n"));
     }
@@ -207,6 +208,15 @@ public class QueryTest extends AbstractStagingTest {
         Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
         q.path(folder).element("something").type(SELECTED_NODETYPE).orderBy(JcrConstants.JCR_CREATED);
         assertResults(q, node2oldandnew, node1version);
+    }
+
+    @Test
+    public void findNodeInSingleVersionable() throws RepositoryException, IOException {
+        Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
+        q.path(getParent(node2oldandnew, 3));
+        q.element("something").type(SELECTED_NODETYPE);
+        JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/jcr:system/jcr:versionStorage"));
+        assertResults(q, node2oldandnew);
     }
 
     @Test
@@ -294,26 +304,20 @@ public class QueryTest extends AbstractStagingTest {
     }
 
     @Test
-    public void queryBuilderWithIntermediatePath() throws RepositoryException, IOException {
-        Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
-        q.path(getParent(node2oldandnew, 3));
-        q.element("something").type(SELECTED_NODETYPE);
-        assertResults(q, node2oldandnew);
-    }
-
-    @Test
     public void effectsOfReleaseMapper() throws RepositoryException, IOException {
         Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
         q.path(folder).element("something");
 
         Mockito.reset(releaseMapper);
         // only checked in release from document2; only current from document1; unreleased has no release -> not there
+        when(releaseMapper.releaseMappingAllowed(Mockito.anyString())).thenReturn(true);
         when(releaseMapper.releaseMappingAllowed(Mockito.startsWith(document1))).thenReturn(false);
         when(releaseMapper.releaseMappingAllowed(Mockito.startsWith(document2))).thenReturn(true);
         assertResults(q, node2oldandnew, node1current);
 
         Mockito.reset(releaseMapper);
         // only checked in release from document1; only current from document2 and unreleasedDocument
+        when(releaseMapper.releaseMappingAllowed(Mockito.anyString())).thenReturn(true);
         when(releaseMapper.releaseMappingAllowed(Mockito.startsWith(document1))).thenReturn(true);
         when(releaseMapper.releaseMappingAllowed(Mockito.startsWith(document2))).thenReturn(false);
         assertResults(q, node2oldandnew, node2new, node1version);

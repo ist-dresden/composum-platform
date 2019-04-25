@@ -338,15 +338,16 @@ public abstract class Query {
     }
 
     protected void addToStringAttributes(ToStringBuilder toStringBuilder) {
-        toStringBuilder
-                // .append("release", release)
-                .append("queryCondition", queryCondition)
-                .append("path", path)
-                .append("element", element)
-                .append("orderBy", orderBy)
-                .append("typeConstraint", typeConstraint)
-                .append("ascending", ascending)
-                .append("joins", joins);
+        toStringBuilder.append("path", path);
+        if (element != null) toStringBuilder.append("element", element);
+        if (queryCondition != null) toStringBuilder.append("queryCondition", queryCondition);
+        if (typeConstraint != null) toStringBuilder.append("typeConstraint", typeConstraint);
+        if (selectColumns != null && selectColumns.length > 0) toStringBuilder.append("selectColumns", selectColumns);
+        toStringBuilder.append("ascending", ascending);
+        if (orderBy != null) toStringBuilder.append("orderBy", orderBy);
+        if (!joins.isEmpty()) toStringBuilder.append("joins", joins);
+        if (limit != Long.MAX_VALUE) toStringBuilder.append("limit", limit);
+        if (offset != 0) toStringBuilder.append("offset", offset);
     }
 
     public enum JoinType {Inner, LeftOuter, RightOuter}
