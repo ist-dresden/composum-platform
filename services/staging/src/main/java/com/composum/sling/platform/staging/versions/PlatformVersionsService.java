@@ -1,5 +1,6 @@
 package com.composum.sling.platform.staging.versions;
 
+import com.composum.sling.platform.staging.StagingReleaseManager;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 
@@ -9,15 +10,24 @@ import javax.jcr.RepositoryException;
 import java.util.Calendar;
 
 /**
- * this or a similar service is needed...
+ * Service to view / manage which documents are put into a release - mostly for {@link PlatformVersionsServlet}.
+ *
+ * @see PlatformVersionsServlet
  */
 interface PlatformVersionsService {
 
     enum ActivationState {
-        initial,    // new, not activated (not in release)
-        activated,  // activated and not modified (in release)
-        modified,   // activated but modified since last activation
-        deactivated // deactivated (removed from release)
+        /** New, not activated (not in release and has never been there). */
+        initial,
+        /** Activated and not modified (in release). */
+        activated,
+        /**
+         * Activated but modified since last activation. As modification count both a changed {@link com.composum.sling.core.util.CoreConstants#PROP_LAST_MODIFIED}
+         * wrt. to the last activation, as well as a different version.
+         */
+        modified,
+        /** Deactivated (originally present but later removed ({@link #deactivate(Resource, String)}) from release. */
+        deactivated
     }
 
     interface Status {
@@ -47,15 +57,37 @@ interface PlatformVersionsService {
         String getLastDeactivatedBy();
     }
 
+    /**
+     * Returns the release number of the default release - marked as preview, if that isn't present the release marked as public,
+     * if that isn't present the {@value com.composum.sling.platform.staging.StagingConstants#NODE_CURRENT_RELEASE} release.
+     */
+    @Nonnull
+    StagingReleaseManager.Release getDefaultRelease(@Nonnull Resource versionable);
+
+    /** Returns the status for the versionable for the given or {@link #getDefaultRelease(Resource)} release. */
     Status getStatus(@Nonnull Resource versionable, @Nullable String releaseKey)
             throws PersistenceException, RepositoryException;
 
-    void activate(@Nonnull Resource versionable, @Nullable String releaseKey)
+    /**
+     * Puts the latest content (or a specified version) of the document into the release.
+     * If no version is given, we automatically {@link javax.jcr.version.VersionManager#checkpoint(String)} the versionable
+     * if it was modified, and use the latest version of it.
+     *
+     * @param versionable the path to a versionable
+     * @param releaseKey  a release number or null for the {@link #getDefaultRelease(Resource)}.
+     * @param versionUuid optionally, a previous version of the document that is
+     * @throws PersistenceException
+     * @throws RepositoryException
+     */
+    void activate(@Nonnull Resource versionable, @Nullable String releaseKey, @Nullable String versionUuid)
             throws PersistenceException, RepositoryException;
 
+    /** Sets the document to "deactivated" - it is marked as not present in the release anymore. */
     void deactivate(@Nonnull Resource versionable, @Nullable String releaseKey)
             throws PersistenceException, RepositoryException;
 
+    /** Deletes old versions of the versionable - only versions in releases and after the last version which is in a release are kept. */
     void purgeVersions(@Nonnull Resource versionable, @Nullable String releaseKey)
             throws PersistenceException, RepositoryException;
+
 }
