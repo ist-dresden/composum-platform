@@ -197,6 +197,15 @@ public interface StagingReleaseManager extends StagingConstants {
     @Nullable
     Release findReleaseByMark(@Nonnull Resource resource, @Nonnull String mark);
 
+    /**
+     * Returns the release to which the {releaseResource} (e.g. the metaData node of the release) belongs.
+     *
+     * @param releaseResource the release node (release root)/jcr:content/cpl:releases/{releasenumber} or one of its subnodes
+     * @return the release where releaseResource belongs, null if it doesn't
+     */
+    @Nullable
+    Release findReleaseByReleaseResource(@Nullable Resource releaseResource);
+
     /** Describes the state of a versionable in a release. Can also be used as parameter object to update the release. */
     public class ReleasedVersionable {
 

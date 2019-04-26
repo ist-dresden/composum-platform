@@ -367,15 +367,23 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     public Release findReleaseByMark(@Nonnull Resource resource, @Nonnull String mark) {
         ResourceHandle root = ResourceHandle.use(requireNonNull(findReleaseRoot(resource)));
         if (!root.isValid()) return null;
-        if (root.isValid()) {
-            ResourceHandle releasesNode = ResourceHandle.use(root.getChild(RELPATH_RELEASES_NODE));
-            if (!releasesNode.isValid()) return null;
-            String uuid = releasesNode.getProperty(mark, String.class);
-            if (StringUtils.isBlank(uuid)) return null;
-            for (Resource releaseNode : releasesNode.getChildren()) {
-                if (uuid.equals(releaseNode.getValueMap().get(PROP_UUID, String.class)))
-                    return new ReleaseImpl(root, releaseNode);
-            }
+        ResourceHandle releasesNode = ResourceHandle.use(root.getChild(RELPATH_RELEASES_NODE));
+        if (!releasesNode.isValid()) return null;
+        String uuid = releasesNode.getProperty(mark, String.class);
+        if (StringUtils.isBlank(uuid)) return null;
+        for (Resource releaseNode : releasesNode.getChildren()) {
+            if (uuid.equals(releaseNode.getValueMap().get(PROP_UUID, String.class)))
+                return new ReleaseImpl(root, releaseNode);
+        }
+        return null;
+    }
+
+    @Override
+    public Release findReleaseByReleaseResource(Resource releaseResource) {
+        if (releaseResource == null) return null;
+        for (Release release : getReleases(releaseResource)) {
+            if (SlingResourceUtil.isSameOrDescendant(ReleaseImpl.unwrap(release).getReleaseNode().getPath(), releaseResource.getPath()))
+                return release;
         }
         return null;
     }
