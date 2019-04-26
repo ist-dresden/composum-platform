@@ -1,14 +1,16 @@
 package com.composum.sling.platform.staging.versions;
 
+import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.platform.security.AccessMode;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.composum.sling.platform.staging.StagingReleaseManager.Release;
 import com.composum.sling.platform.staging.impl.AbstractStagingTest;
 import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
+import com.composum.sling.platform.staging.versions.PlatformVersionsService.Status;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
-import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,7 +34,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
 
     private String document1;
     private String node1version;
-    private Resource document1Resource;
+    private Resource versionable;
 
     @Before
     public void setupServices() throws Exception {
@@ -49,15 +51,21 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
                 PROP_MIXINTYPES, array(TYPE_MIX_RELEASE_ROOT)).commit();
         document1 = release + "/" + "document1";
         node1version = makeNode(builderAtRelease, "document1", "n1/something", true, true, "3 third title");
-        document1Resource = context.resourceResolver().getResource(document1);
+        versionable = context.resourceResolver().getResource(document1).getChild(CONTENT_NODE);
     }
 
     @Test
     public void defaultRelease() throws Exception {
-        errorCollector.checkThat(service.getDefaultRelease(document1Resource).getNumber(), is(CURRENT_RELEASE));
-        StagingReleaseManager.Release r1 = releaseManager.createRelease(document1Resource, ReleaseNumberCreator.MAJOR);
+        errorCollector.checkThat(service.getDefaultRelease(versionable).getNumber(), is(CURRENT_RELEASE));
+        Release r1 = releaseManager.createRelease(versionable, ReleaseNumberCreator.MAJOR);
         releaseManager.setMark(AccessMode.ACCESS_MODE_PUBLIC.toLowerCase(), r1);
-        errorCollector.checkThat(service.getDefaultRelease(document1Resource).getNumber(), is(r1.getNumber()));
+        errorCollector.checkThat(service.getDefaultRelease(versionable).getNumber(), is(r1.getNumber()));
     }
+
+    @Test
+    public void status() throws Exception {
+        Status status = service.getStatus(versionable, CURRENT_RELEASE);
+    }
+
 
 }

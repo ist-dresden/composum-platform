@@ -1,5 +1,6 @@
 package com.composum.sling.platform.staging.versions;
 
+import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
@@ -23,7 +24,8 @@ interface PlatformVersionsService {
         /** Activated and not modified (in release). */
         activated,
         /**
-         * Activated but modified since last activation. As modification count both a changed {@link com.composum.sling.core.util.CoreConstants#PROP_LAST_MODIFIED}
+         * Activated but modified since last activation, or deleted in the release content.
+         * As modification count both a changed {@link com.composum.sling.core.util.CoreConstants#PROP_LAST_MODIFIED}
          * wrt. to the last activation, as well as a different version.
          */
         modified,
@@ -31,6 +33,7 @@ interface PlatformVersionsService {
         deactivated
     }
 
+    /** Information about the status of a versionable wrt. a release. */
     interface Status {
 
         @Nonnull
@@ -56,6 +59,21 @@ interface PlatformVersionsService {
 
         @Nullable
         String getLastDeactivatedBy();
+
+        /**
+         * The release this is relative to. Please note that in the case of {@link ActivationState#initial} the versionable
+         * does not need to be in the release.
+         */
+        @Nonnull
+        StagingReleaseManager.Release release();
+
+        /** The detail information about the versionable within the release. This is null if the versionable is {@link ActivationState#initial}. */
+        @Nullable
+        ReleasedVersionable releaseVersionableInfo();
+
+        /** The detail information about the versionable as it is in the workspace. This is null if the status refers to a deleted versionable. */
+        @Nullable
+        ReleasedVersionable currentVersionableInfo();
     }
 
     /**
