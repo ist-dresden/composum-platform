@@ -66,20 +66,20 @@ public interface StagingConstants {
     final String PROP_DEACTIVATED = "cpl:deactivated";
 
     /**
-     * Nodename for the "current release" (the release that's in construction and will be used as default preview)
+     * "Releasenumber" or key of the current release : {@value #CURRENT_RELEASE}. This also serves as the "current release" (the release that's in construction and will be used as default preview)
      * below {@link #NODE_RELEASES}.
      */
-    final String NODE_CURRENT_RELEASE = "cpl:current";
+    final String CURRENT_RELEASE = "cpl:current";
 
     /**
-     * Nodename below a release node or {@link #NODE_CURRENT_RELEASE} that contains a copy of the working tree of the site
+     * Nodename below a release node or {@link #CURRENT_RELEASE} that contains a copy of the working tree of the site
      * with versionable nodes replaced with {@link #TYPE_VERSIONREFERENCE}.<br/>
      * <b>Caution</b>: Don't touch this node and its subnodes - always use the * {@link StagingReleaseManager} for that!
      */
     final String NODE_RELEASE_ROOT = "root";
 
     /**
-     * Nodename below a release node or {@link #NODE_CURRENT_RELEASE} that can contain metadata for a release.
+     * Nodename below a release node or {@link #CURRENT_RELEASE} that can contain metadata for a release.
      */
     final String NODE_RELEASE_METADATA = "metaData";
 

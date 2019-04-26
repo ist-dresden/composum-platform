@@ -6,7 +6,7 @@ import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
-import com.composum.sling.platform.staging.StagingReleaseManager.ReleasedVersionable;
+import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import com.composum.sling.platform.testing.testutil.AnnotationWithDefaults;
@@ -81,7 +81,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
             this.configuration = AnnotationWithDefaults.of(DefaultStagingReleaseManager.Configuration.class);
         }};
 
-        currentRelease = service.findRelease(releaseRoot, StagingConstants.NODE_CURRENT_RELEASE);
+        currentRelease = service.findRelease(releaseRoot, StagingConstants.CURRENT_RELEASE);
     }
 
     @After
@@ -95,7 +95,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         List<Release> releases = service.getReleases(releaseRoot);
         assertEquals(1, releases.size());
 
-        assertEquals(NODE_CURRENT_RELEASE, currentRelease.getNumber());
+        assertEquals(CURRENT_RELEASE, currentRelease.getNumber());
         assertNotNull(currentRelease.getUuid());
         assertEquals(releaseRoot, currentRelease.getReleaseRoot());
         assertEquals("/content/site/jcr:content/cpl:releases/cpl:current/metaData", currentRelease.getMetaDataNode().getPath());

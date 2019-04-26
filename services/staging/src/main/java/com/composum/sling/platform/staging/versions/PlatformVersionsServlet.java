@@ -34,6 +34,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Calendar;
 
+/** This is a thin servlet making the {@link PlatformVersionsService} accessible - see there for description of the operations. */
 @Component(service = Servlet.class,
         property = {
                 Constants.SERVICE_DESCRIPTION + "=Composum Platform Versions Servlet",

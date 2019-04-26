@@ -1,5 +1,7 @@
 package com.composum.sling.platform.staging.versions;
 
+import com.composum.sling.platform.security.AccessMode;
+import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
@@ -34,12 +36,12 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     @Nonnull
     @Override
     public StagingReleaseManager.Release getDefaultRelease(@Nonnull Resource versionable) {
-        LOG.error("PlatformVersionsServiceImpl.getDefaultRelease");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: PlatformVersionsServiceImpl.getDefaultRelease");
-        // FIXME hps 2019-04-26 implement PlatformVersionsServiceImpl.getDefaultRelease
-        StagingReleaseManager.Release result = null;
-        return result;
+        StagingReleaseManager.Release release = releaseManager.findReleaseByMark(versionable, AccessMode.ACCESS_MODE_PREVIEW.toLowerCase());
+        if (release == null)
+            release = releaseManager.findReleaseByMark(versionable, AccessMode.ACCESS_MODE_PUBLIC.toLowerCase());
+        if (release == null)
+            release = releaseManager.findRelease(versionable, StagingConstants.CURRENT_RELEASE);
+        return release;
     }
 
     @Override

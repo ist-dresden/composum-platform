@@ -16,6 +16,7 @@ import java.util.Calendar;
  */
 interface PlatformVersionsService {
 
+    /** Specifies the state of a versionable wrt. a specific release. */
     enum ActivationState {
         /** New, not activated (not in release and has never been there). */
         initial,
@@ -59,12 +60,14 @@ interface PlatformVersionsService {
 
     /**
      * Returns the release number of the default release - marked as preview, if that isn't present the release marked as public,
-     * if that isn't present the {@value com.composum.sling.platform.staging.StagingConstants#NODE_CURRENT_RELEASE} release.
+     * if that isn't present the {@value com.composum.sling.platform.staging.StagingConstants#CURRENT_RELEASE} release.
+     * This is used in many of the other methods if the release isn't given explicitly.
      */
     @Nonnull
     StagingReleaseManager.Release getDefaultRelease(@Nonnull Resource versionable);
 
     /** Returns the status for the versionable for the given or {@link #getDefaultRelease(Resource)} release. */
+    @Nonnull
     Status getStatus(@Nonnull Resource versionable, @Nullable String releaseKey)
             throws PersistenceException, RepositoryException;
 

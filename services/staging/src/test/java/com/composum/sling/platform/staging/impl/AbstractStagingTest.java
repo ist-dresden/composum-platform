@@ -3,6 +3,8 @@ package com.composum.sling.platform.staging.impl;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.ReleaseMapper;
+import com.composum.sling.platform.staging.ReleasedVersionable;
+import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.testing.testutil.AnnotationWithDefaults;
 import org.apache.commons.lang3.RandomUtils;
@@ -131,9 +133,9 @@ public abstract class AbstractStagingTest {
                 versionManager.getVersionHistory(contentResource.getPath())
                         .addVersionLabel(version.getName(), RELEASED, false);
                 handle.setProperty("released", true);
-                StagingReleaseManager.Release currentRelease = releaseManager.findRelease(handle, releaseManager.NODE_CURRENT_RELEASE);
+                StagingReleaseManager.Release currentRelease = releaseManager.findRelease(handle, StagingConstants.CURRENT_RELEASE);
                 builder.commit();
-                releaseManager.updateRelease(currentRelease, StagingReleaseManager.ReleasedVersionable.forBaseVersion(contentResource));
+                releaseManager.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(contentResource));
             }
             handle.setProperty("versioned", true);
             builder.commit(); // unclear whether this is neccesary.

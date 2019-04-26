@@ -3,7 +3,6 @@ package com.composum.sling.platform.staging.impl;
 import com.composum.platform.commons.util.JcrIteratorUtil;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.CoreConstants;
-import com.composum.sling.core.util.PropertyUtil;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.*;
@@ -88,9 +87,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         List<Release> result = new ArrayList<>();
         ResourceHandle root = ResourceHandle.use(requireNonNull(findReleaseRoot(resource)));
         if (root.isValid()) {
-            if (root.getChild(RELPATH_RELEASES_NODE + '/' + NODE_CURRENT_RELEASE) == null) {
+            if (root.getChild(RELPATH_RELEASES_NODE + '/' + CURRENT_RELEASE) == null) {
                 try { // implicitly create current release which should always be there.
-                    ensureRelease(root, NODE_CURRENT_RELEASE);
+                    ensureRelease(root, CURRENT_RELEASE);
                 } catch (RepositoryException | PersistenceException e) {
                     LOG.error("Trouble creating current release for " + resource.getPath(), e);
                 }
