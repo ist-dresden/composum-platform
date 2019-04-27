@@ -11,7 +11,7 @@ import java.util.Calendar;
 /**
  * this or a similar service is needed...
  */
-interface PlatformVersionsService {
+public interface PlatformVersionsService {
 
     enum ActivationState {
         initial,    // new, not activated (not in release)
