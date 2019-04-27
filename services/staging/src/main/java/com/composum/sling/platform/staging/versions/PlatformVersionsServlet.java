@@ -10,6 +10,7 @@ import com.composum.sling.core.servlet.AbstractServiceServlet;
 import com.composum.sling.core.servlet.ServletOperation;
 import com.composum.sling.core.servlet.ServletOperationSet;
 import com.google.gson.stream.JsonWriter;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.PersistenceException;
@@ -33,6 +34,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Calendar;
 
+/** This is a thin servlet making the {@link PlatformVersionsService} accessible - see there for description of the operations. */
 @Component(service = Servlet.class,
         property = {
                 Constants.SERVICE_DESCRIPTION + "=Composum Platform Versions Servlet",
@@ -182,7 +184,8 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                               @Nonnull final SlingHttpServletResponse response,
                               @Nonnull final Resource versionable, @Nullable final String releaseKey)
                 throws RepositoryException, IOException {
-            versionsService.activate(versionable, releaseKey);
+            String versionUuid = StringUtils.defaultIfBlank(request.getParameter("versionUuid"), null);
+            versionsService.activate(versionable, releaseKey, versionUuid);
             writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
         }
     }
