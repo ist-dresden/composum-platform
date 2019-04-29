@@ -1,8 +1,9 @@
 package com.composum.sling.platform.staging.versions;
 
+import com.composum.platform.commons.util.ExceptionUtil;
+import com.composum.platform.commons.util.JcrIteratorUtil;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.CoreConstants;
-import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.security.AccessMode;
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingConstants;
@@ -22,12 +23,16 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
-import java.util.Calendar;
-import java.util.Map;
+import javax.jcr.version.Version;
+import javax.jcr.version.VersionHistory;
+import javax.jcr.version.VersionManager;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.CoreConstants.CONTENT_NODE;
 import static com.composum.sling.core.util.CoreConstants.TYPE_VERSIONABLE;
 import static com.composum.sling.core.util.SlingResourceUtil.getPath;
+import static java.util.Objects.requireNonNull;
 
 /**
  * This is the default implementation of the {@link PlatformVersionsService} - see there.
@@ -141,12 +146,31 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     * What we actually do here is look for labelled versions - all released versions are labelled.
+     */
     @Override
-    public void purgeVersions(@Nonnull Resource versionable, @Nullable String releaseKey) throws PersistenceException, RepositoryException {
-        LOG.error("PlatformVersionsServiceImpl.purgeVersions");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: PlatformVersionsServiceImpl.purgeVersions");
-        // FIXME hps 2019-04-26 what shall that do?
+    public void purgeVersions(@Nonnull Resource rawVersionable) throws PersistenceException, RepositoryException {
+        ResourceHandle versionable = normalizeVersionable(rawVersionable);
+        Validate.isTrue(ResourceHandle.use(versionable).isOfType(TYPE_VERSIONABLE), "Argument must be a %s : %s", TYPE_VERSIONABLE, getPath(versionable));
+        VersionManager versionManager = ResourceHandle.use(versionable).getNode().getSession().getWorkspace().getVersionManager();
+        VersionHistory versionHistory = versionManager.getVersionHistory(versionable.getPath());
+        String[] versionLabels = versionHistory.getVersionLabels();
+        Set<String> labelledVersions = Arrays.asList(versionLabels).stream()
+                .map(ExceptionUtil.sneakExceptions(versionHistory::getVersionByLabel))
+                .map(ExceptionUtil.sneakExceptions(Version::getName))
+                .collect(Collectors.toSet());
+        List<Version> allversions = JcrIteratorUtil.asStream(versionHistory.getAllLinearVersions()).collect(Collectors.toList());
+        Collections.reverse(allversions);
+        boolean afterLabelledVersion = true;
+        for (Version version : allversions) {
+            if (afterLabelledVersion && !labelledVersions.contains(version.getName()))
+                continue;
+            afterLabelledVersion = false;
+            if (!labelledVersions.contains(version.getName()) && !versionHistory.getRootVersion().isSame(version))
+                versionHistory.removeVersion(version.getName());
+        }
     }
 
     protected static class StatusImpl implements Status {

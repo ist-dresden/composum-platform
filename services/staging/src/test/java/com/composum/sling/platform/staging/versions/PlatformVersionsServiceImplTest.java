@@ -10,6 +10,7 @@ import com.composum.sling.platform.staging.versions.PlatformVersionsService.Stat
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import com.composum.sling.platform.testing.testutil.codegen.AssertionCodeGenerator;
+import org.apache.commons.collections4.IteratorUtils;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
@@ -72,6 +73,8 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
         errorCollector.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
         versionManager.checkpoint(versionable.getPath());
+        versionManager.checkpoint(versionable.getPath());
+
         status = service.getStatus(versionable, null);
         errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
         errorCollector.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
@@ -82,6 +85,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
 
         service.activate(versionable, null, null);
         context.resourceResolver().commit();
+
         status = service.getStatus(versionable, null);
         errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
         errorCollector.checkThat(status.getLastActivatedBy(), is("admin"));
@@ -91,6 +95,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
 
         service.deactivate(versionable, null);
         context.resourceResolver().commit();
+
         status = service.getStatus(versionable, null);
         errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.deactivated));
         errorCollector.checkThat(status.getLastActivatedBy(), is("admin"));
@@ -98,6 +103,11 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         errorCollector.checkThat(status.getLastDeactivatedBy(), is("admin"));
         errorCollector.checkThat(status.getLastDeactivated(), instanceOf(java.util.Calendar.class));
         errorCollector.checkThat(status.getLastModifiedBy(), is("admin"));
+
+        errorCollector.checkThat(IteratorUtils.size(versionManager.getVersionHistory(versionable.getPath()).getAllVersions()), is(4));
+        service.purgeVersions(versionable);
+        // root version (not removeable) and released version
+        errorCollector.checkThat(IteratorUtils.size(versionManager.getVersionHistory(versionable.getPath()).getAllVersions()), is(2));
     }
 
 

@@ -130,8 +130,6 @@ public abstract class AbstractStagingTest {
         if (versioned) {
             Version version = versionManager.checkpoint(contentResource.getPath());
             if (released) {
-                versionManager.getVersionHistory(contentResource.getPath())
-                        .addVersionLabel(version.getName(), RELEASED, false);
                 handle.setProperty("released", true);
                 StagingReleaseManager.Release currentRelease = releaseManager.findRelease(handle, StagingConstants.CURRENT_RELEASE);
                 builder.commit();

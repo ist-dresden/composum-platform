@@ -209,7 +209,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                               @Nonnull final SlingHttpServletResponse response,
                               @Nonnull final Resource versionable, @Nullable final String releaseKey)
                 throws RepositoryException, IOException {
-            versionsService.purgeVersions(versionable, releaseKey);
+            versionsService.purgeVersions(versionable);
             writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
         }
     }

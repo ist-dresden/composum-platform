@@ -112,7 +112,7 @@ public interface PlatformVersionsService {
             throws PersistenceException, RepositoryException;
 
     /** Deletes old versions of the versionable - only versions in releases and after the last version which is in a release are kept. */
-    void purgeVersions(@Nonnull Resource versionable, @Nullable String releaseKey)
+    void purgeVersions(@Nonnull Resource versionable)
             throws PersistenceException, RepositoryException;
 
 }
