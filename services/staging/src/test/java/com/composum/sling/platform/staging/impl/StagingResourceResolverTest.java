@@ -373,7 +373,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         // new SlingAssertionCodeGenerator("vm", vm).useErrorCollector().printAssertions().printMapAssertions();
         // new SlingAssertionCodeGenerator("vmsub", vmsub).useErrorCollector().printAssertions().printMapAssertions();
 
-        errorCollector.checkThat(vm.get(PROP_MIXINTYPES, String[].class), arrayContainingInAnyOrder(TYPE_TITLE, TYPE_LAST_MODIFIED));
+        errorCollector.checkThat(vm.get(PROP_MIXINTYPES, String[].class), arrayContainingInAnyOrder(TYPE_TITLE, TYPE_LAST_MODIFIED, MIX_VERSIONABLE));
 
         errorCollector.checkThat(vm.isEmpty(), is(false));
         errorCollector.checkThat(vm.entrySet(), iterableWithSize(7));
@@ -388,7 +388,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         errorCollector.checkThat(vm.get("jcr:lastModifiedBy"), is("admin"));
         errorCollector.checkThat(vm.get("jcr:lastModified"), instanceOf(java.util.Calendar.class));
         errorCollector.checkThat(vm.get("jcr:primaryType"), is("nt:unstructured"));
-        errorCollector.checkThat((String[]) vm.get("jcr:mixinTypes"), arrayContainingInAnyOrder("mix:lastModified", "mix:title"));
+        errorCollector.checkThat((String[]) vm.get("jcr:mixinTypes"), arrayContainingInAnyOrder(TYPE_TITLE, TYPE_LAST_MODIFIED, MIX_VERSIONABLE));
 
         errorCollector.checkThat(vmsub.isEmpty(), is(false));
         errorCollector.checkThat(vmsub.entrySet(), iterableWithSize(2));

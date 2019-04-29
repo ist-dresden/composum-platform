@@ -45,7 +45,6 @@ public class StagingResourceValueMap extends ValueMapDecorator {
     @CheckForNull
     public Object get(Object name) {
         if (JCR_UUID.equals(name) && haveToRemoveUuid()) return null;
-        if (JCR_MIXINTYPES.equals(name)) return cleanupMixinTypes(super.get(JCR_FROZENMIXINTYPES), null);
         String transformedName = REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(name, (String) name);
         return super.get(transformedName);
     }
@@ -53,15 +52,13 @@ public class StagingResourceValueMap extends ValueMapDecorator {
     @Override
     public <T> T get(String name, Class<T> type) {
         if (JCR_UUID.equals(name) && haveToRemoveUuid()) return null;
-        if (JCR_MIXINTYPES.equals(name)) return (T) cleanupMixinTypes(super.get(JCR_FROZENMIXINTYPES), type);
         return super.get(REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(name, name), type);
     }
 
+    @Nonnull
     @Override
     public <T> T get(String name, T defaultValue) {
         if (JCR_UUID.equals(name) && haveToRemoveUuid()) return defaultValue;
-        if (JCR_MIXINTYPES.equals(name))
-            return (T) cleanupMixinTypes(super.get(JCR_FROZENMIXINTYPES), defaultValue.getClass());
         return super.get(REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(name, name), defaultValue);
     }
 
@@ -89,46 +86,20 @@ public class StagingResourceValueMap extends ValueMapDecorator {
         return keys;
     }
 
-    /** Remove mix:versionable since it's attributes do not make sense here. */
-    protected Object cleanupMixinTypes(Object rawMixinTypes, Class<?> expectedClass) {
-        Object result = rawMixinTypes;
-        if (rawMixinTypes instanceof String[] &&
-                (expectedClass == null || expectedClass.isAssignableFrom(String[].class))) {
-            String[] mixins = (String[]) rawMixinTypes;
-            if (mixins != null) {
-                mixins = Arrays.asList(mixins).stream()
-                        .filter((m) -> !MIX_VERSIONABLE.equals(m))
-                        .collect(Collectors.toList())
-                        .toArray(new String[0]);
-                if (mixins.length == 0) rawMixinTypes = null;
-                else {
-                    result = mixins;
-                }
-            }
-        } else if (rawMixinTypes != null) {
-            LOG.warn("Requesting mixins with unsupported type {} expecting {}",
-                    rawMixinTypes.getClass().getName(), expectedClass != null ? expectedClass.getName() : null);
-        }
-        return result;
-    }
-
     @Override
     @Nonnull
     public Set<Entry<String, Object>> entrySet() {
         final Set<Entry<String, Object>> entries = super.entrySet();
         final Set<Entry<String, Object>> result = new HashSet<>();
         for (Entry<String, Object> entry : entries) {
-            if ((JCR_FROZENUUID.equals(entry.getKey()) || JCR_UUID.equals(entry.getKey())) && haveToRemoveUuid()) {
-                // nothing
-            } else if (entry.getKey().equals(JCR_FROZENMIXINTYPES)) {
-                Object value = cleanupMixinTypes(entry.getValue(), null);
-                if (value != null) result.add(new PrivateEntry(JCR_MIXINTYPES, value));
-            } else if (REAL_PROPNAMES_TO_FROZEN_NAMES.keySet().contains(entry.getKey())) {
-                //nothing
-            } else if (!FROZEN_PROP_NAMES_TO_REAL_NAMES.keySet().contains(entry.getKey())) {
-                result.add(entry);
+            if ((JCR_FROZENUUID.equals(entry.getKey())
+                    || JCR_UUID.equals(entry.getKey())) && haveToRemoveUuid()
+                    || REAL_PROPNAMES_TO_FROZEN_NAMES.keySet().contains(entry.getKey())) {
+                // do not output this
             } else if (FROZEN_PROP_NAMES_TO_REAL_NAMES.keySet().contains(entry.getKey())) {
                 result.add(new PrivateEntry(FROZEN_PROP_NAMES_TO_REAL_NAMES.get(entry.getKey()), entry.getValue()));
+            } else {
+                result.add(entry);
             }
         }
         return Collections.unmodifiableSet(result);
@@ -139,8 +110,10 @@ public class StagingResourceValueMap extends ValueMapDecorator {
         return keySet().size();
     }
 
+    @Nonnull
     @Override
     public Collection<Object> values() {
+        //noinspection SimplifyStreamApiCallChains - we deliberately use entrySet()
         return Collections.unmodifiableCollection(entrySet().stream().map(Entry::getValue).collect(Collectors.toList()));
     }
 
@@ -169,10 +142,10 @@ public class StagingResourceValueMap extends ValueMapDecorator {
         return entrySet().toString();
     }
 
-    private class PrivateEntry implements Entry<String, Object> {
+    private static class PrivateEntry implements Entry<String, Object> {
 
-        private String key;
-        private Object value;
+        final private String key;
+        final private Object value;
 
         /**
          * Constructs a new entry with the given key and given value.
