@@ -7,7 +7,10 @@ import com.composum.sling.platform.security.AccessMode;
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.osgi.framework.Constants;
@@ -20,9 +23,11 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import java.util.Calendar;
+import java.util.Map;
 
 import static com.composum.sling.core.util.CoreConstants.CONTENT_NODE;
 import static com.composum.sling.core.util.CoreConstants.TYPE_VERSIONABLE;
+import static com.composum.sling.core.util.SlingResourceUtil.getPath;
 
 /**
  * This is the default implementation of the {@link PlatformVersionsService} - see there.
@@ -76,11 +81,11 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         ResourceHandle contentResource = handle.getContentResource();
         if (contentResource.isValid() && contentResource.isOfType(TYPE_VERSIONABLE))
             return contentResource;
-        throw new IllegalArgumentException("Not a versionable nor something with a versionable " + CONTENT_NODE + " : " + SlingResourceUtil.getPath(versionable));
+        throw new IllegalArgumentException("Not a versionable nor something with a versionable " + CONTENT_NODE + " : " + getPath(versionable));
     }
 
     @Override
-    public Status getStatus(@Nonnull Resource rawVersionable, @Nullable String releaseKey) throws PersistenceException, RepositoryException {
+    public StatusImpl getStatus(@Nonnull Resource rawVersionable, @Nullable String releaseKey) throws PersistenceException, RepositoryException {
         ResourceHandle versionable = normalizeVersionable(rawVersionable);
         StagingReleaseManager.Release release = getRelease(versionable, releaseKey);
         ReleasedVersionable current = ReleasedVersionable.forBaseVersion(versionable);
@@ -90,8 +95,61 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         return new StatusImpl(release, current, released);
     }
 
-    protected static class StatusImpl implements Status {
+    @Override
+    public Map<String, SiblingOrderUpdateStrategy.Result> activate(@Nonnull Resource rawVersionable, @Nullable String releaseKey, @Nullable String versionUuid) throws PersistenceException, RepositoryException {
+        LOG.info("Requested activation {} in {} to {}", getPath(rawVersionable), releaseKey, versionUuid);
+        Map<String, SiblingOrderUpdateStrategy.Result> result = null;
+        ResourceHandle versionable = normalizeVersionable(rawVersionable);
+        // XXX(hps,2019-04-29) possibly checkpoint document
+        StatusImpl status = getStatus(versionable, releaseKey);
+        if (status.getActivationState() != ActivationState.activated) {
+            ReleasedVersionable releasedVersionable = status.currentVersionableInfo();
+            if (StringUtils.isNotBlank(versionUuid) && !StringUtils.equals(versionUuid, releasedVersionable.getVersionUuid())) {
+                releasedVersionable = status.releaseVersionableInfo(); // make sure we don't move the document around
+                releasedVersionable.setVersionUuid(versionUuid);
+            }
+            releasedVersionable.setActive(true);
+            result = releaseManager.updateRelease(status.release(), releasedVersionable);
+            status = getStatus(versionable, releaseKey);
+            Validate.isTrue(status.getVersionReference().isValid());
+            status.getVersionReference().setProperty(PROP_LAST_ACTIVATED, Calendar.getInstance());
+            status.getVersionReference().setProperty(PROP_LAST_ACTIVATED_BY, rawVersionable.getResourceResolver().getUserID());
+            LOG.info("Activated {} in {} to {}", getPath(rawVersionable), status.release().getNumber(), status.currentVersionableInfo().getVersionUuid());
+        } else {
+            LOG.info("Already activated in {} : {}", status.release().getNumber(), getPath(rawVersionable));
+        }
+        return result;
+    }
 
+    @Override
+    public void deactivate(@Nonnull Resource versionable, @Nullable String releaseKey) throws PersistenceException, RepositoryException {
+        LOG.info("Requested deactivation {} in {}", getPath(versionable), releaseKey);
+        StatusImpl status = (StatusImpl) getStatus(versionable, releaseKey);
+        switch (status.getActivationState()) {
+            case modified:
+            case activated:
+                LOG.info("Deactivating in " + status.release().getNumber() + " : " + versionable);
+                ReleasedVersionable releasedVersionable = status.releaseVersionableInfo();
+                releasedVersionable.setActive(false);
+                releaseManager.updateRelease(status.release(), releasedVersionable);
+                status.getVersionReference().setProperty(PROP_LAST_DEACTIVATED, Calendar.getInstance());
+                status.getVersionReference().setProperty(PROP_LAST_DEACTIVATED_BY, versionable.getResourceResolver().getUserID());
+            case initial:
+            case deactivated:
+                LOG.info("Not deactivating in " + status.release().getNumber() + " since not active: " + versionable);
+            default:
+        }
+    }
+
+    @Override
+    public void purgeVersions(@Nonnull Resource versionable, @Nullable String releaseKey) throws PersistenceException, RepositoryException {
+        LOG.error("PlatformVersionsServiceImpl.purgeVersions");
+        if (0 == 0)
+            throw new UnsupportedOperationException("Not implemented yet: PlatformVersionsServiceImpl.purgeVersions");
+        // FIXME hps 2019-04-26 what shall that do?
+    }
+
+    protected static class StatusImpl implements Status {
         @Nonnull
         private final StagingReleaseManager.Release release;
         @Nullable
@@ -124,7 +182,9 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 return ActivationState.deactivated;
             if (!StringUtils.equals(current.getVersionUuid(), released.getVersionUuid()))
                 return ActivationState.modified;
-            // XXX(hps,2019-04-26) compare last modification date
+            if (getLastActivated() == null ||
+                    getLastModified() != null && getLastModified().after(getLastActivated()))
+                return ActivationState.modified;
             return ActivationState.activated;
         }
 
@@ -175,7 +235,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         @Nullable
         @Override
         public String getLastDeactivatedBy() {
-            return releasedVersionReference.getProperty(PROP_LAST_ACTIVATED_BY, String.class);
+            return releasedVersionReference.getProperty(PROP_LAST_DEACTIVATED_BY, String.class);
         }
 
         @Nonnull
@@ -195,31 +255,22 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         public ReleasedVersionable currentVersionableInfo() {
             return current;
         }
-    }
 
-    @Override
-    public void activate(@Nonnull Resource versionable, @Nullable String releaseKey, @Nullable String versionUuid) throws PersistenceException, RepositoryException {
-        LOG.error("PlatformVersionsServiceImpl.activate");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: PlatformVersionsServiceImpl.activate");
-        // FIXME hps 2019-04-26 implement PlatformVersionsServiceImpl.activate
+        /** The version reference currently in the release. Might be invalid. */
+        @Nonnull
+        public ResourceHandle getVersionReference() {
+            return releasedVersionReference;
+        }
 
-    }
-
-    @Override
-    public void deactivate(@Nonnull Resource versionable, @Nullable String releaseKey) throws PersistenceException, RepositoryException {
-        LOG.error("PlatformVersionsServiceImpl.deactivate");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: PlatformVersionsServiceImpl.deactivate");
-        // FIXME hps 2019-04-26 implement PlatformVersionsServiceImpl.deactivate
+        @Override
+        public String toString() {
+            return new ToStringBuilder(this)
+                    .append("release", release)
+                    .append("released", released)
+                    .append("current", current)
+                    .toString();
+        }
 
     }
 
-    @Override
-    public void purgeVersions(@Nonnull Resource versionable, @Nullable String releaseKey) throws PersistenceException, RepositoryException {
-        LOG.error("PlatformVersionsServiceImpl.purgeVersions");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: PlatformVersionsServiceImpl.purgeVersions");
-        // FIXME hps 2019-04-26 what shall that do?
-    }
 }

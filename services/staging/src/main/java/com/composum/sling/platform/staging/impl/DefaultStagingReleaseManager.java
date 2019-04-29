@@ -187,6 +187,21 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         return result;
     }
 
+    @Nullable
+    @Override
+    public ReleasedVersionable findReleasedVersionableByUuid(@Nonnull Release rawRelease, @Nonnull String versionHistoryUuid) {
+        ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
+        Resource releaseWorkspaceCopy = release.getWorkspaceCopyNode();
+
+        String query = "/jcr:root" + releaseWorkspaceCopy.getPath() + "//element(*," + TYPE_VERSIONREFERENCE + ")"
+                + "[@" + PROP_VERSIONHISTORY + "='" + versionHistoryUuid + "']";
+        Iterator<Resource> versionReferences = release.getReleaseNode().getResourceResolver()
+                .findResources(query, Query.XPATH);
+        Resource versionReference = versionReferences.hasNext() ? versionReferences.next() : null;
+
+        return versionReference != null ? ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference) : null;
+    }
+
     @Override
     @Nonnull
     public Map<String, Result> updateRelease(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException {
@@ -358,7 +373,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         ResourceHandle releasesnode = ResourceHandle.use(release.getReleaseNode().getParent()); // the cpl:releases node
         if (StringUtils.equals(mark, releasesnode.getProperty(mark, String.class)))
             throw new IllegalArgumentException("Release does not carry mark " + mark + " : " + rawRelease);
-        releasesnode.setProperty(mark, null, PropertyType.REFERENCE);
+        releasesnode.setProperty(mark, (String) null);
     }
 
     @Nullable

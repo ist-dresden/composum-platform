@@ -1,6 +1,5 @@
-package com.composum.sling.platform.staging.service;
+package com.composum.sling.platform.staging;
 
-import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import org.junit.Rule;
 import org.junit.Test;

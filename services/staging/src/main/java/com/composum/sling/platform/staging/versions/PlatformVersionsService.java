@@ -2,6 +2,7 @@ package com.composum.sling.platform.staging.versions;
 
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 
@@ -9,6 +10,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import java.util.Calendar;
+import java.util.Map;
 
 /**
  * Service to view / manage which documents are put into a release - mostly for {@link PlatformVersionsServlet}.
@@ -46,6 +48,7 @@ public interface PlatformVersionsService {
         String getLastActivatedBy();
 
         /**
+         * The time the versionable was last modified in the workspace.
          * @return 'last modified' or 'created'
          */
         @Nonnull
@@ -99,8 +102,9 @@ public interface PlatformVersionsService {
      * @param versionUuid optionally, a previous version of the document that is
      * @throws PersistenceException
      * @throws RepositoryException
+     * @return a map with paths where we changed the order of children in the release.
      */
-    void activate(@Nonnull Resource versionable, @Nullable String releaseKey, @Nullable String versionUuid)
+    Map<String, SiblingOrderUpdateStrategy.Result> activate(@Nonnull Resource versionable, @Nullable String releaseKey, @Nullable String versionUuid)
             throws PersistenceException, RepositoryException;
 
     /** Sets the document to "deactivated" - it is marked as not present in the release anymore. */

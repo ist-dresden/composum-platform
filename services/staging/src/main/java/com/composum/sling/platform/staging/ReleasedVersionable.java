@@ -107,12 +107,12 @@ public class ReleasedVersionable {
     }
 
     /** Releasemanager internal: creates a {@link ReleasedVersionable} that corresponds to a {@link StagingConstants#TYPE_VERSIONREFERENCE}. */
-    public static ReleasedVersionable fromVersionReference(@Nonnull Resource treeRoot, @Nonnull Resource resource) {
+    public static ReleasedVersionable fromVersionReference(@Nonnull Resource releaseWorkspaceCopy, @Nonnull Resource resource) {
         if (!ResourceUtil.isResourceType(resource, StagingConstants.TYPE_VERSIONREFERENCE)) {
             throw new IllegalArgumentException("resource is not version reference: " + SlingResourceUtil.getPath(resource));
         }
-        if (!resource.getPath().equals(treeRoot) && !resource.getPath().startsWith(treeRoot.getPath() + '/')) {
-            throw new IllegalArgumentException("Resource not in treeroot: " + resource.getPath() + ", " + treeRoot.getPath());
+        if (!resource.getPath().equals(releaseWorkspaceCopy) && !resource.getPath().startsWith(releaseWorkspaceCopy.getPath() + '/')) {
+            throw new IllegalArgumentException("Resource not in treeroot: " + resource.getPath() + ", " + releaseWorkspaceCopy.getPath());
         }
 
         ReleasedVersionable result = new ReleasedVersionable();
@@ -122,7 +122,7 @@ public class ReleasedVersionable {
         result.setVersionableUuid(rh.getProperty(StagingConstants.PROP_VERSIONABLEUUID, String.class));
         result.setVersionUuid(rh.getProperty(StagingConstants.PROP_VERSION, String.class));
         result.setVersionHistory(rh.getProperty(StagingConstants.PROP_VERSIONHISTORY, String.class));
-        result.setRelativePath(StringUtils.removeStart(resource.getPath().substring(treeRoot.getPath().length()), "/"));
+        result.setRelativePath(StringUtils.removeStart(resource.getPath().substring(releaseWorkspaceCopy.getPath().length()), "/"));
 
         return result;
     }

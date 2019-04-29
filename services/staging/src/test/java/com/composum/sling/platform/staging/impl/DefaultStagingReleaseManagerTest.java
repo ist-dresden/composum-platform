@@ -1,14 +1,12 @@
-package com.composum.sling.platform.staging.service;
+package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
+import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
-import com.composum.sling.platform.staging.ReleasedVersionable;
-import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
-import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import com.composum.sling.platform.testing.testutil.AnnotationWithDefaults;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
@@ -150,6 +148,10 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ec.checkThat(contents.get(0).getRelativePath(), is("a/jcr:content"));
         ec.checkThat(contents.get(0).getVersionUuid(), is(version.getUUID()));
 
+        ReleasedVersionable foundReleasedVersionable = service.findReleasedVersionableByUuid(currentRelease, version.getContainingHistory().getIdentifier());
+        ec.checkThat(foundReleasedVersionable.getRelativePath(), is("a/jcr:content"));
+        ec.checkThat(foundReleasedVersionable.getVersionUuid(), is(version.getUUID()));
+
         ec.checkThat(version.getContainingHistory().getVersionLabels(version),
                 arrayContaining(StagingConstants.RELEASE_LABEL_PREFIX + currentRelease.getNumber().replace("cpl:", "")));
 
@@ -270,6 +272,9 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ec.checkThat(service.findReleaseByMark(releaseRoot, "public").getMarks(), contains("public"));
         ec.checkThat(service.findReleaseByMark(releaseRoot, "preview").getMarks(), contains("preview"));
         ec.checkFailsWith(() -> service.removeRelease(rel1), instanceOf(PersistenceException.class));
+
+        service.deleteMark("public", rel1);
+        ec.checkThat(service.findReleaseByMark(releaseRoot, "public"), nullValue());
     }
 
     @Test

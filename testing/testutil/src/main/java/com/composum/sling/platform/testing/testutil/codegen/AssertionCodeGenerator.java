@@ -3,6 +3,8 @@ package com.composum.sling.platform.testing.testutil.codegen;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.SlingMatchers;
 import org.apache.commons.collections4.IteratorUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.commons.lang3.reflect.TypeUtils;
 import org.hamcrest.Matchers;
@@ -202,6 +204,16 @@ public class AssertionCodeGenerator {
                     createMatcher(entry);
                     first = false;
                 }
+                assertionBuf.append(")");
+            } else if (value instanceof Enum) {
+                Enum<?> enval = (Enum<?>) value;
+                assertionBuf.append("is(");
+                Class<?> enclosing = enval.getDeclaringClass().getEnclosingClass();
+                if (null != enclosing) assertionBuf.append(enclosing.getSimpleName()).append(".");
+                assertionBuf.append(enval.getDeclaringClass().getSimpleName()).append(".").append(enval.name()).append(")");
+            } else if (!StringUtils.equals(value.toString(), ObjectUtils.identityToString(value))) {
+                assertionBuf.append("hasToString(");
+                appendQuotedString(value.toString());
                 assertionBuf.append(")");
             } else {
                 throw new UnsupportedOperationException("Type not yet supported, please extend: " + value.getClass());

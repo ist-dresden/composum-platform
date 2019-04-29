@@ -28,10 +28,7 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.Version;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
@@ -515,14 +512,16 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         errorCollector.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
         errorCollector.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured"));
         errorCollector.checkThat(r.getPath(), r.getValueMap(), allOf(
-                hasMapSize(3),
+                hasMapSize(5),
                 // SlingMatchers.hasEntryMatching(is("jcr:versionHistory"), stringMatchingPattern("[0-9a-f-]{36}")),
                 // SlingMatchers.hasEntryMatching(is("jcr:predecessors"), arrayContaining(stringMatchingPattern("[0-9a-f-]{36}"))),
                 // SlingMatchers.hasEntryMatching(is("jcr:isCheckedOut"), is(true)),
                 // SlingMatchers.hasEntryMatching(is("jcr:baseVersion"), stringMatchingPattern("[0-9a-f-]{36}")),
-                SlingMatchers.hasEntryMatching(is("jcr:mixinTypes"), arrayContaining(is("mix:versionable"))),
+                SlingMatchers.hasEntryMatching(is("jcr:mixinTypes"), arrayContainingInAnyOrder(is("mix:versionable"), is("mix:lastModified"))),
                 SlingMatchers.hasEntryMatching(is("jcr:primaryType"), is("nt:unstructured")),
-                SlingMatchers.<Object, String>hasEntryMatching(is("jcr:uuid"), stringMatchingPattern("[0-9a-f-]{36}"))
+                SlingMatchers.<Object, String>hasEntryMatching(is("jcr:uuid"), stringMatchingPattern("[0-9a-f-]{36}")),
+                SlingMatchers.hasEntryMatching(is("jcr:lastModifiedBy"), is("admin")),
+                SlingMatchers.hasEntryMatching(is("jcr:lastModified"), instanceOf(java.util.Calendar.class))
         ));
 
 
@@ -605,7 +604,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
                 hasMapSize(8),
                 SlingMatchers.hasEntryMatching(is("jcr:lastModifiedBy"), is("admin")),
                 SlingMatchers.hasEntryMatching(is("jcr:created"), notNullValue(java.util.Calendar.class)),
-                SlingMatchers.hasEntryMatching(is("jcr:mixinTypes"), arrayContaining(is("mix:lastModified"), is("mix:created"), is("mix:title"))),
+                SlingMatchers.hasEntryMatching(is("jcr:mixinTypes"), arrayContainingInAnyOrder(is("mix:lastModified"), is("mix:created"), is("mix:title"))),
                 SlingMatchers.hasEntryMatching(is("jcr:lastModified"), notNullValue(java.util.Calendar.class)),
                 SlingMatchers.hasEntryMatching(is("jcr:createdBy"), is("admin")),
                 SlingMatchers.hasEntryMatching(is("sling:resourceType"), is("sling/somethingres")),

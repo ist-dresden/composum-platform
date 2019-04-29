@@ -1,6 +1,5 @@
 package com.composum.sling.platform.staging.versions;
 
-import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.platform.security.AccessMode;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.StagingReleaseManager;
@@ -9,6 +8,9 @@ import com.composum.sling.platform.staging.impl.AbstractStagingTest;
 import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
 import com.composum.sling.platform.staging.versions.PlatformVersionsService.Status;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
+import com.composum.sling.platform.testing.testutil.JcrTestUtils;
+import com.composum.sling.platform.testing.testutil.codegen.AssertionCodeGenerator;
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.junit.Before;
@@ -19,7 +21,7 @@ import static com.composum.sling.core.util.CoreConstants.*;
 import static com.composum.sling.platform.staging.StagingConstants.CURRENT_RELEASE;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
 import static com.composum.sling.platform.testing.testutil.JcrTestUtils.array;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 /** Tests for {@link PlatformVersionsServiceImpl}. */
 public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
@@ -59,12 +61,43 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         errorCollector.checkThat(service.getDefaultRelease(versionable).getNumber(), is(CURRENT_RELEASE));
         Release r1 = releaseManager.createRelease(versionable, ReleaseNumberCreator.MAJOR);
         releaseManager.setMark(AccessMode.ACCESS_MODE_PUBLIC.toLowerCase(), r1);
+        context.resourceResolver().commit();
         errorCollector.checkThat(service.getDefaultRelease(versionable).getNumber(), is(r1.getNumber()));
     }
 
     @Test
     public void status() throws Exception {
         Status status = service.getStatus(versionable, CURRENT_RELEASE);
+        // we have "modified" since no activation date is set. A little doubtable, but not the normal case
+        errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
+        errorCollector.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+        versionManager.checkpoint(versionable.getPath());
+        status = service.getStatus(versionable, null);
+        errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
+        errorCollector.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+        errorCollector.checkThat(status.getLastActivatedBy(), nullValue());
+        errorCollector.checkThat(status.getLastActivated(), nullValue());
+        errorCollector.checkThat(status.getLastDeactivatedBy(), nullValue());
+        errorCollector.checkThat(status.getLastDeactivated(), nullValue());
+
+        service.activate(versionable, null, null);
+        context.resourceResolver().commit();
+        status = service.getStatus(versionable, null);
+        errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
+        errorCollector.checkThat(status.getLastActivatedBy(), is("admin"));
+        errorCollector.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
+        errorCollector.checkThat(status.getLastDeactivatedBy(), nullValue());
+        errorCollector.checkThat(status.getLastDeactivated(), nullValue());
+
+        service.deactivate(versionable, null);
+        context.resourceResolver().commit();
+        status = service.getStatus(versionable, null);
+        errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.deactivated));
+        errorCollector.checkThat(status.getLastActivatedBy(), is("admin"));
+        errorCollector.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
+        errorCollector.checkThat(status.getLastDeactivatedBy(), is("admin"));
+        errorCollector.checkThat(status.getLastDeactivated(), instanceOf(java.util.Calendar.class));
+        errorCollector.checkThat(status.getLastModifiedBy(), is("admin"));
     }
 
 
