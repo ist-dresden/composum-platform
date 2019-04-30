@@ -2,6 +2,7 @@ package com.composum.sling.platform.staging.versions;
 
 import com.composum.sling.platform.security.AccessMode;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
+import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
 import com.composum.sling.platform.staging.impl.AbstractStagingTest;
@@ -67,6 +68,50 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
     }
 
     @Test
+    public void initialStatus() throws Exception {
+        makeNode(builderAtRelease, "document2", "n2/something", true, false, "2 second title");
+        Status status = service.getStatus(context.resourceResolver().getResource(builderAtRelease.getCurrentParent().getPath() + "/document2"), null);
+        errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.initial));
+        errorCollector.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+        errorCollector.checkThat(status.getLastActivatedBy(), nullValue());
+        errorCollector.checkThat(status.getLastActivated(), nullValue());
+        errorCollector.checkThat(status.getLastDeactivatedBy(), nullValue());
+        errorCollector.checkThat(status.getLastDeactivated(), nullValue());
+        errorCollector.checkThat(status.getLastModified(), instanceOf(java.util.Calendar.class));
+        errorCollector.checkThat(status.getLastModifiedBy(), is("admin"));
+    }
+
+    @Test
+    public void releaseProgression() throws Exception {
+        Status status = service.getStatus(versionable, CURRENT_RELEASE);
+        errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
+        errorCollector.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+        service.activate(versionable, null, null);
+        context.resourceResolver().commit();
+
+        status = service.getStatus(versionable, CURRENT_RELEASE);
+        errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
+        errorCollector.checkThat(status.getLastActivatedBy(), is("admin"));
+        errorCollector.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
+        errorCollector.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+
+        Release r1 = releaseManager.createRelease(versionable, ReleaseNumberCreator.MAJOR);
+        context.resourceResolver().commit();
+
+        Status status1 = service.getStatus(versionable, r1.getNumber());
+        errorCollector.checkThat(status1.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
+        errorCollector.checkThat(status1.release(), hasToString("Release('r1',/content/release)"));
+        errorCollector.checkThat(status1.getLastActivated(), is(status.getLastActivated()));
+
+        releaseManager.setMark(AccessMode.ACCESS_MODE_PUBLIC.toLowerCase(), r1);
+        context.resourceResolver().commit();
+
+        status1 = service.getStatus(versionable, null);
+        errorCollector.checkThat(status1.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
+        errorCollector.checkThat(status1.release(), hasToString("Release('r1',/content/release)"));
+    }
+
+    @Test
     public void status() throws Exception {
         Status status = service.getStatus(versionable, CURRENT_RELEASE);
         // we have "modified" since no activation date is set. A little doubtable, but not the normal case
@@ -82,6 +127,8 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         errorCollector.checkThat(status.getLastActivated(), nullValue());
         errorCollector.checkThat(status.getLastDeactivatedBy(), nullValue());
         errorCollector.checkThat(status.getLastDeactivated(), nullValue());
+        errorCollector.checkThat(status.getLastModified(), instanceOf(java.util.Calendar.class));
+        errorCollector.checkThat(status.getLastModifiedBy(), is("admin"));
 
         service.activate(versionable, null, null);
         context.resourceResolver().commit();

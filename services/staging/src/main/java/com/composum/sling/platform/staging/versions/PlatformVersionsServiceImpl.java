@@ -193,8 +193,6 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             if (current != null && !currentResource.isValid())
                 throw new IllegalArgumentException("Invalid current resource " + release + " - " + current);
             releasedVersionReference = ResourceHandle.use(release.getMetaDataNode().getChild("../" + StagingConstants.NODE_RELEASE_ROOT).getChild(current.getRelativePath()));
-            if (releasedVersionReference != null && !releasedVersionReference.isValid())
-                throw new IllegalArgumentException("Invalid releasedVersionReference " + release + " - " + releasedVersionReference);
         }
 
         @Nonnull
