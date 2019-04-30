@@ -5,6 +5,7 @@ import org.junit.runner.Description;
 import org.junit.runners.model.MultipleFailureException;
 import org.junit.runners.model.Statement;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -15,6 +16,9 @@ import java.util.concurrent.Callable;
  */
 public class ErrorCollectorAlwaysPrintingFailures extends org.junit.rules.ErrorCollector {
 
+    @Nonnull
+    protected List<RunnableWithException> onFailureActions = new ArrayList<>();
+
     @Override
     public Statement apply(final Statement base, Description description) {
         return new Statement() {
@@ -24,6 +28,7 @@ public class ErrorCollectorAlwaysPrintingFailures extends org.junit.rules.ErrorC
                     base.evaluate();
                 } catch (Throwable t) {
                     List<Throwable> failures = new ArrayList<>();
+                    runOnFailures(failures);
 
                     failures.add(t); // add it at the start
 
@@ -73,6 +78,27 @@ public class ErrorCollectorAlwaysPrintingFailures extends org.junit.rules.ErrorC
             checkThat(null, exceptionMatcher);
         } catch (Throwable e) {
             checkThat(e, exceptionMatcher);
+        }
+    }
+
+    /** Register something that should be done on failure - e.g. printing additional debugging information. */
+    public ErrorCollectorAlwaysPrintingFailures onFailure(RunnableWithException onfailure) {
+        this.onFailureActions.add(onfailure);
+        return this;
+    }
+
+    /**
+     * Runs all actions registered with {@link #onFailure(RunnableWithException)} .
+     *
+     * @param failures here we add any throwables that happen during these actions.
+     */
+    protected void runOnFailures(List<Throwable> failures) {
+        for (RunnableWithException<?> re : onFailureActions) {
+            try {
+                re.run();
+            } catch (Throwable t) {
+                failures.add(t);
+            }
         }
     }
 

@@ -29,10 +29,8 @@ import javax.jcr.version.VersionManager;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.composum.sling.core.util.CoreConstants.CONTENT_NODE;
-import static com.composum.sling.core.util.CoreConstants.TYPE_VERSIONABLE;
+import static com.composum.sling.core.util.CoreConstants.*;
 import static com.composum.sling.core.util.SlingResourceUtil.getPath;
-import static java.util.Objects.requireNonNull;
 
 /**
  * This is the default implementation of the {@link PlatformVersionsService} - see there.
@@ -78,8 +76,11 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
      * If the versionable is a {@link com.composum.sling.core.util.CoreConstants#TYPE_VERSIONABLE} it is returned,
      * else we check whether it has a versionable {@link com.composum.sling.core.util.CoreConstants#CONTENT_NODE} and return that,
      * otherwise we throw up as this is an invalid argument.
+     *
+     * @return a {@link ResourceHandle} that is valid and is versionable
+     * @throws IllegalArgumentException if {versionable} doesn't denote a valid versionable
      */
-    protected ResourceHandle normalizeVersionable(Resource versionable) {
+    protected ResourceHandle normalizeVersionable(Resource versionable) throws IllegalArgumentException {
         ResourceHandle handle = ResourceHandle.use(versionable);
         if (handle.isValid() && handle.isOfType(TYPE_VERSIONABLE))
             return handle;
@@ -105,7 +106,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         LOG.info("Requested activation {} in {} to {}", getPath(rawVersionable), releaseKey, versionUuid);
         Map<String, SiblingOrderUpdateStrategy.Result> result = null;
         ResourceHandle versionable = normalizeVersionable(rawVersionable);
-        // XXX(hps,2019-04-29) possibly checkpoint document
+        maybeCheckpoint(versionable);
         StatusImpl status = getStatus(versionable, releaseKey);
         if (status.getActivationState() != ActivationState.activated) {
             ReleasedVersionable releasedVersionable = status.currentVersionableInfo();
@@ -124,6 +125,23 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             LOG.info("Already activated in {} : {}", status.release().getNumber(), getPath(rawVersionable));
         }
         return result;
+    }
+
+    /** Checks whether the last modification date is later than the last checkin date. */
+    protected void maybeCheckpoint(ResourceHandle versionable) throws RepositoryException {
+        VersionManager versionManager = versionable.getNode().getSession().getWorkspace().getVersionManager();
+        Version baseVersion = versionManager.getBaseVersion(versionable.getPath());
+        VersionHistory versionHistory = versionManager.getVersionHistory(versionable.getPath());
+        if (!versionable.isOfType(TYPE_LAST_MODIFIED)) {
+            LOG.warn("Mixin {} is required for proper function, but missing in {}", TYPE_LAST_MODIFIED, versionable.getPath());
+        }
+        Calendar lastModified = versionable.getProperty(PROP_LAST_MODIFIED, Calendar.class);
+        if (lastModified == null) lastModified = versionable.getProperty(PROP_CREATED, Calendar.class);
+        Version rootVersion = versionHistory.getRootVersion();
+        if (baseVersion.isSame(rootVersion) ||
+                lastModified != null && lastModified.after(baseVersion.getCreated())) {
+            versionManager.checkpoint(versionable.getPath());
+        }
     }
 
     @Override

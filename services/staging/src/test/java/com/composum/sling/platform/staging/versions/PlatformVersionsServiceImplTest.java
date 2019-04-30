@@ -2,7 +2,6 @@ package com.composum.sling.platform.staging.versions;
 
 import com.composum.sling.platform.security.AccessMode;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
-import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
 import com.composum.sling.platform.staging.impl.AbstractStagingTest;
@@ -10,9 +9,7 @@ import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
 import com.composum.sling.platform.staging.versions.PlatformVersionsService.Status;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
-import com.composum.sling.platform.testing.testutil.codegen.AssertionCodeGenerator;
 import org.apache.commons.collections4.IteratorUtils;
-import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.junit.Before;
@@ -28,9 +25,6 @@ import static org.hamcrest.Matchers.*;
 /** Tests for {@link PlatformVersionsServiceImpl}. */
 public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
 
-    @Rule
-    public final ErrorCollectorAlwaysPrintingFailures errorCollector = new ErrorCollectorAlwaysPrintingFailures();
-
     private String release;
     private ResourceBuilder builderAtRelease;
     private StagingReleaseManager releaseManager;
@@ -39,6 +33,14 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
     private String document1;
     private String node1version;
     private Resource versionable;
+
+    @Rule
+    public final ErrorCollectorAlwaysPrintingFailures errorCollector = new ErrorCollectorAlwaysPrintingFailures()
+            .onFailure(() -> {
+                Thread.sleep(500); // wait for logging messages to be written
+                JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource(release));
+                JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/jcr:system/jcr:versionStorage"));
+            });
 
     @Before
     public void setupServices() throws Exception {
@@ -69,8 +71,11 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
 
     @Test
     public void initialStatus() throws Exception {
-        makeNode(builderAtRelease, "document2", "n2/something", true, false, "2 second title");
-        Status status = service.getStatus(context.resourceResolver().getResource(builderAtRelease.getCurrentParent().getPath() + "/document2"), null);
+        Resource initVersionable = builderAtRelease.resource("document2", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED)
+                .resource(CONTENT_NODE, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED, PROP_MIXINTYPES, new String[]{TYPE_VERSIONABLE, TYPE_LAST_MODIFIED})
+                .commit().getCurrentParent();
+
+        Status status = service.getStatus(initVersionable, null);
         errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.initial));
         errorCollector.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
         errorCollector.checkThat(status.getLastActivatedBy(), nullValue());
@@ -79,13 +84,24 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         errorCollector.checkThat(status.getLastDeactivated(), nullValue());
         errorCollector.checkThat(status.getLastModified(), instanceOf(java.util.Calendar.class));
         errorCollector.checkThat(status.getLastModifiedBy(), is("admin"));
+
+        service.activate(initVersionable, null, null);
+        context.resourceResolver().commit();
+
+        status = service.getStatus(initVersionable, null);
+        errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
+        errorCollector.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+        errorCollector.checkThat(status.getLastActivatedBy(), is("admin"));
+        errorCollector.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
     }
+
 
     @Test
     public void releaseProgression() throws Exception {
         Status status = service.getStatus(versionable, CURRENT_RELEASE);
         errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
         errorCollector.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+
         service.activate(versionable, null, null);
         context.resourceResolver().commit();
 
