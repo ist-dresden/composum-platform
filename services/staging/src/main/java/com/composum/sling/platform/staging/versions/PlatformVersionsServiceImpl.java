@@ -120,6 +120,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             Validate.isTrue(status.getVersionReference().isValid());
             status.getVersionReference().setProperty(PROP_LAST_ACTIVATED, Calendar.getInstance());
             status.getVersionReference().setProperty(PROP_LAST_ACTIVATED_BY, rawVersionable.getResourceResolver().getUserID());
+            // Validate.isTrue(status.getActivationState() == ActivationState.activated, "Bug: not active after activation: %s", status);
             LOG.info("Activated {} in {} to {}", getPath(rawVersionable), status.release().getNumber(), status.currentVersionableInfo().getVersionUuid());
         } else {
             LOG.info("Already activated in {} : {}", status.release().getNumber(), getPath(rawVersionable));
@@ -305,12 +306,12 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         @Override
         public String toString() {
             return new ToStringBuilder(this)
-                    .append("release", release)
-                    .append("released", released)
-                    .append("current", current)
+                    .append("release", release())
+                    .append("activationState", getActivationState())
+                    .append("releaseVersionableInfo", releaseVersionableInfo())
+                    .append("currentVersionableInfo", currentVersionableInfo())
                     .toString();
         }
-
     }
 
 }

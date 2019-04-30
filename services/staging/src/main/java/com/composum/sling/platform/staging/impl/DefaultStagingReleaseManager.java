@@ -36,6 +36,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.CoreConstants.*;
+import static com.composum.sling.platform.staging.StagingConstants.*;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 
@@ -87,13 +88,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         List<Release> result = new ArrayList<>();
         ResourceHandle root = ResourceHandle.use(requireNonNull(findReleaseRoot(resource)));
         if (root.isValid()) {
-            if (root.getChild(RELPATH_RELEASES_NODE + '/' + CURRENT_RELEASE) == null) {
-                try { // implicitly create current release which should always be there.
-                    ensureRelease(root, CURRENT_RELEASE);
-                } catch (RepositoryException | PersistenceException e) {
-                    LOG.error("Trouble creating current release for " + resource.getPath(), e);
-                }
-            }
+            ensureCurrentRelease(root);
             Resource releasesNode = root.getChild(RELPATH_RELEASES_NODE);
             if (releasesNode != null) {
                 for (Resource releaseNode : releasesNode.getChildren()) {
@@ -106,12 +101,35 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         return result;
     }
 
+    protected ReleaseImpl ensureCurrentRelease(@Nonnull ResourceHandle root) {
+        Resource currentReleaseNode = root.getChild(RELPATH_RELEASES_NODE + '/' + CURRENT_RELEASE);
+        if (currentReleaseNode == null) {
+            try { // implicitly create current release which should always be there.
+                return ensureRelease(root, CURRENT_RELEASE);
+            } catch (RepositoryException | PersistenceException e) {
+                LOG.error("Trouble creating current release for " + root.getPath(), e);
+                return null;
+            }
+        }
+        return new ReleaseImpl(root, currentReleaseNode);
+    }
+
     @Nonnull
     @Override
     public Release findRelease(@Nonnull Resource resource, @Nonnull String releaseNumber) {
-        for (Release release : getReleases(resource))
-            if (release.getNumber().equals(releaseNumber)) return release;
-        throw new ReleaseNotFoundException();
+        ResourceHandle root = ResourceHandle.use(findReleaseRoot(resource));
+        if (!root.isValid())
+            throw new ReleaseNotFoundException();
+        if (releaseNumber.equals(CURRENT_RELEASE)) {
+            ReleaseImpl release = ensureCurrentRelease(root);
+            if (release == null) // weird trouble creating it
+                throw new ReleaseNotFoundException();
+            return release;
+        }
+        ResourceHandle releaseNode = ResourceHandle.use(root.getChild(RELPATH_RELEASES_NODE + '/' + releaseNumber));
+        if (!releaseNode.isValid())
+            throw new ReleaseNotFoundException();
+        return new ReleaseImpl(root, releaseNode);
     }
 
     @Nonnull

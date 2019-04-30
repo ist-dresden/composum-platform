@@ -186,6 +186,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                 throws RepositoryException, IOException {
             String versionUuid = StringUtils.defaultIfBlank(request.getParameter("versionUuid"), null);
             versionsService.activate(versionable, releaseKey, versionUuid);
+            request.getResourceResolver().commit();
             writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
         }
     }
@@ -198,6 +199,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                               @Nonnull final Resource versionable, @Nullable final String releaseKey)
                 throws RepositoryException, IOException {
             versionsService.deactivate(versionable, releaseKey);
+            request.getResourceResolver().commit();
             writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
         }
     }
@@ -210,6 +212,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                               @Nonnull final Resource versionable, @Nullable final String releaseKey)
                 throws RepositoryException, IOException {
             versionsService.purgeVersions(versionable);
+            request.getResourceResolver().commit();
             writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
         }
     }

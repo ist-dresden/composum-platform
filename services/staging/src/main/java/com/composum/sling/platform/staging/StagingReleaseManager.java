@@ -41,7 +41,7 @@ import java.util.Map;
  * for easier referencing versions. </p>
  * // FIXME hps 2019-04-05 introduce open / immutable release state
  */
-public interface StagingReleaseManager extends StagingConstants {
+public interface StagingReleaseManager {
 
     /**
      * Looks up the {@link StagingConstants#TYPE_MIX_RELEASE_ROOT} containing the resource - possibly resource itself.
