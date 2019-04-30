@@ -65,6 +65,19 @@ public interface StagingConstants {
      */
     final String PROP_DEACTIVATED = "cpl:deactivated";
 
+
+    /** Property of {@link #TYPE_VERSIONREFERENCE}: when was the last activation */
+    final String PROP_LAST_ACTIVATED = "lastActivated";
+
+    /** Property of {@link #TYPE_VERSIONREFERENCE}: who did the last activation */
+    final String PROP_LAST_ACTIVATED_BY = "lastActivatedBy";
+
+    /** Property of {@link #TYPE_VERSIONREFERENCE}: when was the last deactivation */
+    final String PROP_LAST_DEACTIVATED = "lastDeactivated";
+
+    /** Property of {@link #TYPE_VERSIONREFERENCE}: who did the last deactivation */
+    final String PROP_LAST_DEACTIVATED_BY = "lastDeactivatedBy";
+
     /**
      * "Releasenumber" or key of the current release : {@value #CURRENT_RELEASE}. This also serves as the "current release" (the release that's in construction and will be used as default preview)
      * below {@link #NODE_RELEASES}.

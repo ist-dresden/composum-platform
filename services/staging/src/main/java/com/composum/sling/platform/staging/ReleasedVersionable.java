@@ -11,6 +11,7 @@ import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.version.Version;
+import java.util.Calendar;
 
 /** Describes the state of a versionable in a release. Can also be used as parameter object to update the release. */
 public class ReleasedVersionable {
@@ -137,6 +138,13 @@ public class ReleasedVersionable {
         rh.setProperty(StagingConstants.PROP_VERSIONABLEUUID, getVersionableUuid(), PropertyType.WEAKREFERENCE);
         rh.setProperty(StagingConstants.PROP_VERSION, getVersionUuid(), PropertyType.REFERENCE);
         rh.setProperty(StagingConstants.PROP_VERSIONHISTORY, getVersionHistory(), PropertyType.REFERENCE);
+        if (getActive()) {
+            rh.setProperty(StagingConstants.PROP_LAST_ACTIVATED, Calendar.getInstance());
+            rh.setProperty(StagingConstants.PROP_LAST_ACTIVATED_BY, versionReference.getResourceResolver().getUserID());
+        } else {
+            rh.setProperty(StagingConstants.PROP_LAST_DEACTIVATED, Calendar.getInstance());
+            rh.setProperty(StagingConstants.PROP_LAST_DEACTIVATED_BY, versionReference.getResourceResolver().getUserID());
+        }
     }
 
     @Override

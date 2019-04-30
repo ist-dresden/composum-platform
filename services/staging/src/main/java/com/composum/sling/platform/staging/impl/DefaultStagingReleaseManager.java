@@ -227,11 +227,17 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         Resource releaseWorkspaceCopy = release.getWorkspaceCopyNode();
         String newPath = releaseWorkspaceCopy.getPath() + '/' + releasedVersionable.getRelativePath();
 
-        String query = "/jcr:root" + releaseWorkspaceCopy.getPath() + "//element(*," + TYPE_VERSIONREFERENCE + ")"
-                + "[@" + PROP_VERSIONABLEUUID + "='" + releasedVersionable.getVersionableUuid() + "']";
-        Iterator<Resource> versionReferences = release.getReleaseNode().getResourceResolver()
-                .findResources(query, Query.XPATH);
-        Resource versionReference = versionReferences.hasNext() ? versionReferences.next() : null;
+        Resource versionReference = releaseWorkspaceCopy.getResourceResolver().getResource(newPath);
+        if (versionReference == null ||
+                !StringUtils.equals(versionReference.getValueMap().get(JCR_VERSIONHISTORY, String.class),
+                        releasedVersionable.getVersionHistory())) {
+            // check whether it was moved. Caution: queries work only for comitted content
+            String query = "/jcr:root" + releaseWorkspaceCopy.getPath() + "//element(*," + TYPE_VERSIONREFERENCE + ")"
+                    + "[@" + PROP_VERSIONABLEUUID + "='" + releasedVersionable.getVersionableUuid() + "']";
+            Iterator<Resource> versionReferences = release.getReleaseNode().getResourceResolver()
+                    .findResources(query, Query.XPATH);
+            versionReference = versionReferences.hasNext() ? versionReferences.next() : null;
+        }
 
         if (versionReference == null) {
             versionReference = ResourceUtil.getOrCreateResource(release.getReleaseNode().getResourceResolver(), newPath,
@@ -241,10 +247,14 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             ResourceResolver resolver = versionReference.getResourceResolver();
 
             ResourceUtil.getOrCreateResource(resolver, ResourceUtil.getParent(newPath), TYPE_UNSTRUCTURED);
-            resolver.move(versionReference.getPath(), ResourceUtil.getParent(newPath));
-            versionReference = resolver.getResource(newPath);
+            versionReference = resolver.move(versionReference.getPath(), ResourceUtil.getParent(newPath));
 
             cleanupOrphans(releaseWorkspaceCopy.getPath(), oldParent);
+        } else {
+            String existingVersionHistory = versionReference.getValueMap().get(PROP_VERSIONHISTORY, String.class);
+            if (!StringUtils.equals(existingVersionHistory, releasedVersionable.getVersionHistory())) {
+                throw new IllegalStateException("There is already a different versionable at the requested path " + releasedVersionable.getRelativePath());
+            }
         }
 
         updateReleaseLabel(release, releasedVersionable);
@@ -314,6 +324,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     /**
      * Goes through all parents of the version reference, sets their attributes from the working copy
      * and fixes the node ordering if necessary.
+     *
      * @return a map with paths where we changed the order of children in the release.
      */
     @Nonnull

@@ -108,12 +108,12 @@ public interface StagingReleaseManager {
     Release createRelease(@Nonnull Release copyFromRelease, @Nonnull ReleaseNumberCreator releaseType)
             throws ReleaseExistsException, PersistenceException, RepositoryException;
 
-    /** Gives information about a releases contents. */
+    /** Gives information about a releases contents. Caution: this finds only committed content. */
     @Nonnull
     List<ReleasedVersionable> listReleaseContents(@Nonnull Release release);
 
     /**
-     * Looks up whether a versionable is present in the release.
+     * Looks up whether a versionable is present in the release. Caution: this finds only committed content.
      *
      * @param versionHistoryUuid the version history uuid (not the version uuid!)
      * @return the information about the item in the release, if it is present

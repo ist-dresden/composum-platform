@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.CoreConstants.*;
 import static com.composum.sling.core.util.SlingResourceUtil.getPath;
+import static com.composum.sling.platform.staging.StagingConstants.*;
 
 /**
  * This is the default implementation of the {@link PlatformVersionsService} - see there.
@@ -46,11 +47,6 @@ import static com.composum.sling.core.util.SlingResourceUtil.getPath;
 public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     private static final Logger LOG = LoggerFactory.getLogger(PlatformVersionsServiceImpl.class);
-
-    public static final String PROP_LAST_ACTIVATED = "lastActivated";
-    public static final String PROP_LAST_ACTIVATED_BY = "lastActivatedBy";
-    public static final String PROP_LAST_DEACTIVATED = "lastDeactivated";
-    public static final String PROP_LAST_DEACTIVATED_BY = "lastDeactivatedBy";
 
     @Reference
     protected StagingReleaseManager releaseManager;
@@ -118,8 +114,6 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             result = releaseManager.updateRelease(status.release(), releasedVersionable);
             status = getStatus(versionable, releaseKey);
             Validate.isTrue(status.getVersionReference().isValid());
-            status.getVersionReference().setProperty(PROP_LAST_ACTIVATED, Calendar.getInstance());
-            status.getVersionReference().setProperty(PROP_LAST_ACTIVATED_BY, rawVersionable.getResourceResolver().getUserID());
             // Validate.isTrue(status.getActivationState() == ActivationState.activated, "Bug: not active after activation: %s", status);
             LOG.info("Activated {} in {} to {}", getPath(rawVersionable), status.release().getNumber(), status.currentVersionableInfo().getVersionUuid());
         } else {
@@ -156,8 +150,6 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 ReleasedVersionable releasedVersionable = status.releaseVersionableInfo();
                 releasedVersionable.setActive(false);
                 releaseManager.updateRelease(status.release(), releasedVersionable);
-                status.getVersionReference().setProperty(PROP_LAST_DEACTIVATED, Calendar.getInstance());
-                status.getVersionReference().setProperty(PROP_LAST_DEACTIVATED_BY, versionable.getResourceResolver().getUserID());
             case initial:
             case deactivated:
                 LOG.info("Not deactivating in " + status.release().getNumber() + " since not active: " + versionable);
