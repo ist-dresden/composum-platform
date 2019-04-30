@@ -220,6 +220,22 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         return versionReference != null ? ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference) : null;
     }
 
+    @Nullable
+    @Override
+    public ReleasedVersionable findReleasedVersionable(@Nonnull Release rawRelease, @Nonnull Resource versionable) {
+        ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
+        String expectedPath = release.mapToContentCopy(versionable.getPath());
+        ReleasedVersionable currentVersionable = ReleasedVersionable.forBaseVersion(versionable);
+        Resource versionReference = versionable.getResourceResolver().getResource(expectedPath);
+        if (versionReference != null) { // if it's at the expected path
+            ReleasedVersionable releasedVersionable = ReleasedVersionable.fromVersionReference(release.getWorkspaceCopyNode(), versionReference);
+            if (StringUtils.equals(releasedVersionable.getVersionHistory(), currentVersionable.getVersionHistory()))
+                return releasedVersionable;
+        }
+        // otherwise we have to search (was moved or isn't present at all).
+        return findReleasedVersionableByUuid(release, currentVersionable.getVersionHistory());
+    }
+
     @Override
     @Nonnull
     public Map<String, Result> updateRelease(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException {

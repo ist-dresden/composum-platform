@@ -122,6 +122,15 @@ public interface StagingReleaseManager {
     ReleasedVersionable findReleasedVersionableByUuid(@Nonnull Release release, @Nonnull String versionHistoryUuid);
 
     /**
+     * Looks up whether a versionable is present in the release.
+     *
+     * @param versionable the versionable, from which we take the versionHistoryUuid to look it up in the release
+     * @return the information about the item in the release, if it is present
+     */
+    @Nullable
+    ReleasedVersionable findReleasedVersionable(@Nonnull Release release, @Nonnull Resource versionable);
+
+    /**
      * Updates the release by adding or updating the versionable denoted by {releasedVersionable} in the release.
      * If {@link ReleasedVersionable#versionUuid} is null, it is removed from the release.
      * We also set a label {@value StagingConstants#RELEASE_LABEL_PREFIX}{releasenumber} on each version contained in the release,

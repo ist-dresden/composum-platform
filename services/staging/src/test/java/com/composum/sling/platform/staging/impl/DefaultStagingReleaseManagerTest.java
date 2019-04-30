@@ -152,6 +152,10 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ec.checkThat(foundReleasedVersionable.getRelativePath(), is("a/jcr:content"));
         ec.checkThat(foundReleasedVersionable.getVersionUuid(), is(version.getUUID()));
 
+        foundReleasedVersionable = service.findReleasedVersionable(currentRelease, versionable);
+        ec.checkThat(foundReleasedVersionable.getRelativePath(), is("a/jcr:content"));
+        ec.checkThat(foundReleasedVersionable.getVersionUuid(), is(version.getUUID()));
+
         ec.checkThat(version.getContainingHistory().getVersionLabels(version),
                 arrayContaining(StagingConstants.RELEASE_LABEL_PREFIX + currentRelease.getNumber().replace("cpl:", "")));
 

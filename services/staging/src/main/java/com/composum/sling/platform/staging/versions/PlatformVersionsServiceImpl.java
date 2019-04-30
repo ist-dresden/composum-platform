@@ -91,9 +91,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         ResourceHandle versionable = normalizeVersionable(rawVersionable);
         StagingReleaseManager.Release release = getRelease(versionable, releaseKey);
         ReleasedVersionable current = ReleasedVersionable.forBaseVersion(versionable);
-        ReleasedVersionable released = releaseManager.listReleaseContents(release).stream()
-                .filter(rv -> rv.getVersionHistory().equals(current.getVersionHistory()))
-                .findAny().orElse(null);
+        ReleasedVersionable released = releaseManager.findReleasedVersionable(release, versionable);
         return new StatusImpl(release, current, released);
     }
 
@@ -114,7 +112,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             result = releaseManager.updateRelease(status.release(), releasedVersionable);
             status = getStatus(versionable, releaseKey);
             Validate.isTrue(status.getVersionReference().isValid());
-            // Validate.isTrue(status.getActivationState() == ActivationState.activated, "Bug: not active after activation: %s", status);
+            Validate.isTrue(status.getActivationState() == ActivationState.activated, "Bug: not active after activation: %s", status);
             LOG.info("Activated {} in {} to {}", getPath(rawVersionable), status.release().getNumber(), status.currentVersionableInfo().getVersionUuid());
         } else {
             LOG.info("Already activated in {} : {}", status.release().getNumber(), getPath(rawVersionable));
