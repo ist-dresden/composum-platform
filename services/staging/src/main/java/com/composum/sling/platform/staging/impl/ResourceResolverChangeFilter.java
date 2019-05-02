@@ -46,9 +46,11 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
 
     private static Logger LOGGER = LoggerFactory.getLogger(ResourceResolverChangeFilter.class);
 
-    public static final String PARAMETER_NAME = "cpm.release";
-    public static final String COOKIE_NAME = "composum-platform-release-label";
-    public static final String ATTRIBUTE_NAME = COOKIE_NAME;
+    public static final String PARAM_CPM_RELEASE = "cpm.release";
+    public static final String ATTR_CPM_RELEASE = "composum-platform-release-label";
+
+    public static final String PARAM_CPM_VERSION = "cpm.version";
+    public static final String ATTR_CPM_VERSION = "composum-platform-version-number";
 
     public static final String FILTER_ENABLED = "staging.resolver.enabled";
     @Property(
@@ -128,7 +130,7 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
                 if (releaseMappingAllowed(path, uri)) {
 
                     final String releasedLabel =
-                            (String) request.getAttribute(ResourceResolverChangeFilter.ATTRIBUTE_NAME);
+                            (String) request.getAttribute(ResourceResolverChangeFilter.ATTR_CPM_RELEASE);
 
                     if (StringUtils.isNotBlank(releasedLabel)) {
                         if (LOGGER.isDebugEnabled()) {
@@ -168,6 +170,17 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
                         } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
                             LOGGER.error("can not change ResourceResolver: ", e);
                             throw new ServletException("can't switch to release '" + releaseNumber + "'");
+                        }
+
+                    } else {
+                        final String versionNumber =
+                                (String) request.getAttribute(ResourceResolverChangeFilter.ATTR_CPM_VERSION);
+
+                        if (StringUtils.isNotBlank(versionNumber)) {
+                            if (LOGGER.isDebugEnabled()) {
+                                LOGGER.debug("using version '" + versionNumber + "'...");
+                            }
+
                         }
                     }
                 }
