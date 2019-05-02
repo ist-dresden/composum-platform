@@ -9,14 +9,13 @@ import com.composum.sling.platform.staging.*;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Result;
 import com.composum.sling.platform.staging.query.Query;
 import com.composum.sling.platform.staging.query.QueryBuilder;
+import com.composum.sling.platform.staging.query.QueryConditionDsl;
+import com.composum.sling.platform.staging.query.QueryValueMap;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
-import org.apache.sling.api.resource.PersistenceException;
-import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceResolver;
-import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.api.resource.*;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.*;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
@@ -27,10 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.Node;
-import javax.jcr.PropertyType;
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
+import javax.jcr.*;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
@@ -40,6 +36,8 @@ import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.CoreConstants.*;
 import static com.composum.sling.platform.staging.StagingConstants.*;
+import static com.composum.sling.platform.staging.query.Query.JoinCondition.Descendant;
+import static com.composum.sling.platform.staging.query.Query.JoinType.Inner;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 
@@ -169,6 +167,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Nonnull
     protected Release createRelease(@Nonnull Resource resource, @Nullable Release rawCopyFromRelease, @Nonnull ReleaseNumberCreator releaseType) throws ReleaseExistsException, ReleaseNotFoundException, PersistenceException, RepositoryException {
         Resource root = requireNonNull(findReleaseRoot(resource));
+        cleanupLabels(root);
         ReleaseImpl copyFromRelease = ReleaseImpl.unwrap(rawCopyFromRelease);
         Optional<String> previousReleaseNumber;
 
@@ -263,6 +262,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         Resource releaseWorkspaceCopy = release.getWorkspaceCopyNode();
         String newPath = releaseWorkspaceCopy.getPath() + '/' + releasedVersionable.getRelativePath();
+        validateForAdding(releasedVersionable, release);
 
         Resource versionReference = releaseWorkspaceCopy.getResourceResolver().getResource(newPath);
         if (versionReference == null ||
@@ -303,6 +303,18 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         release.updateLastModified();
 
         return updateParents(release, releasedVersionable);
+    }
+
+    /** We check that the mandatory fields are set and that it isn't the root version. */
+    protected void validateForAdding(ReleasedVersionable releasedVersionable, ReleaseImpl release) throws RepositoryException {
+        Validate.notNull(releasedVersionable.getVersionUuid(), "No version uuid set for %s/%s", release, releasedVersionable.getRelativePath());
+        Validate.notNull(releasedVersionable.getVersionHistory(), "No versionhistory set for %s/%s", release, releasedVersionable.getRelativePath());
+        Validate.notBlank(releasedVersionable.getRelativePath(), "No relative path set for %s %s", release, releasedVersionable);
+        Resource version = ResourceUtil.getByUuid(release.getReleaseRoot().getResourceResolver(), releasedVersionable.getVersionUuid());
+        Validate.isTrue(ResourceUtil.isPrimaryType(version, NT_VERSION), "Not a version: ", SlingResourceUtil.getPath(version));
+        Validate.isTrue(!"jcr:rootVersion".equals(version.getName()), "Versionable was never checked in: %s/%s", release, releasedVersionable.getRelativePath());
+        Validate.isTrue(StringUtils.equals(releasedVersionable.getVersionHistory(), version.getChild("..").getValueMap().get(JCR_UUID, String.class)),
+                "Version history and version do not match for %s %s", release, releasedVersionable);
     }
 
     /** Sets the label {@link StagingConstants#RELEASE_LABEL_PREFIX}-{releasenumber} on the version the releasedVersionable refers to. */
@@ -494,11 +506,34 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         return ReleasedVersionable.forBaseVersion(release.getReleaseRoot().getResourceResolver().getResource(newPath));
     }
 
+    /**
+     * Remove all labels starting with {@value StagingConstants#RELEASE_LABEL_PREFIX} from version histories pointing
+     * into our release root that do not name a release that actually exists.
+     */
     @Override
     public void cleanupLabels(@Nonnull Resource resource) throws RepositoryException {
         Resource root = requireNonNull(findReleaseRoot(resource));
+
+        Set<String> expectedLabels = getReleases(root).stream().map(Release::getReleaseLabel).collect(Collectors.toSet());
+
         Query query = root.getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
-        query.path("/jcr:system/jcr:versionstorage").type(NT_VERSION);
+        query.path("/jcr:system/jcr:versionStorage").type("nt:versionHistory").condition(
+                query.conditionBuilder().property("default").like().val(root.getPath() + "/%")
+        );
+        QueryConditionDsl.QueryCondition versionLabelJoin = query.joinConditionBuilder().isNotNull(JCR_PRIMARYTYPE);
+        query.join(Inner, Descendant, "nt:versionLabels", versionLabelJoin);
+        for (QueryValueMap result : query.selectAndExecute()) {
+            Resource labelResource = result.getJoinResource(versionLabelJoin.getSelector());
+            ValueMap valueMap = labelResource.getValueMap();
+            for (String label : valueMap.keySet()) {
+                if (label.startsWith(RELEASE_LABEL_PREFIX) && !expectedLabels.contains(label)) {
+                    Property versionProperty = valueMap.get(label, Property.class);
+                    Node version = versionProperty.getNode();
+                    VersionHistory versionHistory = (VersionHistory) version.getParent();
+                    versionHistory.removeVersionLabel(label);
+                }
+            }
+        }
     }
 
     /** Ensures the technical resources for a release are there. If the release is created, the root is completely empty. */

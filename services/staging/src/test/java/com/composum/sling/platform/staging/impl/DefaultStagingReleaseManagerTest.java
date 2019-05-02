@@ -348,4 +348,27 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ec.checkFailsWith(() -> service.restore(currentRelease, deletedVersionable), instanceOf(IllegalArgumentException.class));
     }
 
+    @Test
+    public void deleteRelease() throws Exception {
+        Resource versionable = releaseRootBuilder.resource("a/jcr:content", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+                PROP_MIXINTYPES, array(TYPE_VERSIONABLE, TYPE_TITLE, TYPE_LAST_MODIFIED), "foo", "bar", PROP_TITLE, "title")
+                .commit().getCurrentParent();
+        versionManager.checkpoint(versionable.getPath());
+
+        Release r1 = service.createRelease(releaseRoot, ReleaseNumberCreator.MAJOR);
+        service.updateRelease(r1, ReleasedVersionable.forBaseVersion(versionable));
+
+        ec.checkThat(versionManager.getVersionHistory(versionable.getPath()).getVersionLabels(), arrayContaining("composum-release-r1"));
+
+        service.setMark("public", r1);
+        ec.checkFailsWith(() -> service.deleteRelease(r1), instanceOf(RepositoryException.class));
+        service.deleteMark("public", r1);
+        Release r1n = service.findRelease(releaseRoot, r1.getNumber());
+        service.deleteRelease(r1n);
+
+        ec.checkFailsWith(() -> service.findRelease(releaseRoot, r1.getNumber()), instanceOf(StagingReleaseManager.ReleaseNotFoundException.class));
+
+        ec.checkThat(versionManager.getVersionHistory(versionable.getPath()).getVersionLabels(), arrayWithSize(0)); // label is gone
+    }
+
 }

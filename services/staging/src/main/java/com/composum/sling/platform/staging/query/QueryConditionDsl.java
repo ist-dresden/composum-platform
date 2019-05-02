@@ -374,7 +374,13 @@ public class QueryConditionDsl {
             return conditionStaticValue;
         }
 
-        /** LIKE */
+        /**
+         * LIKE : the operant matches the pattern specified by the pattern specified in the value, where in the pattern:
+         * the character “%” matches zero or more characters, and
+         * the character “_” (underscore) matches exactly one character, and
+         * the string “\x” matches the character “x”, and
+         * all other characters match themselves.
+         */
         public ConditionStaticValue like() {
             closeParentheses();
             append("LIKE ");
