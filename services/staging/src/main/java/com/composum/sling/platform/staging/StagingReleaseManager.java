@@ -46,6 +46,7 @@ public interface StagingReleaseManager {
     /**
      * Looks up the {@link StagingConstants#TYPE_MIX_RELEASE_ROOT} containing the resource - possibly resource itself.
      *
+     * @param resource a release root or its subnodes
      * @return the release root or null if there is none.
      */
     @Nullable
@@ -65,7 +66,7 @@ public interface StagingReleaseManager {
      * Looks up the next higher {@link StagingConstants#TYPE_MIX_RELEASE_ROOT} of the resource and returns
      * the release with the given <code>releaseNumber</code> ( {@link Release#getNumber()} ), if there is one.
      *
-     * @param resource     a release root or its subnodes
+     * @param resource      a release root or its subnodes
      * @param releaseNumber a label for a release, possibly {@value StagingConstants#CURRENT_RELEASE} for the current release.
      * @return the release
      * @throws ReleaseNotFoundException if the release wasn't found
@@ -90,7 +91,7 @@ public interface StagingReleaseManager {
      * If there was no release yet, it's copied from the {@link StagingConstants#CURRENT_RELEASE} release
      * (which can possibly be empty).
      *
-     * @param resource             release root or one of its subnodes
+     * @param resource    release root or one of its subnodes
      * @param releaseType how to create the releae number - major, minor or bugfix release
      */
     Release createRelease(@Nonnull Resource resource, @Nonnull ReleaseNumberCreator releaseType)
@@ -111,6 +112,14 @@ public interface StagingReleaseManager {
     /** Gives information about a releases contents. Caution: this finds only committed content. */
     @Nonnull
     List<ReleasedVersionable> listReleaseContents(@Nonnull Release release);
+
+    /**
+     * Lists the current content (using {@link ReleasedVersionable#forBaseVersion(Resource)}). Caution: this finds only committed content.
+     *
+     * @param resource a release root or its subnodes
+     */
+    @Nonnull
+    List<ReleasedVersionable> listCurrentContents(@Nonnull Resource resource);
 
     /**
      * Looks up whether a versionable is present in the release. Caution: this finds only committed content.
@@ -136,10 +145,10 @@ public interface StagingReleaseManager {
      * We also set a label {@value StagingConstants#RELEASE_LABEL_PREFIX}{releasenumber} on each version contained in the release,
      * for easier referencing versions. Caution: the current release is called {@value StagingConstants#RELEASE_LABEL_PREFIX}current .
      *
-     * @param release          the release to update
+     * @param release             the release to update
      * @param releasedVersionable information of the versionable to update
-     * @throws ReleaseNotFoundException if the copied release doesn't exist
      * @return a map with paths where we changed the order of children in the release.
+     * @throws ReleaseNotFoundException if the copied release doesn't exist
      */
     @Nonnull
     Map<String, SiblingOrderUpdateStrategy.Result> updateRelease(@Nonnull Release release, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException;
@@ -170,8 +179,8 @@ public interface StagingReleaseManager {
     /**
      * Creates a {@link StagingResourceResolver} that presents the given release.
      *
-     * @param release the release for which the resolver is created
-     * @param releaseMapper controls what is mapped into the release. If null, we just use one that always returns true
+     * @param release              the release for which the resolver is created
+     * @param releaseMapper        controls what is mapped into the release. If null, we just use one that always returns true
      * @param closeResolverOnClose if true, the resolver for the resources contained in {release} is closed when the returned resolver is closed
      * @return the resolver
      * @see #getReleases(Resource)
@@ -216,6 +225,17 @@ public interface StagingReleaseManager {
      */
     @Nullable
     Release findReleaseByReleaseResource(@Nullable Resource releaseResource);
+
+    /**
+     * Restores a deleted versionable that is contained in a release.
+     *
+     * @param release             a release where the versionable still exists
+     * @param releasedVersionable the version information on what to restore. If you want a different path or version,
+     *                            you can use {@link ReleasedVersionable#setRelativePath(String)}.
+     * @return information about the restored versionable ({@link ReleasedVersionable#forBaseVersion(Resource)}).
+     */
+    @Nonnull
+    ReleasedVersionable restore(@Nonnull Release release, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException;
 
     /**
      * Data structure with metadata information about a release. This must only be created within the {@link StagingReleaseManager}.
@@ -269,6 +289,10 @@ public interface StagingReleaseManager {
          * @return true if it's within the tree spanned by the release root.
          */
         boolean appliesToPath(@Nullable String path);
+
+        /** Maps the relative path to the absolute path ( {@link #getReleaseRoot()} + '/' + relativePath ) */
+        @Nonnull
+        String absolutePath(@Nonnull String relativePath);
     }
 
     /**

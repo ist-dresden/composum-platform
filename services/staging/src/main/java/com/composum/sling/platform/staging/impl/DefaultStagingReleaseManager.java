@@ -10,6 +10,7 @@ import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Resul
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Validate;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -24,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -202,6 +204,24 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 .findResources(query, Query.XPATH);
         while (versionReferences.hasNext())
             result.add(ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReferences.next()));
+        return result;
+    }
+
+    @Nonnull
+    @Override
+    public List<ReleasedVersionable> listCurrentContents(@Nonnull Resource resource) {
+        Resource root = requireNonNull(findReleaseRoot(resource));
+        ensureCurrentRelease(ResourceHandle.use(root));
+        String ignoredReleaseConfigurationPath = root.getChild(CONTENT_NODE).getPath();
+        String query = "/jcr:root" + root.getPath() + "//element(*," + TYPE_VERSIONABLE + ")";
+
+        List<ReleasedVersionable> result = new ArrayList<>();
+        Iterator<Resource> versionReferences = root.getResourceResolver().findResources(query, Query.XPATH);
+        while (versionReferences.hasNext()) {
+            Resource versionable = versionReferences.next();
+            if (!SlingResourceUtil.isSameOrDescendant(ignoredReleaseConfigurationPath, versionable.getPath()))
+                result.add(ReleasedVersionable.forBaseVersion(versionable));
+        }
         return result;
     }
 
@@ -414,7 +434,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Override
     public void deleteMark(@Nonnull String mark, @Nonnull Release rawRelease) throws RepositoryException {
-        ReleaseImpl release = ReleaseImpl.unwrap(rawRelease);
+        ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         ResourceHandle releasesnode = ResourceHandle.use(release.getReleaseNode().getParent()); // the cpl:releases node
         if (StringUtils.equals(mark, releasesnode.getProperty(mark, String.class)))
             throw new IllegalArgumentException("Release does not carry mark " + mark + " : " + rawRelease);
@@ -445,6 +465,21 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 return release;
         }
         return null;
+    }
+
+    @Nonnull
+    @Override
+    public ReleasedVersionable restore(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException {
+        ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
+        listCurrentContents(release.getReleaseRoot()).stream()
+                .forEach((existingVersionable) ->
+                        Validate.isTrue(!StringUtils.equals(existingVersionable.getVersionHistory(), releasedVersionable.getVersionHistory()),
+                                "Cannot restore versionable %s from relese %s that exists at %s", releasedVersionable.getVersionHistory(), release, existingVersionable.getRelativePath()));
+        String newPath = release.absolutePath(releasedVersionable.getRelativePath());
+        Session session = release.getReleaseRoot().getResourceResolver().adaptTo(Session.class);
+        Version version = (Version) session.getNodeByIdentifier(releasedVersionable.getVersionUuid());
+        session.getWorkspace().getVersionManager().restore(newPath, version, false);
+        return ReleasedVersionable.forBaseVersion(release.getReleaseRoot().getResourceResolver().getResource(newPath));
     }
 
     /** Ensures the technical resources for a release are there. If the release is created, the root is completely empty. */
@@ -570,6 +605,15 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         @Override
         public boolean appliesToPath(@Nullable String path) {
             return SlingResourceUtil.isSameOrDescendant(releaseRoot.getPath(), path);
+        }
+
+        @Nonnull
+        @Override
+        public String absolutePath(@Nonnull String relativePath) {
+            Validate.notNull(relativePath);
+            Validate.isTrue(!StringUtils.startsWith(relativePath, "/"), "Must be a relative path: %s", relativePath);
+            if (StringUtils.isBlank(relativePath)) return getReleaseRoot().getPath();
+            return getReleaseRoot().getPath() + '/' + relativePath;
         }
 
         @Override

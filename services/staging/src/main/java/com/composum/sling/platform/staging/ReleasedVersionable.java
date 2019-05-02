@@ -12,6 +12,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.version.Version;
 import java.util.Calendar;
+import java.util.Objects;
 
 /** Describes the state of a versionable in a release. Can also be used as parameter object to update the release. */
 public class ReleasedVersionable {
@@ -89,7 +90,7 @@ public class ReleasedVersionable {
 
     /** Creates a {@link ReleasedVersionable} that corresponds to the base version of the given versionable. */
     public static ReleasedVersionable forBaseVersion(@Nonnull Resource resource) {
-        if (!ResourceUtil.isResourceType(resource, ResourceUtil.TYPE_VERSIONABLE))
+        if (!ResourceUtil.isResourceType(Objects.requireNonNull(resource), ResourceUtil.TYPE_VERSIONABLE))
             throw new IllegalArgumentException("resource is not versionable: " + SlingResourceUtil.getPath(resource));
         ReleasedVersionable result = new ReleasedVersionable();
         Resource releaseRoot = resource;
@@ -128,7 +129,12 @@ public class ReleasedVersionable {
         return result;
     }
 
-    /** Releasemanager internal: writes values into a versionreference. */
+    /**
+     * Releasemanager internal: writes values into a versionreference.
+     *
+     * @deprecated only for ReleaseManager internal use, public for technical reasons.
+     */
+    @Deprecated
     public void writeToVersionReference(@Nonnull Resource versionReference) throws RepositoryException {
         ResourceHandle rh = ResourceHandle.use(versionReference);
         String oldVersionHistory = rh.getProperty(StagingConstants.PROP_VERSIONHISTORY);

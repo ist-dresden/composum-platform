@@ -290,7 +290,7 @@ public class HtlPageContext extends PageContext {
 
     // These methods might be needed for the Composum tags.
     @Override
-    public ExpressionEvaluator getExpressionEvaluator() { // FIXME hps probably used in composum tags
+    public ExpressionEvaluator getExpressionEvaluator() { // TODO hps probably used in composum tags
         throw new UnsupportedOperationException("Not implemented yet: SimulatedPageContext.getExpressionEvaluator");
     }
 

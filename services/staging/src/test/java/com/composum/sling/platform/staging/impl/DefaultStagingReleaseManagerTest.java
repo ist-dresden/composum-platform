@@ -203,25 +203,9 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         stagedResolver = service.getResolverForRelease(currentRelease, null, false);
         ec.checkThat(ResourceHandle.use(stagedResolver.getResource(newPath)).isValid(), is(false));
         releasedVersionable.setActive(true);
+        context.resourceResolver().commit();
         ec.checkThat(service.updateRelease(currentRelease, releasedVersionable).toString(), is("{}"));
         ec.checkThat(ResourceHandle.use(stagedResolver.getResource(newPath)).isValid(), is(true));
-
-        // delete the document and remove it from the current release, too
-
-        // releasedVersionable.setVersionUuid(null);
-        // ec.checkThat(service.updateRelease(currentRelease, releasedVersionable), is("{}"));
-        // ec.checkThat(ResourceHandle.use(stagedResolver.getResource(newPath)).isValid(), is(false));
-
-        // context.resourceResolver().delete(newVersionable);
-        // context.resourceResolver().commit();
-
-        // versionManager.restore(newPath, version2, false);
-        // ec.checkThat(ResourceHandle.use(stagedResolver.getResource(newPath)).isValid(), is(true));
-
-        // crashes: ec.checkThat(versionManager.getVersionHistory(newPath), notNullValue());
-        // FIXME hps 2019-04-23 how to do that ? https://stackoverflow.com/questions/55807593
-        // we want to delete the document first, and then update it in the release, but can't get the
-        // version from VersionManager
     }
 
     @Test
@@ -307,6 +291,51 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ec.checkThat(updateResult.toString(), equalTo("{/content/site=deterministicallyReordered}"));
 
         ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document2", "document1"));
+    }
+
+    @Test
+    public void listCurrentContent() {
+        List<ReleasedVersionable> content = service.listCurrentContents(this.releaseRoot);
+        ec.checkThat(content.size(), is(0));
+
+        Resource versionable = releaseRootBuilder.resource("a/jcr:content", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+                PROP_MIXINTYPES, array(TYPE_VERSIONABLE, TYPE_TITLE, TYPE_LAST_MODIFIED), "foo", "bar", PROP_TITLE, "title")
+                .commit().getCurrentParent();
+
+        content = service.listCurrentContents(this.releaseRoot);
+        ec.checkThat(content.size(), is(1));
+        ec.checkThat(content.get(0).getRelativePath(), is("a/jcr:content"));
+    }
+
+    @Test
+    public void restoreDeletedDocument() throws Exception {
+        Resource versionable = releaseRootBuilder.resource("a/jcr:content", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+                PROP_MIXINTYPES, array(TYPE_VERSIONABLE, TYPE_TITLE, TYPE_LAST_MODIFIED), "foo", "bar", PROP_TITLE, "title")
+                .commit().getCurrentParent();
+        String versionablePath = versionable.getPath();
+        Version version = versionManager.checkpoint(versionable.getPath());
+
+        service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(versionable));
+        context.resourceResolver().commit();
+
+        ec.checkThat(service.listReleaseContents(currentRelease), hasSize(1));
+        ec.checkFailsWith(() -> service.restore(currentRelease, service.listReleaseContents(currentRelease).get(0)), instanceOf(IllegalArgumentException.class));
+
+        // delete the document
+
+        context.resourceResolver().delete(versionable);
+        context.resourceResolver().commit();
+        ec.checkThat(context.resourceResolver().getResource(versionablePath), nullValue());
+
+        List<ReleasedVersionable> releasedVersionables = service.listReleaseContents(currentRelease);
+        ec.checkThat(releasedVersionables, hasSize(1));
+        ReleasedVersionable deletedVersionable = releasedVersionables.get(0);
+
+        ReleasedVersionable result = service.restore(currentRelease, deletedVersionable);
+        ec.checkThat(result.getVersionUuid(), is(deletedVersionable.getVersionUuid()));
+        ec.checkThat(context.resourceResolver().getResource(versionablePath), notNullValue());
+
+        ec.checkFailsWith(() -> service.restore(currentRelease, deletedVersionable), instanceOf(IllegalArgumentException.class));
     }
 
 }
