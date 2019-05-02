@@ -171,7 +171,7 @@ public class QueryTest extends AbstractStagingTest {
     }
 
     @Test
-    // @Ignore("Only for development, as needed")
+    @Ignore("Only for development, as needed")
     public void printContent() throws Exception {
         JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource(folder));
     }

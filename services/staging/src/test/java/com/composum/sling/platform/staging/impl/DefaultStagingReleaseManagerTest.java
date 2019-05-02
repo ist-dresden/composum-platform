@@ -58,7 +58,12 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     public final SlingContext context = new SlingContext(ResourceResolverType.JCR_OAK);
 
     @Rule
-    public final ErrorCollectorAlwaysPrintingFailures ec = new ErrorCollectorAlwaysPrintingFailures();
+    public final ErrorCollectorAlwaysPrintingFailures ec = new ErrorCollectorAlwaysPrintingFailures()
+            .onFailure(() -> {
+                Thread.sleep(500); // wait for logging messages to be written
+                JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/content"));
+                JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/jcr:system/jcr:versionStorage"));
+            });
 
     private VersionManager versionManager;
     private ResourceBuilder releaseRootBuilder;
@@ -91,12 +96,6 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
         currentRelease = service.findRelease(releaseRoot, StagingConstants.CURRENT_RELEASE);
     }
-
-    @After
-    public void printJcr() {
-        if (0 == 0) JcrTestUtils.printResourceRecursivelyAsJson(releaseRoot);
-    }
-
 
     @Test
     public void createCurrentRelease() {

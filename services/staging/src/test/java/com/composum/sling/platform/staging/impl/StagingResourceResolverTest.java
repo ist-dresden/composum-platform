@@ -61,7 +61,12 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     private ResourceBuilder builderAtFolder;
 
     @Rule
-    public final ErrorCollectorAlwaysPrintingFailures errorCollector = new ErrorCollectorAlwaysPrintingFailures();
+    public final ErrorCollectorAlwaysPrintingFailures errorCollector = new ErrorCollectorAlwaysPrintingFailures()
+            .onFailure(() -> {
+                Thread.sleep(500); // wait for logging messages to be written
+                JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/folder"));
+                JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/jcr:system/jcr:versionStorage"));
+            });
 
     @Before
     public void setUpContent() throws Exception {
@@ -94,7 +99,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         Session session = context.resourceResolver().adaptTo(Session.class);
         AccessControlUtils.denyAllToEveryone(session, document2);
         session.save();
-        JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource(document2));
+        // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource(document2));
         ResourceResolver anonRes = context.getService(ResourceResolverFactory.class).getResourceResolver(null);
         assertNotNull(anonRes.getResource(document1));
         assertNull(anonRes.getResource(node2));
@@ -365,8 +370,8 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         Version version = versionManager.checkin(versionedNode.getPath());
         Resource frozenNode = context.resourceResolver().resolve(version.getFrozenNode().getPath());
 
-        JcrTestUtils.printResourceRecursivelyAsJson(versionedNode);
-        JcrTestUtils.printResourceRecursivelyAsJson(frozenNode);
+        // JcrTestUtils.printResourceRecursivelyAsJson(versionedNode);
+        // JcrTestUtils.printResourceRecursivelyAsJson(frozenNode);
         StagingResourceValueMap vm = new StagingResourceValueMap(frozenNode.getValueMap());
         StagingResourceValueMap vmsub = new StagingResourceValueMap(frozenNode.getChild("sub").getValueMap());
 
