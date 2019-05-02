@@ -355,19 +355,31 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         versionManager.checkpoint(versionable.getPath());
 
         Release r1 = service.createRelease(releaseRoot, ReleaseNumberCreator.MAJOR);
+        context.resourceResolver().commit();
         service.updateRelease(r1, ReleasedVersionable.forBaseVersion(versionable));
+        context.resourceResolver().commit();
 
         ec.checkThat(versionManager.getVersionHistory(versionable.getPath()).getVersionLabels(), arrayContaining("composum-release-r1"));
 
+        Release r11 = service.createRelease(r1, ReleaseNumberCreator.MINOR);
+        context.resourceResolver().commit();
+
+        ec.checkThat(versionManager.getVersionHistory(versionable.getPath()).getVersionLabels(),
+                arrayContainingInAnyOrder("composum-release-r1", "composum-release-r1.1"));
+
         service.setMark("public", r1);
+        context.resourceResolver().commit();
         ec.checkFailsWith(() -> service.deleteRelease(r1), instanceOf(RepositoryException.class));
         service.deleteMark("public", r1);
+        context.resourceResolver().commit();
         Release r1n = service.findRelease(releaseRoot, r1.getNumber());
         service.deleteRelease(r1n);
+        context.resourceResolver().commit();
 
         ec.checkFailsWith(() -> service.findRelease(releaseRoot, r1.getNumber()), instanceOf(StagingReleaseManager.ReleaseNotFoundException.class));
 
-        ec.checkThat(versionManager.getVersionHistory(versionable.getPath()).getVersionLabels(), arrayWithSize(0)); // label is gone
+        ec.checkThat(versionManager.getVersionHistory(versionable.getPath()).getVersionLabels(),
+                arrayContainingInAnyOrder("composum-release-r1.1")); // label is gone
     }
 
 }

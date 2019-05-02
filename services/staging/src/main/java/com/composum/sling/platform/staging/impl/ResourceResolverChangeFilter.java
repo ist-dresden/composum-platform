@@ -181,6 +181,7 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
                                 LOGGER.debug("using version '" + versionNumber + "'...");
                             }
 
+                            // FIXME(hps,2019-05-02) implement version resolver
                         }
                     }
                 }

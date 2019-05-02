@@ -189,6 +189,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         if (null != copyFromRelease) {
             new NodeTreeSynchronizer().update(copyFromRelease.getReleaseNode(), newRelease.getReleaseNode());
         }
+
+        updateReleaseLabels(newRelease);
+
         return newRelease;
     }
 
@@ -319,11 +322,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     /** Sets the label {@link StagingConstants#RELEASE_LABEL_PREFIX}-{releasenumber} on the version the releasedVersionable refers to. */
     protected void updateReleaseLabel(ReleaseImpl release, ReleasedVersionable releasedVersionable) throws RepositoryException {
-        Session session = release.getReleaseRoot().getResourceResolver().adaptTo(Session.class);
-        if (session == null) // impossible.
-            throw new RepositoryException("No session for " + release.getReleaseRoot().getPath());
+        VersionManager versionManager = getVersionManager(release.getReleaseRoot());
 
-        VersionManager versionManager = session.getWorkspace().getVersionManager();
         VersionHistory versionHistory = versionManager.getVersionHistory(release.getReleaseRoot().getPath() + '/' + releasedVersionable.getRelativePath());
         String label = release.getReleaseLabel();
 
@@ -345,6 +345,25 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         }
 
         throw new IllegalArgumentException("Version not found for " + releasedVersionable + " in release " + release);
+    }
+
+    protected VersionManager getVersionManager(Resource root) throws RepositoryException {
+        Session session = root.getResourceResolver().adaptTo(Session.class);
+        if (session == null) // impossible.
+            throw new RepositoryException("No session for " + root.getPath());
+        return session.getWorkspace().getVersionManager();
+    }
+
+    /** Sets the label on the versionables contained in all versionables in the release */
+    protected void updateReleaseLabels(@Nonnull ReleaseImpl release) throws RepositoryException {
+        for (Resource releaseContent : SlingResourceUtil.descendants(release.getWorkspaceCopyNode())) {
+            if (ResourceUtil.isNodeType(releaseContent, TYPE_VERSIONREFERENCE)) {
+                String versionUuid = releaseContent.getValueMap().get(PROP_VERSION, String.class);
+                Resource version = ResourceUtil.getByUuid(releaseContent.getResourceResolver(), versionUuid);
+                VersionHistory versionHistory = (VersionHistory) version.getParent().adaptTo(Node.class);
+                versionHistory.addVersionLabel(version.getName(), release.getReleaseLabel(), false);
+            }
+        }
     }
 
     @Nonnull
