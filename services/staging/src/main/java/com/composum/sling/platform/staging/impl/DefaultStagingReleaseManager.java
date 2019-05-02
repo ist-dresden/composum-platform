@@ -7,6 +7,8 @@ import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.*;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Result;
+import com.composum.sling.platform.staging.query.Query;
+import com.composum.sling.platform.staging.query.QueryBuilder;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -29,7 +31,6 @@ import javax.jcr.Node;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.query.Query;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
@@ -194,31 +195,29 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Nonnull
     @Override
-    public List<ReleasedVersionable> listReleaseContents(@Nonnull Release rawRelease) {
+    public List<ReleasedVersionable> listReleaseContents(@Nonnull Release rawRelease) throws RepositoryException {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         List<ReleasedVersionable> result = new ArrayList<>();
         Resource releaseWorkspaceCopy = requireNonNull(release.getReleaseNode().getChild(NODE_RELEASE_ROOT));
-        String query = "/jcr:root" + releaseWorkspaceCopy.getPath() + "//element(*," + TYPE_VERSIONREFERENCE + ")";
-
-        Iterator<Resource> versionReferences = release.getReleaseNode().getResourceResolver()
-                .findResources(query, Query.XPATH);
-        while (versionReferences.hasNext())
-            result.add(ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReferences.next()));
+        Query query = release.getReleaseRoot().getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
+        query.path(releaseWorkspaceCopy.getPath()).type(TYPE_VERSIONREFERENCE);
+        for (Resource versionReference : query.execute())
+            result.add(ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference));
         return result;
     }
 
     @Nonnull
     @Override
-    public List<ReleasedVersionable> listCurrentContents(@Nonnull Resource resource) {
+    public List<ReleasedVersionable> listCurrentContents(@Nonnull Resource resource) throws RepositoryException {
         Resource root = requireNonNull(findReleaseRoot(resource));
         ensureCurrentRelease(ResourceHandle.use(root));
         String ignoredReleaseConfigurationPath = root.getChild(CONTENT_NODE).getPath();
-        String query = "/jcr:root" + root.getPath() + "//element(*," + TYPE_VERSIONABLE + ")";
+
+        Query query = root.getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
+        query.path(root.getPath()).type(TYPE_VERSIONABLE);
 
         List<ReleasedVersionable> result = new ArrayList<>();
-        Iterator<Resource> versionReferences = root.getResourceResolver().findResources(query, Query.XPATH);
-        while (versionReferences.hasNext()) {
-            Resource versionable = versionReferences.next();
+        for (Resource versionable : query.execute()) {
             if (!SlingResourceUtil.isSameOrDescendant(ignoredReleaseConfigurationPath, versionable.getPath()))
                 result.add(ReleasedVersionable.forBaseVersion(versionable));
         }
@@ -227,14 +226,16 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Nullable
     @Override
-    public ReleasedVersionable findReleasedVersionableByUuid(@Nonnull Release rawRelease, @Nonnull String versionHistoryUuid) {
+    public ReleasedVersionable findReleasedVersionableByUuid(@Nonnull Release rawRelease, @Nonnull String versionHistoryUuid) throws RepositoryException {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         Resource releaseWorkspaceCopy = release.getWorkspaceCopyNode();
 
-        String query = "/jcr:root" + releaseWorkspaceCopy.getPath() + "//element(*," + TYPE_VERSIONREFERENCE + ")"
-                + "[@" + PROP_VERSIONHISTORY + "='" + versionHistoryUuid + "']";
-        Iterator<Resource> versionReferences = release.getReleaseNode().getResourceResolver()
-                .findResources(query, Query.XPATH);
+        Query query = releaseWorkspaceCopy.getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
+        query.path(releaseWorkspaceCopy.getPath()).type(TYPE_VERSIONREFERENCE).condition(
+                query.conditionBuilder().property(PROP_VERSIONHISTORY).eq().val(versionHistoryUuid)
+        );
+
+        Iterator<Resource> versionReferences = query.execute().iterator();
         Resource versionReference = versionReferences.hasNext() ? versionReferences.next() : null;
 
         return versionReference != null ? ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference) : null;
@@ -242,7 +243,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Nullable
     @Override
-    public ReleasedVersionable findReleasedVersionable(@Nonnull Release rawRelease, @Nonnull Resource versionable) {
+    public ReleasedVersionable findReleasedVersionable(@Nonnull Release rawRelease, @Nonnull Resource versionable) throws RepositoryException {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         String expectedPath = release.mapToContentCopy(versionable.getPath());
         ReleasedVersionable currentVersionable = ReleasedVersionable.forBaseVersion(versionable);
@@ -268,10 +269,12 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 !StringUtils.equals(versionReference.getValueMap().get(JCR_VERSIONHISTORY, String.class),
                         releasedVersionable.getVersionHistory())) {
             // check whether it was moved. Caution: queries work only for comitted content
-            String query = "/jcr:root" + releaseWorkspaceCopy.getPath() + "//element(*," + TYPE_VERSIONREFERENCE + ")"
-                    + "[@" + PROP_VERSIONABLEUUID + "='" + releasedVersionable.getVersionableUuid() + "']";
-            Iterator<Resource> versionReferences = release.getReleaseNode().getResourceResolver()
-                    .findResources(query, Query.XPATH);
+            Query query = releaseWorkspaceCopy.getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
+            query.path(releaseWorkspaceCopy.getPath()).type(TYPE_VERSIONREFERENCE).condition(
+                    query.conditionBuilder().property(PROP_VERSIONABLEUUID).eq().val(releasedVersionable.getVersionableUuid())
+            );
+
+            Iterator<Resource> versionReferences = query.execute().iterator();
             versionReference = versionReferences.hasNext() ? versionReferences.next() : null;
         }
 
@@ -441,6 +444,15 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         releasesnode.setProperty(mark, (String) null);
     }
 
+    @Override
+    public void deleteRelease(@Nonnull Release rawRelease) throws RepositoryException, PersistenceException {
+        ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
+        if (!release.getMarks().isEmpty())
+            throw new RepositoryException("Cannot delete release " + release + " because it is marked with: " + release.getMarks());
+        release.getReleaseRoot().getResourceResolver().delete(release.getReleaseNode());
+        cleanupLabels(release.getReleaseRoot());
+    }
+
     @Nullable
     @Override
     public Release findReleaseByMark(@Nonnull Resource resource, @Nonnull String mark) {
@@ -480,6 +492,13 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         Version version = (Version) session.getNodeByIdentifier(releasedVersionable.getVersionUuid());
         session.getWorkspace().getVersionManager().restore(newPath, version, false);
         return ReleasedVersionable.forBaseVersion(release.getReleaseRoot().getResourceResolver().getResource(newPath));
+    }
+
+    @Override
+    public void cleanupLabels(@Nonnull Resource resource) throws RepositoryException {
+        Resource root = requireNonNull(findReleaseRoot(resource));
+        Query query = root.getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
+        query.path("/jcr:system/jcr:versionstorage").type(NT_VERSION);
     }
 
     /** Ensures the technical resources for a release are there. If the release is created, the root is completely empty. */

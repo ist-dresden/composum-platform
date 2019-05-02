@@ -7,11 +7,15 @@ import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
+import com.composum.sling.platform.staging.query.QueryBuilder;
+import com.composum.sling.platform.staging.query.impl.QueryBuilderAdapterFactory;
+import com.composum.sling.platform.staging.query.impl.QueryBuilderImpl;
 import com.composum.sling.platform.testing.testutil.AnnotationWithDefaults;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
+import org.apache.sling.api.adapter.AdapterFactory;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -33,6 +37,8 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
+import com.google.common.base.Function;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
@@ -78,6 +84,10 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
             this.resourceResolverFactory = context.getService(ResourceResolverFactory.class);
             this.configuration = AnnotationWithDefaults.of(DefaultStagingReleaseManager.Configuration.class);
         }};
+
+        context.registerAdapter(ResourceResolver.class, QueryBuilder.class,
+                (Function<ResourceResolver, QueryBuilder>) (resolver) ->
+                        new QueryBuilderAdapterFactory().getAdapter(resolver, QueryBuilder.class));
 
         currentRelease = service.findRelease(releaseRoot, StagingConstants.CURRENT_RELEASE);
     }
@@ -294,7 +304,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     }
 
     @Test
-    public void listCurrentContent() {
+    public void listCurrentContent() throws Exception {
         List<ReleasedVersionable> content = service.listCurrentContents(this.releaseRoot);
         ec.checkThat(content.size(), is(0));
 

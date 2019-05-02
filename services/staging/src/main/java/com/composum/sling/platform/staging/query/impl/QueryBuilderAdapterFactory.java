@@ -16,6 +16,13 @@ import static org.apache.sling.api.adapter.AdapterFactory.ADAPTER_CLASSES;
 
 /**
  * Factory to create {@link QueryBuilder} from {@link org.apache.sling.api.resource.ResourceResolver}.
+ * <p>
+ * In tests you might need to register this:
+ * <code>
+ *         context.registerAdapter(ResourceResolver.class, QueryBuilder.class,
+ *                 (com.google.common.base.Function<ResourceResolver, QueryBuilder>) (resolver) ->
+ *                         new QueryBuilderAdapterFactory().getAdapter(resolver, QueryBuilder.class));
+ *                         </code>
  */
 @Component(
         label = "Composum StagingResolver Adapter to QueryBuilder",

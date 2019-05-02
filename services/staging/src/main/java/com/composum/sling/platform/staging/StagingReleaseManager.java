@@ -111,7 +111,7 @@ public interface StagingReleaseManager {
 
     /** Gives information about a releases contents. Caution: this finds only committed content. */
     @Nonnull
-    List<ReleasedVersionable> listReleaseContents(@Nonnull Release release);
+    List<ReleasedVersionable> listReleaseContents(@Nonnull Release release) throws RepositoryException;
 
     /**
      * Lists the current content (using {@link ReleasedVersionable#forBaseVersion(Resource)}). Caution: this finds only committed content.
@@ -119,7 +119,7 @@ public interface StagingReleaseManager {
      * @param resource a release root or its subnodes
      */
     @Nonnull
-    List<ReleasedVersionable> listCurrentContents(@Nonnull Resource resource);
+    List<ReleasedVersionable> listCurrentContents(@Nonnull Resource resource) throws RepositoryException;
 
     /**
      * Looks up whether a versionable is present in the release. Caution: this finds only committed content.
@@ -128,7 +128,7 @@ public interface StagingReleaseManager {
      * @return the information about the item in the release, if it is present
      */
     @Nullable
-    ReleasedVersionable findReleasedVersionableByUuid(@Nonnull Release release, @Nonnull String versionHistoryUuid);
+    ReleasedVersionable findReleasedVersionableByUuid(@Nonnull Release release, @Nonnull String versionHistoryUuid) throws RepositoryException;
 
     /**
      * Looks up whether a versionable is present in the release.
@@ -137,7 +137,7 @@ public interface StagingReleaseManager {
      * @return the information about the item in the release, if it is present
      */
     @Nullable
-    ReleasedVersionable findReleasedVersionable(@Nonnull Release release, @Nonnull Resource versionable);
+    ReleasedVersionable findReleasedVersionable(@Nonnull Release release, @Nonnull Resource versionable) throws RepositoryException;
 
     /**
      * Updates the release by adding or updating the versionable denoted by {releasedVersionable} in the release.
@@ -206,6 +206,16 @@ public interface StagingReleaseManager {
      */
     void deleteMark(@Nonnull String mark, @Nonnull Release release) throws RepositoryException;
 
+
+    /**
+     * Deletes a unmarked release. If you want to delete a release marked with {@link #setMark(String, Release)},
+     * you have to {@link #deleteMark(String, Release)} first.
+     *
+     * @param release the release to delete
+     * @throws RepositoryException
+     */
+    void deleteRelease(@Nonnull Release release) throws RepositoryException, PersistenceException;
+
     /**
      * Looks up the next higher {@link StagingConstants#TYPE_MIX_RELEASE_ROOT} of the resource and returns
      * the release with the given <code>mark</code> ( e.g. public or preview ), if there is one.
@@ -236,6 +246,16 @@ public interface StagingReleaseManager {
      */
     @Nonnull
     ReleasedVersionable restore(@Nonnull Release release, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException;
+
+
+    /**
+     * Checks whether the versionables contained below the release root have labels starting with {@link StagingConstants#RELEASE_LABEL_PREFIX}
+     * but aren't in the corresponding release.
+     *
+     * @param resource the release root or something below it
+     * @throws RepositoryException
+     */
+    void cleanupLabels(@Nonnull Resource resource) throws RepositoryException;
 
     /**
      * Data structure with metadata information about a release. This must only be created within the {@link StagingReleaseManager}.
