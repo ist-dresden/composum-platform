@@ -446,7 +446,7 @@ public class StagingResourceResolver implements ResourceResolver {
         underlyingResolver.refresh();
     }
 
-    /** Not implemented, since this resolver provides an readon view of things. */
+    /** Not implemented, since this resolver provides an readonly view of things. */
     @Override
     @Nullable
     public Resource copy(@Nullable String srcAbsPath, @Nullable String destAbsPath) throws PersistenceException {

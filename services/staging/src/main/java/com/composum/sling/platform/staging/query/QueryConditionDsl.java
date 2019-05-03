@@ -4,6 +4,8 @@ import com.composum.sling.core.util.ResourceUtil;
 import org.apache.commons.lang3.Validate;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
@@ -33,6 +35,8 @@ import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
  * @see "https://docs.adobe.com/docs/en/spec/jcr/2.0/6_Query.html"
  */
 public class QueryConditionDsl {
+
+    private static final Logger LOG = LoggerFactory.getLogger(QueryConditionDsl.class);
 
     protected final String selector;
 
@@ -498,10 +502,13 @@ public class QueryConditionDsl {
         /** Sets the saved binding values on a jcrQuery. */
         public void applyBindingValues(javax.jcr.query.Query jcrQuery, ResourceResolver resolver)
                 throws RepositoryException {
+            StringBuilder debugbuf = new StringBuilder();
             ValueFactory valueFactory = resolver.adaptTo(Session.class).getValueFactory();
             for (Map.Entry<String, Object> entry : bindingVariables.entrySet()) {
                 String key = entry.getKey();
                 Object value = entry.getValue();
+                if (LOG.isDebugEnabled())
+                    debugbuf.append(key).append("=\"").append(value).append("\" ");
                 if (null == value) jcrQuery.bindValue(key, valueFactory.createValue((String) null));
                 else if (value instanceof String) jcrQuery.bindValue(key, valueFactory.createValue((String) value));
                 else if (value instanceof Calendar) jcrQuery.bindValue(key, valueFactory.createValue((Calendar) value));
@@ -518,6 +525,8 @@ public class QueryConditionDsl {
                 else // Bug.
                     throw new IllegalArgumentException("Unsupported value " + value + " of class " + value.getClass());
             }
+            if (LOG.isDebugEnabled())
+                LOG.debug("Binding values: {}", debugbuf);
         }
 
         @Override
