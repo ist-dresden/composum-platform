@@ -83,7 +83,6 @@
         <module>cache</module>
         <module>models</module>
         <module>services</module>
-        <module>launcher</module>
     </modules>
 
     <build>
