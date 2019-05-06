@@ -9,10 +9,13 @@ import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager.ReleaseImpl;
 import com.composum.sling.platform.staging.query.QueryBuilder;
 import com.composum.sling.platform.staging.query.impl.QueryBuilderImpl;
-import org.apache.commons.collections4.IteratorUtils;
+import org.apache.commons.lang3.Validate;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.resource.*;
+import org.apache.sling.api.resource.LoginException;
+import org.apache.sling.api.resource.NonExistingResource;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,7 +115,13 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
         return false;
     }
 
+    @Override
+    protected boolean isFiltered(Resource resource) {
+        return isFilteredPath(resource.getPath());
+    }
+
     /** Returns additional wrapped children overlayed into the release - primarily for {@link #isDirectlyMappedPath(String)}. */
+    @Override
     @Nullable
     protected Iterator<Resource> overlayedChildren(@Nonnull Resource parent) {
         if (release.getReleaseRoot().getPath().equals(parent.getPath())) {
@@ -138,14 +147,17 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
     @Override
     @Nonnull
     protected Resource retrieveReleasedResource(@Nullable SlingHttpServletRequest request, @Nonnull String rawPath) {
+        Validate.isTrue(rawPath.startsWith("/"), "Absolute path required, but got %s", rawPath);
         String path = ResourceUtil.normalize(rawPath);
         if (path == null || isFilteredPath(path)) // weird path like /../.. or explicitly removed
             return new NonExistingResource(this, rawPath);
+
         if (!releaseMapper.releaseMappingAllowed(path) || !release.appliesToPath(path) || isDirectlyMappedPath(path)) {
             // we need to return a StagingResource, too, since e.g. listChildren might go into releasemapped areas.
             Resource underlyingResource = underlyingResolver.getResource(path);
             return wrapIntoStagingResource(path, underlyingResource, request, true);
         }
+
         Resource underlyingResource = ReleaseImpl.unwrap(release).getWorkspaceCopyNode();
         if (!release.getReleaseRoot().getPath().equals(path)) {
             if (!path.startsWith(release.getReleaseRoot().getPath() + '/')) // safety check - can't happen.
@@ -153,9 +165,9 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
             String relPath = path.substring(release.getReleaseRoot().getPath().length() + 1);
             String[] levels = relPath.split("/");
             for (String level : levels) {
-                if (underlyingResource == null) return new NonExistingResource(this, rawPath);
+                if (underlyingResource == null) return new NonExistingResource(this, path);
                 String actualname = StagingUtils.isInVersionStorage(underlyingResource) ?
-                        REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(level, level)
+                        REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(level, level) // mapping for property resources
                         : level;
                 underlyingResource = underlyingResource.getChild(actualname);
                 underlyingResource = stepResource(underlyingResource);
@@ -164,20 +176,11 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
         return wrapIntoStagingResource(path, underlyingResource, request, true);
     }
 
-    /** Internal-use: Wrap a resource into a {@link StagingResource} if it exists. */
-    public Resource wrapIntoStagingResource(@Nonnull String path, @Nullable Resource underlyingResource, @Nullable HttpServletRequest request, boolean useNonExisting) {
-        if (underlyingResource == null)
-            return useNonExisting ? new NonExistingResource(this, path) : null;
-        if (ResourceUtil.isNonExistingResource(underlyingResource)) return useNonExisting ? underlyingResource : null;
-        SlingHttpServletRequest slingRequest = (request instanceof SlingHttpServletRequest) ? (SlingHttpServletRequest) request : null;
-        return new StagingResource(path, this, underlyingResource,
-                slingRequest != null ? slingRequest.getRequestPathInfo() : null);
-    }
-
     /**
      * Checks whether the resource is exactly on one of the points where we move to a different resource:
      * the release root is actually mapped to the release content root, and a version reference mapped to version space.
      */
+    @Override
     protected Resource stepResource(Resource resource) {
         if (resource == null) {
             return null;
@@ -205,40 +208,11 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
 
     @Override
     @Nonnull
-    public Iterator<Resource> listChildren(@Nonnull Resource rawParent) {
-        final Resource parent = ResourceUtil.unwrap(rawParent);
-        StagingResource stagingResource = null;
-        if (parent instanceof StagingResource) {
-            stagingResource = (StagingResource) parent;
-            StagingResourceResolver otherResolver = stagingResource.getResourceResolver().adaptTo(StagingResourceResolver.class);
-            if (otherResolver != null && !otherResolver.getRelease().equals(release))
-                stagingResource = null;
-        }
-        if (stagingResource == null) {
-            Resource retrieved = retrieveReleasedResource(null, parent.getPath());
-            if (retrieved instanceof StagingResource) stagingResource = (StagingResource) retrieved;
-            else return Collections.emptyIterator(); // NonExistingResource
-        }
-        Iterator<Resource> children = stagingResource.underlyingResource.listChildren();
-        Iterator<Resource> resourceIterator = IteratorUtils.filteredIterator(
-                IteratorUtils.transformedIterator(children, (r) ->
-                        wrapIntoStagingResource(parent.getPath() + "/" + r.getName(), stepResource(r), null, false)
-                ),
-                (child) -> child != null && !ResourceUtil.isNonExistingResource(child) && !isFilteredPath(child.getPath())
-        );
-        Iterator<Resource> additionalChildren = this.overlayedChildren(parent);
-        if (additionalChildren != null)
-            resourceIterator = IteratorUtils.chainedIterator(additionalChildren, resourceIterator);
-        return resourceIterator;
-    }
-
-    @Override
-    @Nonnull
     public Resource resolve(@Nullable HttpServletRequest request, @Nonnull String rawAbsPath) {
         String absPath = ResourceUtil.normalize(rawAbsPath);
         if (absPath == null) return new NonExistingResource(this, rawAbsPath);
         Resource resource = request != null ? underlyingResolver.resolve(request, absPath) : underlyingResolver.resolve(absPath);
-        if (!releaseMapper.releaseMappingAllowed(rawAbsPath) || !release.appliesToPath(absPath))
+        if (!releaseMapper.releaseMappingAllowed(absPath) || !release.appliesToPath(absPath))
             return wrapIntoStagingResource(resource.getPath(), resource, request, true);
         return retrieveReleasedResource((SlingHttpServletRequest) request, resource.getPath());
     }

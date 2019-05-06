@@ -1,7 +1,9 @@
 package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.util.ResourceUtil;
+import org.apache.commons.collections4.IteratorUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.resource.NonExistingResource;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -11,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -42,12 +45,59 @@ public abstract class AbstractStagingResourceResolver implements ResourceResolve
 
 
     /**
-     * {@inheritDoc}
-     * The children can be actual children or simulated children from JCR.
+     * Internal-use: Wrap a resource into a {@link StagingResource} if it exists.
+     *
+     * @deprecated for staging-internal use only
      */
+    @Deprecated
+    public Resource wrapIntoStagingResource(@Nonnull String path, @Nullable Resource underlyingResource, @Nullable HttpServletRequest request, boolean useNonExisting) {
+        if (underlyingResource == null)
+            return useNonExisting ? new NonExistingResource(this, path) : null;
+        if (ResourceUtil.isNonExistingResource(underlyingResource)) return useNonExisting ? underlyingResource : null;
+        SlingHttpServletRequest slingRequest = (request instanceof SlingHttpServletRequest) ? (SlingHttpServletRequest) request : null;
+        return new StagingResource(path, this, underlyingResource,
+                slingRequest != null ? slingRequest.getRequestPathInfo() : null);
+    }
+
+    /** Checks whether the resource is a versionable for which we step into version space. */
+    protected abstract Resource stepResource(Resource resource);
+
+    /** Returns additional wrapped children overlayed to the children of the underlying resource. */
+    @Nullable
+    protected Iterator<Resource> overlayedChildren(@Nonnull Resource parent) {
+        return null;
+    }
+
+    /** Returns true if the resource should not be forwarded outside. */
+    protected boolean isFiltered(Resource resource) {
+        return false;
+    }
+
     @Override
     @Nonnull
-    public abstract Iterator<Resource> listChildren(@Nonnull Resource rawParent);
+    public Iterator<Resource> listChildren(@Nonnull Resource rawParent) {
+        final Resource parent = ResourceUtil.unwrap(rawParent);
+        StagingResource stagingResource = null;
+        if (parent instanceof StagingResource && parent.getResourceResolver() == this) {
+            stagingResource = (StagingResource) parent;
+        }
+        if (stagingResource == null) {
+            Resource retrieved = retrieveReleasedResource(null, parent.getPath());
+            if (retrieved instanceof StagingResource) stagingResource = (StagingResource) retrieved;
+            else return Collections.emptyIterator(); // NonExistingResource
+        }
+        Iterator<Resource> children = stagingResource.underlyingResource.listChildren();
+        Iterator<Resource> resourceIterator = IteratorUtils.filteredIterator(
+                IteratorUtils.transformedIterator(children, (r) ->
+                        wrapIntoStagingResource(parent.getPath() + "/" + r.getName(), stepResource(r), null, false)
+                ),
+                (child) -> child != null && !ResourceUtil.isNonExistingResource(child) && !isFiltered(child)
+        );
+        Iterator<Resource> additionalChildren = this.overlayedChildren(parent);
+        if (additionalChildren != null)
+            resourceIterator = IteratorUtils.chainedIterator(additionalChildren, resourceIterator);
+        return resourceIterator;
+    }
 
     @Override
     @Nullable
@@ -74,6 +124,23 @@ public abstract class AbstractStagingResourceResolver implements ResourceResolve
         }
         return getResource(fullPath);
     }
+
+    /**
+     * {@inheritDoc}
+     * Additionally, we support adapting to the specific type of this resolver, to easily pierce through
+     * {@link org.apache.sling.api.wrappers.ResourceResolverWrapper}s.
+     */
+    @Override
+    @Nullable
+    public <AdapterType> AdapterType adaptTo(@Nullable Class<AdapterType> type) {
+        if (type.isAssignableFrom(this.getClass()))
+            return type.cast(this);
+        return underlyingResolver.adaptTo(type);
+    }
+
+    // ------------------------- Start of the easy parts
+    // unsupported modification methods and simply forwarded to underlyingResolver
+    // or can just be implemented in terms of other methods.
 
     @Override
     @Nullable
@@ -242,12 +309,6 @@ public abstract class AbstractStagingResourceResolver implements ResourceResolve
         throw new PersistenceException("move not implemented - readonly view.");
     }
 
-    @Override
-    @Nullable
-    public <AdapterType> AdapterType adaptTo(@Nullable Class<AdapterType> type) {
-        if (type.isAssignableFrom(this.getClass()))
-            return type.cast(this);
-        return underlyingResolver.adaptTo(type);
-    }
+    // ------------------ End of the easy parts.
 
 }
