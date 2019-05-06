@@ -735,6 +735,20 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             }
             return path != null ? path : contentCopyPath;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ReleaseImpl release = (ReleaseImpl) o;
+            return StringUtils.equals(releaseRoot.getPath(), release.getReleaseRoot().getPath()) &&
+                    StringUtils.equals(releaseNode.getPath(), release.getReleaseNode().getPath());
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(releaseRoot, releaseNode);
+        }
     }
 
     @ObjectClassDefinition(

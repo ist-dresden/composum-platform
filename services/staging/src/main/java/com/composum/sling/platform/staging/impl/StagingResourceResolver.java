@@ -170,7 +170,7 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
             return useNonExisting ? new NonExistingResource(this, path) : null;
         if (ResourceUtil.isNonExistingResource(underlyingResource)) return useNonExisting ? underlyingResource : null;
         SlingHttpServletRequest slingRequest = (request instanceof SlingHttpServletRequest) ? (SlingHttpServletRequest) request : null;
-        return new StagingResource(release, path, this, underlyingResource,
+        return new StagingResource(path, this, underlyingResource,
                 slingRequest != null ? slingRequest.getRequestPathInfo() : null);
     }
 
@@ -210,7 +210,9 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
         StagingResource stagingResource = null;
         if (parent instanceof StagingResource) {
             stagingResource = (StagingResource) parent;
-            if (stagingResource.release.equals(release)) stagingResource = null;
+            StagingResourceResolver otherResolver = stagingResource.getResourceResolver().adaptTo(StagingResourceResolver.class);
+            if (otherResolver != null && !otherResolver.getRelease().equals(release))
+                stagingResource = null;
         }
         if (stagingResource == null) {
             Resource retrieved = retrieveReleasedResource(null, parent.getPath());

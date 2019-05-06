@@ -28,14 +28,10 @@ public class StagingResource extends AbstractResource implements JcrResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(StagingResource.class);
 
-    @Nonnull
-    protected final StagingReleaseManager.Release release;
-
     /** The simulated path - might be different from the real path. */
     @Nonnull
     protected final String path;
 
-    /** StagingResourceResolver */
     @Nonnull
     protected final AbstractStagingResourceResolver resolver;
 
@@ -47,15 +43,12 @@ public class StagingResource extends AbstractResource implements JcrResource {
 
     /**
      * Instantiates a new Staging resource.
-     *
-     * @param release            the release this applies to
-     * @param path               the simulated path
+     *  @param path               the simulated path
      * @param resolver           the {@link StagingResourceResolver} resolver
      * @param underlyingResource the underlying resource
      * @param pathInfo           the path info from the request if the resource wraps a request resource
      */
-    protected StagingResource(@Nonnull StagingReleaseManager.Release release, @Nonnull String path, @Nonnull StagingResourceResolver resolver, @Nonnull Resource underlyingResource, @Nullable RequestPathInfo pathInfo) {
-        this.release = release;
+    protected StagingResource(@Nonnull String path, @Nonnull AbstractStagingResourceResolver resolver, @Nonnull Resource underlyingResource, @Nullable RequestPathInfo pathInfo) {
         this.path = path;
         this.resolver = resolver;
         this.underlyingResource = underlyingResource;
@@ -168,7 +161,6 @@ public class StagingResource extends AbstractResource implements JcrResource {
     @Nonnull
     public String toString() {
         final StringBuilder sb = new StringBuilder("StagingResource{");
-        sb.append("release=").append(release);
         sb.append(", path='").append(path).append('\'');
         sb.append(", underlying='").append(underlyingResource.getPath()).append('\'');
         if (pathInfo != null) sb.append(", pathInfo=").append(pathInfo);
