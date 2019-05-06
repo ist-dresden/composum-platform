@@ -71,7 +71,6 @@ public abstract class AbstractStagingTest {
         versionManager = context.resourceResolver().adaptTo(Session.class).getWorkspace().getVersionManager();
 
         releaseManager = new DefaultStagingReleaseManager() {{
-            resourceResolverFactory = context.getService(ResourceResolverFactory.class);
             configuration = AnnotationWithDefaults.of(DefaultStagingReleaseManager.Configuration.class);
         }};
 

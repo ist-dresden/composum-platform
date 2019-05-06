@@ -37,7 +37,7 @@ public class StagingResource extends AbstractResource implements JcrResource {
 
     /** StagingResourceResolver */
     @Nonnull
-    protected final StagingResourceResolver resolver;
+    protected final AbstractStagingResourceResolver resolver;
 
     @Nonnull
     protected final Resource underlyingResource;
@@ -144,15 +144,7 @@ public class StagingResource extends AbstractResource implements JcrResource {
     @Nullable
     public <AdapterType> AdapterType adaptTo(@Nullable Class<AdapterType> type) {
         if (type == null) return null;
-        if (ModifiableValueMap.class.isAssignableFrom(type)) {
-            if (release.appliesToPath(path) && !resolver.isDirectlyMappedPath(path)
-                    || StagingUtils.isInVersionStorage(underlyingResource))
-                return null; // unmodifiable
-            return type.cast(underlyingResource.adaptTo(ModifiableValueMap.class));
-            // a bit dangerous because of relative paths, but we need this for metadata etc.
-        }
-        // we currently only have r/o support - even outside the release tree, since it'd otherwise be a bit difficult to get listChildren right
-        // that can be extended if neccesary.
+        // we currently only have r/o support - even outside the release tree. that can be extended if neccesary.
         if (Node.class.isAssignableFrom(type)) {
             Node node = underlyingResource.adaptTo(Node.class);
             return type.cast(FrozenNodeWrapper.wrap(node, this));

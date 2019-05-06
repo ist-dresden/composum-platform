@@ -62,9 +62,6 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     private final SiblingOrderUpdateStrategy siblingOrderUpdateStrategy = new SiblingOrderUpdateStrategy();
 
-    @Reference
-    protected ResourceResolverFactory resourceResolverFactory;
-
     protected Configuration configuration;
 
     @Activate
@@ -455,7 +452,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Nonnull
     public ResourceResolver getResolverForRelease(@Nonnull Release release, @Nullable ReleaseMapper releaseMapper, boolean closeResolverOnClose) {
         return new StagingResourceResolver(release, ReleaseImpl.unwrap(release).getReleaseRoot().getResourceResolver(),
-                releaseMapper != null ? releaseMapper : ReleaseMapper.ALLPERMISSIVE, resourceResolverFactory, configuration, closeResolverOnClose);
+                releaseMapper != null ? releaseMapper : ReleaseMapper.ALLPERMISSIVE, configuration, closeResolverOnClose);
     }
 
     @Override

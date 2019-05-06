@@ -241,4 +241,13 @@ public abstract class AbstractStagingResourceResolver implements ResourceResolve
     public Resource move(@Nullable String srcAbsPath, @Nullable String destAbsPath) throws PersistenceException {
         throw new PersistenceException("move not implemented - readonly view.");
     }
+
+    @Override
+    @Nullable
+    public <AdapterType> AdapterType adaptTo(@Nullable Class<AdapterType> type) {
+        if (type.isAssignableFrom(this.getClass()))
+            return type.cast(this);
+        return underlyingResolver.adaptTo(type);
+    }
+
 }

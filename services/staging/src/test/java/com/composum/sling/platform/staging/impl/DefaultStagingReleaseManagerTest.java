@@ -86,7 +86,6 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         releaseRoot = ResourceHandle.use(releaseRootBuilder.commit().getCurrentParent());
 
         service = new DefaultStagingReleaseManager() {{
-            this.resourceResolverFactory = context.getService(ResourceResolverFactory.class);
             this.configuration = AnnotationWithDefaults.of(DefaultStagingReleaseManager.Configuration.class);
         }};
 

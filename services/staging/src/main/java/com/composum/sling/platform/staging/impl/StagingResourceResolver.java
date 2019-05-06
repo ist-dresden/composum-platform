@@ -46,10 +46,6 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
     @Nonnull
     protected final ReleaseMapper releaseMapper;
 
-    /** ResourceResolverFactory injected into the SlingFilter. Can be used to create new default ResourceResolver. */
-    @Nonnull
-    protected final ResourceResolverFactory resourceResolverFactory;
-
     @Nonnull
     protected final DefaultStagingReleaseManager.Configuration configuration;
 
@@ -59,15 +55,13 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
      * @param release                 the release
      * @param underlyingResolver      the resolver used to access resources outside of the version space
      * @param releaseMapper           the release mapper that determines which resources are release-mapped
-     * @param resourceResolverFactory used for {@link #clone(Map)}
      * @param configuration           the configuration
      * @param closeResolverOnClose    if true, the underlyingResolver is closed when this resolver is closed
      */
-    protected StagingResourceResolver(@Nonnull StagingReleaseManager.Release release, @Nonnull ResourceResolver underlyingResolver, @Nonnull ReleaseMapper releaseMapper, @Nonnull ResourceResolverFactory resourceResolverFactory, @Nonnull DefaultStagingReleaseManager.Configuration configuration, boolean closeResolverOnClose) {
+    protected StagingResourceResolver(@Nonnull StagingReleaseManager.Release release, @Nonnull ResourceResolver underlyingResolver, @Nonnull ReleaseMapper releaseMapper, @Nonnull DefaultStagingReleaseManager.Configuration configuration, boolean closeResolverOnClose) {
         super(underlyingResolver, closeResolverOnClose);
         this.release = release;
         this.releaseMapper = releaseMapper;
-        this.resourceResolverFactory = resourceResolverFactory;
         this.configuration = configuration;
     }
 
@@ -255,10 +249,7 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
     @Nonnull
     public ResourceResolver clone(@Nullable Map<String, Object> authenticationInfo) throws LoginException {
         ResourceResolver resolver = underlyingResolver.clone(authenticationInfo);
-        if (resolver instanceof StagingResourceResolver)
-            return resolver;
-        else
-            return new StagingResourceResolver(release, resolver, releaseMapper, resourceResolverFactory, configuration, true);
+        return new StagingResourceResolver(release, resolver, releaseMapper, configuration, true);
     }
 
 
@@ -267,9 +258,7 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
     public <AdapterType> AdapterType adaptTo(@Nonnull Class<AdapterType> type) {
         if (QueryBuilder.class.equals(type))
             return type.cast(new QueryBuilderImpl(this));
-        else if (StagingResourceResolver.class.isAssignableFrom(type))
-            return type.cast(this);
-        return underlyingResolver.adaptTo(type);
+        return super.adaptTo(type);
     }
 
     // ------------------ End of the easy parts.
