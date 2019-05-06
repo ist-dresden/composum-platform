@@ -1,6 +1,7 @@
 package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.util.ResourceUtil;
+import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -12,6 +13,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
@@ -32,36 +34,41 @@ public class VersionSelectResourceResolver extends AbstractStagingResourceResolv
     private final Map<String, String> historyToVersion;
 
     /**
-     * Creates a {@link VersionSelectResourceResolver} replacing a number of versionables with historical versions.
+     * Creates a {@link VersionSelectResourceResolver} replacing one versionables with a historical version.
      *
      * @param underlyingResolver   the resolver we use to retrieve things
-     * @param historyToVersion     a map that maps the {@value org.apache.jackrabbit.JcrConstants#JCR_VERSIONHISTORY} of all the
-     *                             {@value org.apache.jackrabbit.JcrConstants#MIX_VERSIONABLE}s for which we want to simulate historical versions to the
-     *                             {@value org.apache.jackrabbit.JcrConstants#JCR_BASEVERSION} that needs to be simulated
      * @param closeResolverOnClose if true, the {underlyingResolver} will be closed as well if this resolver is closed
+     * @param versionUuids         the {@value org.apache.jackrabbit.JcrConstants#JCR_BASEVERSION} of one ore more replaced
+     *                             {@value org.apache.jackrabbit.JcrConstants#MIX_VERSIONABLE}s
      */
     public VersionSelectResourceResolver(@Nonnull ResourceResolver underlyingResolver,
-                                         @Nonnull Map<String, String> historyToVersion, boolean closeResolverOnClose) {
+                                         boolean closeResolverOnClose, @Nonnull String... versionUuids) throws RepositoryException {
+        super(underlyingResolver, closeResolverOnClose);
+        this.historyToVersion = makeHistoryToVersionMap(underlyingResolver, versionUuids);
+    }
+
+    protected VersionSelectResourceResolver(@Nonnull ResourceResolver underlyingResolver,
+                                            boolean closeResolverOnClose, @Nonnull Map<String, String> historyToVersion) {
         super(underlyingResolver, closeResolverOnClose);
         this.historyToVersion = historyToVersion;
     }
 
-    /**
-     * Creates a {@link VersionSelectResourceResolver} replacing one versionables with a historical version.
-     *
-     * @param underlyingResolver   the resolver we use to retrieve things
-     * @param versionHistoryUuid   the {@value org.apache.jackrabbit.JcrConstants#JCR_VERSIONHISTORY} the replaced
-     *                             {@value org.apache.jackrabbit.JcrConstants#MIX_VERSIONABLE}
-     * @param versionUuid          the {@value org.apache.jackrabbit.JcrConstants#JCR_BASEVERSION} of the replaced
-     *                             {@value org.apache.jackrabbit.JcrConstants#MIX_VERSIONABLE}s
-     * @param closeResolverOnClose if true, the {underlyingResolver} will be closed as well if this resolver is closed
-     */
-    public VersionSelectResourceResolver(@Nonnull ResourceResolver underlyingResolver,
-                                         @Nonnull String versionHistoryUuid, @Nonnull String versionUuid,
-                                         boolean closeResolverOnClose) {
-        this(underlyingResolver, Collections.singletonMap(versionHistoryUuid, versionUuid), closeResolverOnClose);
+    /** Creates a map usable for {@link #VersionSelectResourceResolver(ResourceResolver, boolean, Map)} from a number of versions, retrieving their version history uuids. */
+    protected static Map<String, String> makeHistoryToVersionMap(@Nonnull ResourceResolver resolver, @Nonnull String... versions) throws RepositoryException {
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+        for (String version : versions) {
+            Validate.notNull(version);
+            Resource versionResource = ResourceUtil.getByUuid(resolver, version);
+            String versionHistoryUuid = versionResource != null ? versionResource.getParent().getValueMap().get(JCR_UUID, String.class) : null;
+            if (versionHistoryUuid == null)
+                throw new RepositoryException("No version history found for " + version);
+            builder.put(versionHistoryUuid, version);
+        }
+        ImmutableMap<String, String> result = builder.build();
+        if (result.size() != versions.length)
+            throw new RepositoryException("Several versions for one document: " + Arrays.asList(versions));
+        return result;
     }
-
 
     @Nonnull
     @Override
@@ -159,7 +166,7 @@ public class VersionSelectResourceResolver extends AbstractStagingResourceResolv
     public @Nonnull
     ResourceResolver clone(Map<String, Object> authenticationInfo) throws LoginException {
         ResourceResolver resolver = underlyingResolver.clone(authenticationInfo);
-        return new VersionSelectResourceResolver(underlyingResolver, historyToVersion, closeResolverOnClose);
+        return new VersionSelectResourceResolver(underlyingResolver, closeResolverOnClose, historyToVersion);
     }
 
 }

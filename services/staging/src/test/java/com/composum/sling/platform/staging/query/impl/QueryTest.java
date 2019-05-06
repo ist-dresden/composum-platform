@@ -17,8 +17,10 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
-import org.junit.*;
-import org.junit.runners.MethodSorters;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 
@@ -27,7 +29,6 @@ import javax.jcr.Session;
 import javax.jcr.Workspace;
 import javax.jcr.query.QueryManager;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.*;
 
 import static com.composum.sling.core.util.CoreConstants.PROP_MIXINTYPES;
@@ -35,7 +36,7 @@ import static com.composum.sling.core.util.ResourceUtil.*;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
 import static com.composum.sling.platform.staging.query.Query.*;
 import static com.composum.sling.platform.testing.testutil.JcrTestUtils.array;
-import static java.util.Arrays.*;
+import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.sling.api.resource.ResourceUtil.getParent;
 import static org.hamcrest.Matchers.*;
@@ -43,7 +44,6 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
 import static org.slf4j.LoggerFactory.getLogger;
 
-@FixMethodOrder(value = MethodSorters.NAME_ASCENDING)
 public class QueryTest extends AbstractStagingTest {
 
     private static final Logger LOG = getLogger(QueryTest.class);

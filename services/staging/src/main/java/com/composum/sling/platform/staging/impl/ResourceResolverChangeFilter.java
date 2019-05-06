@@ -22,6 +22,7 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.RepositoryException;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -126,11 +127,13 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
                 Resource requestedResource = slingRequestImpl.getResource();
                 String path = requestedResource.getPath();
                 String uri = slingRequestImpl.getRequestURI();
+                final ResourceResolver resourceResolver = slingRequestImpl.getResourceResolver();
 
                 if (releaseMappingAllowed(path, uri)) {
 
                     final String releasedLabel =
                             (String) request.getAttribute(ResourceResolverChangeFilter.ATTR_CPM_RELEASE);
+
 
                     if (StringUtils.isNotBlank(releasedLabel)) {
                         if (LOGGER.isDebugEnabled()) {
@@ -139,37 +142,17 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
 
                         String releaseNumber = StringUtils.removeStart(releasedLabel, "composum-release-");
 
-                        final ResourceResolver resourceResolver = slingRequestImpl.getResourceResolver();
                         try {
-
                             StagingReleaseManager.Release release = releaseManager.findRelease(requestedResource, releaseNumber);
-                            // if we try to cache this method object, we had to synchronize it - so leave it for now
-                            // org.apache.sling.engine.impl.SlingHttpServletRequestImpl.getRequestData()
-                            final Method getRequestData = slingRequestImpl.getClass().getMethod("getRequestData");
-                            final Object requestData = getRequestData.invoke(slingRequestImpl);
-
-                            // if we try to cache this method object, we had to synchronize it - so leave it for now
-                            // org.apache.sling.engine.impl.request.RequestData.initResource(ResourceResolver resourceResolver)
-                            final Method initResource = requestData.getClass()
-                                    .getMethod("initResource", ResourceResolver.class);
                             final ResourceResolver stagingResourceResolver =
                                     releaseManager.getResolverForRelease(release, this, true);
-                            final Object resource = initResource.invoke(requestData, stagingResourceResolver);
                             toClose = stagingResourceResolver;
-
-                            // if we try to cache this method object, we had to synchronize it - so leave it for now
-                            // org.apache.sling.engine.impl.request.RequestData.initServlet(Resource resource, ServletResolver sr)
-                            final Method initServlet = requestData.getClass()
-                                    .getMethod("initServlet", Resource.class, ServletResolver.class);
-                            initServlet.invoke(requestData, resource, servletResolver);
+                            switchResolver(slingRequestImpl, stagingResourceResolver);
 
                             LOGGER.info("ResourceResolver changed to StagingResourceResolver, release: '"
                                     + releaseNumber + "'");
                         } catch (StagingReleaseManager.ReleaseNotFoundException e) {
                             LOGGER.warn("Release {} not found for {}", releaseNumber, path);
-                        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-                            LOGGER.error("can not change ResourceResolver: ", e);
-                            throw new ServletException("can't switch to release '" + releaseNumber + "'");
                         }
 
                     } else {
@@ -181,7 +164,13 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
                                 LOGGER.debug("using version '" + versionNumber + "'...");
                             }
 
-                            // FIXME(hps,2019-05-02) implement version resolver
+                            try {
+                                VersionSelectResourceResolver versionSelectResourceResolver = new VersionSelectResourceResolver(resourceResolver, true, versionNumber);
+                                toClose = versionSelectResourceResolver;
+                                switchResolver(slingRequestImpl, versionSelectResourceResolver);
+                            } catch (RepositoryException e) {
+                                LOGGER.error("Version not found: " + versionNumber, e);
+                            }
                         }
                     }
                 }
@@ -192,6 +181,30 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
         } finally {
             if (toClose != null)
                 toClose.close();
+        }
+    }
+
+    protected void switchResolver(SlingHttpServletRequest slingRequestImpl, ResourceResolver stagingResourceResolver) throws ServletException {
+        try {
+            // if we try to cache this method object, we had to synchronize it - so leave it for now
+            // org.apache.sling.engine.impl.SlingHttpServletRequestImpl.getRequestData()
+            final Method getRequestData = slingRequestImpl.getClass().getMethod("getRequestData");
+            final Object requestData = getRequestData.invoke(slingRequestImpl);
+
+            // if we try to cache this method object, we had to synchronize it - so leave it for now
+            // org.apache.sling.engine.impl.request.RequestData.initResource(ResourceResolver resourceResolver)
+            final Method initResource = requestData.getClass()
+                    .getMethod("initResource", ResourceResolver.class);
+            final Object resource = initResource.invoke(requestData, stagingResourceResolver);
+
+            // if we try to cache this method object, we had to synchronize it - so leave it for now
+            // org.apache.sling.engine.impl.request.RequestData.initServlet(Resource resource, ServletResolver sr)
+            final Method initServlet = requestData.getClass()
+                    .getMethod("initServlet", Resource.class, ServletResolver.class);
+            initServlet.invoke(requestData, resource, servletResolver);
+        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+            LOGGER.error("can not change ResourceResolver: ", e);
+            throw new ServletException("Error switching ResourceResolver");
         }
     }
 

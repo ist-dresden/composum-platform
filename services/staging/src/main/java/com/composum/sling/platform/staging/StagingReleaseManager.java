@@ -39,7 +39,7 @@ import java.util.Map;
  * </pre>
  * <p>We also set a label {@link Release#getReleaseLabel()} on each version contained in the release,
  * for easier referencing versions. </p>
- * // FIXME hps 2019-04-05 introduce open / immutable release state
+ * // TODO hps 2019-04-05 introduce open / immutable release state
  */
 public interface StagingReleaseManager {
 

@@ -9,23 +9,23 @@ import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
 import com.composum.sling.platform.staging.query.QueryBuilder;
 import com.composum.sling.platform.staging.query.impl.QueryBuilderAdapterFactory;
-import com.composum.sling.platform.staging.query.impl.QueryBuilderImpl;
 import com.composum.sling.platform.testing.testutil.AnnotationWithDefaults;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
+import com.google.common.base.Function;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
-import org.apache.sling.api.adapter.AdapterFactory;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
-import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.hamcrest.ResourceMatchers;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
-import org.junit.*;
-import org.junit.runners.MethodSorters;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -37,8 +37,6 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
-import com.google.common.base.Function;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
@@ -50,7 +48,6 @@ import static org.hamcrest.Matchers.*;
 /**
  * Tests for {@link DefaultStagingReleaseManager}.
  */
-@FixMethodOrder(value = MethodSorters.NAME_ASCENDING)
 public class DefaultStagingReleaseManagerTest extends Assert implements StagingConstants {
 
     // wee need JCR_OAK for the node type handling - check protected properties etc.

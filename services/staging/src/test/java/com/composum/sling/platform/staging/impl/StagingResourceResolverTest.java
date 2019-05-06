@@ -14,21 +14,23 @@ import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
-import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.sling.api.resource.*;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.hamcrest.Matchers;
-import org.junit.*;
-import org.junit.runners.MethodSorters;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
 import org.slf4j.Logger;
 
 import javax.jcr.*;
-import javax.jcr.nodetype.NodeType;
 import javax.jcr.version.Version;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
@@ -46,7 +48,6 @@ import static org.slf4j.LoggerFactory.getLogger;
 /**
  * Tests for {@link StagingResourceResolver}.
  */
-@FixMethodOrder(value = MethodSorters.NAME_ASCENDING)
 public class StagingResourceResolverTest extends AbstractStagingTest {
 
     private static final Logger LOG = getLogger(StagingResourceResolverTest.class);
