@@ -109,6 +109,10 @@ public class VersionSelectResourceResolver extends AbstractStagingResourceResolv
                 String requiredVersionUuid = historyToVersion.get(versionHistoryUuid);
                 try {
                     Resource version = ResourceUtil.getByUuid(underlyingResolver, requiredVersionUuid);
+                    if (version == null) {
+                        LOG.error("Version {} does not found for {}", requiredVersionUuid, versionHistoryUuid);
+                        return null;
+                    }
                     String actualVersionHistoryUuid = version.getParent().getValueMap().get(JCR_UUID, String.class);
                     if (!versionHistoryUuid.equals(actualVersionHistoryUuid)) {
                         LOG.error("Version {} does not belong to {} but to {}", requiredVersionUuid, versionHistoryUuid, actualVersionHistoryUuid);
