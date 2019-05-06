@@ -33,6 +33,9 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /** This is a thin servlet making the {@link PlatformVersionsService} accessible - see there for description of the operations. */
 @Component(service = Servlet.class,
@@ -45,6 +48,9 @@ import java.util.Calendar;
 public class PlatformVersionsServlet extends AbstractServiceServlet {
 
     private static final Logger LOG = LoggerFactory.getLogger(PlatformVersionsServlet.class);
+
+    public static final String PARAM_PAGE_REFS = "pageRef[]";
+    public static final String PARAM_ASSET_REFS = "assetRef[]";
 
     @Reference
     protected PlatformVersionsService versionsService;
@@ -137,6 +143,14 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST, msg);
             }
         }
+
+        protected Set<String> addParameter(Set<String> set, SlingHttpServletRequest request, String name) {
+            String[] values = request.getParameterValues(name);
+            if (values != null) {
+                Collections.addAll(set, values);
+            }
+            return set;
+        }
     }
 
     //
@@ -185,7 +199,8 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                               @Nonnull final Resource versionable, @Nullable final String releaseKey)
                 throws RepositoryException, IOException {
             String versionUuid = StringUtils.defaultIfBlank(request.getParameter("versionUuid"), null);
-            versionsService.activate(versionable, releaseKey, versionUuid);
+            Set<String> references = addParameter(addParameter(new HashSet<>(), request, PARAM_PAGE_REFS), request, PARAM_ASSET_REFS);
+            versionsService.activate(versionable, releaseKey, versionUuid); // FIXME: 2019-05-06 add references
             request.getResourceResolver().commit();
             writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
         }
@@ -198,7 +213,8 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                               @Nonnull final SlingHttpServletResponse response,
                               @Nonnull final Resource versionable, @Nullable final String releaseKey)
                 throws RepositoryException, IOException {
-            versionsService.deactivate(versionable, releaseKey);
+            Set<String> referrers = addParameter(new HashSet<>(), request, PARAM_PAGE_REFS);
+            versionsService.deactivate(versionable, releaseKey); // FIXME: 2019-05-06 add referrers
             request.getResourceResolver().commit();
             writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
         }
