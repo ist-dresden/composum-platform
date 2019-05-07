@@ -156,20 +156,20 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
                         }
 
                     } else {
-                        final String versionNumber =
+                        final String versionId =
                                 (String) request.getAttribute(ResourceResolverChangeFilter.ATTR_CPM_VERSION);
 
-                        if (StringUtils.isNotBlank(versionNumber)) {
+                        if (StringUtils.isNotBlank(versionId)) {
                             if (LOGGER.isDebugEnabled()) {
-                                LOGGER.debug("using version '" + versionNumber + "'...");
+                                LOGGER.debug("using version '" + versionId + "'...");
                             }
 
                             try {
-                                VersionSelectResourceResolver versionSelectResourceResolver = new VersionSelectResourceResolver(resourceResolver, true, versionNumber);
+                                VersionSelectResourceResolver versionSelectResourceResolver = new VersionSelectResourceResolver(resourceResolver, true, versionId);
                                 toClose = versionSelectResourceResolver;
                                 switchResolver(slingRequestImpl, versionSelectResourceResolver);
                             } catch (RepositoryException e) {
-                                LOGGER.error("Version not found: " + versionNumber, e);
+                                LOGGER.error("Version not found: " + versionId, e);
                             }
                         }
                     }
