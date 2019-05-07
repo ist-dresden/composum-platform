@@ -1,6 +1,9 @@
 package com.composum.platform.models.htl;
 
+import com.composum.sling.core.util.ServiceHandle;
+import com.composum.sling.core.util.XSS;
 import com.composum.sling.cpnl.TextTag;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.scripting.SlingBindings;
 import org.apache.sling.api.scripting.SlingScript;
@@ -8,10 +11,13 @@ import org.apache.sling.api.scripting.SlingScriptHelper;
 import org.apache.sling.commons.classloader.DynamicClassLoaderManager;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
+import org.apache.sling.xss.XSSFilter;
+import org.apache.sling.xss.impl.XSSAPIImpl;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.reflections.ReflectionUtils;
 import org.slf4j.Logger;
 
 import javax.script.Bindings;
@@ -58,6 +64,10 @@ public class TagHtlAdapterTest {
         stringWriter = new StringWriter();
         writer = new PrintWriter(stringWriter);
         bindings.put(SlingBindings.OUT, writer);
+
+        context.registerService(XSSFilter.class, Mockito.mock(XSSFilter.class));
+        ServiceHandle xssapihandle = (ServiceHandle) FieldUtils.readStaticField(com.composum.sling.core.util.XSS.class, "XSSAPI_HANDLE", true);
+        FieldUtils.writeField(xssapihandle, "service", context.registerInjectActivateService(new XSSAPIImpl()), true);
 
         context.registerService(DynamicClassLoaderManager.class, new DynamicClassLoaderManager() {
             @Override
