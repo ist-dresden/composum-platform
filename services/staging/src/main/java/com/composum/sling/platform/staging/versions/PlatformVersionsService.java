@@ -13,6 +13,7 @@ import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -100,15 +101,33 @@ public interface PlatformVersionsService {
      * Puts the latest content (or a specified version) of the document into the release.
      * If no version is given, we automatically {@link javax.jcr.version.VersionManager#checkpoint(String)} the versionable
      * if it was modified, and use the latest version of it.
+     * <p>
+     * Caution: since this may do a checkpoint, it needs a clean resolver before calling.
      *
-     * @param versionable the path to a versionable
      * @param releaseKey  a release number or null for the {@link #getDefaultRelease(Resource)}.
+     * @param versionable the path to a versionable
      * @param versionUuid optionally, a previous version of the document that is
      * @return information about the activation
      */
     @Nonnull
-    ActivationResult activate(@Nonnull Resource versionable, @Nullable String releaseKey, @Nullable String versionUuid)
+    ActivationResult activate(@Nullable String releaseKey, @Nonnull Resource versionable, @Nullable String versionUuid)
             throws PersistenceException, RepositoryException;
+
+    /**
+     * Puts the latest content of a couple of documents into the release.
+     * We automatically {@link javax.jcr.version.VersionManager#checkpoint(String)} each versionables
+     * if it was modified, and use the latest version of it.
+     * <p>
+     * Caution: since this may do a checkpoint, it needs a clean resolver before calling.
+     *
+     * @param releaseKey   a release number or null for the {@link #getDefaultRelease(Resource)}.
+     * @param versionables a number of versionables which are possibly checkpointed and then activated simultaneously
+     * @return information about the activation
+     */
+    @Nonnull
+    ActivationResult activate(@Nullable String releaseKey, @Nonnull List<Resource> versionables)
+            throws PersistenceException, RepositoryException;
+
 
     /** Sets the document to "deactivated" - it is marked as not present in the release anymore. */
     void deactivate(@Nonnull Resource versionable, @Nullable String releaseKey)

@@ -202,7 +202,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                 throws RepositoryException, IOException {
             String versionUuid = StringUtils.defaultIfBlank(request.getParameter("versionUuid"), null);
             Set<String> references = addParameter(addParameter(new HashSet<>(), request, PARAM_PAGE_REFS), request, PARAM_ASSET_REFS);
-            PlatformVersionsService.ActivationResult result = versionsService.activate(versionable, releaseKey, versionUuid);
+            PlatformVersionsService.ActivationResult result = versionsService.activate(releaseKey, versionable, versionUuid);
             for (String referencedPath : references) {
                 Resource reference = versionable.getResourceResolver().getResource(referencedPath);
                 if (reference == null) {
@@ -211,7 +211,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                     response.sendError(HttpServletResponse.SC_BAD_REQUEST, msg);
                     return;
                 }
-                result = result.merge(versionsService.activate(reference, releaseKey, null));
+                result = result.merge(versionsService.activate(releaseKey, reference, null));
             }
             request.getResourceResolver().commit();
             writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);

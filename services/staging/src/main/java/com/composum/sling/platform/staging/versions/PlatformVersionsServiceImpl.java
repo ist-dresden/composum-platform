@@ -101,7 +101,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     @Nonnull
     @Override
-    public ActivationResult activate(@Nonnull Resource rawVersionable, @Nullable String releaseKey, @Nullable String versionUuid) throws PersistenceException, RepositoryException {
+    public ActivationResult activate(@Nullable String releaseKey, @Nonnull Resource rawVersionable, @Nullable String versionUuid) throws PersistenceException, RepositoryException {
         LOG.info("Requested activation {} in {} to {}", getPath(rawVersionable), releaseKey, versionUuid);
         Map<String, SiblingOrderUpdateStrategy.Result> result = null;
         ResourceHandle versionable = normalizeVersionable(rawVersionable);
@@ -123,6 +123,22 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             LOG.info("Already activated in {} : {}", status.release().getNumber(), getPath(rawVersionable));
         }
         return new ActivationResult(result);
+    }
+
+    @Nonnull
+    @Override
+    public ActivationResult activate(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException {
+        ActivationResult result = new ActivationResult(null);
+        List<Resource> normalizedCheckedinVersionables = new ArrayList<>();
+        for (Resource rawVersionable : versionables) {
+            ResourceHandle versionable = normalizeVersionable(rawVersionable);
+            maybeCheckpoint(versionable);
+            normalizedCheckedinVersionables.add(versionable);
+        }
+        for (Resource versionable : normalizedCheckedinVersionables) {
+            result = result.merge(activate(releaseKey, versionable, null));
+        }
+        return result;
     }
 
     /** Checks whether the last modification date is later than the last checkin date. */
