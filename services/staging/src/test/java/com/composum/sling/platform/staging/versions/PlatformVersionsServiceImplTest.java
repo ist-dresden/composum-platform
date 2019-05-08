@@ -14,12 +14,10 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.SyntheticResource;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.regex.Pattern;
 
 import static com.composum.sling.core.util.CoreConstants.*;
@@ -153,7 +151,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         errorCollector.checkThat(status.getLastDeactivatedBy(), nullValue());
         errorCollector.checkThat(status.getLastDeactivated(), nullValue());
 
-        service.deactivate(versionable, null);
+        service.deactivate(null, versionable);
         context.resourceResolver().commit();
 
         status = service.getStatus(versionable, null);

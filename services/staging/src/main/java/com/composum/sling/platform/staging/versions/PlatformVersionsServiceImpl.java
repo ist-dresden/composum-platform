@@ -102,7 +102,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     @Nonnull
     @Override
     public ActivationResult activate(@Nullable String releaseKey, @Nonnull Resource rawVersionable, @Nullable String versionUuid) throws PersistenceException, RepositoryException {
-        LOG.info("Requested activation {} in {} to {}", getPath(rawVersionable), releaseKey, versionUuid);
+        LOG.info("Requested activation {} in release {} to version {}", getPath(rawVersionable), releaseKey, versionUuid);
         Map<String, SiblingOrderUpdateStrategy.Result> result = null;
         ResourceHandle versionable = normalizeVersionable(rawVersionable);
         maybeCheckpoint(versionable);
@@ -118,9 +118,9 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             status = getStatus(versionable, releaseKey);
             Validate.isTrue(status.getVersionReference().isValid());
             Validate.isTrue(status.getActivationState() == ActivationState.activated, "Bug: not active after activation: %s", status);
-            LOG.info("Activated {} in {} to {}", getPath(rawVersionable), status.release().getNumber(), status.currentVersionableInfo().getVersionUuid());
+            LOG.info("Activated {} in release {} to version {}", getPath(rawVersionable), status.release().getNumber(), status.currentVersionableInfo().getVersionUuid());
         } else {
-            LOG.info("Already activated in {} : {}", status.release().getNumber(), getPath(rawVersionable));
+            LOG.info("Already activated in release {} : {}", status.release().getNumber(), getPath(rawVersionable));
         }
         return new ActivationResult(result);
     }
@@ -159,7 +159,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     }
 
     @Override
-    public void deactivate(@Nonnull Resource versionable, @Nullable String releaseKey) throws PersistenceException, RepositoryException {
+    public void deactivate(@Nullable String releaseKey, @Nonnull Resource versionable) throws PersistenceException, RepositoryException {
         LOG.info("Requested deactivation {} in {}", getPath(versionable), releaseKey);
         StatusImpl status = (StatusImpl) getStatus(versionable, releaseKey);
         switch (status.getActivationState()) {
@@ -174,6 +174,12 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 LOG.info("Not deactivating in " + status.release().getNumber() + " since not active: " + versionable);
             default:
         }
+    }
+
+    @Override
+    public void deactivate(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException {
+        for (Resource versionable : versionables)
+            deactivate(releaseKey, versionable);
     }
 
     /**

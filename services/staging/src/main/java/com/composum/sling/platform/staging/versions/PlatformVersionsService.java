@@ -35,7 +35,7 @@ public interface PlatformVersionsService {
          * wrt. to the last activation, as well as a different version.
          */
         modified,
-        /** Deactivated (originally present but later removed ({@link #deactivate(Resource, String)}) from release. */
+        /** Deactivated (originally present but later removed ({@link #deactivate(String, Resource)}) from release. */
         deactivated
     }
 
@@ -130,7 +130,11 @@ public interface PlatformVersionsService {
 
 
     /** Sets the document to "deactivated" - it is marked as not present in the release anymore. */
-    void deactivate(@Nonnull Resource versionable, @Nullable String releaseKey)
+    void deactivate(@Nullable String releaseKey, @Nonnull Resource versionable)
+            throws PersistenceException, RepositoryException;
+
+    /** Sets the documents to "deactivated" - it is marked as not present in the release anymore. */
+    void deactivate(@Nullable String releaseKey, @Nonnull List<Resource> versionables)
             throws PersistenceException, RepositoryException;
 
     /** Deletes old versions of the versionable - only versions in releases and after the last version which is in a release are kept. */

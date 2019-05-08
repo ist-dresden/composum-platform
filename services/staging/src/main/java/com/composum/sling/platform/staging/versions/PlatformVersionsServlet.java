@@ -32,10 +32,7 @@ import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /** This is a thin servlet making the {@link PlatformVersionsService} accessible - see there for description of the operations. */
 @Component(service = Servlet.class,
@@ -146,6 +143,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
             }
         }
 
+        @Nonnull
         protected Set<String> addParameter(Set<String> set, SlingHttpServletRequest request, String name) {
             String[] values = request.getParameterValues(name);
             if (values != null) {
@@ -202,16 +200,29 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                 throws RepositoryException, IOException {
             String versionUuid = StringUtils.defaultIfBlank(request.getParameter("versionUuid"), null);
             Set<String> references = addParameter(addParameter(new HashSet<>(), request, PARAM_PAGE_REFS), request, PARAM_ASSET_REFS);
-            PlatformVersionsService.ActivationResult result = versionsService.activate(releaseKey, versionable, versionUuid);
-            for (String referencedPath : references) {
-                Resource reference = versionable.getResourceResolver().getResource(referencedPath);
-                if (reference == null) {
-                    String msg = "Reference to activate not found: " + referencedPath;
+            PlatformVersionsService.ActivationResult result;
+            if (StringUtils.isNotBlank(versionUuid)) {
+                if (references.size() > 0) { // we have no method that takes both a versionUuid and references. Implement if needed.
+                    String msg = "Version uuid given *and* additional referred pages. That does not (yet) supported";
                     LOG.error(msg);
                     response.sendError(HttpServletResponse.SC_BAD_REQUEST, msg);
                     return;
                 }
-                result = result.merge(versionsService.activate(releaseKey, reference, null));
+                result = versionsService.activate(releaseKey, versionable, versionUuid);
+            } else {
+                List<Resource> toActivate = new ArrayList<>();
+                toActivate.add(versionable);
+                for (String referencedPath : references) {
+                    Resource reference = versionable.getResourceResolver().getResource(referencedPath);
+                    if (reference == null) {
+                        String msg = "Reference to activate not found: " + referencedPath;
+                        LOG.error(msg);
+                        response.sendError(HttpServletResponse.SC_BAD_REQUEST, msg);
+                        return;
+                    }
+                    toActivate.add(reference);
+                }
+                result = versionsService.activate(releaseKey, toActivate);
             }
             request.getResourceResolver().commit();
             writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
@@ -226,7 +237,8 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                               @Nonnull final Resource versionable, @Nullable final String releaseKey)
                 throws RepositoryException, IOException {
             Set<String> referrers = addParameter(new HashSet<>(), request, PARAM_PAGE_REFS);
-            versionsService.deactivate(versionable, releaseKey);
+            List<Resource> toDeactivate = new ArrayList<>();
+            toDeactivate.add(versionable);
             for (String referrerPath : referrers) {
                 Resource referrer = versionable.getResourceResolver().getResource(referrerPath);
                 if (referrer == null) {
@@ -235,9 +247,9 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                     response.sendError(HttpServletResponse.SC_BAD_REQUEST, msg);
                     return;
                 }
-                versionsService.deactivate(referrer, releaseKey);
+                toDeactivate.add(referrer);
             }
-            request.getResourceResolver().commit();
+            versionsService.deactivate(releaseKey, toDeactivate);
             request.getResourceResolver().commit();
             writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
         }
