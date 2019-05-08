@@ -381,11 +381,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         Map<String, Result> result = new TreeMap<>();
         for (ReleasedVersionable releasedVersionable : releasedVersionableList) {
             Map<String, Result> partialResult = updateRelease(release, releasedVersionable);
-            for (Map.Entry<String, Result> entry : partialResult.entrySet()) {
-                Result oldResult = result.get(entry.getKey());
-                Result combinedResult = Result.max(oldResult, entry.getValue());
-                result.put(entry.getKey(), combinedResult);
-            }
+            result = Result.combine(result, partialResult);
         }
         return result;
     }

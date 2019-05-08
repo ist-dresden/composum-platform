@@ -12,6 +12,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -103,11 +104,10 @@ public interface PlatformVersionsService {
      * @param versionable the path to a versionable
      * @param releaseKey  a release number or null for the {@link #getDefaultRelease(Resource)}.
      * @param versionUuid optionally, a previous version of the document that is
-     * @return a map with paths where we changed the order of children in the release.
-     * @throws PersistenceException
-     * @throws RepositoryException
+     * @return information about the activation
      */
-    Map<String, SiblingOrderUpdateStrategy.Result> activate(@Nonnull Resource versionable, @Nullable String releaseKey, @Nullable String versionUuid)
+    @Nonnull
+    ActivationResult activate(@Nonnull Resource versionable, @Nullable String releaseKey, @Nullable String versionUuid)
             throws PersistenceException, RepositoryException;
 
     /** Sets the document to "deactivated" - it is marked as not present in the release anymore. */
@@ -120,6 +120,7 @@ public interface PlatformVersionsService {
 
     /**
      * Returns a {@link ResourceFilter} that accepts resources contained in a release. Outside of the release root it just takes the current contet.
+     *
      * @param resourceInRelease some resource below a release root, used to find the release root
      * @param releaseKey        a release number or null for the {@link #getDefaultRelease(Resource)}.
      * @param releaseMapper     a {@link ReleaseMapper} that determines what is taken from the release, and what from the current content
@@ -128,4 +129,29 @@ public interface PlatformVersionsService {
     @Nonnull
     ResourceFilter releaseAsResourceFilter(@Nonnull Resource resourceInRelease, @Nullable String releaseKey,
                                            @Nullable ReleaseMapper releaseMapper);
+
+    /** Can be used to inform the user about the results of an activation. */
+    class ActivationResult {
+        private final Map<String, SiblingOrderUpdateStrategy.Result> changedPathsInfo;
+
+        public ActivationResult(@Nullable Map<String, SiblingOrderUpdateStrategy.Result> changedPathsInfo) {
+            this.changedPathsInfo = changedPathsInfo != null ? changedPathsInfo : Collections.emptyMap();
+        }
+
+        public ActivationResult merge(ActivationResult other) {
+            return new ActivationResult(SiblingOrderUpdateStrategy.Result.combine(changedPathsInfo, other.getChangedPathsInfo()));
+        }
+
+        /** A map with paths where we changed the order of children in the release. */
+        @Nonnull
+        public Map<String, SiblingOrderUpdateStrategy.Result> getChangedPathsInfo() {
+            return changedPathsInfo;
+        }
+
+        @Override
+        public String toString() {
+            return "ActivationResult(" + changedPathsInfo + ")";
+        }
+    }
+
 }

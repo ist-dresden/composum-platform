@@ -1,6 +1,7 @@
 package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.platform.staging.ReleasedVersionable;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -61,6 +62,18 @@ public class SiblingOrderUpdateStrategy {
             int i1 = Arrays.asList(Result.values()).indexOf(r1);
             int i2 = Arrays.asList(Result.values()).indexOf(r2);
             return Result.values()[Math.max(i1, i2)];
+        }
+
+        /** Combines two result maps by applying {@link #max(Result, Result)} if needed. */
+        public static Map<String, Result> combine(Map<String, Result> partialResult1, Map<String, Result> partialResult2) {
+            Map<String, Result> result = new TreeMap<>();
+            result.putAll(partialResult1);
+            for (Map.Entry<String, Result> entry : partialResult2.entrySet()) {
+                Result oldResult = result.get(entry.getKey());
+                Result combinedResult = Result.max(oldResult, entry.getValue());
+                result.put(entry.getKey(), combinedResult);
+            }
+            return result;
         }
     }
 

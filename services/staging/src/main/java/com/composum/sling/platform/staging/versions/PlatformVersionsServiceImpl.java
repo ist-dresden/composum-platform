@@ -89,6 +89,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         throw new IllegalArgumentException("Not a versionable nor something with a versionable " + CONTENT_NODE + " : " + getPath(versionable));
     }
 
+    @Nonnull
     @Override
     public StatusImpl getStatus(@Nonnull Resource rawVersionable, @Nullable String releaseKey) throws PersistenceException, RepositoryException {
         ResourceHandle versionable = normalizeVersionable(rawVersionable);
@@ -98,8 +99,9 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         return new StatusImpl(release, current, released);
     }
 
+    @Nonnull
     @Override
-    public Map<String, SiblingOrderUpdateStrategy.Result> activate(@Nonnull Resource rawVersionable, @Nullable String releaseKey, @Nullable String versionUuid) throws PersistenceException, RepositoryException {
+    public ActivationResult activate(@Nonnull Resource rawVersionable, @Nullable String releaseKey, @Nullable String versionUuid) throws PersistenceException, RepositoryException {
         LOG.info("Requested activation {} in {} to {}", getPath(rawVersionable), releaseKey, versionUuid);
         Map<String, SiblingOrderUpdateStrategy.Result> result = null;
         ResourceHandle versionable = normalizeVersionable(rawVersionable);
@@ -120,7 +122,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         } else {
             LOG.info("Already activated in {} : {}", status.release().getNumber(), getPath(rawVersionable));
         }
-        return result;
+        return new ActivationResult(result);
     }
 
     /** Checks whether the last modification date is later than the last checkin date. */

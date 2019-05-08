@@ -4,7 +4,6 @@ import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
-import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.sling.api.resource.ModifiableValueMap;
@@ -16,17 +15,13 @@ import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
 import org.hamcrest.Matchers;
 import org.junit.Before;
-import org.junit.FixMethodOrder;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runners.MethodSorters;
 import org.slf4j.Logger;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
-import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
-
 import java.util.Collections;
 
 import static org.hamcrest.Matchers.nullValue;
