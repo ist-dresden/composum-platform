@@ -49,7 +49,9 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
 
     private static final Logger LOG = LoggerFactory.getLogger(PlatformVersionsServlet.class);
 
+    /** An array of page references or referrers which should simultaneously be activated / deactivated. */
     public static final String PARAM_PAGE_REFS = "pageRef[]";
+    /** An array of assets which should simultaneously be activated / deactivated. */
     public static final String PARAM_ASSET_REFS = "assetRef[]";
 
     @Reference
@@ -200,7 +202,17 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                 throws RepositoryException, IOException {
             String versionUuid = StringUtils.defaultIfBlank(request.getParameter("versionUuid"), null);
             Set<String> references = addParameter(addParameter(new HashSet<>(), request, PARAM_PAGE_REFS), request, PARAM_ASSET_REFS);
-            versionsService.activate(versionable, releaseKey, versionUuid); // FIXME: 2019-05-06 add references
+            PlatformVersionsService.ActivationResult result = versionsService.activate(versionable, releaseKey, versionUuid);
+            for (String referencedPath : references) {
+                Resource reference = versionable.getResourceResolver().getResource(referencedPath);
+                if (reference == null) {
+                    String msg = "Reference to activate not found: " + referencedPath;
+                    LOG.error(msg);
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, msg);
+                    return;
+                }
+                result = result.merge(versionsService.activate(reference, releaseKey, null));
+            }
             request.getResourceResolver().commit();
             writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
         }
@@ -214,7 +226,18 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                               @Nonnull final Resource versionable, @Nullable final String releaseKey)
                 throws RepositoryException, IOException {
             Set<String> referrers = addParameter(new HashSet<>(), request, PARAM_PAGE_REFS);
-            versionsService.deactivate(versionable, releaseKey); // FIXME: 2019-05-06 add referrers
+            versionsService.deactivate(versionable, releaseKey);
+            for (String referrerPath : referrers) {
+                Resource referrer = versionable.getResourceResolver().getResource(referrerPath);
+                if (referrer == null) {
+                    String msg = "Referrer to deactivate not found: " + referrerPath;
+                    LOG.error(msg);
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, msg);
+                    return;
+                }
+                versionsService.deactivate(referrer, releaseKey);
+            }
+            request.getResourceResolver().commit();
             request.getResourceResolver().commit();
             writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
         }
