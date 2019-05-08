@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
+import org.apache.sling.api.SlingException;
 import org.apache.sling.api.resource.*;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.*;
@@ -194,20 +195,24 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Nonnull
     @Override
-    public List<ReleasedVersionable> listReleaseContents(@Nonnull Release rawRelease) throws RepositoryException {
+    public List<ReleasedVersionable> listReleaseContents(@Nonnull Release rawRelease) {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         List<ReleasedVersionable> result = new ArrayList<>();
         Resource releaseWorkspaceCopy = requireNonNull(release.getReleaseNode().getChild(NODE_RELEASE_ROOT));
         Query query = release.getReleaseRoot().getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
         query.path(releaseWorkspaceCopy.getPath()).type(TYPE_VERSIONREFERENCE);
-        for (Resource versionReference : query.execute())
-            result.add(ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference));
+        try {
+            for (Resource versionReference : query.execute())
+                result.add(ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference));
+        } catch (RepositoryException e) { // rewrap that, since it's very unlikely
+            throw new SlingException("Unexpected error executing query " + query, e);
+        }
         return result;
     }
 
     @Nonnull
     @Override
-    public List<ReleasedVersionable> listCurrentContents(@Nonnull Resource resource) throws RepositoryException {
+    public List<ReleasedVersionable> listCurrentContents(@Nonnull Resource resource) {
         Resource root = requireNonNull(findReleaseRoot(resource));
         ensureCurrentRelease(ResourceHandle.use(root));
         String ignoredReleaseConfigurationPath = root.getChild(CONTENT_NODE).getPath();
@@ -216,16 +221,20 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         query.path(root.getPath()).type(TYPE_VERSIONABLE);
 
         List<ReleasedVersionable> result = new ArrayList<>();
-        for (Resource versionable : query.execute()) {
-            if (!SlingResourceUtil.isSameOrDescendant(ignoredReleaseConfigurationPath, versionable.getPath()))
-                result.add(ReleasedVersionable.forBaseVersion(versionable));
+        try {
+            for (Resource versionable : query.execute()) {
+                if (!SlingResourceUtil.isSameOrDescendant(ignoredReleaseConfigurationPath, versionable.getPath()))
+                    result.add(ReleasedVersionable.forBaseVersion(versionable));
+            }
+        } catch (RepositoryException e) { // rewrap that, since it's very unlikely
+            throw new SlingException("Unexpected error executing query " + query, e);
         }
         return result;
     }
 
     @Nullable
     @Override
-    public ReleasedVersionable findReleasedVersionableByUuid(@Nonnull Release rawRelease, @Nonnull String versionHistoryUuid) throws RepositoryException {
+    public ReleasedVersionable findReleasedVersionableByUuid(@Nonnull Release rawRelease, @Nonnull String versionHistoryUuid) {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         Resource releaseWorkspaceCopy = release.getWorkspaceCopyNode();
 
@@ -234,15 +243,18 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 query.conditionBuilder().property(PROP_VERSIONHISTORY).eq().val(versionHistoryUuid)
         );
 
-        Iterator<Resource> versionReferences = query.execute().iterator();
-        Resource versionReference = versionReferences.hasNext() ? versionReferences.next() : null;
-
-        return versionReference != null ? ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference) : null;
+        try {
+            Iterator<Resource> versionReferences = query.execute().iterator();
+            Resource versionReference = versionReferences.hasNext() ? versionReferences.next() : null;
+            return versionReference != null ? ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference) : null;
+        } catch (RepositoryException e) { // rewrap that, since it's very unlikely
+            throw new SlingException("Unexpected error executin query", e);
+        }
     }
 
     @Nullable
     @Override
-    public ReleasedVersionable findReleasedVersionable(@Nonnull Release rawRelease, @Nonnull Resource versionable) throws RepositoryException {
+    public ReleasedVersionable findReleasedVersionable(@Nonnull Release rawRelease, @Nonnull Resource versionable) {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         String expectedPath = release.mapToContentCopy(versionable.getPath());
         ReleasedVersionable currentVersionable = ReleasedVersionable.forBaseVersion(versionable);

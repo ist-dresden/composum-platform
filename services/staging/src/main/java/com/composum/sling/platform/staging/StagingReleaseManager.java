@@ -111,7 +111,7 @@ public interface StagingReleaseManager {
 
     /** Gives information about a releases contents. Caution: this finds only committed content. */
     @Nonnull
-    List<ReleasedVersionable> listReleaseContents(@Nonnull Release release) throws RepositoryException;
+    List<ReleasedVersionable> listReleaseContents(@Nonnull Release release);
 
     /**
      * Lists the current content (using {@link ReleasedVersionable#forBaseVersion(Resource)}). Caution: this finds only committed content.
@@ -119,7 +119,7 @@ public interface StagingReleaseManager {
      * @param resource a release root or its subnodes
      */
     @Nonnull
-    List<ReleasedVersionable> listCurrentContents(@Nonnull Resource resource) throws RepositoryException;
+    List<ReleasedVersionable> listCurrentContents(@Nonnull Resource resource);
 
     /**
      * Looks up whether a versionable is present in the release. Caution: this finds only committed content.
@@ -137,7 +137,7 @@ public interface StagingReleaseManager {
      * @return the information about the item in the release, if it is present
      */
     @Nullable
-    ReleasedVersionable findReleasedVersionable(@Nonnull Release release, @Nonnull Resource versionable) throws RepositoryException;
+    ReleasedVersionable findReleasedVersionable(@Nonnull Release release, @Nonnull Resource versionable);
 
     /**
      * Updates the release by adding or updating the versionable denoted by {releasedVersionable} in the release.

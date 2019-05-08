@@ -122,5 +122,5 @@ public interface PlatformVersionsService {
      * @return a {@link ResourceFilter} that returns true for resources contained in the release
      */
     @Nonnull
-    ResourceFilter releaseVersionablesAsResourceFilter(@Nonnull Resource resourceInRelease, @Nullable String releaseKey) throws RepositoryException;
+    ResourceFilter releaseVersionablesAsResourceFilter(@Nonnull Resource resourceInRelease, @Nullable String releaseKey);
 }

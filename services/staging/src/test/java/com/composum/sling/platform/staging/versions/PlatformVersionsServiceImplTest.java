@@ -88,7 +88,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
                     filter.accept(new SyntheticResource(context.resourceResolver(), path, TYPE_UNSTRUCTURED)), is(true));
         }
 
-        for (String path : Arrays.asList("/", "/content/release", "/content/release/sub/document2/nix",
+        for (String path : Arrays.asList("/", "/content/release", "/content/release/sub/document2/nix", "/content/release/sub",
                 nocontentnode.getParent().getPath())) {
             errorCollector.checkThat("for path " + path,
                     filter.accept(new SyntheticResource(context.resourceResolver(), path, TYPE_UNSTRUCTURED)), is(false));

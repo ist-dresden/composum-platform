@@ -197,7 +197,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
      */
     @Nonnull
     @Override
-    public ResourceFilter releaseVersionablesAsResourceFilter(@Nonnull Resource resourceInRelease, @Nullable String releaseKey) throws RepositoryException {
+    public ResourceFilter releaseVersionablesAsResourceFilter(@Nonnull Resource resourceInRelease, @Nullable String releaseKey) {
         StagingReleaseManager.Release release = getRelease(resourceInRelease, releaseKey);
         List<ReleasedVersionable> releaseContents = releaseManager.listReleaseContents(release);
         StringBuilder buf = new StringBuilder();
