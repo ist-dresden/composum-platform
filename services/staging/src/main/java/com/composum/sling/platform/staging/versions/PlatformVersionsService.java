@@ -1,5 +1,6 @@
 package com.composum.sling.platform.staging.versions;
 
+import com.composum.sling.core.filter.ResourceFilter;
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
@@ -115,4 +116,11 @@ public interface PlatformVersionsService {
     void purgeVersions(@Nonnull Resource versionable)
             throws PersistenceException, RepositoryException;
 
+    /**
+     * @param resourceInRelease some resource below a release root, used to find the release root
+     * @param releaseKey        a release number or null for the {@link #getDefaultRelease(Resource)}.
+     * @return a {@link ResourceFilter} that returns true for resources contained in the release
+     */
+    @Nonnull
+    ResourceFilter releaseVersionablesAsResourceFilter(@Nonnull Resource resourceInRelease, @Nullable String releaseKey) throws RepositoryException;
 }

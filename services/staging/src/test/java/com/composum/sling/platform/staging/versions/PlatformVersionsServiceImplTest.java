@@ -1,8 +1,9 @@
 package com.composum.sling.platform.staging.versions;
 
-import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.core.filter.ResourceFilter;
 import com.composum.sling.platform.security.AccessMode;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
+import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
 import com.composum.sling.platform.staging.impl.AbstractStagingTest;
@@ -12,12 +13,14 @@ import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrinting
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.SyntheticResource;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.util.Calendar;
+import java.util.Arrays;
+import java.util.regex.Pattern;
 
 import static com.composum.sling.core.util.CoreConstants.*;
 import static com.composum.sling.platform.staging.StagingConstants.CURRENT_RELEASE;
@@ -59,8 +62,37 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         builderAtRelease = context.build().resource(release, PROP_PRIMARY_TYPE, TYPE_SLING_ORDERED_FOLDER,
                 PROP_MIXINTYPES, array(TYPE_MIX_RELEASE_ROOT)).commit();
         document1 = release + "/" + "document1";
-        node1version = makeNode(builderAtRelease, "document1", "n1/something", true, true, "3 third title");
+        node1version = makeNode(builderAtRelease, "document1", "n1/something", true, true, "n1 title");
         versionable = context.resourceResolver().getResource(document1).getChild(CONTENT_NODE);
+    }
+
+    @Test
+    public void releaseVersionablesAsResourceFilter() throws Exception {
+        errorCollector.checkThat(Pattern.compile(""), notNullValue());
+        makeNode(builderAtRelease, "sub/document2", "n2/foo", true, true, "foo");
+        Resource nocontentnode = builderAtRelease.resource("other/versionedwithoutcontentnode", PROP_PRIMARY_TYPE,
+                TYPE_UNSTRUCTURED, PROP_MIXINTYPES, new String[]{TYPE_VERSIONABLE, TYPE_LAST_MODIFIED}).commit().getCurrentParent();
+        versionManager.checkpoint(nocontentnode.getPath());
+        releaseManager.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(nocontentnode));
+        context.resourceResolver().commit();
+
+        ResourceFilter filter = service.releaseVersionablesAsResourceFilter(currentRelease.getReleaseRoot(), null);
+        errorCollector.checkThat(filter, hasToString("Path(+'^(|\\Q/content/release/sub/document2\\E(/jcr:content(/.*)?)?|\\Q/content/release/other/versionedwithoutcontentnode\\E(/.*)?|\\Q/content/release/document1\\E(/jcr:content(/.*)?)?)$')"));
+        errorCollector.checkThat(filter.isRestriction(), is(false));
+
+        for (String path : Arrays.asList(document1, versionable.getPath(),
+                "/content/release/sub/document2", "/content/release/sub/document2/jcr:content",
+                "/content/release/sub/document2/jcr:content/n2/foo",
+                nocontentnode.getPath())) {
+            errorCollector.checkThat("for path " + path,
+                    filter.accept(new SyntheticResource(context.resourceResolver(), path, TYPE_UNSTRUCTURED)), is(true));
+        }
+
+        for (String path : Arrays.asList("/", "/content/release", "/content/release/sub/document2/nix",
+                nocontentnode.getParent().getPath())) {
+            errorCollector.checkThat("for path " + path,
+                    filter.accept(new SyntheticResource(context.resourceResolver(), path, TYPE_UNSTRUCTURED)), is(false));
+        }
     }
 
     @Test

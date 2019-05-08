@@ -61,6 +61,7 @@ public abstract class AbstractStagingTest {
     protected ReleaseMapper releaseMapper;
 
     protected StagingReleaseManager releaseManager;
+    protected StagingReleaseManager.Release currentRelease;
 
     @Before
     public final void setUpResolver() throws Exception {
@@ -138,7 +139,7 @@ public abstract class AbstractStagingTest {
             Version version = versionManager.checkpoint(contentResource.getPath());
             if (released) {
                 handle.setProperty("released", true);
-                StagingReleaseManager.Release currentRelease = releaseManager.findRelease(handle, StagingConstants.CURRENT_RELEASE);
+                currentRelease = releaseManager.findRelease(handle, StagingConstants.CURRENT_RELEASE);
                 builder.commit();
                 releaseManager.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(contentResource));
             }
