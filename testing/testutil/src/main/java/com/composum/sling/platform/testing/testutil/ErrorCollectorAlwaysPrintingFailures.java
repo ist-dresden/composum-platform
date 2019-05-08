@@ -24,31 +24,36 @@ public class ErrorCollectorAlwaysPrintingFailures extends org.junit.rules.ErrorC
         return new Statement() {
             @Override
             public void evaluate() throws Throwable {
+                Throwable thrown = null;
                 try {
                     base.evaluate();
                 } catch (Throwable t) {
-                    List<Throwable> failures = new ArrayList<>();
-                    runOnFailures(failures);
-
-                    failures.add(t); // add it at the start
-
-                    try {
-                        verify();
-                    } catch (MultipleFailureException e) {
-                        failures.addAll(e.getFailures());
-                    } catch (Throwable tv) {
-                        failures.add(tv);
-                    }
-
-                    failures.add(t); // add it at the end, too, so we see it immediately no matter where we look
-
-                    if (failures.size() == 2 && t == failures.get(0) && t == failures.get(1))
-                        throw failures.get(0); // don't wrap t if there are no other failures.
-                    MultipleFailureException.assertEmpty(failures); // always throws since not empty
-                    throw t; // impossible, but tell the compiler it ends here.
+                    thrown = t;
                 }
 
-                verify(); // if test ran through
+                List<Throwable> failures = new ArrayList<>();
+
+                if (thrown != null)
+                    failures.add(thrown); // add it at the start
+
+                try { // add recorded failures
+                    verify();
+                } catch (MultipleFailureException e) {
+                    failures.addAll(e.getFailures());
+                } catch (Throwable tv) {
+                    failures.add(tv);
+                }
+
+                if (thrown != null)
+                    failures.add(thrown); // add it at the end, too, so we see it immediately no matter where we look
+
+                if (!failures.isEmpty())
+                    runOnFailures(failures);
+
+                if (failures.size() == 2 && thrown == failures.get(0) && thrown == failures.get(1))
+                    throw failures.get(0); // don't wrap thrown if there are no other failures.
+
+                MultipleFailureException.assertEmpty(failures);
             }
         };
     }
