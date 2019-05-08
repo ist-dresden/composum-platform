@@ -4,10 +4,8 @@ import com.composum.sling.core.filter.ResourceFilter;
 import com.composum.sling.platform.security.AccessMode;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.ReleasedVersionable;
-import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
 import com.composum.sling.platform.staging.impl.AbstractStagingTest;
-import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
 import com.composum.sling.platform.staging.versions.PlatformVersionsService.Status;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
@@ -33,7 +31,6 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
 
     private String release;
     private ResourceBuilder builderAtRelease;
-    private StagingReleaseManager releaseManager;
     private PlatformVersionsService service;
 
     private String document1;
@@ -50,7 +47,6 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
 
     @Before
     public void setupServices() throws Exception {
-        releaseManager = context.registerService(StagingReleaseManager.class, new DefaultStagingReleaseManager());
         service = context.registerService(PlatformVersionsService.class, new PlatformVersionsServiceImpl() {{
             this.releaseManager = PlatformVersionsServiceImplTest.this.releaseManager;
         }});
@@ -70,26 +66,29 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
     public void releaseVersionablesAsResourceFilter() throws Exception {
         errorCollector.checkThat(Pattern.compile(""), notNullValue());
         makeNode(builderAtRelease, "sub/document2", "n2/foo", true, true, "foo");
+        String unreleased = makeNode(builderAtRelease, "sub/unreleased", "foo", true, false, "foo");
+        String unversioned = makeNode(builderAtRelease, "unversioned", "bar", false, false, "foo");
         Resource nocontentnode = builderAtRelease.resource("other/versionedwithoutcontentnode", PROP_PRIMARY_TYPE,
                 TYPE_UNSTRUCTURED, PROP_MIXINTYPES, new String[]{TYPE_VERSIONABLE, TYPE_LAST_MODIFIED}).commit().getCurrentParent();
         versionManager.checkpoint(nocontentnode.getPath());
         releaseManager.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(nocontentnode));
         context.resourceResolver().commit();
 
-        ResourceFilter filter = service.releaseVersionablesAsResourceFilter(currentRelease.getReleaseRoot(), null);
-        errorCollector.checkThat(filter, hasToString("Path(+'^(|\\Q/content/release/sub/document2\\E(/jcr:content(/.*)?)?|\\Q/content/release/other/versionedwithoutcontentnode\\E(/.*)?|\\Q/content/release/document1\\E(/jcr:content(/.*)?)?)$')"));
+        ResourceFilter filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), null, null);
+        errorCollector.checkThat(filter, hasToString("ResolvedResourceFilter(Release('cpl:current',/content/release))"));
         errorCollector.checkThat(filter.isRestriction(), is(false));
 
         for (String path : Arrays.asList(document1, versionable.getPath(),
                 "/content/release/sub/document2", "/content/release/sub/document2/jcr:content",
                 "/content/release/sub/document2/jcr:content/n2/foo",
-                nocontentnode.getPath())) {
+                nocontentnode.getPath(),
+                "/", "/content/release", "/content/release/sub"
+        )) {
             errorCollector.checkThat("for path " + path,
                     filter.accept(new SyntheticResource(context.resourceResolver(), path, TYPE_UNSTRUCTURED)), is(true));
         }
 
-        for (String path : Arrays.asList("/", "/content/release", "/content/release/sub/document2/nix", "/content/release/sub",
-                nocontentnode.getParent().getPath())) {
+        for (String path : Arrays.asList(unreleased, unversioned, "/content/release/sub/document2/nix")) {
             errorCollector.checkThat("for path " + path,
                     filter.accept(new SyntheticResource(context.resourceResolver(), path, TYPE_UNSTRUCTURED)), is(false));
         }

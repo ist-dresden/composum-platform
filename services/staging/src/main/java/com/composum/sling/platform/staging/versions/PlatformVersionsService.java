@@ -1,6 +1,7 @@
 package com.composum.sling.platform.staging.versions;
 
 import com.composum.sling.core.filter.ResourceFilter;
+import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
@@ -50,6 +51,7 @@ public interface PlatformVersionsService {
 
         /**
          * The time the versionable was last modified in the workspace.
+         *
          * @return 'last modified' or 'created'
          */
         @Nonnull
@@ -101,9 +103,9 @@ public interface PlatformVersionsService {
      * @param versionable the path to a versionable
      * @param releaseKey  a release number or null for the {@link #getDefaultRelease(Resource)}.
      * @param versionUuid optionally, a previous version of the document that is
+     * @return a map with paths where we changed the order of children in the release.
      * @throws PersistenceException
      * @throws RepositoryException
-     * @return a map with paths where we changed the order of children in the release.
      */
     Map<String, SiblingOrderUpdateStrategy.Result> activate(@Nonnull Resource versionable, @Nullable String releaseKey, @Nullable String versionUuid)
             throws PersistenceException, RepositoryException;
@@ -117,10 +119,13 @@ public interface PlatformVersionsService {
             throws PersistenceException, RepositoryException;
 
     /**
+     * Returns a {@link ResourceFilter} that accepts resources contained in a release. Outside of the release root it just takes the current contet.
      * @param resourceInRelease some resource below a release root, used to find the release root
      * @param releaseKey        a release number or null for the {@link #getDefaultRelease(Resource)}.
+     * @param releaseMapper     a {@link ReleaseMapper} that determines what is taken from the release, and what from the current content
      * @return a {@link ResourceFilter} that returns true for resources contained in the release
      */
     @Nonnull
-    ResourceFilter releaseVersionablesAsResourceFilter(@Nonnull Resource resourceInRelease, @Nullable String releaseKey);
+    ResourceFilter releaseAsResourceFilter(@Nonnull Resource resourceInRelease, @Nullable String releaseKey,
+                                           @Nullable ReleaseMapper releaseMapper);
 }

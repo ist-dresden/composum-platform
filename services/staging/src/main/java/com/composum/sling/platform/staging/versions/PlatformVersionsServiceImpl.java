@@ -4,10 +4,9 @@ import com.composum.platform.commons.util.ExceptionUtil;
 import com.composum.platform.commons.util.JcrIteratorUtil;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.filter.ResourceFilter;
-import com.composum.sling.core.filter.StringFilter;
 import com.composum.sling.core.util.CoreConstants;
-import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.security.AccessMode;
+import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
@@ -17,6 +16,7 @@ import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -30,7 +30,6 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.CoreConstants.*;
@@ -186,35 +185,12 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     * We create a PathFilter with a StringFilter containing a large regular expression that matches the paths of
-     * all released versionables, including their parents if they are a jcr:content node, since that are the cpp:Pages.
-     * This has the disadvantage of having a pricey construction, but is easily implemented, fast when matching,
-     * even serializable and independent of ResourceResolvers once constructed.
-     * <br/>
-     * If it shows being too slow, we might instead want to implement a ResourceFilter directly, accessing the resource tree on each match.
-     */
     @Nonnull
     @Override
-    public ResourceFilter releaseVersionablesAsResourceFilter(@Nonnull Resource resourceInRelease, @Nullable String releaseKey) {
+    public ResourceFilter releaseAsResourceFilter(@Nonnull Resource resourceInRelease, @Nullable String releaseKey, @Nullable ReleaseMapper releaseMapper) {
         StagingReleaseManager.Release release = getRelease(resourceInRelease, releaseKey);
-        List<ReleasedVersionable> releaseContents = releaseManager.listReleaseContents(release);
-        StringBuilder buf = new StringBuilder();
-        buf.append("^(");
-        for (ReleasedVersionable content : releaseContents) {
-            String path = release.absolutePath(content.getRelativePath());
-            if (buf.length() != 0) buf.append("|");
-            if (path.endsWith("/jcr:content")) { // we also match the parent node's path
-                buf.append(Pattern.quote(ResourceUtil.getParent(path)));
-                buf.append("(/jcr:content(/.*)?)?");
-            } else {
-                buf.append(Pattern.quote(path));
-                buf.append("(/.*)?");
-            }
-        }
-        buf.append(")$");
-        return new ResourceFilter.PathFilter(new StringFilter.WhiteList(buf.toString()));
+        ResourceResolver resolver = releaseManager.getResolverForRelease(release, releaseMapper, false);
+        return new ResolvedResourceFilter(resolver, release.toString());
     }
 
     protected static class StatusImpl implements Status {
@@ -339,4 +315,30 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         }
     }
 
+    /** A {@link ResourceFilter} that checks whether a resource exists in the given resolver. */
+    public static class ResolvedResourceFilter extends ResourceFilter.AbstractResourceFilter {
+        private final ResourceResolver resolver;
+        private final String description;
+
+        public ResolvedResourceFilter(ResourceResolver resolver, String description) {
+            this.resolver = resolver;
+            this.description = description;
+        }
+
+        @Override
+        public boolean accept(Resource resource) {
+            return resolver.getResource(resource.getPath()) != null;
+        }
+
+        @Override
+        public boolean isRestriction() {
+            return false;
+        }
+
+        @Override
+        public void toString(StringBuilder builder) {
+            builder.append(getClass().getSimpleName())
+                    .append("(").append(description).append(")");
+        }
+    }
 }
