@@ -193,7 +193,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         releaseManager.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(nocontentnode));
         context.resourceResolver().commit();
 
-        ResourceFilter filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), null, null);
+        ResourceFilter filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), null, null, null);
         errorCollector.checkThat(filter, hasToString("ResolvedResourceFilter(Release('cpl:current',/content/release))"));
         errorCollector.checkThat(filter.isRestriction(), is(false));
 

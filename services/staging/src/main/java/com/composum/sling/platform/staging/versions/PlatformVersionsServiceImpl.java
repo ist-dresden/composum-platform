@@ -211,10 +211,10 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     @Nonnull
     @Override
-    public ResourceFilter releaseAsResourceFilter(@Nonnull Resource resourceInRelease, @Nullable String releaseKey, @Nullable ReleaseMapper releaseMapper) {
+    public ResourceFilter releaseAsResourceFilter(@Nonnull Resource resourceInRelease, @Nullable String releaseKey, @Nullable ReleaseMapper releaseMapper, @Nullable ResourceFilter additionalFilter) {
         StagingReleaseManager.Release release = getRelease(resourceInRelease, releaseKey);
         ResourceResolver resolver = releaseManager.getResolverForRelease(release, releaseMapper, false);
-        return new ResolvedResourceFilter(resolver, release.toString());
+        return new ResolvedResourceFilter(resolver, release.toString(), additionalFilter);
     }
 
     protected static class StatusImpl implements Status {
@@ -343,15 +343,18 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     public static class ResolvedResourceFilter extends ResourceFilter.AbstractResourceFilter {
         private final ResourceResolver resolver;
         private final String description;
+        private final ResourceFilter additionalFilter;
 
-        public ResolvedResourceFilter(ResourceResolver resolver, String description) {
+        public ResolvedResourceFilter(ResourceResolver resolver, String description, @Nullable ResourceFilter additionalFilter) {
             this.resolver = resolver;
             this.description = description;
+            this.additionalFilter = additionalFilter != null ? additionalFilter : ResourceFilter.ALL;
         }
 
         @Override
         public boolean accept(Resource resource) {
-            return resolver.getResource(resource.getPath()) != null;
+            Resource stagedResource = resolver.getResource(resource.getPath());
+            return stagedResource != null && additionalFilter.accept(stagedResource);
         }
 
         @Override

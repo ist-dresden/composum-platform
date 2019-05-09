@@ -775,6 +775,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 description = "Some paths that are removed frm the overlayed nodes (relative to the release top level)"
         )
         String[] removed_paths() default {CONTENT_NODE + '/' + NODE_RELEASES};
+
     }
 
 }

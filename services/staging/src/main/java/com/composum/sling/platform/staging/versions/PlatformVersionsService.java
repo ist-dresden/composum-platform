@@ -147,11 +147,13 @@ public interface PlatformVersionsService {
      * @param resourceInRelease some resource below a release root, used to find the release root
      * @param releaseKey        a release number or null for the {@link #getDefaultRelease(Resource)}.
      * @param releaseMapper     a {@link ReleaseMapper} that determines what is taken from the release, and what from the current content
+     * @param additionalFilter  a resource filter that has additionally be matched for the resource within the release (and is executed with the Staging Resolver).
+     *                          If null, we just use {@link ResourceFilter#ALL}.
      * @return a {@link ResourceFilter} that returns true for resources contained in the release
      */
     @Nonnull
     ResourceFilter releaseAsResourceFilter(@Nonnull Resource resourceInRelease, @Nullable String releaseKey,
-                                           @Nullable ReleaseMapper releaseMapper);
+                                           @Nullable ReleaseMapper releaseMapper, @Nullable ResourceFilter additionalFilter);
 
     /** Can be used to inform the user about the results of an activation. */
     class ActivationResult {
