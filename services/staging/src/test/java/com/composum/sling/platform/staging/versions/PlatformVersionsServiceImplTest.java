@@ -81,7 +81,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
 
         Status status = service.getStatus(initVersionable, null);
         ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.initial));
-        ec.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+        ec.checkThat(status.release(), hasToString("Release('current',/content/release)"));
         ec.checkThat(status.getLastActivatedBy(), nullValue());
         ec.checkThat(status.getLastActivated(), nullValue());
         ec.checkThat(status.getLastDeactivatedBy(), nullValue());
@@ -94,7 +94,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
 
         status = service.getStatus(initVersionable, null);
         ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
-        ec.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+        ec.checkThat(status.release(), hasToString("Release('current',/content/release)"));
         ec.checkThat(status.getLastActivatedBy(), is("admin"));
         ec.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
     }
@@ -106,7 +106,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
         ec.checkThat(status.getLastActivatedBy(), is("admin"));
         ec.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
-        ec.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+        ec.checkThat(status.release(), hasToString("Release('current',/content/release)"));
 
         Release r1 = releaseManager.createRelease(versionable, ReleaseNumberCreator.MAJOR);
         context.resourceResolver().commit();
@@ -128,7 +128,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
     public void status() throws Exception {
         Status status = service.getStatus(versionable, CURRENT_RELEASE);
         ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
-        ec.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+        ec.checkThat(status.release(), hasToString("Release('current',/content/release)"));
         ec.checkThat(status.getLastActivatedBy(), is("admin"));
         ec.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
         ec.checkThat(status.getLastModified(), instanceOf(java.util.Calendar.class));
@@ -138,7 +138,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
 
         status = service.getStatus(versionable, null);
         ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
-        ec.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+        ec.checkThat(status.release(), hasToString("Release('current',/content/release)"));
         ec.checkThat(status.getLastDeactivatedBy(), nullValue());
         ec.checkThat(status.getLastDeactivated(), nullValue());
 
@@ -195,7 +195,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         context.resourceResolver().commit();
 
         ResourceFilter filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), null, null, null);
-        ec.checkThat(filter, hasToString("ResolvedResourceFilter(Release('cpl:current',/content/release))"));
+        ec.checkThat(filter, hasToString("ResolvedResourceFilter(Release('current',/content/release))"));
         ec.checkThat(filter.isRestriction(), is(false));
 
         for (String path : asList(document1, versionable.getPath(),

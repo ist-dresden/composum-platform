@@ -82,7 +82,7 @@ public interface StagingConstants {
      * "Releasenumber" or key of the current release : {@value #CURRENT_RELEASE}. This also serves as the "current release" (the release that's in construction and will be used as default preview)
      * below {@link #NODE_RELEASES}.
      */
-    final String CURRENT_RELEASE = "cpl:current";
+    final String CURRENT_RELEASE = "current";
 
     /**
      * Nodename below a release node or {@link #CURRENT_RELEASE} that contains a copy of the working tree of the site

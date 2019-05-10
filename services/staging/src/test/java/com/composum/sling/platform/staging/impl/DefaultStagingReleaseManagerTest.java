@@ -101,8 +101,8 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         assertEquals(CURRENT_RELEASE, currentRelease.getNumber());
         assertNotNull(currentRelease.getUuid());
         assertEquals(releaseRoot, currentRelease.getReleaseRoot());
-        assertEquals("/content/site/jcr:content/cpl:releases/cpl:current/metaData", currentRelease.getMetaDataNode().getPath());
-        assertNotNull(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root"));
+        assertEquals("/content/site/jcr:content/cpl:releases/current/metaData", currentRelease.getMetaDataNode().getPath());
+        assertNotNull(releaseRoot.getChild("jcr:content/cpl:releases/current/root"));
     }
 
     @Test
@@ -115,7 +115,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(versionable));
         context.resourceResolver().commit();
 
-        referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/a/jcr:content"), versionable, version);
+        referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/current/root/a/jcr:content"), versionable, version);
 
         context.resourceResolver().delete(versionable); // make sure stagedresolver doesn't read it from the workspace
         context.resourceResolver().commit();
@@ -125,7 +125,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ec.checkThat(String.valueOf(staged), ResourceHandle.use(staged).isValid(), is(true));
 
         ec.checkThat(version.getContainingHistory().getVersionLabels(version),
-                arrayContaining(StagingConstants.RELEASE_LABEL_PREFIX + currentRelease.getNumber().replace("cpl:", "")));
+                arrayContaining(StagingConstants.RELEASE_LABEL_PREFIX + currentRelease.getNumber()));
     }
 
     protected void referenceRefersToVersionableVersion(Resource rawVersionReference, Resource versionable, Version version) throws RepositoryException {
@@ -147,7 +147,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         context.resourceResolver().commit();
 
         // check that it's returned as release content and has the right label
-        referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/a/jcr:content"), versionable, version);
+        referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/current/root/a/jcr:content"), versionable, version);
         List<ReleasedVersionable> contents = service.listReleaseContents(currentRelease);
         ec.checkThat(contents.size(), is(1));
         ec.checkThat(contents.get(0).getRelativePath(), is("a/jcr:content"));
@@ -162,7 +162,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ec.checkThat(foundReleasedVersionable.getVersionUuid(), is(version.getUUID()));
 
         ec.checkThat(version.getContainingHistory().getVersionLabels(version),
-                arrayContaining(StagingConstants.RELEASE_LABEL_PREFIX + currentRelease.getNumber().replace("cpl:", "")));
+                arrayContaining(StagingConstants.RELEASE_LABEL_PREFIX + currentRelease.getNumber()));
 
         // a newly created release references the same version.
         Release r1 = service.createRelease(currentRelease, ReleaseNumberCreator.MAJOR);
@@ -177,8 +177,8 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
         ec.checkThat(service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(newVersionable)).toString(), equalTo("{}"));
         context.resourceResolver().commit();
-        ec.checkThat(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/a"), nullValue()); // parent was now an orphan and is removed
-        referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/b/c/jcr:content"), newVersionable, version);
+        ec.checkThat(releaseRoot.getChild("jcr:content/cpl:releases/current/root/a"), nullValue()); // parent was now an orphan and is removed
+        referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/current/root/b/c/jcr:content"), newVersionable, version);
 
         Version version2 = versionManager.checkpoint(newPath);
         // see that updating to a new version works as expected
@@ -186,10 +186,10 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
                 Arrays.asList(ReleasedVersionable.forBaseVersion(newVersionable), ReleasedVersionable.forBaseVersion(newVersionable))).toString(),
                 equalTo("{}"));
         context.resourceResolver().commit();
-        referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/cpl:current/root/b/c/jcr:content"), newVersionable, version2);
+        referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/current/root/b/c/jcr:content"), newVersionable, version2);
 
         ec.checkThat(version.getContainingHistory().getVersionLabels(version2),
-                arrayContaining(StagingConstants.RELEASE_LABEL_PREFIX + currentRelease.getNumber().replace("cpl:", "")));
+                arrayContaining(StagingConstants.RELEASE_LABEL_PREFIX + currentRelease.getNumber()));
 
         // the document is available at the old path in the current release
         ResourceResolver stagedResolver = service.getResolverForRelease(currentRelease, null, false);
@@ -238,7 +238,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
                         .map(Release::getNumber)
                         .sorted(ReleaseNumberCreator.COMPARATOR_RELEASES)
                         .collect(Collectors.joining(", ")),
-                equalTo("cpl:current, r1, r1.0.1, r1.1, r1.2, r2"));
+                equalTo("current, r1, r1.0.1, r1.1, r1.2, r2"));
 
         service.removeRelease(rel101);
         service.removeRelease(rel12);
@@ -247,7 +247,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
                         .map(Release::getNumber)
                         .sorted(ReleaseNumberCreator.COMPARATOR_RELEASES)
                         .collect(Collectors.joining(", ")),
-                equalTo("cpl:current, r1, r1.1, r2"));
+                equalTo("current, r1, r1.1, r2"));
 
         ec.checkThat(service.findReleaseByUuid(releaseRoot, rel11.getUuid()).getNumber(), equalTo("r1.1"));
     }

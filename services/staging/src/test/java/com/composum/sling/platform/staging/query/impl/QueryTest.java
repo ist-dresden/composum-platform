@@ -119,13 +119,13 @@ public class QueryTest extends AbstractStagingTest {
         errorCollector.checkThat(q.buildSQL2(), is("SELECT n.[jcr:path] , n.[jcr:created] AS [query:orderBy] \n" +
                 "FROM [nt:base] AS n \n" +
                 "WHERE ISDESCENDANTNODE(n, '/folder') \n" +
-                "AND ( ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/cpl:current') OR NOT ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases') )\n" +
+                "AND ( ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/current') OR NOT ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases') )\n" +
                 "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
 
         q.path(folder + "/xyz");
         errorCollector.checkThat(q.buildSQL2(), is("SELECT n.[jcr:path] , n.[jcr:created] AS [query:orderBy] \n" +
                 "FROM [nt:base] AS n \n" +
-                "WHERE ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/cpl:current/root/xyz') \n" +
+                "WHERE ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/current/root/xyz') \n" +
                 "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
 
         errorCollector.checkThat(q.buildSQL2Version(), is("SELECT n.[jcr:path], version.[jcr:uuid] AS [query:versionUuid], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] , n.[jcr:created] AS [query:orderBy] \n" +
