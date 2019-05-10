@@ -171,10 +171,12 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
         </dependency>
+        <!-- This belongs here, so we mention it, but for technical reasons it needs to be included before sling.xss - see above.
         <dependency>
             <groupId>commons-beanutils</groupId>
             <artifactId>commons-beanutils</artifactId>
         </dependency>
+        -->
 
         <!-- OSGi, Felix -->
         <dependency>
