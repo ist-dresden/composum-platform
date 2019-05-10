@@ -201,12 +201,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         Resource releaseWorkspaceCopy = requireNonNull(release.getReleaseNode().getChild(NODE_RELEASE_ROOT));
         Query query = release.getReleaseRoot().getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
         query.path(releaseWorkspaceCopy.getPath()).type(TYPE_VERSIONREFERENCE);
-        try {
-            for (Resource versionReference : query.execute())
-                result.add(ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference));
-        } catch (RepositoryException e) { // rewrap that, since it's very unlikely
-            throw new SlingException("Unexpected error executing query " + query, e);
-        }
+        for (Resource versionReference : query.execute())
+            result.add(ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference));
         return result;
     }
 
@@ -221,13 +217,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         query.path(root.getPath()).type(TYPE_VERSIONABLE);
 
         List<ReleasedVersionable> result = new ArrayList<>();
-        try {
-            for (Resource versionable : query.execute()) {
-                if (!SlingResourceUtil.isSameOrDescendant(ignoredReleaseConfigurationPath, versionable.getPath()))
-                    result.add(ReleasedVersionable.forBaseVersion(versionable));
-            }
-        } catch (RepositoryException e) { // rewrap that, since it's very unlikely
-            throw new SlingException("Unexpected error executing query " + query, e);
+        for (Resource versionable : query.execute()) {
+            if (!SlingResourceUtil.isSameOrDescendant(ignoredReleaseConfigurationPath, versionable.getPath()))
+                result.add(ReleasedVersionable.forBaseVersion(versionable));
         }
         return result;
     }
@@ -243,13 +235,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 query.conditionBuilder().property(PROP_VERSIONHISTORY).eq().val(versionHistoryUuid)
         );
 
-        try {
-            Iterator<Resource> versionReferences = query.execute().iterator();
-            Resource versionReference = versionReferences.hasNext() ? versionReferences.next() : null;
-            return versionReference != null ? ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference) : null;
-        } catch (RepositoryException e) { // rewrap that, since it's very unlikely
-            throw new SlingException("Unexpected error executin query", e);
-        }
+        Iterator<Resource> versionReferences = query.execute().iterator();
+        Resource versionReference = versionReferences.hasNext() ? versionReferences.next() : null;
+        return versionReference != null ? ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference) : null;
     }
 
     @Nullable
