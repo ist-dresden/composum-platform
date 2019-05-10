@@ -19,6 +19,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.SlingException;
+import org.apache.sling.api.resource.QuerySyntaxException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 
@@ -30,10 +31,7 @@ import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.Row;
-import javax.jcr.query.RowIterator;
+import javax.jcr.query.*;
 import java.util.*;
 
 import static com.composum.sling.core.util.SlingResourceUtil.isSameOrDescendant;
@@ -42,7 +40,6 @@ import static javax.jcr.query.Query.JCR_SQL2;
 import static org.apache.commons.collections4.ComparatorUtils.*;
 import static org.apache.commons.collections4.IteratorUtils.*;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENNODE;
-import static org.apache.jackrabbit.JcrConstants.NT_FROZENNODE;
 
 /**
  * This contains the parts of the implementation to {@link com.composum.sling.platform.staging.query.Query} that are
@@ -87,31 +84,29 @@ public class StagingQueryImpl extends Query {
         super.addToStringAttributes(toStringBuilder);
     }
 
-    /** Executes the query and returns the results as Resources. */
     @Override
     @Nonnull
-    public Iterable<Resource> execute() throws RepositoryException {
+    public Iterable<Resource> execute() throws SlingException, QuerySyntaxException {
         selectColumns = null;
-        return asIterable(extractResources(executeInternal()));
+        try {
+            return asIterable(extractResources(executeInternal()));
+        } catch (RepositoryException e) {
+            throw new SlingException("Exception during query", e);
+        }
     }
 
-    /**
-     * Executes the query and returns only the given columns of the node. It can return various pseudo-columns .
-     *
-     * @param columns property names of the searched nodes or pseudo-columns
-     * @return not null
-     * @see #COLUMN_PATH
-     * @see #COLUMN_SCORE
-     * @see #COLUMN_EXCERPT
-     */
     @Override
     @Nonnull
-    public Iterable<QueryValueMap> selectAndExecute(String... columns) throws RepositoryException {
+    public Iterable<QueryValueMap> selectAndExecute(String... columns) throws SlingException, QuerySyntaxException {
         this.selectColumns = columns;
-        return asIterable(extractColumns(executeInternal(), columns));
+        try {
+            return asIterable(extractColumns(executeInternal(), columns));
+        } catch (RepositoryException e) {
+            throw new SlingException("Exception during query", e);
+        }
     }
 
-    protected Iterator<Row> executeInternal() throws RepositoryException {
+    protected Iterator<Row> executeInternal() throws RepositoryException, QuerySyntaxException {
         validate();
         if (limit <= 0) return emptyIterator();
 
@@ -165,18 +160,28 @@ public class StagingQueryImpl extends Query {
         // and from version storage.
 
         String versionStorageStatement = buildSQL2Version();
-        LOG.debug("JCR-SQL2 versioned:\n{}", versionStorageStatement);
-        javax.jcr.query.Query versionedQuery = initJcrQuery(queryManager, versionStorageStatement);
-        if (0 <= limit && Long.MAX_VALUE != limit) versionedQuery.setLimit(offset + limit);
-        Iterator<Row> rowsFromVersionStorage = versionedQuery.execute().getRows();
-        rowsFromVersionStorage = filterOnlyReleaseMappedAndByType(rowsFromVersionStorage);
+        Iterator<Row> rowsFromVersionStorage;
+        try {
+            LOG.debug("JCR-SQL2 versioned:\n{}", versionStorageStatement);
+            javax.jcr.query.Query versionedQuery = initJcrQuery(queryManager, versionStorageStatement);
+            if (0 <= limit && Long.MAX_VALUE != limit) versionedQuery.setLimit(offset + limit);
+            rowsFromVersionStorage = versionedQuery.execute().getRows();
+            rowsFromVersionStorage = filterOnlyReleaseMappedAndByType(rowsFromVersionStorage);
+        } catch (InvalidQueryException e) {
+            throw new QuerySyntaxException(e.getMessage(), versionStorageStatement, JCR_SQL2, e);
+        }
 
         String contentStatement = buildSQL2();
-        LOG.debug("JCR-SQL2 unversioned:\n{}", contentStatement);
-        javax.jcr.query.Query unversionedQuery = initJcrQuery(queryManager, contentStatement);
-        if (0 <= limit && Long.MAX_VALUE != limit) unversionedQuery.setLimit(offset + limit);
-        Iterator<Row> rowsOutsideVersionStorage = unversionedQuery.execute().getRows();
-        rowsOutsideVersionStorage = filterUnmapped(rowsOutsideVersionStorage);
+        Iterator<Row> rowsOutsideVersionStorage;
+        try {
+            LOG.debug("JCR-SQL2 unversioned:\n{}", contentStatement);
+            javax.jcr.query.Query unversionedQuery = initJcrQuery(queryManager, contentStatement);
+            if (0 <= limit && Long.MAX_VALUE != limit) unversionedQuery.setLimit(offset + limit);
+            rowsOutsideVersionStorage = unversionedQuery.execute().getRows();
+            rowsOutsideVersionStorage = filterUnmapped(rowsOutsideVersionStorage);
+        } catch (InvalidQueryException e) {
+            throw new QuerySyntaxException(e.getMessage(), contentStatement, JCR_SQL2, e);
+        }
 
         Iterator<Row> rows;
         if (null == orderBy) rows = chainedIterator(rowsOutsideVersionStorage, rowsFromVersionStorage);
@@ -186,12 +191,16 @@ public class StagingQueryImpl extends Query {
     }
 
     /** The simple case: when we don't have to care about releases at all. */
-    protected Iterator<Row> executeNotReleasecontrolledQuery(QueryManager queryManager, String statement) throws RepositoryException {
-        javax.jcr.query.Query query = initJcrQuery(queryManager, statement);
-        query.setOffset(offset);
-        if (0 < limit && Long.MAX_VALUE != limit) query.setLimit(limit);
-        QueryResult queryResult = query.execute();
-        return queryResult.getRows();
+    protected Iterator<Row> executeNotReleasecontrolledQuery(QueryManager queryManager, String statement) throws RepositoryException, QuerySyntaxException {
+        try {
+            javax.jcr.query.Query query = initJcrQuery(queryManager, statement);
+            query.setOffset(offset);
+            if (0 < limit && Long.MAX_VALUE != limit) query.setLimit(limit);
+            QueryResult queryResult = query.execute();
+            return queryResult.getRows();
+        } catch (InvalidQueryException e) {
+            throw new QuerySyntaxException(e.getMessage(), statement, JCR_SQL2, e);
+        }
     }
 
     /**

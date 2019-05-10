@@ -5,13 +5,14 @@ import com.composum.sling.platform.staging.impl.StagingResourceResolver;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.sling.api.SlingException;
+import org.apache.sling.api.resource.QuerySyntaxException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.slf4j.Logger;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.jcr.RepositoryException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -233,9 +234,16 @@ public abstract class Query {
         return this;
     }
 
-    /** Executes the query and returns the results as Resources. */
+    /**
+     * Executes the query and returns the results as Resources.
+     *
+     * @return the result, not null
+     * @throws SlingException       if an error occurs querying for the resources.
+     * @throws QuerySyntaxException if the query is not syntactically correct. (Shouldn't rarely happen, because of
+     *                              being a DSL and whatnot.)
+     */
     @Nonnull
-    public abstract Iterable<Resource> execute() throws RepositoryException;
+    public abstract Iterable<Resource> execute() throws SlingException, QuerySyntaxException;
 
     /**
      * Executes the query and returns only the given columns of the node. It can return various pseudo-columns .
@@ -245,9 +253,13 @@ public abstract class Query {
      * @see #COLUMN_PATH
      * @see #COLUMN_SCORE
      * @see #COLUMN_EXCERPT
+     *
+     * @throws SlingException       if an error occurs querying for the resources.
+     * @throws QuerySyntaxException if the query is not syntactically correct. (Shouldn't rarely happen, because of
+     *                              being a DSL and whatnot.)
      */
     @Nonnull
-    public abstract Iterable<QueryValueMap> selectAndExecute(String... columns) throws RepositoryException;
+    public abstract Iterable<QueryValueMap> selectAndExecute(String... columns) throws SlingException, QuerySyntaxException;
 
     /** Implementation calls this before using the query to check whether it's in a sane state. */
     protected void validate() {
