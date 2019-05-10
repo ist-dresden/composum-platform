@@ -440,7 +440,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         for (String path : paths) {
             r = resourceResolver.getResource(path);
             System.out.println("\n        r = resourceResolver.getResource(\"" + path + "\");");
-            System.out.println("        errorCollector.checkThat(r.getPath(), r, existsInclusiveParents());");
+            System.out.println("        ec.checkThat(r.getPath(), r, existsInclusiveParents());");
             new SlingAssertionCodeGenerator("r", r).useErrorCollector().withMessage("r.getPath()")
                     .ignoreProperties("getResourceMetadata", "toString").printAssertions();
         }

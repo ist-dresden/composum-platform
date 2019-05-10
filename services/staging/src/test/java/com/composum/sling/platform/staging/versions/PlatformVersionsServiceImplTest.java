@@ -1,6 +1,7 @@
 package com.composum.sling.platform.staging.versions;
 
 import com.composum.sling.core.filter.ResourceFilter;
+import com.composum.sling.core.filter.StringFilter;
 import com.composum.sling.platform.security.AccessMode;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.ReleasedVersionable;
@@ -39,7 +40,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
     private Resource versionable;
 
     @Rule
-    public final ErrorCollectorAlwaysPrintingFailures errorCollector = new ErrorCollectorAlwaysPrintingFailures()
+    public final ErrorCollectorAlwaysPrintingFailures ec = new ErrorCollectorAlwaysPrintingFailures()
             .onFailure(() -> {
                 Thread.sleep(500); // wait for logging messages to be written
                 JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource(release));
@@ -65,11 +66,11 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
 
     @Test
     public void defaultRelease() throws Exception {
-        errorCollector.checkThat(service.getDefaultRelease(versionable).getNumber(), is(CURRENT_RELEASE));
+        ec.checkThat(service.getDefaultRelease(versionable).getNumber(), is(CURRENT_RELEASE));
         Release r1 = releaseManager.createRelease(versionable, ReleaseNumberCreator.MAJOR);
         releaseManager.setMark(AccessMode.ACCESS_MODE_PUBLIC.toLowerCase(), r1);
         context.resourceResolver().commit();
-        errorCollector.checkThat(service.getDefaultRelease(versionable).getNumber(), is(r1.getNumber()));
+        ec.checkThat(service.getDefaultRelease(versionable).getNumber(), is(r1.getNumber()));
     }
 
     @Test
@@ -79,111 +80,111 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
                 .commit().getCurrentParent();
 
         Status status = service.getStatus(initVersionable, null);
-        errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.initial));
-        errorCollector.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
-        errorCollector.checkThat(status.getLastActivatedBy(), nullValue());
-        errorCollector.checkThat(status.getLastActivated(), nullValue());
-        errorCollector.checkThat(status.getLastDeactivatedBy(), nullValue());
-        errorCollector.checkThat(status.getLastDeactivated(), nullValue());
-        errorCollector.checkThat(status.getLastModified(), instanceOf(java.util.Calendar.class));
-        errorCollector.checkThat(status.getLastModifiedBy(), is("admin"));
+        ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.initial));
+        ec.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+        ec.checkThat(status.getLastActivatedBy(), nullValue());
+        ec.checkThat(status.getLastActivated(), nullValue());
+        ec.checkThat(status.getLastDeactivatedBy(), nullValue());
+        ec.checkThat(status.getLastDeactivated(), nullValue());
+        ec.checkThat(status.getLastModified(), instanceOf(java.util.Calendar.class));
+        ec.checkThat(status.getLastModifiedBy(), is("admin"));
 
         service.activate(null, initVersionable, null);
         context.resourceResolver().commit();
 
         status = service.getStatus(initVersionable, null);
-        errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
-        errorCollector.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
-        errorCollector.checkThat(status.getLastActivatedBy(), is("admin"));
-        errorCollector.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
+        ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
+        ec.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+        ec.checkThat(status.getLastActivatedBy(), is("admin"));
+        ec.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
     }
 
 
     @Test
     public void releaseProgression() throws Exception {
         Status status = service.getStatus(versionable, CURRENT_RELEASE);
-        errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
-        errorCollector.checkThat(status.getLastActivatedBy(), is("admin"));
-        errorCollector.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
-        errorCollector.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+        ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
+        ec.checkThat(status.getLastActivatedBy(), is("admin"));
+        ec.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
+        ec.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
 
         Release r1 = releaseManager.createRelease(versionable, ReleaseNumberCreator.MAJOR);
         context.resourceResolver().commit();
 
         Status status1 = service.getStatus(versionable, r1.getNumber());
-        errorCollector.checkThat(status1.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
-        errorCollector.checkThat(status1.release(), hasToString("Release('r1',/content/release)"));
-        errorCollector.checkThat(status1.getLastActivated(), is(status.getLastActivated()));
+        ec.checkThat(status1.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
+        ec.checkThat(status1.release(), hasToString("Release('r1',/content/release)"));
+        ec.checkThat(status1.getLastActivated(), is(status.getLastActivated()));
 
         releaseManager.setMark(AccessMode.ACCESS_MODE_PUBLIC.toLowerCase(), r1);
         context.resourceResolver().commit();
 
         status1 = service.getStatus(versionable, null);
-        errorCollector.checkThat(status1.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
-        errorCollector.checkThat(status1.release(), hasToString("Release('r1',/content/release)"));
+        ec.checkThat(status1.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
+        ec.checkThat(status1.release(), hasToString("Release('r1',/content/release)"));
     }
 
     @Test
     public void status() throws Exception {
         Status status = service.getStatus(versionable, CURRENT_RELEASE);
-        errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
-        errorCollector.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
-        errorCollector.checkThat(status.getLastActivatedBy(), is("admin"));
-        errorCollector.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
-        errorCollector.checkThat(status.getLastModified(), instanceOf(java.util.Calendar.class));
-        errorCollector.checkThat(status.getLastModifiedBy(), is("admin"));
+        ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
+        ec.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+        ec.checkThat(status.getLastActivatedBy(), is("admin"));
+        ec.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
+        ec.checkThat(status.getLastModified(), instanceOf(java.util.Calendar.class));
+        ec.checkThat(status.getLastModifiedBy(), is("admin"));
         versionManager.checkpoint(versionable.getPath());
         versionManager.checkpoint(versionable.getPath());
 
         status = service.getStatus(versionable, null);
-        errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
-        errorCollector.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
-        errorCollector.checkThat(status.getLastDeactivatedBy(), nullValue());
-        errorCollector.checkThat(status.getLastDeactivated(), nullValue());
+        ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
+        ec.checkThat(status.release(), hasToString("Release('cpl:current',/content/release)"));
+        ec.checkThat(status.getLastDeactivatedBy(), nullValue());
+        ec.checkThat(status.getLastDeactivated(), nullValue());
 
         service.activate(null, versionable, null);
         context.resourceResolver().commit();
 
         status = service.getStatus(versionable, null);
-        errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
-        errorCollector.checkThat(status.getLastActivatedBy(), is("admin"));
-        errorCollector.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
-        errorCollector.checkThat(status.getLastDeactivatedBy(), nullValue());
-        errorCollector.checkThat(status.getLastDeactivated(), nullValue());
+        ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
+        ec.checkThat(status.getLastActivatedBy(), is("admin"));
+        ec.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
+        ec.checkThat(status.getLastDeactivatedBy(), nullValue());
+        ec.checkThat(status.getLastDeactivated(), nullValue());
 
         service.deactivate(null, versionable);
         context.resourceResolver().commit();
 
         status = service.getStatus(versionable, null);
-        errorCollector.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.deactivated));
-        errorCollector.checkThat(status.getLastActivatedBy(), is("admin"));
-        errorCollector.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
-        errorCollector.checkThat(status.getLastDeactivatedBy(), is("admin"));
-        errorCollector.checkThat(status.getLastDeactivated(), instanceOf(java.util.Calendar.class));
-        errorCollector.checkThat(status.getLastModifiedBy(), is("admin"));
+        ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.deactivated));
+        ec.checkThat(status.getLastActivatedBy(), is("admin"));
+        ec.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
+        ec.checkThat(status.getLastDeactivatedBy(), is("admin"));
+        ec.checkThat(status.getLastDeactivated(), instanceOf(java.util.Calendar.class));
+        ec.checkThat(status.getLastModifiedBy(), is("admin"));
 
-        errorCollector.checkThat(IteratorUtils.size(versionManager.getVersionHistory(versionable.getPath()).getAllVersions()), is(4));
+        ec.checkThat(IteratorUtils.size(versionManager.getVersionHistory(versionable.getPath()).getAllVersions()), is(4));
         service.purgeVersions(versionable);
         // root version (not removeable) and released version
-        errorCollector.checkThat(IteratorUtils.size(versionManager.getVersionHistory(versionable.getPath()).getAllVersions()), is(2));
+        ec.checkThat(IteratorUtils.size(versionManager.getVersionHistory(versionable.getPath()).getAllVersions()), is(2));
     }
 
     @Test
     public void activateTwo() throws Exception {
         makeNode(builderAtRelease, "sub/document2", "n2/foo", true, false, "foo");
         makeNode(builderAtRelease, "sub/document3", "n2/foo", true, false, "foo");
-        errorCollector.checkThat(releaseManager.listReleaseContents(currentRelease).size(), is(1));
+        ec.checkThat(releaseManager.listReleaseContents(currentRelease).size(), is(1));
         ResourceResolver resolver = context.resourceResolver();
         PlatformVersionsService.ActivationResult result = service.activate(null, asList(resolver.getResource(release + "/sub/document2"),
                 resolver.getResource(release + "/sub/document3/jcr:content")));
         context.resourceResolver().commit();
-        errorCollector.checkThat(releaseManager.listReleaseContents(currentRelease).size(), is(3));
-        errorCollector.checkThat(result.getChangedPathsInfo().size(), is(0));
+        ec.checkThat(releaseManager.listReleaseContents(currentRelease).size(), is(3));
+        ec.checkThat(result.getChangedPathsInfo().size(), is(0));
     }
 
     @Test
     public void releaseVersionablesAsResourceFilter() throws Exception {
-        errorCollector.checkThat(Pattern.compile(""), notNullValue());
+        ec.checkThat(Pattern.compile(""), notNullValue());
         makeNode(builderAtRelease, "sub/document2", "n2/foo", true, true, "foo");
         String unreleased = makeNode(builderAtRelease, "sub/unreleased", "foo", true, false, "foo");
         String unversioned = makeNode(builderAtRelease, "unversioned", "bar", false, false, "foo");
@@ -194,8 +195,8 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         context.resourceResolver().commit();
 
         ResourceFilter filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), null, null, null);
-        errorCollector.checkThat(filter, hasToString("ResolvedResourceFilter(Release('cpl:current',/content/release))"));
-        errorCollector.checkThat(filter.isRestriction(), is(false));
+        ec.checkThat(filter, hasToString("ResolvedResourceFilter(Release('cpl:current',/content/release))"));
+        ec.checkThat(filter.isRestriction(), is(false));
 
         for (String path : asList(document1, versionable.getPath(),
                 "/content/release/sub/document2", "/content/release/sub/document2/jcr:content",
@@ -203,14 +204,51 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
                 nocontentnode.getPath(),
                 "/", "/content/release", "/content/release/sub"
         )) {
-            errorCollector.checkThat("for path " + path,
+            ec.checkThat("for path " + path,
                     filter.accept(new SyntheticResource(context.resourceResolver(), path, TYPE_UNSTRUCTURED)), is(true));
         }
 
         for (String path : asList(unreleased, unversioned, "/content/release/sub/document2/nix")) {
-            errorCollector.checkThat("for path " + path,
+            ec.checkThat("for path " + path,
                     filter.accept(new SyntheticResource(context.resourceResolver(), path, TYPE_UNSTRUCTURED)), is(false));
         }
+
+        filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), null, null, ResourceFilter.ALL);
+        ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), "/content/release/sub/document2", TYPE_UNSTRUCTURED)), is(true));
+
+        filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), null, null, ResourceFilter.FilterSet.Rule.none.of(ResourceFilter.ALL));
+        ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), "/content/release/sub/document2", TYPE_UNSTRUCTURED)), is(false));
+    }
+
+    @Test
+    public void releaseVersionablesAsResourceFilterWithContentNodeFilter() throws Exception {
+        ResourceFilter filter;
+        Release r1 = releaseManager.createRelease(versionable, ReleaseNumberCreator.MAJOR);
+        ResourceFilter contentNodeFilter = new ResourceFilter.ContentNodeFilter(true,
+                new ResourceFilter.PrimaryTypeFilter(new StringFilter.WhiteList(NT_UNSTRUCTURED)), // normally cpp:Page
+                ResourceFilter.ALL);
+
+        filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r1.getNumber(), null, null);
+        ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), document1, TYPE_UNSTRUCTURED)), is(true));
+        ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), document1 + "/jcr:content", TYPE_UNSTRUCTURED)), is(true));
+
+        filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r1.getNumber(), null, contentNodeFilter);
+        ec.checkThat(filter, hasToString("ResolvedResourceFilter(Release('r1',/content/release),ContentNode(-,PrimaryType(+'nt:unstructured')=jcr:content=>All()))"));
+        ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), document1, TYPE_UNSTRUCTURED)), is(true));
+        ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), document1 + "/jcr:content", TYPE_UNSTRUCTURED)), is(false)); // has no content node
+
+        // now remove document 1 from release (deactivate)
+        ReleasedVersionable rv = ReleasedVersionable.forBaseVersion(context.resourceResolver().getResource(document1 + "/jcr:content"));
+        rv.setActive(false);
+        releaseManager.updateRelease(r1, rv);
+
+        filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r1.getNumber(), null, null);
+        ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), document1, TYPE_UNSTRUCTURED)), is(true)); // normally the cpp:Page - still there
+        ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), document1 + "/jcr:content", TYPE_UNSTRUCTURED)), is(false)); // only this is removed
+
+        filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r1.getNumber(), null, contentNodeFilter);
+        // its content node is absent -> contentNodeFilter now blocks document1 , normally the cpp:Page
+        ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), document1, TYPE_UNSTRUCTURED)), is(false));
     }
 
 }

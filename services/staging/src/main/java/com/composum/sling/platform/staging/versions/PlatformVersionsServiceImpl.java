@@ -364,8 +364,13 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
         @Override
         public void toString(StringBuilder builder) {
-            builder.append(getClass().getSimpleName())
-                    .append("(").append(description).append(")");
+            builder.append(getClass().getSimpleName());
+            builder.append("(").append(description);
+            if (additionalFilter != ResourceFilter.ALL) {
+                builder.append(",");
+                additionalFilter.toString(builder);
+            }
+            builder.append(")");
         }
     }
 }
