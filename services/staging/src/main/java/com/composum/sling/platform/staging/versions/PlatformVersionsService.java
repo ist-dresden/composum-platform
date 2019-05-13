@@ -1,6 +1,8 @@
 package com.composum.sling.platform.staging.versions;
 
 import com.composum.sling.core.filter.ResourceFilter;
+import com.composum.sling.core.filter.StringFilter;
+import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingReleaseManager;
@@ -22,6 +24,17 @@ import java.util.Map;
  * @see PlatformVersionsServlet
  */
 public interface PlatformVersionsService {
+
+    /**
+     * A {@link ResourceFilter} that filters things that can be activated (that is, is versionable itself or contains a
+     * content node that can be activated).
+     */
+    public static final ResourceFilter ACTIVATABLE_FILTER = ResourceFilter.FilterSet.Rule.or.of(
+            new ResourceFilter.TypeFilter(CoreConstants.MIX_VERSIONABLE),
+            new ResourceFilter.ContentNodeFilter(false, ResourceFilter.ALL,
+                    new ResourceFilter.TypeFilter(CoreConstants.MIX_VERSIONABLE)
+            )
+    );
 
     /** Specifies the state of a versionable wrt. a specific release. */
     enum ActivationState {

@@ -147,7 +147,10 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
         protected Set<String> addParameter(Set<String> set, SlingHttpServletRequest request, String name) {
             String[] values = request.getParameterValues(name);
             if (values != null) {
-                Collections.addAll(set, values);
+                for (String value : values) {
+                    if (StringUtils.isNotBlank(value))
+                        set.add(value);
+                }
             }
             return set;
         }
@@ -213,6 +216,12 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                 List<Resource> toActivate = new ArrayList<>();
                 toActivate.add(versionable);
                 for (String referencedPath : references) {
+                    if (!StringUtils.startsWith(referencedPath, "/content")) {
+                        String msg = "Can only activate references from /conten, but got: " + referencedPath;
+                        LOG.error(msg);
+                        response.sendError(HttpServletResponse.SC_BAD_REQUEST, msg);
+                        return;
+                    }
                     Resource reference = versionable.getResourceResolver().getResource(referencedPath);
                     if (reference == null) {
                         String msg = "Reference to activate not found: " + referencedPath;
