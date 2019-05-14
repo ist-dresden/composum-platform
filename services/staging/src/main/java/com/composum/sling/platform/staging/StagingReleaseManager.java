@@ -1,5 +1,6 @@
 package com.composum.sling.platform.staging;
 
+import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import com.composum.sling.platform.staging.impl.StagingResourceResolver;
 import org.apache.sling.api.resource.PersistenceException;
@@ -47,10 +48,12 @@ public interface StagingReleaseManager {
      * Looks up the {@link StagingConstants#TYPE_MIX_RELEASE_ROOT} containing the resource - possibly resource itself.
      *
      * @param resource a release root or its subnodes
-     * @return the release root or null if there is none.
+     * @return the release root - a {@link ResourceHandle#isValid()} handle
+     * @throws ReleaseRootNotFoundException if the resource is not below a {@link ResourceHandle#isValid()} release root
+     * @throws IllegalArgumentException if resource is null
      */
     @Nullable
-    Resource findReleaseRoot(@Nonnull Resource resource);
+    Resource findReleaseRoot(@Nonnull Resource resource) throws ReleaseRootNotFoundException, IllegalArgumentException;
 
     /**
      * Looks up the next higher {@link StagingConstants#TYPE_MIX_RELEASE_ROOT} of the resource and returns
@@ -317,10 +320,22 @@ public interface StagingReleaseManager {
 
     /**
      * Is thrown when a release label given as argument is not found for a release root.
-     * This is a runtime exception since this is not something
+     * This is a runtime exception since this is not something to be expected - that'd be a weird race condition or
+     * an UI error.
      */
     class ReleaseNotFoundException extends RuntimeException {
         // empty
+    }
+
+    /**
+     * Is thrown when there is no release root for a versionable.
+     * This is a runtime exception since this is not something to be expected - an UI error or broken content.
+     * The release root is the ancestor with a {@link StagingConstants#TYPE_MIX_RELEASE_ROOT}.
+     */
+    class ReleaseRootNotFoundException extends RuntimeException {
+        public ReleaseRootNotFoundException(String path) {
+            super("Could not find a release root containing " + path);
+        }
     }
 
     /** Is thrown when a release label given as argument is not found for a release root. */

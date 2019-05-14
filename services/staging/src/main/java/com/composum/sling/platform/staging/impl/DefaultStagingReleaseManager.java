@@ -74,26 +74,28 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Nullable
     @Override
-    public ResourceHandle findReleaseRoot(@Nonnull Resource resource) {
+    public ResourceHandle findReleaseRoot(@Nonnull Resource resource) throws ReleaseRootNotFoundException {
+        if (resource == null)
+            throw new IllegalArgumentException("resource was null");
         ResourceHandle result = ResourceHandle.use(resource);
         while (result.isValid() && !result.isOfType(TYPE_MIX_RELEASE_ROOT))
             result = ResourceHandle.use(result.getParent());
-        return result.isValid() ? result : null;
+        if (!result.isValid())
+            throw new ReleaseRootNotFoundException(SlingResourceUtil.getPath(resource));
+        return result;
     }
 
     @Nonnull
     @Override
     public List<Release> getReleases(@Nonnull Resource resource) {
         List<Release> result = new ArrayList<>();
-        ResourceHandle root = ResourceHandle.use(requireNonNull(findReleaseRoot(resource)));
-        if (root.isValid()) {
-            ensureCurrentRelease(root);
-            Resource releasesNode = root.getChild(RELPATH_RELEASES_NODE);
-            if (releasesNode != null) {
-                for (Resource releaseNode : releasesNode.getChildren()) {
-                    ReleaseImpl release = new ReleaseImpl(root, releaseNode);
-                    result.add(release);
-                }
+        ResourceHandle root = findReleaseRoot(resource);
+        ensureCurrentRelease(root);
+        Resource releasesNode = root.getChild(RELPATH_RELEASES_NODE);
+        if (releasesNode != null) {
+            for (Resource releaseNode : releasesNode.getChildren()) {
+                ReleaseImpl release = new ReleaseImpl(root, releaseNode);
+                result.add(release);
             }
         }
         result.sort(Comparator.comparing(Release::getNumber, ReleaseNumberCreator.COMPARATOR_RELEASES));
@@ -116,9 +118,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Nonnull
     @Override
     public Release findRelease(@Nonnull Resource resource, @Nonnull String releaseNumber) {
-        ResourceHandle root = ResourceHandle.use(findReleaseRoot(resource));
-        if (!root.isValid())
-            throw new ReleaseNotFoundException();
+        ResourceHandle root = findReleaseRoot(resource);
         if (releaseNumber.equals(CURRENT_RELEASE)) {
             ReleaseImpl release = ensureCurrentRelease(root);
             if (release == null) // weird trouble creating it
@@ -164,7 +164,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Nonnull
     protected Release createRelease(@Nonnull Resource resource, @Nullable Release rawCopyFromRelease, @Nonnull ReleaseNumberCreator releaseType) throws ReleaseExistsException, ReleaseNotFoundException, PersistenceException, RepositoryException {
-        Resource root = requireNonNull(findReleaseRoot(resource));
+        ResourceHandle root = findReleaseRoot(resource);
         cleanupLabels(root);
         ReleaseImpl copyFromRelease = ReleaseImpl.unwrap(rawCopyFromRelease);
         Optional<String> previousReleaseNumber;
@@ -209,7 +209,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Nonnull
     @Override
     public List<ReleasedVersionable> listCurrentContents(@Nonnull Resource resource) {
-        Resource root = requireNonNull(findReleaseRoot(resource));
+        ResourceHandle root = findReleaseRoot(resource);
         ensureCurrentRelease(ResourceHandle.use(root));
         String ignoredReleaseConfigurationPath = root.getChild(CONTENT_NODE).getPath();
 
@@ -480,8 +480,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Nullable
     @Override
     public Release findReleaseByMark(@Nonnull Resource resource, @Nonnull String mark) {
-        ResourceHandle root = ResourceHandle.use(requireNonNull(findReleaseRoot(resource)));
-        if (!root.isValid()) return null;
+        ResourceHandle root = findReleaseRoot(resource);
         ResourceHandle releasesNode = ResourceHandle.use(root.getChild(RELPATH_RELEASES_NODE));
         if (!releasesNode.isValid()) return null;
         String uuid = releasesNode.getProperty(mark, String.class);
@@ -524,7 +523,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
      */
     @Override
     public void cleanupLabels(@Nonnull Resource resource) throws RepositoryException {
-        Resource root = requireNonNull(findReleaseRoot(resource));
+        ResourceHandle root = findReleaseRoot(resource);
 
         Set<String> expectedLabels = getReleases(root).stream().map(Release::getReleaseLabel).collect(Collectors.toSet());
 
