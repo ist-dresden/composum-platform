@@ -167,14 +167,16 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
         writer.beginObject();
         writer.name("name").value(versionable.getName());
         writer.name("path").value(versionable.getPath());
-        writer.name("status").value(status.getActivationState().name());
-        writer.name("lastModified").value(status.getLastModified().getTimeInMillis());
-        Calendar time;
-        if ((time = status.getLastActivated()) != null) {
-            writer.name("lastActivated").value(time.getTimeInMillis());
-        }
-        if ((time = status.getLastDeactivated()) != null) {
-            writer.name("lastDeactivated").value(time.getTimeInMillis());
+        if (status != null) {
+            writer.name("status").value(status.getActivationState().name());
+            writer.name("lastModified").value(status.getLastModified().getTimeInMillis());
+            Calendar time;
+            if ((time = status.getLastActivated()) != null) {
+                writer.name("lastActivated").value(time.getTimeInMillis());
+            }
+            if ((time = status.getLastDeactivated()) != null) {
+                writer.name("lastDeactivated").value(time.getTimeInMillis());
+            }
         }
         writer.endObject();
     }

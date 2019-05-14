@@ -55,7 +55,8 @@ public interface PlatformVersionsService {
     /** Information about the status of a versionable wrt. a release. */
     interface Status {
 
-        @Nonnull
+        /** The state; null if the resource is not in a release tee - this isn't applicable in that case. */
+        @Nullable
         ActivationState getActivationState();
 
         @Nullable
@@ -84,8 +85,9 @@ public interface PlatformVersionsService {
         /**
          * The release this is relative to. Please note that in the case of {@link ActivationState#initial} the versionable
          * does not need to be in the release.
+         * @return the release or null if the resource is not within a release tree
          */
-        @Nonnull
+        @Nullable
         StagingReleaseManager.Release release();
 
         /** The detail information about the versionable within the release. This is null if the versionable is {@link ActivationState#initial}. */
@@ -105,8 +107,12 @@ public interface PlatformVersionsService {
     @Nonnull
     StagingReleaseManager.Release getDefaultRelease(@Nonnull Resource versionable);
 
-    /** Returns the status for the versionable for the given or {@link #getDefaultRelease(Resource)} release. */
-    @Nonnull
+    /**
+     * Returns the status for the versionable for the given or {@link #getDefaultRelease(Resource)} release.
+     *
+     * @return the status or null if this isn't applicable because there is no release root or the resource is not a versionable.
+     */
+    @Nullable
     Status getStatus(@Nonnull Resource versionable, @Nullable String releaseKey)
             throws PersistenceException, RepositoryException;
 

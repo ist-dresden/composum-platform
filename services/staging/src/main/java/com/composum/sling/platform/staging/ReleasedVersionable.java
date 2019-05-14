@@ -21,72 +21,19 @@ public class ReleasedVersionable {
     @Nonnull
     private String relativePath;
 
-    /** Path relative to release root. */
-    @Nonnull
-    public String getRelativePath() {
-        return relativePath;
-    }
-
-    /** @see #getRelativePath() */
-    public void setRelativePath(@Nonnull String relativePath) {
-        this.relativePath = relativePath;
-    }
-
     /** @see #getVersionableUuid() */
     private String versionableUuid;
-
-    /** {@value com.composum.sling.core.util.ResourceUtil#PROP_UUID} of the versionable that was put into the release. */
-    public String getVersionableUuid() {
-        return versionableUuid;
-    }
-
-    /** @see #getVersionableUuid() */
-    public void setVersionableUuid(String versionableUuid) {
-        this.versionableUuid = versionableUuid;
-    }
 
     /** @see #getVersionUuid() */
     @Nonnull
     private String versionUuid;
 
-    /** {@link Version#getUUID()} of the version of the versionable that is in the release / is to be put into the release.. */
-    @Nonnull
-    public String getVersionUuid() {
-        return versionUuid;
-    }
-
-    /** @see #getVersionUuid() */
-    public void setVersionUuid(@Nonnull String versionUuid) {
-        this.versionUuid = versionUuid;
-    }
-
     /** @see #getVersionHistory() */
     @Nonnull
     private String versionHistory;
 
-    /** The UUID of the version history, as unchangeable identifier. */
-    @Nonnull
-    public String getVersionHistory() {
-        return versionHistory;
-    }
-
-    /** @see #getVersionHistory() */
-    public void setVersionHistory(@Nonnull String versionHistory) {
-        this.versionHistory = versionHistory;
-    }
-
     /** @see #getActive() */
     private Boolean active;
-
-    /** Whether the versionable is active in the release. */
-    public Boolean getActive() {
-        return active;
-    }
-
-    /** @see #getActive() */
-    public void setActive(Boolean active) {
-        this.active = active;
-    }
 
     /** Creates a {@link ReleasedVersionable} that corresponds to the base version of the given versionable. */
     public static ReleasedVersionable forBaseVersion(@Nonnull Resource resource) {
@@ -127,6 +74,59 @@ public class ReleasedVersionable {
         result.setRelativePath(StringUtils.removeStart(resource.getPath().substring(releaseWorkspaceCopy.getPath().length()), "/"));
 
         return result;
+    }
+
+    /** Path relative to release root. */
+    @Nonnull
+    public String getRelativePath() {
+        return relativePath;
+    }
+
+    /** @see #getRelativePath() */
+    public void setRelativePath(@Nonnull String relativePath) {
+        this.relativePath = relativePath;
+    }
+
+    /** {@value com.composum.sling.core.util.ResourceUtil#PROP_UUID} of the versionable that was put into the release. */
+    public String getVersionableUuid() {
+        return versionableUuid;
+    }
+
+    /** @see #getVersionableUuid() */
+    public void setVersionableUuid(String versionableUuid) {
+        this.versionableUuid = versionableUuid;
+    }
+
+    /** {@link Version#getUUID()} of the version of the versionable that is in the release / is to be put into the release.. */
+    @Nonnull
+    public String getVersionUuid() {
+        return versionUuid;
+    }
+
+    /** @see #getVersionUuid() */
+    public void setVersionUuid(@Nonnull String versionUuid) {
+        this.versionUuid = versionUuid;
+    }
+
+    /** The UUID of the version history, as unchangeable identifier. */
+    @Nonnull
+    public String getVersionHistory() {
+        return versionHistory;
+    }
+
+    /** @see #getVersionHistory() */
+    public void setVersionHistory(@Nonnull String versionHistory) {
+        this.versionHistory = versionHistory;
+    }
+
+    /** Whether the versionable is active in the release. */
+    public Boolean getActive() {
+        return active;
+    }
+
+    /** @see #getActive() */
+    public void setActive(Boolean active) {
+        this.active = active;
     }
 
     /**

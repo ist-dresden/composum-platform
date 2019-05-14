@@ -89,14 +89,18 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         throw new IllegalArgumentException("Not a versionable nor something with a versionable " + CONTENT_NODE + " : " + getPath(versionable));
     }
 
-    @Nonnull
     @Override
+    @Nullable
     public StatusImpl getStatus(@Nonnull Resource rawVersionable, @Nullable String releaseKey) throws PersistenceException, RepositoryException {
-        ResourceHandle versionable = normalizeVersionable(rawVersionable);
-        StagingReleaseManager.Release release = getRelease(versionable, releaseKey);
-        ReleasedVersionable current = ReleasedVersionable.forBaseVersion(versionable);
-        ReleasedVersionable released = releaseManager.findReleasedVersionable(release, versionable);
-        return new StatusImpl(release, current, released);
+        try {
+            ResourceHandle versionable = normalizeVersionable(rawVersionable);
+            StagingReleaseManager.Release release = getRelease(versionable, releaseKey);
+            ReleasedVersionable current = ReleasedVersionable.forBaseVersion(versionable);
+            ReleasedVersionable released = releaseManager.findReleasedVersionable(release, versionable);
+            return new StatusImpl(release, current, released);
+        } catch (StagingReleaseManager.ReleaseRootNotFoundException | IllegalArgumentException e) {
+            return null;
+        }
     }
 
     @Nonnull
@@ -218,7 +222,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     }
 
     protected static class StatusImpl implements Status {
-        @Nonnull
+        @Nullable
         private final StagingReleaseManager.Release release;
         @Nullable
         private final ReleasedVersionable current;
@@ -242,6 +246,8 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         @Nonnull
         @Override
         public ActivationState getActivationState() {
+            if (release == null)
+                return null;
             if (released == null)
                 return ActivationState.initial;
             if (!released.getActive())
