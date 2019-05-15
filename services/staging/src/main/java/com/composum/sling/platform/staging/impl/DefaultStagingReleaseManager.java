@@ -553,8 +553,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         if (!root.isValid() && !root.isOfType(TYPE_MIX_RELEASE_ROOT))
             throw new IllegalArgumentException("Not a release root: " + theRoot.getPath());
 
-        ResourceHandle contentnode = ResourceHandle.use(ResourceHandle.use(root.getChild(CONTENT_NODE)));
-        if (contentnode.isValid()) { // ensure mixin is there if the node was created otherwise
+        ResourceHandle contentnode = ResourceHandle.use(root.getChild(CONTENT_NODE));
+        if (contentnode != null && contentnode.isValid()) { // ensure mixin is there if the node was created otherwise
             SlingResourceUtil.addMixin(contentnode, TYPE_MIX_RELEASE_CONFIG);
         } else {
             contentnode = ResourceHandle.use(root.getResourceResolver().create(root, CONTENT_NODE,
@@ -568,7 +568,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         Resource releaseWorkspaceCopy = ResourceUtil.getOrCreateChild(currentReleaseNode, NODE_RELEASE_ROOT, TYPE_UNSTRUCTURED);
 
         ResourceHandle metaData = ResourceHandle.use(currentReleaseNode.getChild(NODE_RELEASE_METADATA));
-        if (!metaData.isValid()) {
+        if (metaData != null && !metaData.isValid()) {
             metaData = ResourceHandle.use(root.getResourceResolver().create(currentReleaseNode, NODE_RELEASE_METADATA,
                     ImmutableMap.of(PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                             PROP_MIXINTYPES,

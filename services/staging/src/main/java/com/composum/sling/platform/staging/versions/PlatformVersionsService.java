@@ -55,7 +55,7 @@ public interface PlatformVersionsService {
     interface Status {
 
         /** The state; null if the resource is not in a release tee - this isn't applicable in that case. */
-        @Nullable
+        @Nonnull
         ActivationState getActivationState();
 
         @Nullable
@@ -69,10 +69,10 @@ public interface PlatformVersionsService {
          *
          * @return 'last modified' or 'created'
          */
-        @Nonnull
+        @Nullable
         Calendar getLastModified();
 
-        @Nonnull
+        @Nullable
         String getLastModifiedBy();
 
         @Nullable
@@ -85,9 +85,9 @@ public interface PlatformVersionsService {
          * The release this is relative to. Please note that in the case of {@link ActivationState#initial} the versionable
          * does not need to be in the release.
          *
-         * @return the release or null if the resource is not within a release tree
+         * @return the release
          */
-        @Nullable
+        @Nonnull
         StagingReleaseManager.Release release();
 
         /** The detail information about the versionable within the release. This is null if the versionable is {@link ActivationState#initial}. */
@@ -114,7 +114,7 @@ public interface PlatformVersionsService {
      */
     @Nullable
     Status getStatus(@Nonnull Resource versionable, @Nullable String releaseKey)
-            throws PersistenceException, RepositoryException;
+            throws RepositoryException;
 
     /**
      * Puts the latest content (or a specified version) of the document into the release.
@@ -157,27 +157,20 @@ public interface PlatformVersionsService {
             throws PersistenceException, RepositoryException;
 
     /**
-     * Reverts a document to the state it was in the previous release (in the sense of {@link com.composum.sling.platform.staging.ReleaseNumberCreator#COMPARATOR_RELEASES}).
-     *
-     * @param releaseKey  a release number or null for the {@link #getDefaultRelease(Resource)}.
-     * @param versionable the path to a versionable
-     */
-    void revert(@Nullable String releaseKey, @Nonnull Resource versionable)
-            throws PersistenceException, RepositoryException;
-
-    /**
      * Reverts a number of versionables to the state they were in the previous release
      * (in the sense of {@link com.composum.sling.platform.staging.ReleaseNumberCreator#COMPARATOR_RELEASES}).
      *
      * @param releaseKey   a release number or null for the {@link #getDefaultRelease(Resource)}.
      * @param versionables ist of versionables to revert
+     * @return information about the activation
      */
-    void revert(@Nullable String releaseKey, @Nonnull List<Resource> versionables)
+    @Nonnull
+    ActivationResult revert(@Nullable String releaseKey, @Nonnull List<Resource> versionables)
             throws PersistenceException, RepositoryException;
 
     /** Deletes old versions of the versionable - only versions in releases and after the last version which is in a release are kept. */
     void purgeVersions(@Nonnull Resource versionable)
-            throws PersistenceException, RepositoryException;
+            throws RepositoryException;
 
     /**
      * Returns a {@link ResourceFilter} that accepts resources contained in a release. Outside of the release root it just takes the current contet.

@@ -11,11 +11,12 @@ import javax.annotation.Nonnull;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.version.Version;
+import java.io.Serializable;
 import java.util.Calendar;
 import java.util.Objects;
 
 /** Describes the state of a versionable in a release. Can also be used as parameter object to update the release. */
-public class ReleasedVersionable {
+public class ReleasedVersionable implements Serializable, Cloneable {
 
     /** @see #getRelativePath() */
     @Nonnull
@@ -163,5 +164,10 @@ public class ReleasedVersionable {
         sb.append(", active=").append(active);
         sb.append('}');
         return sb.toString();
+    }
+
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();
     }
 }
