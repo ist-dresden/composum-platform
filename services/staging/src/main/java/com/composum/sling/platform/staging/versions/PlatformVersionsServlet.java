@@ -15,6 +15,7 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.HttpConstants;
 import org.apache.sling.api.servlets.ServletResolverConstants;
 import org.osgi.framework.BundleContext;
@@ -45,6 +46,9 @@ import java.util.*;
 public class PlatformVersionsServlet extends AbstractServiceServlet {
 
     private static final Logger LOG = LoggerFactory.getLogger(PlatformVersionsServlet.class);
+
+    /** the parameter name for explicit (multi valued) target resources */
+    public static final String PARAM_TARGET = "target";
 
     /** An array of page references or referrers which should simultaneously be activated / deactivated. */
     public static final String PARAM_PAGE_REFS = "pageRef[]";
@@ -124,15 +128,30 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
 
         abstract void performIt(@Nonnull final SlingHttpServletRequest request,
                                 @Nonnull final SlingHttpServletResponse response,
-                                @Nonnull final Resource versionable, @Nullable final String releaseKey)
+                                @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey)
                 throws RepositoryException, IOException;
 
         @Override
         public void doIt(SlingHttpServletRequest request, SlingHttpServletResponse response,
                          ResourceHandle resource)
                 throws IOException {
-            Resource versionable = getVersionable(resource);
-            if (versionable != null) {
+            Collection<Resource> versionable = new ArrayList<>();
+            String[] targetValues = request.getParameterValues(PARAM_TARGET);
+            if (targetValues != null && targetValues.length > 0) {
+                ResourceResolver resolver = request.getResourceResolver();
+                for (String path : targetValues) {
+                    Resource target = resolver.getResource(path);
+                    if (target != null && (target = getVersionable(target)) != null) {
+                        versionable.add(getVersionable(target));
+                    }
+                }
+            } else {
+                Resource target = getVersionable(resource);
+                if (target != null) {
+                    versionable.add(getVersionable(resource));
+                }
+            }
+            if (versionable.size() > 0) {
                 String releaseKey = request.getParameter("release");
                 try {
                     performIt(request, response, versionable, releaseKey);
@@ -174,8 +193,10 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
         writer.name("path").value(versionable.getPath());
         if (status != null) {
             writer.name("status").value(status.getActivationState().name());
-            writer.name("lastModified").value(status.getLastModified().getTimeInMillis());
             Calendar time;
+            if ((time = status.getLastModified()) != null) {
+                writer.name("lastModified").value(time.getTimeInMillis());
+            }
             if ((time = status.getLastActivated()) != null) {
                 writer.name("lastActivated").value(time.getTimeInMillis());
             }
@@ -191,9 +212,9 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
         @Override
         public void performIt(@Nonnull final SlingHttpServletRequest request,
                               @Nonnull final SlingHttpServletResponse response,
-                              @Nonnull final Resource versionable, @Nullable final String releaseKey)
+                              @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey)
                 throws RepositoryException, IOException {
-            writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
+            writeJsonStatus(new JsonWriter(response.getWriter()), versionable.iterator().next(), releaseKey);
         }
     }
 
@@ -206,11 +227,10 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
         @Override
         public void performIt(@Nonnull final SlingHttpServletRequest request,
                               @Nonnull final SlingHttpServletResponse response,
-                              @Nonnull final Resource versionable, @Nullable final String releaseKey)
+                              @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey)
                 throws RepositoryException, IOException {
             String versionUuid = StringUtils.defaultIfBlank(request.getParameter("versionUuid"), null);
             Set<String> references = addParameter(addParameter(new HashSet<>(), request, PARAM_PAGE_REFS), request, PARAM_ASSET_REFS);
-            PlatformVersionsService.ActivationResult result;
             if (StringUtils.isNotBlank(versionUuid)) {
                 if (references.size() > 0) { // we have no method that takes both a versionUuid and references. Implement if needed.
                     String msg = "Version uuid given *and* additional referred pages. That does not (yet) supported";
@@ -218,10 +238,9 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                     response.sendError(HttpServletResponse.SC_BAD_REQUEST, msg);
                     return;
                 }
-                result = versionsService.activate(releaseKey, versionable, versionUuid);
+                versionsService.activate(releaseKey, versionable.iterator().next(), versionUuid);
             } else {
-                List<Resource> toActivate = new ArrayList<>();
-                toActivate.add(versionable);
+                List<Resource> toActivate = new ArrayList<>(versionable);
                 for (String referencedPath : references) {
                     if (!StringUtils.startsWith(referencedPath, "/content")) {
                         String msg = "Can only activate references from /conten, but got: " + referencedPath;
@@ -229,7 +248,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                         response.sendError(HttpServletResponse.SC_BAD_REQUEST, msg);
                         return;
                     }
-                    Resource reference = versionable.getResourceResolver().getResource(referencedPath);
+                    Resource reference = request.getResourceResolver().getResource(referencedPath);
                     if (reference == null) {
                         String msg = "Reference to activate not found: " + referencedPath;
                         LOG.error(msg);
@@ -238,10 +257,10 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                     }
                     toActivate.add(reference);
                 }
-                result = versionsService.activate(releaseKey, toActivate);
+                versionsService.activate(releaseKey, toActivate);
             }
             request.getResourceResolver().commit();
-            writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
+            writeJsonStatus(new JsonWriter(response.getWriter()), versionable.iterator().next(), releaseKey);
         }
     }
 
@@ -250,13 +269,12 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
         @Override
         public void performIt(@Nonnull final SlingHttpServletRequest request,
                               @Nonnull final SlingHttpServletResponse response,
-                              @Nonnull final Resource versionable, @Nullable final String releaseKey)
+                              @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey)
                 throws RepositoryException, IOException {
             Set<String> referrers = addParameter(new HashSet<>(), request, PARAM_PAGE_REFS);
-            List<Resource> toDeactivate = new ArrayList<>();
-            toDeactivate.add(versionable);
+            List<Resource> toDeactivate = new ArrayList<>(versionable);
             for (String referrerPath : referrers) {
-                Resource referrer = versionable.getResourceResolver().getResource(referrerPath);
+                Resource referrer = request.getResourceResolver().getResource(referrerPath);
                 if (referrer == null) {
                     String msg = "Referrer to deactivate not found: " + referrerPath;
                     LOG.error(msg);
@@ -267,7 +285,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
             }
             versionsService.deactivate(releaseKey, toDeactivate);
             request.getResourceResolver().commit();
-            writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
+            writeJsonStatus(new JsonWriter(response.getWriter()), versionable.iterator().next(), releaseKey);
         }
     }
 
@@ -276,13 +294,12 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
         @Override
         public void performIt(@Nonnull final SlingHttpServletRequest request,
                               @Nonnull final SlingHttpServletResponse response,
-                              @Nonnull final Resource versionable, @Nullable final String releaseKey)
+                              @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey)
                 throws RepositoryException, IOException {
             Set<String> referrers = addParameter(new HashSet<>(), request, PARAM_PAGE_REFS);
-            List<Resource> toRevert = new ArrayList<>();
-            toRevert.add(versionable);
+            List<Resource> toRevert = new ArrayList<>(versionable);
             for (String pagePath : referrers) {
-                Resource referrer = versionable.getResourceResolver().getResource(pagePath);
+                Resource referrer = request.getResourceResolver().getResource(pagePath);
                 if (referrer == null) {
                     String msg = "Page to revert not found: " + pagePath;
                     LOG.error(msg);
@@ -293,7 +310,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
             }
             versionsService.revert(releaseKey, toRevert);
             request.getResourceResolver().commit();
-            writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
+            writeJsonStatus(new JsonWriter(response.getWriter()), versionable.iterator().next(), releaseKey);
         }
     }
 
@@ -302,11 +319,12 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
         @Override
         public void performIt(@Nonnull final SlingHttpServletRequest request,
                               @Nonnull final SlingHttpServletResponse response,
-                              @Nonnull final Resource versionable, @Nullable final String releaseKey)
+                              @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey)
                 throws RepositoryException, IOException {
-            versionsService.purgeVersions(versionable);
+            Resource target = versionable.iterator().next();
+            versionsService.purgeVersions(target);
             request.getResourceResolver().commit();
-            writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
+            writeJsonStatus(new JsonWriter(response.getWriter()), target, releaseKey);
         }
     }
 }
