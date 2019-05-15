@@ -70,7 +70,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         Release r1 = releaseManager.createRelease(versionable, ReleaseNumberCreator.MAJOR);
         releaseManager.setMark(AccessMode.ACCESS_MODE_PUBLIC.toLowerCase(), r1);
         context.resourceResolver().commit();
-        ec.checkThat(service.getDefaultRelease(versionable).getNumber(), is(r1.getNumber()));
+        ec.checkThat(service.getDefaultRelease(versionable).getNumber(), is(CURRENT_RELEASE));
     }
 
     @Test
@@ -119,9 +119,9 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         releaseManager.setMark(AccessMode.ACCESS_MODE_PUBLIC.toLowerCase(), r1);
         context.resourceResolver().commit();
 
-        status1 = service.getStatus(versionable, null);
+        status1 = service.getStatus(versionable, null); // without release key the current release
         ec.checkThat(status1.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
-        ec.checkThat(status1.release(), hasToString("Release('r1',/content/release)"));
+        ec.checkThat(status1.release(), hasToString("Release('current',/content/release)"));
     }
 
     @Test
@@ -152,7 +152,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         ec.checkThat(status.getLastDeactivatedBy(), nullValue());
         ec.checkThat(status.getLastDeactivated(), nullValue());
 
-        service.deactivate(null, versionable);
+        service.deactivate(null, asList(versionable));
         context.resourceResolver().commit();
 
         status = service.getStatus(versionable, null);

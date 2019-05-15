@@ -76,7 +76,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
 
     public enum Operation {
         status,
-        activate, deactivate,
+        activate, deactivate, revert,
         purge
     }
 
@@ -102,6 +102,11 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                 Operation.activate, new ActivateVersionable());
         operations.setOperation(ServletOperationSet.Method.POST, Extension.json,
                 Operation.deactivate, new DeactivateVersionable());
+        operations.setOperation(ServletOperationSet.Method.POST, Extension.json,
+                Operation.revert, new RevertVersionable());
+
+        operations.setOperation(ServletOperationSet.Method.POST, Extension.json,
+                Operation.purge, new PurgeVersions());
     }
 
     public class VersionsOperationSet extends ServletOperationSet<Extension, Operation> {
@@ -261,6 +266,32 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                 toDeactivate.add(referrer);
             }
             versionsService.deactivate(releaseKey, toDeactivate);
+            request.getResourceResolver().commit();
+            writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
+        }
+    }
+
+    protected class RevertVersionable extends VersionableOperation {
+
+        @Override
+        public void performIt(@Nonnull final SlingHttpServletRequest request,
+                              @Nonnull final SlingHttpServletResponse response,
+                              @Nonnull final Resource versionable, @Nullable final String releaseKey)
+                throws RepositoryException, IOException {
+            Set<String> referrers = addParameter(new HashSet<>(), request, PARAM_PAGE_REFS);
+            List<Resource> toRevert = new ArrayList<>();
+            toRevert.add(versionable);
+            for (String pagePath : referrers) {
+                Resource referrer = versionable.getResourceResolver().getResource(pagePath);
+                if (referrer == null) {
+                    String msg = "Page to revert not found: " + pagePath;
+                    LOG.error(msg);
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, msg);
+                    return;
+                }
+                toRevert.add(referrer);
+            }
+            versionsService.revert(releaseKey, toRevert);
             request.getResourceResolver().commit();
             writeJsonStatus(new JsonWriter(response.getWriter()), versionable, releaseKey);
         }

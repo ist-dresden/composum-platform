@@ -5,7 +5,7 @@ import com.composum.platform.commons.util.JcrIteratorUtil;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.filter.ResourceFilter;
 import com.composum.sling.core.util.CoreConstants;
-import com.composum.sling.platform.security.AccessMode;
+import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingConstants;
@@ -57,11 +57,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     @Nonnull
     @Override
     public StagingReleaseManager.Release getDefaultRelease(@Nonnull Resource versionable) {
-        StagingReleaseManager.Release release = releaseManager.findReleaseByMark(versionable, AccessMode.ACCESS_MODE_PREVIEW.toLowerCase());
-        if (release == null)
-            release = releaseManager.findReleaseByMark(versionable, AccessMode.ACCESS_MODE_PUBLIC.toLowerCase());
-        if (release == null)
-            release = releaseManager.findRelease(versionable, StagingConstants.CURRENT_RELEASE);
+        StagingReleaseManager.Release release = releaseManager.findRelease(versionable, StagingConstants.CURRENT_RELEASE);
         return release;
     }
 
@@ -163,27 +159,50 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     }
 
     @Override
-    public void deactivate(@Nullable String releaseKey, @Nonnull Resource versionable) throws PersistenceException, RepositoryException {
-        LOG.info("Requested deactivation {} in {}", getPath(versionable), releaseKey);
-        StatusImpl status = (StatusImpl) getStatus(versionable, releaseKey);
-        switch (status.getActivationState()) {
-            case modified:
-            case activated:
-                LOG.info("Deactivating in " + status.release().getNumber() + " : " + versionable);
-                ReleasedVersionable releasedVersionable = status.releaseVersionableInfo();
-                releasedVersionable.setActive(false);
-                releaseManager.updateRelease(status.release(), releasedVersionable);
-            case initial:
-            case deactivated:
-                LOG.info("Not deactivating in " + status.release().getNumber() + " since not active: " + versionable);
-            default:
+    public void deactivate(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException {
+        LOG.info("Requested deactivation {} in {}", SlingResourceUtil.getPaths(versionables), releaseKey);
+        for (Resource versionable : versionables) {
+            StatusImpl status = (StatusImpl) getStatus(versionable, releaseKey);
+            switch (status.getActivationState()) {
+                case modified:
+                case activated:
+                    LOG.info("Deactivating in " + status.release().getNumber() + " : " + versionable);
+                    ReleasedVersionable releasedVersionable = status.releaseVersionableInfo();
+                    releasedVersionable.setActive(false);
+                    releaseManager.updateRelease(status.release(), releasedVersionable);
+                case initial:
+                case deactivated:
+                    LOG.info("Not deactivating in " + status.release().getNumber() + " since not active: " + versionable);
+                default:
+            }
         }
     }
 
     @Override
-    public void deactivate(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException {
-        for (Resource versionable : versionables)
-            deactivate(releaseKey, versionable);
+    public void revert(@Nullable String releaseKey, @Nonnull Resource versionable) throws PersistenceException, RepositoryException {
+        revert(releaseKey, Collections.singletonList(versionable));
+    }
+
+    @Override
+    public void revert(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException {
+        LOG.info("Requested reverting {} in {}", SlingResourceUtil.getPaths(versionables), releaseKey);
+        if (0 == 0)
+            throw new UnsupportedOperationException("Not implemented yet."); // FIXME hps 2019-05-15 not implemented
+        for (Resource versionable : versionables) {
+            StatusImpl status = (StatusImpl) getStatus(versionable, releaseKey);
+            switch (status.getActivationState()) {
+                case modified:
+                case activated:
+                    LOG.info("Deactivating in " + status.release().getNumber() + " : " + versionable);
+                    ReleasedVersionable releasedVersionable = status.releaseVersionableInfo();
+                    releasedVersionable.setActive(false);
+                    releaseManager.updateRelease(status.release(), releasedVersionable);
+                case initial:
+                case deactivated:
+                    LOG.info("Not deactivating in " + status.release().getNumber() + " since not active: " + versionable);
+                default:
+            }
+        }
     }
 
     /**

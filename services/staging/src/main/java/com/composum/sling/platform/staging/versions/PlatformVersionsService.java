@@ -1,7 +1,6 @@
 package com.composum.sling.platform.staging.versions;
 
 import com.composum.sling.core.filter.ResourceFilter;
-import com.composum.sling.core.filter.StringFilter;
 import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleasedVersionable;
@@ -85,6 +84,7 @@ public interface PlatformVersionsService {
         /**
          * The release this is relative to. Please note that in the case of {@link ActivationState#initial} the versionable
          * does not need to be in the release.
+         *
          * @return the release or null if the resource is not within a release tree
          */
         @Nullable
@@ -100,8 +100,8 @@ public interface PlatformVersionsService {
     }
 
     /**
-     * Returns the release number of the default release - marked as preview, if that isn't present the release marked as public,
-     * if that isn't present the {@value com.composum.sling.platform.staging.StagingConstants#CURRENT_RELEASE} release.
+     * Returns the release number of the default release - currently the
+     * {@value com.composum.sling.platform.staging.StagingConstants#CURRENT_RELEASE} release.
      * This is used in many of the other methods if the release isn't given explicitly.
      */
     @Nonnull
@@ -147,13 +147,32 @@ public interface PlatformVersionsService {
     ActivationResult activate(@Nullable String releaseKey, @Nonnull List<Resource> versionables)
             throws PersistenceException, RepositoryException;
 
-
-    /** Sets the document to "deactivated" - it is marked as not present in the release anymore. */
-    void deactivate(@Nullable String releaseKey, @Nonnull Resource versionable)
+    /**
+     * Sets the versionables to "deactivated" - it is marked as not present in the release anymore.
+     *
+     * @param releaseKey   a release number or null for the {@link #getDefaultRelease(Resource)}.
+     * @param versionables ist of versionables to revert
+     */
+    void deactivate(@Nullable String releaseKey, @Nonnull List<Resource> versionables)
             throws PersistenceException, RepositoryException;
 
-    /** Sets the documents to "deactivated" - it is marked as not present in the release anymore. */
-    void deactivate(@Nullable String releaseKey, @Nonnull List<Resource> versionables)
+    /**
+     * Reverts a document to the state it was in the previous release (in the sense of {@link com.composum.sling.platform.staging.ReleaseNumberCreator#COMPARATOR_RELEASES}).
+     *
+     * @param releaseKey  a release number or null for the {@link #getDefaultRelease(Resource)}.
+     * @param versionable the path to a versionable
+     */
+    void revert(@Nullable String releaseKey, @Nonnull Resource versionable)
+            throws PersistenceException, RepositoryException;
+
+    /**
+     * Reverts a number of versionables to the state they were in the previous release
+     * (in the sense of {@link com.composum.sling.platform.staging.ReleaseNumberCreator#COMPARATOR_RELEASES}).
+     *
+     * @param releaseKey   a release number or null for the {@link #getDefaultRelease(Resource)}.
+     * @param versionables ist of versionables to revert
+     */
+    void revert(@Nullable String releaseKey, @Nonnull List<Resource> versionables)
             throws PersistenceException, RepositoryException;
 
     /** Deletes old versions of the versionable - only versions in releases and after the last version which is in a release are kept. */
