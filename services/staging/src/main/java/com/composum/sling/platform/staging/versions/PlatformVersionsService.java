@@ -6,6 +6,7 @@ import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
+import org.apache.commons.collections4.SetUtils;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 
@@ -14,8 +15,11 @@ import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Service to view / manage which documents are put into a release - mostly for {@link PlatformVersionsServlet}.
@@ -188,20 +192,67 @@ public interface PlatformVersionsService {
 
     /** Can be used to inform the user about the results of an activation. */
     class ActivationResult {
+        @Nullable
+        private final StagingReleaseManager.Release release;
+        @Nonnull
         private final Map<String, SiblingOrderUpdateStrategy.Result> changedPathsInfo;
+        @Nonnull
+        private final Set<String> newPaths;
+        @Nonnull
+        private final Map<String, String> movedPaths;
+        @Nonnull
+        private final Set<String> removedPaths;
 
-        public ActivationResult(@Nullable Map<String, SiblingOrderUpdateStrategy.Result> changedPathsInfo) {
-            this.changedPathsInfo = changedPathsInfo != null ? changedPathsInfo : Collections.emptyMap();
+        public ActivationResult(@Nullable StagingReleaseManager.Release release, @Nullable Map<String, SiblingOrderUpdateStrategy.Result> changedPathsInfo,
+                                @Nullable Set<String> newPaths, @Nullable Map<String, String> movedPaths, @Nullable Set<String> removedPaths) {
+            this.release = release;
+            this.changedPathsInfo = changedPathsInfo != null ? changedPathsInfo : new HashMap<>();
+            this.newPaths = newPaths != null ? newPaths : new HashSet<>();
+            this.movedPaths = movedPaths != null ? movedPaths : new HashMap<>();
+            this.removedPaths = removedPaths != null ? removedPaths : new HashSet<>();
         }
 
         public ActivationResult merge(ActivationResult other) {
-            return new ActivationResult(SiblingOrderUpdateStrategy.Result.combine(changedPathsInfo, other.getChangedPathsInfo()));
+            if (release != null && !release.equals(other.getRelease()))
+                throw new IllegalArgumentException("Merging results for different releases.");
+            Map<String, String> moved = new HashMap<>();
+            moved.putAll(getMovedPaths());
+            moved.putAll(other.getMovedPaths());
+            return new ActivationResult(getRelease(),
+                    SiblingOrderUpdateStrategy.Result.combine(changedPathsInfo, other.getChangedPathsInfo()),
+                    SetUtils.union(getNewPaths(), other.getNewPaths()),
+                    moved,
+                    SetUtils.union(getRemovedPaths(), other.getRemovedPaths())
+            );
         }
 
         /** A map with paths where we changed the order of children in the release. */
         @Nonnull
         public Map<String, SiblingOrderUpdateStrategy.Result> getChangedPathsInfo() {
             return changedPathsInfo;
+        }
+
+        @Nullable
+        public StagingReleaseManager.Release getRelease() {
+            return release;
+        }
+
+        /** If as result of an operation there is a new item in a release, this contains its path. */
+        @Nonnull
+        public Set<String> getNewPaths() {
+            return newPaths;
+        }
+
+        /** If an item was moved in a release according to the operation, this maps the old path to the new path. */
+        @Nonnull
+        public Map<String, String> getMovedPaths() {
+            return movedPaths;
+        }
+
+        /** If as result of an operation an item vanished in a release, this contains its path. */
+        @Nonnull
+        public Set<String> getRemovedPaths() {
+            return removedPaths;
         }
 
         @Override

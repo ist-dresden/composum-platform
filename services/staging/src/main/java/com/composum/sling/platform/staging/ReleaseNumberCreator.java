@@ -8,6 +8,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.composum.sling.platform.staging.StagingConstants.CURRENT_RELEASE;
 import static java.lang.Math.min;
 
 /**
@@ -59,7 +60,8 @@ public interface ReleaseNumberCreator {
 
     /**
      * Comparator ordering the numbers according to the {@link DefaultReleaseNumberCreator} so that the numerical parts
-     * are compared numerically. If otherwise equal, the longer number wins.
+     * are compared numerically. If otherwise equal, the longer number wins. The {@value StagingConstants#CURRENT_RELEASE}
+     * is "larger than" everything - it plays a special role and we make it by definition the latest release.
      * <p>
      * Actually, it breaks down the release number in numerical and nonnumerical parts, and
      * compares these one after each other, using numerical comparison when both are numbers. So this is more general
@@ -72,6 +74,10 @@ public interface ReleaseNumberCreator {
 
         @Override
         public int compare(@Nonnull String r1, @Nonnull String r2) {
+            if (CURRENT_RELEASE.equals(r1))
+                return CURRENT_RELEASE.equals(r2) ? 0 : 1;
+            if (CURRENT_RELEASE.equals(r2))
+                return -1;
             String[] parts1 = r1.split(DIGITNONDIGIT_BOUNDARY);
             String[] parts2 = r2.split(DIGITNONDIGIT_BOUNDARY);
             for (int i = 0; i < min(parts1.length, parts2.length); ++i) {

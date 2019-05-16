@@ -8,12 +8,15 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.Resource;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.version.Version;
 import java.io.Serializable;
 import java.util.Calendar;
 import java.util.Objects;
+
+import static com.composum.sling.core.util.SlingResourceUtil.getPath;
 
 /** Describes the state of a versionable in a release. Can also be used as parameter object to update the release. */
 public class ReleasedVersionable implements Serializable, Cloneable {
@@ -23,10 +26,11 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     private String relativePath;
 
     /** @see #getVersionableUuid() */
+    @Nonnull
     private String versionableUuid;
 
     /** @see #getVersionUuid() */
-    @Nonnull
+    @Nullable
     private String versionUuid;
 
     /** @see #getVersionHistory() */
@@ -34,20 +38,22 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     private String versionHistory;
 
     /** @see #getActive() */
-    private Boolean active;
+    private boolean active;
 
     /** Creates a {@link ReleasedVersionable} that corresponds to the base version of the given versionable. */
     public static ReleasedVersionable forBaseVersion(@Nonnull Resource resource) {
         if (!ResourceUtil.isResourceType(Objects.requireNonNull(resource), ResourceUtil.TYPE_VERSIONABLE))
-            throw new IllegalArgumentException("resource is not versionable: " + SlingResourceUtil.getPath(resource));
+            throw new IllegalArgumentException("resource is not versionable: " + getPath(resource));
         ReleasedVersionable result = new ReleasedVersionable();
         Resource releaseRoot = resource;
         StringBuilder relPath = new StringBuilder();
-        while (!ResourceUtil.isResourceType(releaseRoot, StagingConstants.TYPE_MIX_RELEASE_ROOT)) {
+        while (releaseRoot != null && !ResourceUtil.isResourceType(releaseRoot, StagingConstants.TYPE_MIX_RELEASE_ROOT)) {
             if (relPath.length() > 0) relPath.insert(0, '/');
             relPath.insert(0, releaseRoot.getName());
             releaseRoot = releaseRoot.getParent();
         }
+        if (releaseRoot == null)
+            throw new IllegalArgumentException("Could not find release root for " + getPath(resource));
         result.setRelativePath(relPath.toString());
         result.setActive(true);
         result.setVersionableUuid(resource.getValueMap().get(ResourceUtil.PROP_UUID, String.class));
@@ -59,7 +65,7 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     /** Releasemanager internal: creates a {@link ReleasedVersionable} that corresponds to a {@link StagingConstants#TYPE_VERSIONREFERENCE}. */
     public static ReleasedVersionable fromVersionReference(@Nonnull Resource releaseWorkspaceCopy, @Nonnull Resource resource) {
         if (!ResourceUtil.isResourceType(resource, StagingConstants.TYPE_VERSIONREFERENCE)) {
-            throw new IllegalArgumentException("resource is not version reference: " + SlingResourceUtil.getPath(resource));
+            throw new IllegalArgumentException("resource is not version reference: " + getPath(resource));
         }
         if (!resource.getPath().equals(releaseWorkspaceCopy) && !resource.getPath().startsWith(releaseWorkspaceCopy.getPath() + '/')) {
             throw new IllegalArgumentException("Resource not in treeroot: " + resource.getPath() + ", " + releaseWorkspaceCopy.getPath());
@@ -89,23 +95,27 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     }
 
     /** {@value com.composum.sling.core.util.ResourceUtil#PROP_UUID} of the versionable that was put into the release. */
+    @Nonnull
     public String getVersionableUuid() {
         return versionableUuid;
     }
 
     /** @see #getVersionableUuid() */
-    public void setVersionableUuid(String versionableUuid) {
+    public void setVersionableUuid(@Nonnull String versionableUuid) {
         this.versionableUuid = versionableUuid;
     }
 
-    /** {@link Version#getUUID()} of the version of the versionable that is in the release / is to be put into the release.. */
-    @Nonnull
+    /**
+     * {@link Version#getUUID()} of the version of the versionable that is in the release / is to be put into the release.
+     * If something needs to be removed, this can be {@link #setVersionableUuid(String)} to null.
+     */
+    @Nullable
     public String getVersionUuid() {
         return versionUuid;
     }
 
     /** @see #getVersionUuid() */
-    public void setVersionUuid(@Nonnull String versionUuid) {
+    public void setVersionUuid(@Nullable String versionUuid) {
         this.versionUuid = versionUuid;
     }
 
@@ -121,12 +131,12 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     }
 
     /** Whether the versionable is active in the release. */
-    public Boolean getActive() {
+    public boolean getActive() {
         return active;
     }
 
     /** @see #getActive() */
-    public void setActive(Boolean active) {
+    public void setActive(boolean active) {
         this.active = active;
     }
 
@@ -141,7 +151,7 @@ public class ReleasedVersionable implements Serializable, Cloneable {
         String oldVersionHistory = rh.getProperty(StagingConstants.PROP_VERSIONHISTORY);
         if (oldVersionHistory != null && !oldVersionHistory.equals(getVersionHistory()))
             throw new IllegalArgumentException("Trying to write to different versionhistory: " + getVersionHistory() + " to " + oldVersionHistory);
-        if (getActive() != null) rh.setProperty(StagingConstants.PROP_DEACTIVATED, !getActive());
+        rh.setProperty(StagingConstants.PROP_DEACTIVATED, !getActive());
         rh.setProperty(StagingConstants.PROP_VERSIONABLEUUID, getVersionableUuid(), PropertyType.WEAKREFERENCE);
         rh.setProperty(StagingConstants.PROP_VERSION, getVersionUuid(), PropertyType.REFERENCE);
         rh.setProperty(StagingConstants.PROP_VERSIONHISTORY, getVersionHistory(), PropertyType.REFERENCE);
@@ -167,7 +177,30 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     }
 
     @Override
-    public Object clone() throws CloneNotSupportedException {
-        return super.clone();
+    public ReleasedVersionable clone() {
+        try {
+            return (ReleasedVersionable) super.clone();
+        } catch (CloneNotSupportedException e) { // can't happen - we just want to get rid of the unneccesary throws declaration
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** Compares all fields. */
+    @SuppressWarnings({"OverlyComplexBooleanExpression", "ObjectEquality"})
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ReleasedVersionable that = (ReleasedVersionable) o;
+        return getActive() == that.getActive() &&
+                Objects.equals(getRelativePath(), that.getRelativePath()) &&
+                Objects.equals(getVersionableUuid(), that.getVersionableUuid()) &&
+                Objects.equals(getVersionUuid(), that.getVersionUuid()) &&
+                getVersionHistory().equals(that.getVersionHistory());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getVersionHistory());
     }
 }

@@ -30,10 +30,14 @@ public class JcrTestUtils {
                 jsonWriter.setHtmlSafe(true);
                 jsonWriter.setIndent("    ");
                 JsonUtil.exportJson(jsonWriter, resource, MappingRules.getDefaultMappingRules(), 99);
-                System.err.flush(); // ensure uninterrupted printing
+                // ensure uninterrupted printing : wait for logmessages being printed, flush
+                Thread.sleep(200);
+                System.err.flush();
                 System.out.flush();
+                System.out.println("JCR TREE FOR " + resource.getPath());
                 System.out.println(writer);
-            } catch (RepositoryException | IOException e) {
+                System.out.flush();
+            } catch (RepositoryException | IOException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
         } else {
