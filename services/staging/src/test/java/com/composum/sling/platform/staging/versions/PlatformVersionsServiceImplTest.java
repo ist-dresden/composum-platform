@@ -7,9 +7,11 @@ import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
 import com.composum.sling.platform.staging.impl.AbstractStagingTest;
+import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
 import com.composum.sling.platform.staging.versions.PlatformVersionsService.Status;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
+import com.composum.sling.platform.testing.testutil.SlingMatchers;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -21,12 +23,24 @@ import org.junit.Test;
 
 import java.util.regex.Pattern;
 
-import static com.composum.sling.core.util.CoreConstants.*;
+import static com.composum.sling.core.util.CoreConstants.CONTENT_NODE;
+import static com.composum.sling.core.util.CoreConstants.PROP_MIXINTYPES;
+import static com.composum.sling.core.util.CoreConstants.PROP_PRIMARY_TYPE;
+import static com.composum.sling.core.util.CoreConstants.TYPE_LAST_MODIFIED;
+import static com.composum.sling.core.util.CoreConstants.TYPE_SLING_ORDERED_FOLDER;
+import static com.composum.sling.core.util.CoreConstants.TYPE_UNSTRUCTURED;
+import static com.composum.sling.core.util.CoreConstants.TYPE_VERSIONABLE;
 import static com.composum.sling.platform.staging.StagingConstants.CURRENT_RELEASE;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
 import static com.composum.sling.platform.testing.testutil.JcrTestUtils.array;
 import static java.util.Arrays.asList;
-import static org.hamcrest.Matchers.*;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.hamcrest.Matchers.hasToString;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 /** Tests for {@link PlatformVersionsServiceImpl}. */
 public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
@@ -74,6 +88,42 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
     }
 
     @Test
+    public void revert() throws Exception {
+        ResourceResolver resourceResolver = context.resourceResolver();
+
+        DefaultStagingReleaseManager.ReleaseImpl r1 = (DefaultStagingReleaseManager.ReleaseImpl) releaseManager.createRelease(versionable, ReleaseNumberCreator.MAJOR);
+        resourceResolver.commit();
+        ec.checkThat(r1.getNumber(), is("r1"));
+
+        Release r11 = releaseManager.createRelease(versionable, ReleaseNumberCreator.MINOR);
+        resourceResolver.commit();
+        ec.checkThat(r11.getNumber(), is("r1.1"));
+
+        resourceResolver.delete(resourceResolver.getResource(r1.mapToContentCopy(document1)));
+        resourceResolver.commit();
+        versionManager.checkpoint(document1 + "/jcr:content");
+        releaseManager.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(versionable));
+        resourceResolver.commit();
+        // current release contains now a changed version, r11 the versionable but r11 does not contain anything. Verify that.
+
+        ec.checkThat(service.getStatus(versionable, r1.getNumber()).getActivationState(), is(PlatformVersionsService.ActivationState.initial));
+        Status statusR11 = service.getStatus(versionable, r11.getNumber());
+        ec.checkThat(statusR11.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
+
+        Status status = service.getStatus(versionable, CURRENT_RELEASE);
+        ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
+        ec.checkThat(status.releaseVersionableInfo().getVersionUuid(), not(is(statusR11.releaseVersionableInfo().getVersionUuid())));
+
+        // Now revert current release version to r11
+        PlatformVersionsService.ActivationResult result = service.revert(CURRENT_RELEASE, asList(versionable));
+        ec.checkThat(result.getChangedPathsInfo(), SlingMatchers.hasMapSize(0));
+
+        status = service.getStatus(versionable, CURRENT_RELEASE); // now just as in r11
+        ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
+        ec.checkThat(status.releaseVersionableInfo().getVersionUuid(), is(statusR11.releaseVersionableInfo().getVersionUuid()));
+    }
+
+    @Test
     public void initialStatus() throws Exception {
         Resource initVersionable = builderAtRelease.resource("document2", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED)
                 .resource(CONTENT_NODE, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED, PROP_MIXINTYPES, new String[]{TYPE_VERSIONABLE, TYPE_LAST_MODIFIED})
@@ -110,6 +160,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
 
         Release r1 = releaseManager.createRelease(versionable, ReleaseNumberCreator.MAJOR);
         context.resourceResolver().commit();
+        ec.checkThat(r1.getNumber(), is("r1"));
 
         Status status1 = service.getStatus(versionable, r1.getNumber());
         ec.checkThat(status1.getActivationState(), is(PlatformVersionsService.ActivationState.activated));

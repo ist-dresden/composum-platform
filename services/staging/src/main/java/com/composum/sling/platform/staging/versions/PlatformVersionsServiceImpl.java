@@ -118,13 +118,13 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         } else {
             LOG.info("Already activated in release {} : {}", status.release().getNumber(), getPath(rawVersionable));
         }
-        return new ActivationResult(result);
+        return new ActivationResult(status.release(), result, null, null, null); // FIXME(hps,2019-05-16) actresult
     }
 
     @Nonnull
     @Override
     public ActivationResult activate(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException {
-        ActivationResult result = new ActivationResult(null);
+        ActivationResult result = new ActivationResult(null, null, null, null, null); // FIXME(hps,2019-05-16) actresult
         List<Resource> normalizedCheckedinVersionables = new ArrayList<>();
         for (Resource rawVersionable : versionables) {
             ResourceHandle versionable = normalizeVersionable(rawVersionable);
@@ -179,7 +179,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     @Override
     @Nonnull
     public ActivationResult revert(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException {
-        ActivationResult result = new ActivationResult(null);
+        ActivationResult result = new ActivationResult(null, null, null, null, null); // FIXME(hps,2019-05-16) actresult;
         if (versionables == null || versionables.isEmpty())
             return result;
         Resource firstVersionable = versionables.get(0);
@@ -207,7 +207,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             // FIXME(hps,2019-05-15) implement this correctly
             if (rvInPreviousRelease != null) {
                 Map<String, SiblingOrderUpdateStrategy.Result> info = releaseManager.updateRelease(release, rvInPreviousRelease);
-                result = result.merge(new ActivationResult(info));
+                result = result.merge(new ActivationResult(previousRelease, info, null, null, null)); // FIXME(hps,2019-05-16) actresult
             }
         }
         return result;
@@ -216,16 +216,10 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     @Nullable
     protected StagingReleaseManager.Release calculatePreviousRelease(Resource firstVersionable, StagingReleaseManager.Release release) {
         List<StagingReleaseManager.Release> releases = releaseManager.getReleases(firstVersionable);
-        StagingReleaseManager.Release previousRelease = null;
-        for (StagingReleaseManager.Release candidate : releases) {
-            if (ReleaseNumberCreator.COMPARATOR_RELEASES.compare(candidate.getNumber(), release.getNumber()) < 0) {
-                if (previousRelease == null
-                        || ReleaseNumberCreator.COMPARATOR_RELEASES.compare(previousRelease.getNumber(), candidate.getNumber()) < 0)
-                    previousRelease = candidate;
-
-            }
-        }
-        return previousRelease;
+        Optional<StagingReleaseManager.Release> previousRelease = releases.stream()
+                .filter(r -> ReleaseNumberCreator.COMPARATOR_RELEASES.compare(r.getNumber(), release.getNumber()) < 0)
+                .max(Comparator.comparing(StagingReleaseManager.Release::getNumber, ReleaseNumberCreator.COMPARATOR_RELEASES));
+        return previousRelease.orElse(null);
     }
 
     /**

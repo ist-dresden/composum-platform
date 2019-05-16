@@ -163,6 +163,28 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     }
 
     @Nonnull
+    @Override
+    public Release resetCurrentTo(@Nonnull Release release) {
+        LOG.error("DefaultStagingReleaseManager.resetCurrentTo");
+        if (0 == 0)
+            throw new UnsupportedOperationException("Not implemented yet: DefaultStagingReleaseManager.resetCurrentTo");
+        // FIXME hps 2019-05-16 implement DefaultStagingReleaseManager.resetCurrentTo
+        Release result = null;
+        return result;
+    }
+
+    @Nonnull
+    @Override
+    public Release finalizeCurrentRelease(@Nonnull ReleaseNumberCreator releaseType) throws ReleaseExistsException {
+        LOG.error("DefaultStagingReleaseManager.finalizeCurrentRelease");
+        if (0 == 0)
+            throw new UnsupportedOperationException("Not implemented yet: DefaultStagingReleaseManager.finalizeCurrentRelease");
+        // FIXME hps 2019-05-16 implement DefaultStagingReleaseManager.finalizeCurrentRelease
+        Release result = null;
+        return result;
+    }
+
+    @Nonnull
     protected Release createRelease(@Nonnull Resource resource, @Nullable Release rawCopyFromRelease, @Nonnull ReleaseNumberCreator releaseType) throws ReleaseExistsException, ReleaseNotFoundException, PersistenceException, RepositoryException {
         ResourceHandle root = findReleaseRoot(resource);
         cleanupLabels(root);
@@ -203,6 +225,17 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         query.path(releaseWorkspaceCopy.getPath()).type(TYPE_VERSIONREFERENCE);
         for (Resource versionReference : query.execute())
             result.add(ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference));
+        return result;
+    }
+
+    @Nonnull
+    @Override
+    public List<ReleasedVersionable> compareReleases(@Nonnull Release release, @Nullable Release previousRelease) {
+        LOG.error("DefaultStagingReleaseManager.compareReleases");
+        if (0 == 0)
+            throw new UnsupportedOperationException("Not implemented yet: DefaultStagingReleaseManager.compareReleases");
+        // FIXME hps 2019-05-16 implement DefaultStagingReleaseManager.compareReleases
+        List<ReleasedVersionable> result = null;
         return result;
     }
 
@@ -547,6 +580,14 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         }
     }
 
+    @Override
+    public void close(@Nonnull Release release) {
+        LOG.error("DefaultStagingReleaseManager.close");
+        if (0 == 0) throw new UnsupportedOperationException("Not implemented yet: DefaultStagingReleaseManager.close");
+        // FIXME hps 2019-05-16 implement DefaultStagingReleaseManager.close
+
+    }
+
     /** Ensures the technical resources for a release are there. If the release is created, the root is completely empty. */
     protected ReleaseImpl ensureRelease(@Nonnull Resource theRoot, @Nonnull String releaseLabel) throws RepositoryException, PersistenceException {
         ResourceHandle root = ResourceHandle.use(theRoot);
@@ -590,6 +631,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         final Resource workspaceCopyNode;
 
         private List<String> marks;
+
+        private Optional<ReleaseImpl> prevRelease;
 
         ReleaseImpl(@Nonnull Resource releaseRoot, @Nonnull Resource releaseNode) {
             this.releaseRoot = requireNonNull(releaseRoot);
@@ -649,6 +692,21 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 }
             }
             return Collections.unmodifiableList(marks);
+        }
+
+        @Override
+        public boolean isClosed() {
+            return releaseNode.getValueMap().get(PROP_CLOSED, false);
+        }
+
+        @Nullable
+        @Override
+        public Release getPreviousRelease() throws RepositoryException {
+            if (prevRelease == null) {
+                Resource prevReleaseResource = ResourceUtil.getReferredResource(releaseNode.getChild(PROP_PREVIOUS_RELEASE_UUID));
+                prevRelease = Optional.ofNullable(prevReleaseResource != null ? new ReleaseImpl(releaseRoot, prevReleaseResource) : null);
+            }
+            return prevRelease.orElse(null);
         }
 
         /**

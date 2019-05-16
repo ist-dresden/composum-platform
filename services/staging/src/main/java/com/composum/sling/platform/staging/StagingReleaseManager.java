@@ -359,7 +359,7 @@ public interface StagingReleaseManager {
 
         /** Returns the release from which this release was created. */
         @Nullable
-        Release getPreviousRelease();
+        Release getPreviousRelease() throws RepositoryException;
 
         /**
          * Checks whether the given path is in the range of the release root. This does not check whether the resource actually exists.

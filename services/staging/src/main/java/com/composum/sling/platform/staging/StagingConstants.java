@@ -78,6 +78,12 @@ public interface StagingConstants {
     /** Property of {@link #TYPE_VERSIONREFERENCE}: who did the last deactivation */
     final String PROP_LAST_DEACTIVATED_BY = "lastDeactivatedBy";
 
+    /** Boolean property of release node that tells whether the release is closed. If not set we use false. */
+    final String PROP_CLOSED = "closedRelease";
+
+    /** Property of release node: the Uuid of the previous release from which this one was copied. */
+    final String PROP_PREVIOUS_RELEASE_UUID = "previousReleaseUuid";
+
     /**
      * "Releasenumber" or key of the current release : {@value #CURRENT_RELEASE}. This also serves as the "current release" (the release that's in construction and will be used as default preview)
      * below {@link #NODE_RELEASES}.

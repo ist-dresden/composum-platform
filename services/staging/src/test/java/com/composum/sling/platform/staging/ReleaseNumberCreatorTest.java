@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static com.composum.sling.platform.staging.ReleaseNumberCreator.*;
+import static com.composum.sling.platform.staging.StagingConstants.CURRENT_RELEASE;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
@@ -43,9 +44,9 @@ public class ReleaseNumberCreatorTest {
 
     @Test
     public void sorting() {
-        List<String> rels = new ArrayList<>(Arrays.asList("r10.9", "r1.2.1", "r3.2.2", "r1.2", "", "r3.10.2", "jcr:current", "r", "r3.5"));
+        List<String> rels = new ArrayList<>(Arrays.asList("r10.9", "r1.2.1", "r3.2.2", "r1.2", "", "r3.10.2", CURRENT_RELEASE, "r", "r3.5"));
         Collections.sort(rels, COMPARATOR_RELEASES);
-        ec.checkThat(rels, contains("", "jcr:current", "r", "r1.2", "r1.2.1", "r3.2.2", "r3.5", "r3.10.2", "r10.9"));
+        ec.checkThat(rels, contains("", "r", "r1.2", "r1.2.1", "r3.2.2", "r3.5", "r3.10.2", "r10.9", CURRENT_RELEASE));
         ec.checkThat(-1, is(COMPARATOR_RELEASES.compare("r1", "r1.2")));
         ec.checkThat(1, is(COMPARATOR_RELEASES.compare("r10.9", "r1.2")));
         ec.checkThat(-1, is(COMPARATOR_RELEASES.compare("r1.2", "r10.9")));

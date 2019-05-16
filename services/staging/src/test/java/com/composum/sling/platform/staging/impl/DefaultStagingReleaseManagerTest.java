@@ -39,11 +39,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.composum.sling.core.util.ResourceUtil.*;
+import static com.composum.sling.core.util.ResourceUtil.PROP_MIXINTYPES;
+import static com.composum.sling.core.util.ResourceUtil.PROP_PRIMARY_TYPE;
+import static com.composum.sling.core.util.ResourceUtil.PROP_TITLE;
+import static com.composum.sling.core.util.ResourceUtil.TYPE_LAST_MODIFIED;
+import static com.composum.sling.core.util.ResourceUtil.TYPE_TITLE;
+import static com.composum.sling.core.util.ResourceUtil.TYPE_UNSTRUCTURED;
+import static com.composum.sling.core.util.ResourceUtil.TYPE_VERSIONABLE;
 import static com.composum.sling.platform.testing.testutil.JcrTestUtils.array;
 import static com.composum.sling.platform.testing.testutil.SlingMatchers.exceptionOf;
 import static com.composum.sling.platform.testing.testutil.SlingMatchers.throwableWithMessage;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 /**
  * Tests for {@link DefaultStagingReleaseManager}.
@@ -106,13 +121,14 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     }
 
     @Test
-    public void addDocument() throws Exception {
+    public void addAndRemoveDocument() throws Exception {
         Resource versionable = releaseRootBuilder.resource("a/jcr:content", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                 PROP_MIXINTYPES, array(TYPE_VERSIONABLE, TYPE_TITLE, TYPE_LAST_MODIFIED), "foo", "bar", PROP_TITLE, "title")
                 .commit().getCurrentParent();
         Version version = versionManager.checkpoint(versionable.getPath());
 
-        service.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(versionable));
+        ReleasedVersionable releasedVersionable = ReleasedVersionable.forBaseVersion(versionable);
+        service.updateRelease(currentRelease, releasedVersionable);
         context.resourceResolver().commit();
 
         referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/current/root/a/jcr:content"), versionable, version);
@@ -126,6 +142,10 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
         ec.checkThat(version.getContainingHistory().getVersionLabels(version),
                 arrayContaining(StagingConstants.RELEASE_LABEL_PREFIX + currentRelease.getNumber()));
+
+        releasedVersionable.setVersionUuid(null); // instruction to remove it
+        service.updateRelease(currentRelease, Arrays.asList(releasedVersionable));
+        ec.checkThat(stagedResolver.getResource(versionable.getPath()), nullValue());
     }
 
     protected void referenceRefersToVersionableVersion(Resource rawVersionReference, Resource versionable, Version version) throws RepositoryException {
@@ -340,6 +360,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ec.checkThat(result.getVersionUuid(), is(deletedVersionable.getVersionUuid()));
         ec.checkThat(context.resourceResolver().getResource(versionablePath), notNullValue());
 
+        // already restored / still exists
         ec.checkFailsWith(() -> service.restore(currentRelease, deletedVersionable), instanceOf(IllegalArgumentException.class));
     }
 
