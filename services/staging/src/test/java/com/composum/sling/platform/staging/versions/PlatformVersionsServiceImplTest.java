@@ -94,15 +94,18 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         String originalVersion = ReleasedVersionable.forBaseVersion(versionable).getVersionUuid();
 
         DefaultStagingReleaseManager.ReleaseImpl r1 = (DefaultStagingReleaseManager.ReleaseImpl) releaseManager.finalizeCurrentRelease(versionable, ReleaseNumberCreator.MAJOR);
+        DefaultStagingReleaseManager.ReleaseImpl r2 = (DefaultStagingReleaseManager.ReleaseImpl) releaseManager.createRelease(r1, ReleaseNumberCreator.MAJOR); // r1 is closed...
         resourceResolver.commit();
-        ec.checkThat(r1.getNumber(), is("r1"));
+        ec.checkThat(r2.getNumber(), is("r2"));
+        currentRelease = releaseManager.resetCurrentTo(r2);
 
-        Release r11 = releaseManager.finalizeCurrentRelease(versionable, ReleaseNumberCreator.MINOR);
+        Release r21 = releaseManager.finalizeCurrentRelease(versionable, ReleaseNumberCreator.MINOR);
         resourceResolver.commit();
-        ec.checkThat(r11.getNumber(), is("r1.1"));
+        currentRelease = releaseManager.findRelease(this.versionable, CURRENT_RELEASE); // need to refresh resource, otherwise Jackrabbit gets confused. :-(
+        ec.checkThat(r21.getNumber(), is("r2.1"));
 
         // delete in version 1
-        releaseManager.updateRelease(r1, Collections.singletonList(ReleasedVersionable.forBaseVersion(versionable).setVersionUuid(null)));
+        releaseManager.updateRelease(r2, Collections.singletonList(ReleasedVersionable.forBaseVersion(versionable).setVersionUuid(null)));
         resourceResolver.commit();
         // update in currentRelease
         String version2 = versionManager.checkpoint(document1 + "/jcr:content").getIdentifier();
@@ -110,8 +113,8 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         resourceResolver.commit();
         // current release contains now a changed version, r11 the versionable but r1 does not contain anything. Now Verify that.
 
-        ec.checkThat(service.getStatus(versionable, r1.getNumber()).getActivationState(), is(PlatformVersionsService.ActivationState.initial));
-        Status statusR11 = service.getStatus(versionable, r11.getNumber());
+        ec.checkThat(service.getStatus(versionable, r2.getNumber()).getActivationState(), is(PlatformVersionsService.ActivationState.initial));
+        Status statusR11 = service.getStatus(versionable, r21.getNumber());
         ec.checkThat(statusR11.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
         ec.checkThat(statusR11.releaseVersionableInfo().getVersionUuid(), is(originalVersion));
 
@@ -128,10 +131,10 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
         ec.checkThat(status.releaseVersionableInfo().getVersionUuid(), is(originalVersion));
 
-        if (1 == 0) { // FIXME(hps,2019-05-17) commented out for now
+        if (0 == 1) {
             // Revert in r11 to r1 : that is, delete document there
-            result = service.revert(r11.getNumber(), asList(versionable));
-            statusR11 = service.getStatus(versionable, r11.getNumber());
+            result = service.revert(r21.getNumber(), asList(versionable));
+            statusR11 = service.getStatus(versionable, r21.getNumber());
             ec.checkThat(statusR11.getActivationState(), is(PlatformVersionsService.ActivationState.initial));
             ec.checkThat(statusR11.releaseVersionableInfo(), nullValue());
         }
@@ -288,30 +291,31 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
     @Test
     public void releaseVersionablesAsResourceFilterWithContentNodeFilter() throws Exception {
         ResourceFilter filter;
-        Release r1 = releaseManager.finalizeCurrentRelease(versionable, ReleaseNumberCreator.MAJOR);
+        Release rx = releaseManager.finalizeCurrentRelease(versionable, ReleaseNumberCreator.MAJOR);
+        Release r2 = releaseManager.createRelease(rx, ReleaseNumberCreator.MAJOR); // since r1 is closed :-/
         ResourceFilter contentNodeFilter = new ResourceFilter.ContentNodeFilter(true,
                 new ResourceFilter.PrimaryTypeFilter(new StringFilter.WhiteList(NT_UNSTRUCTURED)), // normally cpp:Page
                 ResourceFilter.ALL);
 
-        filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r1.getNumber(), null, null);
+        filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r2.getNumber(), null, null);
         ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), document1, TYPE_UNSTRUCTURED)), is(true));
         ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), document1 + "/jcr:content", TYPE_UNSTRUCTURED)), is(true));
 
-        filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r1.getNumber(), null, contentNodeFilter);
-        ec.checkThat(filter, hasToString("ResolvedResourceFilter(Release('r1',/content/release),ContentNode(-,PrimaryType(+'nt:unstructured')=jcr:content=>All()))"));
+        filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r2.getNumber(), null, contentNodeFilter);
+        ec.checkThat(filter, hasToString("ResolvedResourceFilter(Release('r2',/content/release),ContentNode(-,PrimaryType(+'nt:unstructured')=jcr:content=>All()))"));
         ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), document1, TYPE_UNSTRUCTURED)), is(true));
         ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), document1 + "/jcr:content", TYPE_UNSTRUCTURED)), is(false)); // has no content node
 
         // now remove document 1 from release (deactivate)
         ReleasedVersionable rv = ReleasedVersionable.forBaseVersion(context.resourceResolver().getResource(document1 + "/jcr:content"));
         rv.setActive(false);
-        releaseManager.updateRelease(r1, Collections.singletonList(rv));
+        releaseManager.updateRelease(r2, Collections.singletonList(rv));
 
-        filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r1.getNumber(), null, null);
+        filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r2.getNumber(), null, null);
         ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), document1, TYPE_UNSTRUCTURED)), is(true)); // normally the cpp:Page - still there
         ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), document1 + "/jcr:content", TYPE_UNSTRUCTURED)), is(false)); // only this is removed
 
-        filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r1.getNumber(), null, contentNodeFilter);
+        filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r2.getNumber(), null, contentNodeFilter);
         // its content node is absent -> contentNodeFilter now blocks document1 , normally the cpp:Page
         ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), document1, TYPE_UNSTRUCTURED)), is(false));
     }
