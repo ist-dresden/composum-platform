@@ -21,6 +21,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.regex.Pattern;
 
 import static com.composum.sling.core.util.CoreConstants.CONTENT_NODE;
@@ -101,11 +102,11 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         ec.checkThat(r11.getNumber(), is("r1.1"));
 
         // delete in version 1
-        releaseManager.updateRelease(r1, ReleasedVersionable.forBaseVersion(versionable).setVersionUuid(null));
+        releaseManager.updateRelease(r1, Collections.singletonList(ReleasedVersionable.forBaseVersion(versionable).setVersionUuid(null)));
         resourceResolver.commit();
         // update in currentRelease
         String version2 = versionManager.checkpoint(document1 + "/jcr:content").getIdentifier();
-        releaseManager.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(versionable));
+        releaseManager.updateRelease(currentRelease, Collections.singletonList(ReleasedVersionable.forBaseVersion(versionable)));
         resourceResolver.commit();
         // current release contains now a changed version, r11 the versionable but r1 does not contain anything. Now Verify that.
 
@@ -255,7 +256,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         Resource nocontentnode = builderAtRelease.resource("other/versionedwithoutcontentnode", PROP_PRIMARY_TYPE,
                 TYPE_UNSTRUCTURED, PROP_MIXINTYPES, new String[]{TYPE_VERSIONABLE, TYPE_LAST_MODIFIED}).commit().getCurrentParent();
         versionManager.checkpoint(nocontentnode.getPath());
-        releaseManager.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(nocontentnode));
+        releaseManager.updateRelease(currentRelease, Collections.singletonList(ReleasedVersionable.forBaseVersion(nocontentnode)));
         context.resourceResolver().commit();
 
         ResourceFilter filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), null, null, null);
@@ -304,7 +305,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         // now remove document 1 from release (deactivate)
         ReleasedVersionable rv = ReleasedVersionable.forBaseVersion(context.resourceResolver().getResource(document1 + "/jcr:content"));
         rv.setActive(false);
-        releaseManager.updateRelease(r1, rv);
+        releaseManager.updateRelease(r1, Collections.singletonList(rv));
 
         filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r1.getNumber(), null, null);
         ec.checkThat(filter.accept(new SyntheticResource(context.resourceResolver(), document1, TYPE_UNSTRUCTURED)), is(true)); // normally the cpp:Page - still there

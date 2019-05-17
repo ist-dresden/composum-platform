@@ -10,6 +10,8 @@ import org.apache.sling.api.resource.ResourceResolver;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -173,23 +175,6 @@ public interface StagingReleaseManager {
      */
     @Nullable
     ReleasedVersionable findReleasedVersionable(@Nonnull Release release, @Nonnull Resource versionable);
-
-    /**
-     * Updates the release by adding or updating the versionable denoted by {releasedVersionable} in the release.
-     * If {@link ReleasedVersionable#versionUuid} is null, it is removed from the release.
-     * We also set a label {@value StagingConstants#RELEASE_LABEL_PREFIX}{releasenumber} on each version contained in the release,
-     * for easier referencing versions. Caution: the current release is called {@value StagingConstants#RELEASE_LABEL_PREFIX}current .
-     * // FIXME(hps,2019-05-16) remove this - {@link #updateRelease(Release, List)} is enough.
-     *
-     * @param release             the release to update
-     * @param releasedVersionable information of the versionable to update
-     * @return a map with paths where we changed the order of children in the release.
-     * @throws ReleaseNotFoundException if the copied release doesn't exist
-     * @deprecated please use {@link #updateRelease(Release, List)}.
-     */
-    @Nonnull
-    @Deprecated
-    Map<String, SiblingOrderUpdateStrategy.Result> updateRelease(@Nonnull Release release, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException;
 
     /**
      * Updates the release by adding or updating a number of versionables denoted by {releasedVersionable} in the release.

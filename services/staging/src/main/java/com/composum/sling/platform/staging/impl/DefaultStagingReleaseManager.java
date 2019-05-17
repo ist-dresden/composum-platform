@@ -360,9 +360,19 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         return findReleasedVersionableByUuid(release, currentVersionable.getVersionHistory());
     }
 
-    @Override
     @Nonnull
-    public Map<String, Result> updateRelease(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException {
+    @Override
+    public Map<String, Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException {
+        Map<String, Result> result = new TreeMap<>();
+        for (ReleasedVersionable releasedVersionable : releasedVersionableList) {
+            Map<String, Result> partialResult = updateReleaseInternal(release, releasedVersionable);
+            result = Result.combine(result, partialResult);
+        }
+        return result;
+    }
+
+    @Nonnull
+    protected Map<String, Result> updateReleaseInternal(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException {
         boolean delete = releasedVersionable.getVersionUuid() == null;
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         Resource releaseWorkspaceCopy = release.getWorkspaceCopyNode();
@@ -476,17 +486,6 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 versionHistory.addVersionLabel(version.getName(), release.getReleaseLabel(), true);
             }
         }
-    }
-
-    @Nonnull
-    @Override
-    public Map<String, Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException {
-        Map<String, Result> result = new TreeMap<>();
-        for (ReleasedVersionable releasedVersionable : releasedVersionableList) {
-            Map<String, Result> partialResult = updateRelease(release, releasedVersionable);
-            result = Result.combine(result, partialResult);
-        }
-        return result;
     }
 
     @Override

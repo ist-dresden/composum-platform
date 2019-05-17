@@ -32,6 +32,7 @@ import static com.composum.sling.core.util.CoreConstants.*;
 import static com.composum.sling.core.util.SlingResourceUtil.getPath;
 import static com.composum.sling.core.util.SlingResourceUtil.getPaths;
 import static com.composum.sling.platform.staging.StagingConstants.*;
+import static java.util.Arrays.asList;
 
 /**
  * This is the default implementation of the {@link PlatformVersionsService} - see there.
@@ -97,7 +98,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     @Nonnull
     @Override
-    public ActivationResult activate(@Nullable String releaseKey, @Nonnull Resource rawVersionable, @Nullable String versionUuid) throws PersistenceException, RepositoryException {
+    public ActivationResult activate(@Nullable String releaseKey, @Nonnull Resource rawVersionable, @Nullable String versionUuid) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException {
         LOG.info("Requested activation {} in release {} to version {}", getPath(rawVersionable), releaseKey, versionUuid);
         Map<String, SiblingOrderUpdateStrategy.Result> result = null;
         ResourceHandle versionable = normalizeVersionable(rawVersionable);
@@ -110,7 +111,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 releasedVersionable.setVersionUuid(versionUuid);
             }
             releasedVersionable.setActive(true);
-            result = releaseManager.updateRelease(status.release(), releasedVersionable);
+            result = releaseManager.updateRelease(status.release(), asList(releasedVersionable));
             status = getStatus(versionable, releaseKey);
             Validate.isTrue(status.getVersionReference().isValid());
             Validate.isTrue(status.getActivationState() == ActivationState.activated, "Bug: not active after activation: %s", status);
@@ -123,7 +124,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     @Nonnull
     @Override
-    public ActivationResult activate(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException {
+    public ActivationResult activate(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException {
         ActivationResult result = new ActivationResult(null, null, null, null, null); // FIXME(hps,2019-05-16) actresult
         List<Resource> normalizedCheckedinVersionables = new ArrayList<>();
         for (Resource rawVersionable : versionables) {
@@ -155,7 +156,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     }
 
     @Override
-    public void deactivate(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException {
+    public void deactivate(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException {
         LOG.info("Requested deactivation {} in {}", getPaths(versionables), releaseKey);
         for (Resource versionable : versionables) {
             StatusImpl status = getStatus(versionable, releaseKey);
@@ -165,7 +166,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                     LOG.info("Deactivating in {} : {}", status.release().getNumber(), getPath(versionable));
                     ReleasedVersionable releasedVersionable = status.releaseVersionableInfo();
                     releasedVersionable.setActive(false);
-                    releaseManager.updateRelease(status.release(), releasedVersionable);
+                    releaseManager.updateRelease(status.release(), asList(releasedVersionable));
                     break;
                 case initial:
                 case deactivated:
@@ -178,7 +179,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     @Override
     @Nonnull
-    public ActivationResult revert(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException {
+    public ActivationResult revert(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException {
         ActivationResult result = new ActivationResult(null, null, null, null, null); // FIXME(hps,2019-05-16) actresult;
         if (versionables == null || versionables.isEmpty())
             return result;
@@ -206,7 +207,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             LOG.error("This is incorrect yet, but to have something quickly...");
             // FIXME(hps,2019-05-15) implement this correctly
             if (rvInPreviousRelease != null) {
-                Map<String, SiblingOrderUpdateStrategy.Result> info = releaseManager.updateRelease(release, rvInPreviousRelease);
+                Map<String, SiblingOrderUpdateStrategy.Result> info = releaseManager.updateRelease(release, asList(rvInPreviousRelease));
                 result = result.merge(new ActivationResult(previousRelease, info, null, null, null)); // FIXME(hps,2019-05-16) actresult
             }
         }

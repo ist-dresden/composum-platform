@@ -134,7 +134,7 @@ public interface PlatformVersionsService {
      */
     @Nonnull
     ActivationResult activate(@Nullable String releaseKey, @Nonnull Resource versionable, @Nullable String versionUuid)
-            throws PersistenceException, RepositoryException;
+            throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException;
 
     /**
      * Puts the latest content of a couple of documents into the release.
@@ -149,7 +149,7 @@ public interface PlatformVersionsService {
      */
     @Nonnull
     ActivationResult activate(@Nullable String releaseKey, @Nonnull List<Resource> versionables)
-            throws PersistenceException, RepositoryException;
+            throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException;
 
     /**
      * Sets the versionables to "deactivated" - it is marked as not present in the release anymore.
@@ -158,7 +158,7 @@ public interface PlatformVersionsService {
      * @param versionables ist of versionables to revert
      */
     void deactivate(@Nullable String releaseKey, @Nonnull List<Resource> versionables)
-            throws PersistenceException, RepositoryException;
+            throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException;
 
     /**
      * Reverts a number of versionables to the state they were in the previous release
@@ -170,7 +170,7 @@ public interface PlatformVersionsService {
      */
     @Nonnull
     ActivationResult revert(@Nullable String releaseKey, @Nonnull List<Resource> versionables)
-            throws PersistenceException, RepositoryException;
+            throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException;
 
     /** Deletes old versions of the versionable - only versions in releases and after the last version which is in a release are kept. */
     void purgeVersions(@Nonnull Resource versionable)
