@@ -1,7 +1,10 @@
 package com.composum.sling.platform.testing.testutil;
 
 import org.hamcrest.Matcher;
-import org.junit.runner.Description;
+import org.junit.internal.AssumptionViolatedException;
+import org.junit.rules.ErrorCollector;
+import org.junit.rules.MethodRule;
+import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.MultipleFailureException;
 import org.junit.runners.model.Statement;
 
@@ -13,20 +16,27 @@ import java.util.concurrent.Callable;
 /**
  * Extends JUnit's {@link org.junit.rules.ErrorCollector} so that it also prints failed checks even when we have an exception in the test, since these might contain
  * important information about the why of the exception. All throwables are wrapped into a {@link MultipleFailureException} if neccesary.
+ * <p>
+ * This implements {@link MethodRule} instead of {@link org.junit.rules.TestRule} since they have precedence and we want e.g. to print the JCR content
+ * on failures before the SlingContext rule shuts the JCR down.
  */
-public class ErrorCollectorAlwaysPrintingFailures extends org.junit.rules.ErrorCollector {
+public class ErrorCollectorAlwaysPrintingFailures implements MethodRule {
 
     @Nonnull
     protected List<RunnableWithException> onFailureActions = new ArrayList<>();
 
+    protected final InternalErrorCollector errorCollector = new InternalErrorCollector();
+
     @Override
-    public Statement apply(final Statement base, Description description) {
+    public Statement apply(Statement base, FrameworkMethod method, Object target) {
         return new Statement() {
             @Override
             public void evaluate() throws Throwable {
                 Throwable thrown = null;
                 try {
                     base.evaluate();
+                } catch (AssumptionViolatedException e) {
+                    throw e;
                 } catch (Throwable t) {
                     thrown = t;
                 }
@@ -37,7 +47,7 @@ public class ErrorCollectorAlwaysPrintingFailures extends org.junit.rules.ErrorC
                     failures.add(thrown); // add it at the start
 
                 try { // add recorded failures
-                    verify();
+                    errorCollector.verify();
                 } catch (MultipleFailureException e) {
                     failures.addAll(e.getFailures());
                 } catch (Throwable tv) {
@@ -66,9 +76,9 @@ public class ErrorCollectorAlwaysPrintingFailures extends org.junit.rules.ErrorC
     public void checkFailsWith(Callable<?> callable, Matcher<Throwable> exceptionMatcher) {
         try {
             callable.call();
-            checkThat(null, exceptionMatcher);
+            errorCollector.checkThat(null, exceptionMatcher);
         } catch (Throwable e) {
-            checkThat(e, exceptionMatcher);
+            errorCollector.checkThat(e, exceptionMatcher);
         }
     }
 
@@ -80,10 +90,43 @@ public class ErrorCollectorAlwaysPrintingFailures extends org.junit.rules.ErrorC
     public void checkFailsWith(RunnableWithException runnable, Matcher<Throwable> exceptionMatcher) {
         try {
             runnable.run();
-            checkThat(null, exceptionMatcher);
+            errorCollector.checkThat(null, exceptionMatcher);
         } catch (Throwable e) {
-            checkThat(e, exceptionMatcher);
+            errorCollector.checkThat(e, exceptionMatcher);
         }
+    }
+
+    /**
+     * Adds a Throwable to the table.  Execution continues, but the test will fail at the end.
+     */
+    public void addError(Throwable error) {
+        errorCollector.addError(error);
+    }
+
+    /**
+     * Adds a failure to the table if {@code matcher} does not match {@code value}.
+     * Execution continues, but the test will fail at the end if the match fails.
+     */
+    public <T> void checkThat(T value, Matcher<T> matcher) {
+        errorCollector.checkThat(value, matcher);
+    }
+
+    /**
+     * Adds a failure with the given {@code reason}
+     * to the table if {@code matcher} does not match {@code value}.
+     * Execution continues, but the test will fail at the end if the match fails.
+     */
+    public <T> void checkThat(String reason, T value, Matcher<T> matcher) {
+        errorCollector.checkThat(reason, value, matcher);
+    }
+
+    /**
+     * Adds to the table the exception, if any, thrown from {@code callable}.
+     * Execution continues, but the test will fail at the end if
+     * {@code callable} threw an exception.
+     */
+    public <T> T checkSucceeds(Callable<T> callable) {
+        return errorCollector.checkSucceeds(callable);
     }
 
     /** Register something that should be done on failure - e.g. printing additional debugging information. */
@@ -115,4 +158,10 @@ public class ErrorCollectorAlwaysPrintingFailures extends org.junit.rules.ErrorC
     }
 
 
+    protected class InternalErrorCollector extends ErrorCollector {
+        @Override
+        public void verify() throws Throwable {
+            super.verify();
+        }
+    }
 }

@@ -101,8 +101,9 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     }
 
     /** @see #getVersionableUuid() */
-    public void setVersionableUuid(@Nonnull String versionableUuid) {
+    public ReleasedVersionable setVersionableUuid(@Nonnull String versionableUuid) {
         this.versionableUuid = versionableUuid;
+        return this;
     }
 
     /**
@@ -115,8 +116,9 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     }
 
     /** @see #getVersionUuid() */
-    public void setVersionUuid(@Nullable String versionUuid) {
+    public ReleasedVersionable setVersionUuid(@Nullable String versionUuid) {
         this.versionUuid = versionUuid;
+        return this;
     }
 
     /** The UUID of the version history, as unchangeable identifier. */
@@ -126,8 +128,9 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     }
 
     /** @see #getVersionHistory() */
-    public void setVersionHistory(@Nonnull String versionHistory) {
+    public ReleasedVersionable setVersionHistory(@Nonnull String versionHistory) {
         this.versionHistory = versionHistory;
+        return this;
     }
 
     /** Whether the versionable is active in the release. */
@@ -136,8 +139,9 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     }
 
     /** @see #getActive() */
-    public void setActive(boolean active) {
+    public ReleasedVersionable setActive(boolean active) {
         this.active = active;
+        return this;
     }
 
     /**

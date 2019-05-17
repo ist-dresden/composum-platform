@@ -29,7 +29,7 @@ public interface ReleaseNumberCreator {
     ReleaseNumberCreator BUGFIX = new DefaultReleaseNumberCreator(2);
 
 
-    /** Creates a new release key from the last one - e.g. r1.6.0 from r1.5.3 . */
+    /** Creates a new release key from the last one - e.g. r1.6.0 from r1.5.3 for {@link #MINOR} . */
     @Nonnull
     String bumpRelease(@Nonnull String oldname);
 
@@ -110,7 +110,7 @@ public interface ReleaseNumberCreator {
         @Nonnull
         @Override
         public String bumpRelease(@Nonnull String oldname) {
-            if (StringUtils.isBlank(oldname)) return "r0";
+            if (StringUtils.isBlank(oldname) || CURRENT_RELEASE.equals(oldname)) return "r1";
             String[] numbers = oldname.split("\\D+");
             List<Integer> rnum = Arrays.asList(numbers).stream()
                     .filter(StringUtils::isNotBlank)

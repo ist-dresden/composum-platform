@@ -24,8 +24,6 @@ public class ReleaseNumberCreatorTest {
     public void bumpNumbers() {
         String rel = "";
         rel = MAJOR.bumpRelease(rel);
-        ec.checkThat(rel, is("r0"));
-        rel = MAJOR.bumpRelease(rel);
         ec.checkThat(rel, is("r1"));
         rel = BUGFIX.bumpRelease(rel);
         ec.checkThat(rel, is("r1.0.1"));

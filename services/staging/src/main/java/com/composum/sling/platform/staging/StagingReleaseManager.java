@@ -50,7 +50,7 @@ public interface StagingReleaseManager {
      * @param resource a release root or its subnodes
      * @return the release root - a {@link ResourceHandle#isValid()} handle
      * @throws ReleaseRootNotFoundException if the resource is not below a {@link ResourceHandle#isValid()} release root
-     * @throws IllegalArgumentException if resource is null
+     * @throws IllegalArgumentException     if resource is null
      */
     @Nullable
     Resource findReleaseRoot(@Nonnull Resource resource) throws ReleaseRootNotFoundException, IllegalArgumentException;
@@ -89,30 +89,19 @@ public interface StagingReleaseManager {
     Release findReleaseByUuid(@Nonnull Resource resource, @Nonnull String releaseUuid) throws ReleaseNotFoundException;
 
     /**
-     * Creates a new release. The release content is copied from the latest release (in the sense of
-     * {@link ReleaseNumberCreator#COMPARATOR_RELEASES}) and the release number is created using {releaseType}.
-     * If there was no release yet, it's copied from the {@link StagingConstants#CURRENT_RELEASE} release
-     * (which can possibly be empty).
-     *
-     * @param resource    release root or one of its subnodes
-     * @param releaseType how to create the release number - major, minor or bugfix release
-     * @deprecated {@link #createRelease(Release, ReleaseNumberCreator)} should be used
-     * // FIXME(hps,2019-05-16) remove this since one method is enough
-     */
-    @Nonnull
-    @Deprecated
-    Release createRelease(@Nonnull Resource resource, @Nonnull ReleaseNumberCreator releaseType)
-            throws PersistenceException, RepositoryException;
-
-    /**
      * Creates a release from another release. This also creates a new version number for that release
      * based on the copied release - which can lead to conflicts ( {@link ReleaseExistsException} )
      * if there is already a release with that number.
+     * <p>
+     * We cannot create a release from {@link StagingConstants#CURRENT_RELEASE} since that does not in the release number
+     * as tree concept, so an {@link IllegalArgumentException} would be thrown. For that use the
+     * conceptually different {@link #finalizeCurrentRelease(ReleaseNumberCreator)}.
+     * </p>
      *
-     * @param copyFromRelease optionally, an existing release, whose workspace is copied.
+     * @param copyFromRelease an existing release, whose workspace is copied. Cannot be {@link StagingConstants#CURRENT_RELEASE}.
      * @param releaseType     how to create the release number - major, minor or bugfix release
      * @throws ReleaseExistsException if the release already exists
-     * deprecated in practice, {@link #finalizeCurrentRelease(ReleaseNumberCreator)} should be used.
+     * @deprecated in practice, {@link #finalizeCurrentRelease(ReleaseNumberCreator)} should be used.
      */
     @Nonnull
     Release createRelease(@Nonnull Release copyFromRelease, @Nonnull ReleaseNumberCreator releaseType)
@@ -126,19 +115,20 @@ public interface StagingReleaseManager {
      * @return the recreated current release.
      */
     @Nonnull
-    Release resetCurrentTo(@Nonnull Release release);
+    Release resetCurrentTo(@Nonnull Release release) throws PersistenceException, RepositoryException, ReleaseExistsException;
 
     /**
      * Renames the current release to a freshly according to the given scheme created release number
      * and recreates the current release based on that (like {@link #resetCurrentTo(Release)}).
      * The release number is chosen according to the {@link Release#getPreviousRelease()} - it is an error if that already exists.
      *
+     * @param resource the release root or any resource below it to find the release root
      * @param releaseType how to create the release number - major, minor or bugfix release
      * @return the created release
      * @throws ReleaseExistsException
      */
     @Nonnull
-    Release finalizeCurrentRelease(@Nonnull ReleaseNumberCreator releaseType) throws ReleaseExistsException;
+    Release finalizeCurrentRelease(@Nonnull Resource resource, @Nonnull ReleaseNumberCreator releaseType) throws ReleaseExistsException, RepositoryException, PersistenceException;
 
     /** Gives information about a releases contents. Caution: this finds only committed content. */
     @Nonnull
@@ -155,7 +145,7 @@ public interface StagingReleaseManager {
      * @return
      */
     @Nonnull
-    List<ReleasedVersionable> compareReleases(@Nonnull Release release, @Nullable Release previousRelease);
+    List<ReleasedVersionable> compareReleases(@Nonnull Release release, @Nullable Release previousRelease) throws RepositoryException;
 
     /**
      * Lists the current content (in the workspace, not in the current release, using {@link ReleasedVersionable#forBaseVersion(Resource)}).
@@ -220,7 +210,7 @@ public interface StagingReleaseManager {
      * be recreated automatically when calling one of the get / find release methods.
      *
      * @param release the release, as given by {@link #findRelease(Resource, String)} or {@link #findReleaseByUuid(Resource, String)}.
-     * @throws PersistenceException can happen e.g. when deleting a release that is referenced somewhere
+     * @throws PersistenceException   can happen e.g. when deleting a release that is referenced somewhere
      * @throws ReleaseClosedException if the release is {@link Release#isClosed()}
      */
     void removeRelease(@Nonnull Release release) throws PersistenceException, ReleaseClosedException;
@@ -306,7 +296,7 @@ public interface StagingReleaseManager {
     void cleanupLabels(@Nonnull Resource resource) throws RepositoryException;
 
     /** Marks a release as {@link Release#isClosed()}. Afterwards, methods like {@link #updateRelease(Release, List)} that change the releases' contents will not work. */
-    void close(@Nonnull Release release);
+    void close(@Nonnull Release release) throws RepositoryException;
 
     /**
      * Data structure with metadata information about a release. This must only be created within the {@link StagingReleaseManager}.
@@ -372,6 +362,10 @@ public interface StagingReleaseManager {
         /** Maps the relative path to the absolute path ( {@link #getReleaseRoot()} + '/' + relativePath ) */
         @Nonnull
         String absolutePath(@Nonnull String relativePath);
+
+        /** Compares the releaseRoot and releaseNode paths. */
+        @Override
+        boolean equals(Object o);
     }
 
     /**

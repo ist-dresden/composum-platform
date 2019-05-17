@@ -81,7 +81,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
     @Test
     public void defaultRelease() throws Exception {
         ec.checkThat(service.getDefaultRelease(versionable).getNumber(), is(CURRENT_RELEASE));
-        Release r1 = releaseManager.createRelease(versionable, ReleaseNumberCreator.MAJOR);
+        Release r1 = releaseManager.finalizeCurrentRelease(versionable, ReleaseNumberCreator.MAJOR);
         releaseManager.setMark(AccessMode.ACCESS_MODE_PUBLIC.toLowerCase(), r1);
         context.resourceResolver().commit();
         ec.checkThat(service.getDefaultRelease(versionable).getNumber(), is(CURRENT_RELEASE));
@@ -90,37 +90,50 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
     @Test
     public void revert() throws Exception {
         ResourceResolver resourceResolver = context.resourceResolver();
+        String originalVersion = ReleasedVersionable.forBaseVersion(versionable).getVersionUuid();
 
-        DefaultStagingReleaseManager.ReleaseImpl r1 = (DefaultStagingReleaseManager.ReleaseImpl) releaseManager.createRelease(versionable, ReleaseNumberCreator.MAJOR);
+        DefaultStagingReleaseManager.ReleaseImpl r1 = (DefaultStagingReleaseManager.ReleaseImpl) releaseManager.finalizeCurrentRelease(versionable, ReleaseNumberCreator.MAJOR);
         resourceResolver.commit();
         ec.checkThat(r1.getNumber(), is("r1"));
 
-        Release r11 = releaseManager.createRelease(versionable, ReleaseNumberCreator.MINOR);
+        Release r11 = releaseManager.finalizeCurrentRelease(versionable, ReleaseNumberCreator.MINOR);
         resourceResolver.commit();
         ec.checkThat(r11.getNumber(), is("r1.1"));
 
-        resourceResolver.delete(resourceResolver.getResource(r1.mapToContentCopy(document1)));
+        // delete in version 1
+        releaseManager.updateRelease(r1, ReleasedVersionable.forBaseVersion(versionable).setVersionUuid(null));
         resourceResolver.commit();
-        versionManager.checkpoint(document1 + "/jcr:content");
+        // update in currentRelease
+        String version2 = versionManager.checkpoint(document1 + "/jcr:content").getIdentifier();
         releaseManager.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(versionable));
         resourceResolver.commit();
-        // current release contains now a changed version, r11 the versionable but r11 does not contain anything. Verify that.
+        // current release contains now a changed version, r11 the versionable but r1 does not contain anything. Now Verify that.
 
         ec.checkThat(service.getStatus(versionable, r1.getNumber()).getActivationState(), is(PlatformVersionsService.ActivationState.initial));
         Status statusR11 = service.getStatus(versionable, r11.getNumber());
         ec.checkThat(statusR11.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
+        ec.checkThat(statusR11.releaseVersionableInfo().getVersionUuid(), is(originalVersion));
 
         Status status = service.getStatus(versionable, CURRENT_RELEASE);
         ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
         ec.checkThat(status.releaseVersionableInfo().getVersionUuid(), not(is(statusR11.releaseVersionableInfo().getVersionUuid())));
+        ec.checkThat(status.releaseVersionableInfo().getVersionUuid(), is(version2));
 
         // Now revert current release version to r11
         PlatformVersionsService.ActivationResult result = service.revert(CURRENT_RELEASE, asList(versionable));
         ec.checkThat(result.getChangedPathsInfo(), SlingMatchers.hasMapSize(0));
 
-        status = service.getStatus(versionable, CURRENT_RELEASE); // now just as in r11
-        ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
-        ec.checkThat(status.releaseVersionableInfo().getVersionUuid(), is(statusR11.releaseVersionableInfo().getVersionUuid()));
+        status = service.getStatus(versionable, CURRENT_RELEASE); // now just as in r11 - the original version
+        ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
+        ec.checkThat(status.releaseVersionableInfo().getVersionUuid(), is(originalVersion));
+
+        if (1 == 0) { // FIXME(hps,2019-05-17) commented out for now
+            // Revert in r11 to r1 : that is, delete document there
+            result = service.revert(r11.getNumber(), asList(versionable));
+            statusR11 = service.getStatus(versionable, r11.getNumber());
+            ec.checkThat(statusR11.getActivationState(), is(PlatformVersionsService.ActivationState.initial));
+            ec.checkThat(statusR11.releaseVersionableInfo(), nullValue());
+        }
     }
 
     @Test
@@ -158,7 +171,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         ec.checkThat(status.getLastActivated(), instanceOf(java.util.Calendar.class));
         ec.checkThat(status.release(), hasToString("Release('current',/content/release)"));
 
-        Release r1 = releaseManager.createRelease(versionable, ReleaseNumberCreator.MAJOR);
+        Release r1 = releaseManager.finalizeCurrentRelease(versionable, ReleaseNumberCreator.MAJOR);
         context.resourceResolver().commit();
         ec.checkThat(r1.getNumber(), is("r1"));
 
@@ -274,7 +287,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
     @Test
     public void releaseVersionablesAsResourceFilterWithContentNodeFilter() throws Exception {
         ResourceFilter filter;
-        Release r1 = releaseManager.createRelease(versionable, ReleaseNumberCreator.MAJOR);
+        Release r1 = releaseManager.finalizeCurrentRelease(versionable, ReleaseNumberCreator.MAJOR);
         ResourceFilter contentNodeFilter = new ResourceFilter.ContentNodeFilter(true,
                 new ResourceFilter.PrimaryTypeFilter(new StringFilter.WhiteList(NT_UNSTRUCTURED)), // normally cpp:Page
                 ResourceFilter.ALL);
