@@ -100,26 +100,54 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     @Override
     public ActivationResult activate(@Nullable String releaseKey, @Nonnull Resource rawVersionable, @Nullable String versionUuid) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException {
         LOG.info("Requested activation {} in release {} to version {}", getPath(rawVersionable), releaseKey, versionUuid);
-        Map<String, SiblingOrderUpdateStrategy.Result> result = null;
         ResourceHandle versionable = normalizeVersionable(rawVersionable);
         maybeCheckpoint(versionable);
-        StatusImpl status = getStatus(versionable, releaseKey);
-        if (status.getActivationState() != ActivationState.activated) {
-            ReleasedVersionable releasedVersionable = status.currentVersionableInfo();
-            if (StringUtils.isNotBlank(versionUuid) && !StringUtils.equals(versionUuid, releasedVersionable.getVersionUuid())) {
-                releasedVersionable = status.releaseVersionableInfo(); // make sure we don't move the document around
-                releasedVersionable.setVersionUuid(versionUuid);
+        StatusImpl oldStatus = getStatus(versionable, releaseKey);
+        StagingReleaseManager.Release release = oldStatus.release();
+        ActivationResult activationResult = new ActivationResult(release);
+
+        boolean moveRequested = null != oldStatus.releaseVersionableInfo() && null != oldStatus.currentVersionableInfo() &&
+                !StringUtils.equals(oldStatus.releaseVersionableInfo().getRelativePath(), oldStatus.currentVersionableInfo().getRelativePath());
+
+        if (oldStatus.getActivationState() != ActivationState.activated || moveRequested) {
+
+            ReleasedVersionable updateRV = oldStatus.currentVersionableInfo().clone();
+            if (StringUtils.isNotBlank(versionUuid) && !StringUtils.equals(versionUuid, updateRV.getVersionUuid())) {
+                if (oldStatus.releaseVersionableInfo() != null)
+                    updateRV = oldStatus.releaseVersionableInfo().clone(); // make sure we don't move the document around
+                updateRV.setVersionUuid(versionUuid);
             }
-            releasedVersionable.setActive(true);
-            result = releaseManager.updateRelease(status.release(), asList(releasedVersionable));
-            status = getStatus(versionable, releaseKey);
-            Validate.isTrue(status.getVersionReference().isValid());
-            Validate.isTrue(status.getActivationState() == ActivationState.activated, "Bug: not active after activation: %s", status);
-            LOG.info("Activated {} in release {} to version {}", getPath(rawVersionable), status.release().getNumber(), status.currentVersionableInfo().getVersionUuid());
+            updateRV.setActive(true);
+
+            Map<String, SiblingOrderUpdateStrategy.Result> orderUpdateMap = releaseManager.updateRelease(release, asList(updateRV));
+            activationResult.getChangedPathsInfo().putAll(orderUpdateMap);
+
+            StatusImpl newStatus = getStatus(versionable, releaseKey);
+            Validate.isTrue(newStatus.getVersionReference().isValid());
+            Validate.isTrue(newStatus.getActivationState() == ActivationState.activated, "Bug: not active after activation: %s", newStatus);
+
+            switch (oldStatus.getActivationState()) {
+                case initial:
+                case deactivated: // on deactivated it's a bit unclear whether this should be new or moved or something.
+                    activationResult.getNewPaths().add(release.absolutePath(updateRV.getRelativePath()));
+                    break;
+                case activated: // must have been a move
+                case modified:
+                    if (moveRequested)
+                        activationResult.getMovedPaths().put(
+                                release.absolutePath(oldStatus.releaseVersionableInfo().getRelativePath()),
+                                release.absolutePath(oldStatus.currentVersionableInfo().getRelativePath())
+                        );
+                    break;
+                default:
+                    throw new IllegalStateException("Bug: oldStatus = " + oldStatus);
+            }
+
+            LOG.info("Activated {} in release {} to version {}", getPath(rawVersionable), newStatus.release().getNumber(), newStatus.currentVersionableInfo().getVersionUuid());
         } else {
-            LOG.info("Already activated in release {} : {}", status.release().getNumber(), getPath(rawVersionable));
+            LOG.info("Already activated in release {} : {}", release.getNumber(), getPath(rawVersionable));
         }
-        return new ActivationResult(status.release(), result, null, null, null); // FIXME(hps,2019-05-16) actresult
+        return activationResult;
     }
 
     @Nonnull
@@ -269,6 +297,8 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         private final ResourceHandle currentResource;
         @Nullable // null if not in release
         private final ResourceHandle releasedVersionReference;
+        @Nonnull
+        private final ActivationState activationState;
 
         public StatusImpl(@Nonnull StagingReleaseManager.Release release, @Nullable ReleasedVersionable current, @Nullable ReleasedVersionable released) {
             this.release = Objects.requireNonNull(release);
@@ -282,11 +312,10 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                     current != null ?
                             ResourceHandle.use(release.getMetaDataNode().getChild("../" + NODE_RELEASE_ROOT).getChild(current.getRelativePath()))
                             : null;
+            activationState = calculateActivationState();
         }
 
-        @Nonnull
-        @Override
-        public ActivationState getActivationState() {
+        protected ActivationState calculateActivationState() {
             if (release == null || released == null)
                 return ActivationState.initial;
             if (!released.getActive())
@@ -298,6 +327,12 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                     getLastModified() != null && getLastModified().after(getLastActivated()))
                 return ActivationState.modified;
             return ActivationState.activated;
+        }
+
+        @Nonnull
+        @Override
+        public ActivationState getActivationState() {
+            return activationState;
         }
 
         @Nullable

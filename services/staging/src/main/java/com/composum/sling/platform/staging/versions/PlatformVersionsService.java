@@ -58,7 +58,6 @@ public interface PlatformVersionsService {
     /** Information about the status of a versionable wrt. a release. */
     interface Status {
 
-        /** The state; null if the resource is not in a release tee - this isn't applicable in that case. */
         @Nonnull
         ActivationState getActivationState();
 
@@ -203,6 +202,12 @@ public interface PlatformVersionsService {
         @Nonnull
         private final Set<String> removedPaths;
 
+        /** Constructor for which the sets / maps are modified later. */
+        public ActivationResult(@Nullable StagingReleaseManager.Release release) {
+            this(release, null, null, null, null);
+        }
+
+        /** Constructor that immediately sets everything. */
         public ActivationResult(@Nullable StagingReleaseManager.Release release, @Nullable Map<String, SiblingOrderUpdateStrategy.Result> changedPathsInfo,
                                 @Nullable Set<String> newPaths, @Nullable Map<String, String> movedPaths, @Nullable Set<String> removedPaths) {
             this.release = release;
@@ -243,7 +248,7 @@ public interface PlatformVersionsService {
             return newPaths;
         }
 
-        /** If an item was moved in a release according to the operation, this maps the old path to the new path. */
+        /** If an item was moved in a release according to the operation, this maps the absolute old path to the absolute new path. */
         @Nonnull
         public Map<String, String> getMovedPaths() {
             return movedPaths;

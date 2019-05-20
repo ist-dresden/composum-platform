@@ -60,7 +60,7 @@ public interface StagingReleaseManager {
      * information about all releases at this release root.
      *
      * @param resource a release root or its subnodes
-     * @return possibly empty list of releases
+     * @return possibly empty list of releases , sorted with {@link ReleaseNumberCreator#COMPARATOR_RELEASES}
      */
     @Nonnull
     List<Release> getReleases(@Nonnull Resource resource);
