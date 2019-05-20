@@ -28,6 +28,8 @@ public class JcrTestUtils {
                 StringWriter writer = new StringWriter();
                 JsonWriter jsonWriter = new JsonWriter(writer);
                 jsonWriter.setHtmlSafe(true);
+                jsonWriter.setLenient(true);
+                jsonWriter.setSerializeNulls(false);
                 jsonWriter.setIndent("    ");
                 JsonUtil.exportJson(jsonWriter, resource, MappingRules.getDefaultMappingRules(), 99);
                 // ensure uninterrupted printing : wait for logmessages being printed, flush

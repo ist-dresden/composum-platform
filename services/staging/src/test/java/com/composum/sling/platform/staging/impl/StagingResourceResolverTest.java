@@ -212,7 +212,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     }
 
     @Test
-    public void newFolderShadowsDeletedFolder() throws IOException, RepositoryException {
+    public void newFolderShadowsDeletedFolder() throws Exception {
         deleteInJcr(document2);
         String node2Recreated = makeNode(builderAtFolder, "document2", "n2/some/kind/of/hierarchy/something",
                 true, false, "n2-recreated");
@@ -248,7 +248,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     }
 
     @Test(expected = UnsupportedRepositoryOperationException.class)
-    public void releasedCannotBeModified() throws PersistenceException, RepositoryException {
+    public void releasedCannotBeModified() throws Exception {
         ResourceHandle.use(stagingResourceResolver.getResource(node2)).setProperty(PROP_DESCRIPTION, "hallo");
     }
 

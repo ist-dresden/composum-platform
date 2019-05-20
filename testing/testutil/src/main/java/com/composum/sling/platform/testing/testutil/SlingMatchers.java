@@ -8,6 +8,8 @@ import org.hamcrest.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
@@ -134,7 +136,10 @@ public class SlingMatchers extends org.hamcrest.Matchers {
 
             @Override
             protected void describeMismatchSafely(Throwable item, Description mismatchDescription) {
-                mismatchDescription.appendText("was ").appendValue(item.getMessage());
+                StringWriter stacktrace = new StringWriter();
+                item.printStackTrace(new PrintWriter(stacktrace, true));
+                mismatchDescription.appendText("was ").appendValue(item.getMessage())
+                        .appendText("\n          Created at: ").appendText(stacktrace.toString());
             }
         };
     }

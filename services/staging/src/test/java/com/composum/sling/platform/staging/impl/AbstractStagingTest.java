@@ -15,7 +15,6 @@ import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
-import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
@@ -34,6 +33,7 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionManager;
 import java.io.InputStreamReader;
 import java.util.Calendar;
+import java.util.Collections;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
@@ -117,7 +117,7 @@ public abstract class AbstractStagingTest {
     }
 
     protected String makeNode(ResourceBuilder builder, String documentName, String nodepath, boolean versioned,
-                              boolean released, String title) throws RepositoryException, PersistenceException {
+                              boolean released, String title) throws RepositoryException, PersistenceException, StagingReleaseManager.ReleaseClosedException {
         String[] mixins = versioned ? new String[]{TYPE_VERSIONABLE, TYPE_LAST_MODIFIED} : new String[]{};
         builder = builder.resource(documentName, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED);
         builder = builder.resource(CONTENT_NODE, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED, PROP_MIXINTYPES, mixins);
@@ -141,7 +141,7 @@ public abstract class AbstractStagingTest {
                 handle.setProperty("released", true);
                 currentRelease = releaseManager.findRelease(handle, StagingConstants.CURRENT_RELEASE);
                 builder.commit();
-                releaseManager.updateRelease(currentRelease, ReleasedVersionable.forBaseVersion(contentResource));
+                releaseManager.updateRelease((StagingReleaseManager.Release) currentRelease, Collections.singletonList(ReleasedVersionable.forBaseVersion(contentResource)));
             }
             handle.setProperty("versioned", true);
             builder.commit(); // unclear whether this is neccesary.

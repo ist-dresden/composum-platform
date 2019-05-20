@@ -20,7 +20,7 @@ import java.util.Map;
  * For a folder / site to be releasable its root has to have the mixin {@value StagingConstants#NODE_RELEASES},
  * and it needs have a jcr:content node with mixin {@value StagingConstants#TYPE_MIX_RELEASE_CONFIG}
  * with a subnode {@value StagingConstants#NODE_RELEASES} that contains one subnode for each release.
- * The current (open) release is named {@value StagingConstants#CURRENT_RELEASE}.
+ * The current (open) release is named {@value StagingConstants#CURRENT_RELEASE}. This is the primary release the users work on.
  * Each of these release nodes can contain metadata about the release, and below a subnode
  * {@value StagingConstants#NODE_RELEASE_ROOT} a copy of the unversioned parts of the page tree with the {@value com.composum.sling.core.util.ResourceUtil#TYPE_VERSIONABLE}
  * nodes replaced by {@value StagingConstants#TYPE_VERSIONREFERENCE}s.
@@ -40,7 +40,7 @@ import java.util.Map;
  * </pre>
  * <p>We also set a label {@link Release#getReleaseLabel()} on each version contained in the release,
  * for easier referencing versions. </p>
- * // TODO hps 2019-04-05 introduce open / immutable release state
+ * <p>Each release references a {@link Release#getPreviousRelease()} from which it was created.</p>
  */
 public interface StagingReleaseManager {
 
@@ -60,7 +60,7 @@ public interface StagingReleaseManager {
      * information about all releases at this release root.
      *
      * @param resource a release root or its subnodes
-     * @return possibly empty list of releases
+     * @return possibly empty list of releases , sorted with {@link ReleaseNumberCreator#COMPARATOR_RELEASES}
      */
     @Nonnull
     List<Release> getReleases(@Nonnull Resource resource);
@@ -113,16 +113,17 @@ public interface StagingReleaseManager {
      *
      * @param release the release to copy.
      * @return the recreated current release.
+     * @throws ReleaseProtectedException if the current release has {@link Release#getMarks()}.
      */
     @Nonnull
-    Release resetCurrentTo(@Nonnull Release release) throws PersistenceException, RepositoryException, ReleaseExistsException;
+    Release resetCurrentTo(@Nonnull Release release) throws PersistenceException, RepositoryException, ReleaseExistsException, ReleaseProtectedException;
 
     /**
      * Renames the current release to a freshly according to the given scheme created release number
      * and recreates the current release based on that (like {@link #resetCurrentTo(Release)}).
      * The release number is chosen according to the {@link Release#getPreviousRelease()} - it is an error if that already exists.
      *
-     * @param resource the release root or any resource below it to find the release root
+     * @param resource    the release root or any resource below it to find the release root
      * @param releaseType how to create the release number - major, minor or bugfix release
      * @return the created release
      * @throws ReleaseExistsException
@@ -175,23 +176,6 @@ public interface StagingReleaseManager {
     ReleasedVersionable findReleasedVersionable(@Nonnull Release release, @Nonnull Resource versionable);
 
     /**
-     * Updates the release by adding or updating the versionable denoted by {releasedVersionable} in the release.
-     * If {@link ReleasedVersionable#versionUuid} is null, it is removed from the release.
-     * We also set a label {@value StagingConstants#RELEASE_LABEL_PREFIX}{releasenumber} on each version contained in the release,
-     * for easier referencing versions. Caution: the current release is called {@value StagingConstants#RELEASE_LABEL_PREFIX}current .
-     * // FIXME(hps,2019-05-16) remove this - {@link #updateRelease(Release, List)} is enough.
-     *
-     * @param release             the release to update
-     * @param releasedVersionable information of the versionable to update
-     * @return a map with paths where we changed the order of children in the release.
-     * @throws ReleaseNotFoundException if the copied release doesn't exist
-     * @deprecated please use {@link #updateRelease(Release, List)}.
-     */
-    @Nonnull
-    @Deprecated
-    Map<String, SiblingOrderUpdateStrategy.Result> updateRelease(@Nonnull Release release, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException;
-
-    /**
      * Updates the release by adding or updating a number of versionables denoted by {releasedVersionable} in the release.
      * If {@link ReleasedVersionable#versionUuid} is null, it is removed from the release.
      * We also set a label {@value StagingConstants#RELEASE_LABEL_PREFIX}{releasenumber} on each version contained in the release,
@@ -204,16 +188,6 @@ public interface StagingReleaseManager {
      */
     @Nonnull
     Map<String, SiblingOrderUpdateStrategy.Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException, ReleaseClosedException;
-
-    /**
-     * Removes the release. Deleting the {@link StagingConstants#CURRENT_RELEASE} is also possible, though it'll
-     * be recreated automatically when calling one of the get / find release methods.
-     *
-     * @param release the release, as given by {@link #findRelease(Resource, String)} or {@link #findReleaseByUuid(Resource, String)}.
-     * @throws PersistenceException   can happen e.g. when deleting a release that is referenced somewhere
-     * @throws ReleaseClosedException if the release is {@link Release#isClosed()}
-     */
-    void removeRelease(@Nonnull Release release) throws PersistenceException, ReleaseClosedException;
 
     /**
      * Creates a {@link StagingResourceResolver} that presents the given release.
@@ -229,7 +203,7 @@ public interface StagingReleaseManager {
 
     /**
      * Sets a mark to the given release. Each mark (e.g. public, preview) can apply only to at most one release.
-     * If a release is marked, it cannot be deleted by {@link #removeRelease(Release)}.
+     * If a release is marked, it cannot be deleted by {@link #deleteRelease(Release)}.
      *
      * @param mark    a nonempty string usable as attribute name
      * @param release a release
@@ -249,11 +223,15 @@ public interface StagingReleaseManager {
     /**
      * Deletes a unmarked release. If you want to delete a release marked with {@link #setMark(String, Release)},
      * you have to {@link #deleteMark(String, Release)} first.
+     * Deleting the {@link StagingConstants#CURRENT_RELEASE} is also possible, though it'll
+     * be recreated automatically when calling one of the get / find release methods.
      *
-     * @param release the release to delete
+     * @param release the release, as given by {@link #findRelease(Resource, String)} or {@link #findReleaseByUuid(Resource, String)}.
      * @throws RepositoryException
+     * @throws PersistenceException   can happen e.g. when deleting a release that is referenced somewhere
+     * @throws ReleaseProtectedException if a release that has {@link Release#getMarks()} shall be deleted.
      */
-    void deleteRelease(@Nonnull Release release) throws RepositoryException, PersistenceException;
+    void deleteRelease(@Nonnull Release release) throws RepositoryException, PersistenceException, ReleaseProtectedException;
 
     /**
      * Looks up the next higher {@link StagingConstants#TYPE_MIX_RELEASE_ROOT} of the resource and returns
@@ -284,19 +262,19 @@ public interface StagingReleaseManager {
      * @return information about the restored versionable ({@link ReleasedVersionable#forBaseVersion(Resource)}).
      */
     @Nonnull
-    ReleasedVersionable restore(@Nonnull Release release, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException;
+    ReleasedVersionable restoreVersionable(@Nonnull Release release, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException;
 
     /**
      * Checks whether the versionables contained below the release root have labels starting with {@link StagingConstants#RELEASE_LABEL_PREFIX}
-     * but aren't in the corresponding release.
+     * but aren't in the corresponding release. For internal purposes.
      *
      * @param resource the release root or something below it
-     * @throws RepositoryException
+     * @return number of obsolete labels removed
      */
-    void cleanupLabels(@Nonnull Resource resource) throws RepositoryException;
+    int cleanupLabels(@Nonnull Resource resource) throws RepositoryException;
 
     /** Marks a release as {@link Release#isClosed()}. Afterwards, methods like {@link #updateRelease(Release, List)} that change the releases' contents will not work. */
-    void close(@Nonnull Release release) throws RepositoryException;
+    void closeRelease(@Nonnull Release release) throws RepositoryException;
 
     /**
      * Data structure with metadata information about a release. This must only be created within the {@link StagingReleaseManager}.
@@ -374,7 +352,6 @@ public interface StagingReleaseManager {
      * an UI error.
      */
     class ReleaseNotFoundException extends RuntimeException {
-        // empty
     }
 
     /**
@@ -390,35 +367,17 @@ public interface StagingReleaseManager {
 
     /** Is thrown when a release label given as argument is not found for a release root. */
     class ReleaseExistsException extends Exception {
-        private final Resource releaseRoot;
-        private final String releaseNumber;
-
         public ReleaseExistsException(Resource releaseRoot, String releaseNumber) {
             super("Release already exists: " + releaseNumber + " for " + releaseRoot.getPath());
-            this.releaseRoot = releaseRoot;
-            this.releaseNumber = releaseNumber;
-        }
-
-        public Resource getReleaseRoot() {
-            return releaseRoot;
-        }
-
-        public String getReleaseNumber() {
-            return releaseNumber;
         }
     }
 
-    /** Is thrown when */
+    /** Is thrown when a user tries to modify a {@link Release#isClosed()} release. */
     class ReleaseClosedException extends Exception {
-        private final Release release;
+    }
 
-        public ReleaseClosedException(Release release) {
-            this.release = release;
-        }
-
-        public Release getRelease() {
-            return release;
-        }
+    /** Is thrown when a release should be deleted that's has {@link Release#getMarks()}. */
+    class ReleaseProtectedException extends Exception {
     }
 
 }
