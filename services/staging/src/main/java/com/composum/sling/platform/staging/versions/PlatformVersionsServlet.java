@@ -48,8 +48,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
     private static final Logger LOG = LoggerFactory.getLogger(PlatformVersionsServlet.class);
 
     /** the parameter name for explicit (multi valued) target resources */
-    public static final String PARAM_TARGET = "target";
-
+    public static final String PARAM_TARGET = "target[]";
     /** An array of page references or referrers which should simultaneously be activated / deactivated. */
     public static final String PARAM_PAGE_REFS = "pageRef[]";
     /** An array of assets which should simultaneously be activated / deactivated. */
