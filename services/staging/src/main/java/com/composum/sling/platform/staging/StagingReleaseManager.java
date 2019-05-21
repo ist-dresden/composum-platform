@@ -141,9 +141,9 @@ public interface StagingReleaseManager {
      * whether the version is different, the path changed or whether it's new or removed, except that
      * the {@link ReleasedVersionable#versionUuid} is null if it was removed.
      *
-     * @param release
-     * @param previousRelease
-     * @return
+     * @param release the release to compare
+     * @param previousRelease optional, a specific release to compare to. If null, we take the previous release, if there is one. If there is no previous release too, we just return an empty list.
+     * @return The list of changes
      */
     @Nonnull
     List<ReleasedVersionable> compareReleases(@Nonnull Release release, @Nullable Release previousRelease) throws RepositoryException;
