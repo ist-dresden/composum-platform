@@ -142,7 +142,7 @@ public interface StagingReleaseManager {
      * the {@link ReleasedVersionable#versionUuid} is null if it was removed.
      *
      * @param release the release to compare
-     * @param previousRelease optional, a specific release to compare to. If null, we take the previous release, if there is one. If there is no previous release too, we just return an empty list.
+     * @param previousRelease optional, a specific release to compare to. If null, we take the previous release, if there is one. If there is no previous release too, we return the release contents (all new).
      * @return The list of changes
      */
     @Nonnull

@@ -317,8 +317,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         if (previousRelease == null)
             previousRelease = release.getPreviousRelease();
 
-        if (previousRelease == null) // nothing to compare to
-            return Collections.emptyList();
+        if (previousRelease == null) // return everything
+            return listReleaseContents(release);
 
         List<ReleasedVersionable> releaseContents = listReleaseContents(release);
         Map<String, ReleasedVersionable> releaseByVersionHistory = releaseContents.stream()
