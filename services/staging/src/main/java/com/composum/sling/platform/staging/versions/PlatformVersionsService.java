@@ -220,10 +220,11 @@ public interface PlatformVersionsService {
         public ActivationResult merge(ActivationResult other) {
             if (release != null && !release.equals(other.getRelease()))
                 throw new IllegalArgumentException("Merging results for different releases.");
+            StagingReleaseManager.Release newRelease = release != null ? release : other.getRelease();
             Map<String, String> moved = new HashMap<>();
             moved.putAll(getMovedPaths());
             moved.putAll(other.getMovedPaths());
-            return new ActivationResult(getRelease(),
+            return new ActivationResult(newRelease,
                     SiblingOrderUpdateStrategy.Result.combine(changedPathsInfo, other.getChangedPathsInfo()),
                     SetUtils.union(getNewPaths(), other.getNewPaths()),
                     moved,

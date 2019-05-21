@@ -261,7 +261,8 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                     }
                     toActivate.add(reference);
                 }
-                versionsService.activate(releaseKey, toActivate);
+                PlatformVersionsService.ActivationResult result = versionsService.activate(releaseKey, toActivate);
+                // FIXME(hps,2019-05-20) actually use result
             }
             request.getResourceResolver().commit();
             writeJsonStatus(new JsonWriter(response.getWriter()), versionable.iterator().next(), releaseKey);
@@ -312,7 +313,9 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                 }
                 toRevert.add(referrer);
             }
-            versionsService.revert(releaseKey, toRevert);
+            PlatformVersionsService.ActivationResult result = versionsService.revert(releaseKey, toRevert);
+            // FIXME(hps,2019-05-21) do something with result. Special cause: revert moves the document -> adjust links
+
             request.getResourceResolver().commit();
             writeJsonStatus(new JsonWriter(response.getWriter()), versionable.iterator().next(), releaseKey);
         }

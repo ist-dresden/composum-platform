@@ -17,6 +17,7 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.SyntheticResource;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -247,7 +248,8 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
                 resolver.getResource(release + "/sub/document3/jcr:content")));
         context.resourceResolver().commit();
         ec.checkThat(releaseManager.listReleaseContents(currentRelease).size(), is(3));
-        ec.checkThat(result.getChangedPathsInfo().size(), is(0));
+        ec.checkThat(result.getChangedPathsInfo(), SlingMatchers.hasMapSize(0));
+        ec.checkThat(result.getNewPaths(), Matchers.hasSize(2));
     }
 
     @Test

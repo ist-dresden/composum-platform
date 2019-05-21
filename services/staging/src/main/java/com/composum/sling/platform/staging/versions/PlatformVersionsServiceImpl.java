@@ -153,7 +153,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     @Nonnull
     @Override
     public ActivationResult activate(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException {
-        ActivationResult result = new ActivationResult(null, null, null, null, null); // FIXME(hps,2019-05-16) actresult
+        ActivationResult result = new ActivationResult(null);
         List<Resource> normalizedCheckedinVersionables = new ArrayList<>();
         for (Resource rawVersionable : versionables) {
             ResourceHandle versionable = normalizeVersionable(rawVersionable);
@@ -208,12 +208,12 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     @Override
     @Nonnull
     public ActivationResult revert(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException {
-        ActivationResult result = new ActivationResult(null, null, null, null, null); // FIXME(hps,2019-05-16) actresult;
         if (versionables == null || versionables.isEmpty())
-            return result;
+            return new ActivationResult(null);
         Resource firstVersionable = versionables.get(0);
         StagingReleaseManager.Release release = getRelease(firstVersionable, releaseKey);
         StagingReleaseManager.Release previousRelease = calculatePreviousRelease(firstVersionable, release);
+        ActivationResult result = new ActivationResult(release);
         if (previousRelease == null)
             throw new IllegalArgumentException("No previous release found for " + release.getNumber());
 
@@ -232,11 +232,21 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             }
             LOG.info("Reverting in {} from {} : {}", release, previousRelease.getNumber(), rvInPreviousRelease);
 
-            LOG.error("This is incorrect yet, but to have something quickly...");
-            // FIXME(hps,2019-05-15) implement this correctly
-            if (rvInPreviousRelease != null) {
+            if (rvInPreviousRelease == null) { // delete it
+                ReleasedVersionable update = rvInRelease.clone();
+                update.setVersionUuid(null); // delete request
+                result.getRemovedPaths().add(release.absolutePath(rvInRelease.getRelativePath()));
                 Map<String, SiblingOrderUpdateStrategy.Result> info = releaseManager.updateRelease(release, asList(rvInPreviousRelease));
-                result = result.merge(new ActivationResult(previousRelease, info, null, null, null)); // FIXME(hps,2019-05-16) actresult
+                result.getChangedPathsInfo().putAll(info);
+            } else { // if (rvInPreviousRelease != null) -> update to previous state
+                Map<String, SiblingOrderUpdateStrategy.Result> info = releaseManager.updateRelease(release, asList(rvInPreviousRelease));
+                result.getChangedPathsInfo().putAll(info);
+                if (!StringUtils.equals(rvInPreviousRelease.getRelativePath(), rvInRelease.getRelativePath())) {
+                    result.getMovedPaths().put(
+                            release.absolutePath(rvInRelease.getRelativePath()),
+                            release.absolutePath(rvInPreviousRelease.getRelativePath())
+                    );
+                }
             }
         }
         return result;
