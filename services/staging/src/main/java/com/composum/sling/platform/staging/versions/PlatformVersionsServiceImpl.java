@@ -52,6 +52,9 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     @Reference
     protected StagingReleaseManager releaseManager;
 
+    @Reference
+    protected ReplicationServicePublisher replicationServicePublisher;
+
     @Nonnull
     @Override
     public StagingReleaseManager.Release getDefaultRelease(@Nonnull Resource versionable) {
@@ -99,6 +102,12 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     @Nonnull
     @Override
     public ActivationResult activate(@Nullable String releaseKey, @Nonnull Resource rawVersionable, @Nullable String versionUuid) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException {
+        ActivationResult activationResult = activateSingle(releaseKey, rawVersionable, versionUuid);
+        return activationResult;
+    }
+
+    @Nonnull
+    public ActivationResult activateSingle(@Nullable String releaseKey, @Nonnull Resource rawVersionable, @Nullable String versionUuid) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException {
         LOG.info("Requested activation {} in release {} to version {}", getPath(rawVersionable), releaseKey, versionUuid);
         ResourceHandle versionable = normalizeVersionable(rawVersionable);
         maybeCheckpoint(versionable);

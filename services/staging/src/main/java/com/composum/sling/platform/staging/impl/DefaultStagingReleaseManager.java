@@ -8,6 +8,7 @@ import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.ReleasedVersionable;
+import com.composum.sling.platform.staging.ReplicationServicePublisher;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Result;
@@ -28,6 +29,7 @@ import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
@@ -115,6 +117,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     private final SiblingOrderUpdateStrategy siblingOrderUpdateStrategy = new SiblingOrderUpdateStrategy();
 
     protected Configuration configuration;
+
+    @Reference
+    private ReplicationServicePublisher publisher;
 
     @Activate
     @Deactivate
@@ -400,6 +405,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             Map<String, Result> partialResult = updateReleaseInternal(release, releasedVersionable);
             result = Result.combine(result, partialResult);
         }
+        // FIXME(hps,2019-05-21) publish event
         return result;
     }
 
