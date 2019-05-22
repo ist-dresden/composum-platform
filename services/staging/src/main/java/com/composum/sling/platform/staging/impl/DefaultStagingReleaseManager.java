@@ -8,8 +8,8 @@ import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.ReleasedVersionable;
-import com.composum.sling.platform.staging.ReplicationService;
-import com.composum.sling.platform.staging.ReplicationServicePublisher;
+import com.composum.sling.platform.staging.ReleaseChangeEventListener;
+import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Result;
@@ -120,7 +120,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     protected Configuration configuration;
 
     @Reference
-    protected ReplicationServicePublisher publisher;
+    protected ReleaseChangeEventPublisher publisher;
 
     @Activate
     @Deactivate
@@ -400,8 +400,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Nonnull
     @Override
-    public Map<String, Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException, ReleaseClosedException, ReplicationService.ReplicationFailedException {
-        ReplicationService.ReleaseChangeEvent event = new ReplicationService.ReleaseChangeEvent(release);
+    public Map<String, Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException, ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
+        ReleaseChangeEventListener.ReleaseChangeEvent event = new ReleaseChangeEventListener.ReleaseChangeEvent(release);
         Map<String, Result> result = new TreeMap<>();
         for (ReleasedVersionable releasedVersionable : releasedVersionableList) {
             Map<String, Result> partialResult = updateReleaseInternal(release, releasedVersionable, event);
@@ -412,7 +412,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     }
 
     @Nonnull
-    protected Map<String, Result> updateReleaseInternal(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable, ReplicationService.ReleaseChangeEvent event) throws RepositoryException, PersistenceException, ReleaseClosedException {
+    protected Map<String, Result> updateReleaseInternal(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable, ReleaseChangeEventListener.ReleaseChangeEvent event) throws RepositoryException, PersistenceException, ReleaseClosedException {
         boolean delete = releasedVersionable.getVersionUuid() == null;
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         Resource releaseWorkspaceCopy = release.getWorkspaceCopyNode();
@@ -604,12 +604,12 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     }
 
     @Override
-    public void setMark(@Nonnull String mark, @Nullable Release rawRelease) throws RepositoryException, ReplicationService.ReplicationFailedException {
+    public void setMark(@Nonnull String mark, @Nullable Release rawRelease) throws RepositoryException, ReleaseChangeEventListener.ReplicationFailedException {
         ReleaseImpl release = ReleaseImpl.unwrap(rawRelease);
         ResourceHandle releasesnode = ResourceHandle.use(release.getReleaseNode().getParent()); // the cpl:releases node
         // property type REFERENCE prevents deleting it accidentially
         releasesnode.setProperty(mark, release.getUuid(), PropertyType.REFERENCE);
-        publisher.publishActivation(ReplicationService.ReleaseChangeEvent.fullUpdate(release));
+        publisher.publishActivation(ReleaseChangeEventListener.ReleaseChangeEvent.fullUpdate(release));
     }
 
     @Override

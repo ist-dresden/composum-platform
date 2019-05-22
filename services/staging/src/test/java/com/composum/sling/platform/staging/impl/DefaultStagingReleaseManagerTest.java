@@ -4,8 +4,8 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.ReleasedVersionable;
-import com.composum.sling.platform.staging.ReplicationService;
-import com.composum.sling.platform.staging.ReplicationServicePublisher;
+import com.composum.sling.platform.staging.ReleaseChangeEventListener;
+import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
@@ -98,7 +98,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     private StagingReleaseManager service;
     private ResourceHandle releaseRoot;
     private Release currentRelease;
-    private final ReplicationServicePublisher replicationServicePublisher = mock(ReplicationServicePublisher.class);
+    private final ReleaseChangeEventPublisher releaseChangeEventPublisher = mock(ReleaseChangeEventPublisher.class);
 
     @Before
     public void setup() throws ParseException, RepositoryException, IOException {
@@ -115,7 +115,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
         service = new DefaultStagingReleaseManager() {{
             this.configuration = AnnotationWithDefaults.of(DefaultStagingReleaseManager.Configuration.class);
-            this.publisher = replicationServicePublisher;
+            this.publisher = releaseChangeEventPublisher;
         }};
         // Make sure we check each time that the JCR repository is consistent and avoid weird errors
         // that happen because queries don't find uncommitted values.
@@ -151,11 +151,11 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ReleasedVersionable releasedVersionable = ReleasedVersionable.forBaseVersion(versionable);
         service.updateRelease(currentRelease, Collections.singletonList(releasedVersionable));
 
-        ArgumentCaptor<ReplicationService.ReleaseChangeEvent> eventCaptor = ArgumentCaptor.forClass(ReplicationService.ReleaseChangeEvent.class);
-        Mockito.verify(replicationServicePublisher, times(1)).publishActivation(eventCaptor.capture());
+        ArgumentCaptor<ReleaseChangeEventListener.ReleaseChangeEvent> eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEventListener.ReleaseChangeEvent.class);
+        Mockito.verify(releaseChangeEventPublisher, times(1)).publishActivation(eventCaptor.capture());
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newResources(), contains(versionable.getPath()));
-        Mockito.reset(replicationServicePublisher);
+        Mockito.reset(releaseChangeEventPublisher);
 
         referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/current/root/a/jcr:content"), versionable, version);
 
@@ -172,7 +172,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         service.updateRelease(currentRelease, Arrays.asList(releasedVersionable));
         ec.checkThat(stagedResolver.getResource(versionable.getPath()), nullValue());
 
-        Mockito.verify(replicationServicePublisher, times(1)).publishActivation(eventCaptor.capture());
+        Mockito.verify(releaseChangeEventPublisher, times(1)).publishActivation(eventCaptor.capture());
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().removedResources(), contains(versionable.getPath()));
 
@@ -260,7 +260,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ec.checkThat(service.updateRelease(currentRelease, Collections.singletonList(releasedVersionable)).toString(), is("{}"));
         ec.checkThat(ResourceHandle.use(stagedResolver.getResource(newPath)).isValid(), is(true));
 
-        Mockito.verify(replicationServicePublisher, atLeastOnce()).publishActivation(any());
+        Mockito.verify(releaseChangeEventPublisher, atLeastOnce()).publishActivation(any());
     }
 
     /**

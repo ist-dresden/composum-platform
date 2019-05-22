@@ -53,7 +53,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     protected StagingReleaseManager releaseManager;
 
     @Reference
-    protected ReplicationServicePublisher replicationServicePublisher;
+    protected ReleaseChangeEventPublisher releaseChangeEventPublisher;
 
     @Nonnull
     @Override
@@ -101,13 +101,13 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     @Nonnull
     @Override
-    public ActivationResult activate(@Nullable String releaseKey, @Nonnull Resource rawVersionable, @Nullable String versionUuid) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReplicationService.ReplicationFailedException {
+    public ActivationResult activate(@Nullable String releaseKey, @Nonnull Resource rawVersionable, @Nullable String versionUuid) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
         ActivationResult activationResult = activateSingle(releaseKey, rawVersionable, versionUuid);
         return activationResult;
     }
 
     @Nonnull
-    protected ActivationResult activateSingle(@Nullable String releaseKey, @Nonnull Resource rawVersionable, @Nullable String versionUuid) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReplicationService.ReplicationFailedException {
+    protected ActivationResult activateSingle(@Nullable String releaseKey, @Nonnull Resource rawVersionable, @Nullable String versionUuid) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
         LOG.info("Requested activation {} in release {} to version {}", getPath(rawVersionable), releaseKey, versionUuid);
         ResourceHandle versionable = normalizeVersionable(rawVersionable);
         maybeCheckpoint(versionable);
@@ -161,7 +161,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     @Nonnull
     @Override
-    public ActivationResult activate(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReplicationService.ReplicationFailedException {
+    public ActivationResult activate(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
         ActivationResult result = new ActivationResult(null);
         List<Resource> normalizedCheckedinVersionables = new ArrayList<>();
         for (Resource rawVersionable : versionables) {
@@ -193,7 +193,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     }
 
     @Override
-    public void deactivate(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReplicationService.ReplicationFailedException {
+    public void deactivate(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
         LOG.info("Requested deactivation {} in {}", getPaths(versionables), releaseKey);
         for (Resource versionable : versionables) {
             StatusImpl status = getStatus(versionable, releaseKey);
@@ -216,7 +216,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     @Override
     @Nonnull
-    public ActivationResult revert(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReplicationService.ReplicationFailedException {
+    public ActivationResult revert(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
         if (versionables == null || versionables.isEmpty())
             return new ActivationResult(null);
         Resource firstVersionable = versionables.get(0);

@@ -1,43 +1,45 @@
 package com.composum.sling.platform.staging;
 
-import com.composum.sling.core.util.SlingResourceUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import static com.composum.sling.core.util.SlingResourceUtil.isSameOrDescendant;
-import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 /**
  * <p>
  * A service that receives activation events and can publish these - e.g. to /publish and /preview in the JCR or even remote servers.
- * There can be an arbitrary number of {@link ReplicationService}s, which decide based on the {@link ReleaseChangeEvent}s they receive
+ * There can be an arbitrary number of {@link ReleaseChangeEventListener}s, which decide based on the {@link ReleaseChangeEvent}s they receive
  * whether they have to do something.
  * </p>
  * <p>
  * The transmitted resources can be {@value com.composum.sling.core.util.CoreConstants#MIX_VERSIONABLE}s, hierarchy nodes containing several
- * {@value com.composum.sling.core.util.CoreConstants#MIX_VERSIONABLE}s or none (e.g. assets). The {@link ReplicationService}
+ * {@value com.composum.sling.core.util.CoreConstants#MIX_VERSIONABLE}s or none (e.g. assets). The {@link ReleaseChangeEventListener}
  * has to check that on his own, if that's relevant.
  * Usually it will be Resources from a {@link com.composum.sling.platform.staging.impl.StagingResourceResolver}
  * for the given release.
  * </p>
  * <p>
- * It's the {@link ReplicationService}'s job to decide what actions to take on that. It can assume that it receives all
+ * It's the {@link ReleaseChangeEventListener}'s job to decide what actions to take on that. It can assume that it receives all
  * {@link ReleaseChangeEvent}s or that the user is informed about an error (or, at least, did not get an acknowledgement of success)
  * and that it is the users responsibility to trigger a full site update to fix any errors due to missing events.
  * </p>
  * <p>
- * For a {@link ReplicationService} it is advisable to check whether resources referred by the activated / updated resources are updated, too,
+ * For a {@link ReleaseChangeEventListener} it is advisable to check whether resources referred by the activated / updated resources are updated, too,
  * since e.g. for assets and configurations there might not be any activation events. Also the order of children in the parent nodes of a resource
  * might have changed.
  * </p>
  */
-public interface ReplicationService {
+public interface ReleaseChangeEventListener {
 
 
     /**
@@ -47,13 +49,14 @@ public interface ReplicationService {
     void receive(ReleaseChangeEvent releaseChangeEvent) throws ReplicationFailedException;
 
     /** Information about some activated or deactivated resources in a release, to control replication. */
-    public class ReleaseChangeEvent {
+    public final class ReleaseChangeEvent {
 
         @Nonnull
         private final StagingReleaseManager.Release release;
-        private final List<String> newResources = new ArrayList<>();
-        private final List<String> updatedResources = new ArrayList<>();
-        private final List<String> removedResources = new ArrayList<>();
+        private final Set<String> newResources = new LinkedHashSet<>();
+        private final Set<String> updatedResources = new LinkedHashSet<>();
+        private final Set<String> removedResources = new LinkedHashSet<>();
+        private boolean finalized;
 
         public ReleaseChangeEvent(@Nonnull StagingReleaseManager.Release release) {
             this.release = release;
@@ -77,8 +80,8 @@ public interface ReplicationService {
          * For all resources we have that {@link com.composum.sling.platform.staging.StagingReleaseManager.Release#appliesToPath(String)}.
          */
         @Nonnull
-        public List<String> newResources() {
-            return newResources;
+        public Set<String> newResources() {
+            return Collections.unmodifiableSet(newResources);
         }
 
         /**
@@ -88,8 +91,8 @@ public interface ReplicationService {
          * For all resources we have that {@link com.composum.sling.platform.staging.StagingReleaseManager.Release#appliesToPath(String)}.
          */
         @Nonnull
-        public List<String> updatedResources() {
-            return updatedResources;
+        public Set<String> updatedResources() {
+            return Collections.unmodifiableSet(updatedResources);
         }
 
         /**
@@ -97,8 +100,8 @@ public interface ReplicationService {
          * For all resources we have that {@link com.composum.sling.platform.staging.StagingReleaseManager.Release#appliesToPath(String)}.
          */
         @Nonnull
-        public List<String> removedResources() {
-            return removedResources;
+        public Set<String> removedResources() {
+            return Collections.unmodifiableSet(removedResources);
         }
 
         @Override
@@ -116,6 +119,8 @@ public interface ReplicationService {
          * the same or null if it vanishes / appears.
          */
         public void addMoveOrUpdate(@Nullable String frompath, @Nullable String topath) {
+            if (finalized)
+                throw new IllegalStateException("Already finalized - cannot be changed anymore");
             if (isNotBlank(frompath) && !release.appliesToPath(frompath))
                 throw new IllegalArgumentException("Src. path " + frompath + " is not in release " + release);
             if (isNotBlank(topath) && !release.appliesToPath(topath))
@@ -143,6 +148,12 @@ public interface ReplicationService {
                     throw new IllegalArgumentException("Bug: moving null to null?");
                 }
             }
+        }
+
+        /** Cannot be changed through {@link #addMoveOrUpdate(String, String)} anymore. */
+        @Override
+        public void finalize() {
+            finalized = true;
         }
 
     }
