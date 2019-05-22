@@ -435,18 +435,16 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             Iterator<Resource> versionReferences = query.execute().iterator();
             versionReference = versionReferences.hasNext() ? versionReferences.next() : null;
         }
+        ReleasedVersionable previousRV = versionReference != null ? ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference) : null;
 
         if (versionReference == null) {
             if (!delete) {
                 versionReference = ResourceUtil.getOrCreateResource(release.getReleaseNode().getResourceResolver(), newPath,
                         TYPE_UNSTRUCTURED + '/' + TYPE_VERSIONREFERENCE);
-                event.addMoveOrUpdate(null, release.unmapFromContentCopy(newPath));
             }
         } else if (delete) {
-            event.addMoveOrUpdate(release.unmapFromContentCopy(versionReference.getPath()), null);
             versionReference.getResourceResolver().delete(versionReference);
         } else if (!versionReference.getPath().equals(newPath)) {
-            event.addMoveOrUpdate(release.unmapFromContentCopy(versionReference.getPath()), release.unmapFromContentCopy(newPath));
             Resource oldParent = versionReference.getParent();
             ResourceResolver resolver = versionReference.getResourceResolver();
 
@@ -455,7 +453,6 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
             cleanupOrphans(releaseWorkspaceCopy.getPath(), oldParent);
         } else { // stays at same path
-            event.addMoveOrUpdate(release.unmapFromContentCopy(newPath), release.unmapFromContentCopy(newPath));
             String existingVersionHistory = versionReference.getValueMap().get(PROP_VERSIONHISTORY, String.class);
             if (!StringUtils.equals(existingVersionHistory, releasedVersionable.getVersionHistory())) {
                 throw new IllegalStateException("There is already a different versionable at the requested path " + releasedVersionable.getRelativePath());
@@ -464,12 +461,25 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         updateReleaseLabel(release, releasedVersionable);
         release.updateLastModified();
+
         if (!delete)
             releasedVersionable.writeToVersionReference(requireNonNull(versionReference));
+
+        updateEvent(release, previousRV, releasedVersionable, event);
 
         if (!delete)
             return updateParents(release, releasedVersionable);
         return new HashMap<>();
+    }
+
+    protected void updateEvent(@Nonnull Release release, @Nullable ReleasedVersionable before, @Nonnull ReleasedVersionable after, @Nonnull ReleaseChangeEventListener.ReleaseChangeEvent event) {
+        boolean wasThere = before != null && before.getActive() && before.getVersionUuid() != null;
+        String wasPath = wasThere && before != null ? release.absolutePath(before.getRelativePath()) : null;
+
+        boolean isThere = after.getActive() && after.getVersionUuid() != null;
+        String isPath = isThere ? release.absolutePath(after.getRelativePath()) : null;
+
+        event.addMoveOrUpdate(wasPath, isPath);
     }
 
     /** We check that the mandatory fields are set and that it isn't the root version. */

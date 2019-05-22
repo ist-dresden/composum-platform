@@ -168,6 +168,29 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ec.checkThat(version.getContainingHistory().getVersionLabels(version),
                 arrayContaining(StagingConstants.RELEASE_LABEL_PREFIX + currentRelease.getNumber()));
 
+        // deactivate it
+        releasedVersionable.setActive(false);
+        service.updateRelease(currentRelease, Arrays.asList(releasedVersionable));
+
+        // check that the right event is sent
+        eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEventListener.ReleaseChangeEvent.class);
+        Mockito.verify(releaseChangeEventPublisher, times(1)).publishActivation(eventCaptor.capture());
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().removedResources(), contains(versionable.getPath()));
+        Mockito.reset(releaseChangeEventPublisher);
+
+        // activate it again
+        releasedVersionable.setActive(true);
+        service.updateRelease(currentRelease, Arrays.asList(releasedVersionable));
+
+        // check that the right event is sent
+        eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEventListener.ReleaseChangeEvent.class);
+        Mockito.verify(releaseChangeEventPublisher, times(1)).publishActivation(eventCaptor.capture());
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newResources(), contains(versionable.getPath()));
+        Mockito.reset(releaseChangeEventPublisher);
+
+        // remove it from the release completely.
         releasedVersionable.setVersionUuid(null); // instruction to remove it
         service.updateRelease(currentRelease, Arrays.asList(releasedVersionable));
         ec.checkThat(stagedResolver.getResource(versionable.getPath()), nullValue());
