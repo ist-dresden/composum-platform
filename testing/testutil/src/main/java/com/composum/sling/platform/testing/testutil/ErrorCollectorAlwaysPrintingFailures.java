@@ -9,6 +9,7 @@ import org.junit.runners.model.MultipleFailureException;
 import org.junit.runners.model.Statement;
 
 import javax.annotation.Nonnull;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -32,16 +33,21 @@ public class ErrorCollectorAlwaysPrintingFailures implements MethodRule {
         return new Statement() {
             @Override
             public void evaluate() throws Throwable {
+                List<Throwable> failures = new ArrayList<>();
                 Throwable thrown = null;
                 try {
                     base.evaluate();
+                } catch (UndeclaredThrowableException e) {
+                    if (e.getCause() instanceof MultipleFailureException) {
+                        MultipleFailureException mfe = (MultipleFailureException) e.getCause();
+                        failures.addAll(mfe.getFailures());
+                    } else
+                        thrown = e.getCause();
                 } catch (AssumptionViolatedException e) {
                     throw e;
                 } catch (Throwable t) {
                     thrown = t;
                 }
-
-                List<Throwable> failures = new ArrayList<>();
 
                 if (thrown != null)
                     failures.add(thrown); // add it at the start

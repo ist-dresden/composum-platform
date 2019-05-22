@@ -4,6 +4,8 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.ReleasedVersionable;
+import com.composum.sling.platform.staging.ReplicationService;
+import com.composum.sling.platform.staging.ReplicationServicePublisher;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
@@ -27,6 +29,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -61,6 +65,10 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 
 /**
  * Tests for {@link DefaultStagingReleaseManager}.
@@ -90,6 +98,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     private StagingReleaseManager service;
     private ResourceHandle releaseRoot;
     private Release currentRelease;
+    private final ReplicationServicePublisher replicationServicePublisher = mock(ReplicationServicePublisher.class);
 
     @Before
     public void setup() throws ParseException, RepositoryException, IOException {
@@ -106,6 +115,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
         service = new DefaultStagingReleaseManager() {{
             this.configuration = AnnotationWithDefaults.of(DefaultStagingReleaseManager.Configuration.class);
+            this.publisher = replicationServicePublisher;
         }};
         // Make sure we check each time that the JCR repository is consistent and avoid weird errors
         // that happen because queries don't find uncommitted values.
@@ -141,6 +151,12 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ReleasedVersionable releasedVersionable = ReleasedVersionable.forBaseVersion(versionable);
         service.updateRelease(currentRelease, Collections.singletonList(releasedVersionable));
 
+        ArgumentCaptor<ReplicationService.ReleaseChangeEvent> eventCaptor = ArgumentCaptor.forClass(ReplicationService.ReleaseChangeEvent.class);
+        Mockito.verify(replicationServicePublisher, times(1)).publishActivation(eventCaptor.capture());
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newResources(), contains(versionable.getPath()));
+        Mockito.reset(replicationServicePublisher);
+
         referenceRefersToVersionableVersion(releaseRoot.getChild("jcr:content/cpl:releases/current/root/a/jcr:content"), versionable, version);
 
         context.resourceResolver().delete(versionable); // make sure stagedresolver doesn't read it from the workspace
@@ -155,6 +171,11 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         releasedVersionable.setVersionUuid(null); // instruction to remove it
         service.updateRelease(currentRelease, Arrays.asList(releasedVersionable));
         ec.checkThat(stagedResolver.getResource(versionable.getPath()), nullValue());
+
+        Mockito.verify(replicationServicePublisher, times(1)).publishActivation(eventCaptor.capture());
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().removedResources(), contains(versionable.getPath()));
+
     }
 
     protected void referenceRefersToVersionableVersion(Resource rawVersionReference, Resource versionable, Version version) throws RepositoryException {
@@ -238,6 +259,8 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         releasedVersionable.setActive(true);
         ec.checkThat(service.updateRelease(currentRelease, Collections.singletonList(releasedVersionable)).toString(), is("{}"));
         ec.checkThat(ResourceHandle.use(stagedResolver.getResource(newPath)).isValid(), is(true));
+
+        Mockito.verify(replicationServicePublisher, atLeastOnce()).publishActivation(any());
     }
 
     /**

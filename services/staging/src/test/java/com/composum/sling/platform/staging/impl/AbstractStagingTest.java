@@ -4,6 +4,8 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleasedVersionable;
+import com.composum.sling.platform.staging.ReplicationService;
+import com.composum.sling.platform.staging.ReplicationServicePublisher;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.query.QueryBuilder;
@@ -73,6 +75,7 @@ public abstract class AbstractStagingTest {
 
         releaseManager = new DefaultStagingReleaseManager() {{
             configuration = AnnotationWithDefaults.of(DefaultStagingReleaseManager.Configuration.class);
+            this.publisher = Mockito.mock(ReplicationServicePublisher.class);
         }};
 
         releaseMapper = Mockito.mock(ReleaseMapper.class);
@@ -117,7 +120,7 @@ public abstract class AbstractStagingTest {
     }
 
     protected String makeNode(ResourceBuilder builder, String documentName, String nodepath, boolean versioned,
-                              boolean released, String title) throws RepositoryException, PersistenceException, StagingReleaseManager.ReleaseClosedException {
+                              boolean released, String title) throws RepositoryException, PersistenceException, StagingReleaseManager.ReleaseClosedException, ReplicationService.ReplicationFailedException {
         String[] mixins = versioned ? new String[]{TYPE_VERSIONABLE, TYPE_LAST_MODIFIED} : new String[]{};
         builder = builder.resource(documentName, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED);
         builder = builder.resource(CONTENT_NODE, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED, PROP_MIXINTYPES, mixins);

@@ -187,7 +187,7 @@ public interface StagingReleaseManager {
      * @throws ReleaseClosedException if the release is {@link Release#isClosed()}
      */
     @Nonnull
-    Map<String, SiblingOrderUpdateStrategy.Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException, ReleaseClosedException;
+    Map<String, SiblingOrderUpdateStrategy.Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException, ReleaseClosedException, ReplicationService.ReplicationFailedException;
 
     /**
      * Creates a {@link StagingResourceResolver} that presents the given release.
@@ -208,7 +208,7 @@ public interface StagingReleaseManager {
      * @param mark    a nonempty string usable as attribute name
      * @param release a release
      */
-    void setMark(@Nonnull String mark, @Nonnull Release release) throws RepositoryException;
+    void setMark(@Nonnull String mark, @Nonnull Release release) throws RepositoryException, ReplicationService.ReplicationFailedException;
 
     /**
      * Removes the mark from the given release.

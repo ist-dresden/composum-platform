@@ -9,6 +9,7 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.servlet.AbstractServiceServlet;
 import com.composum.sling.core.servlet.ServletOperation;
 import com.composum.sling.core.servlet.ServletOperationSet;
+import com.composum.sling.platform.staging.ReplicationService;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.google.gson.stream.JsonWriter;
 import org.apache.commons.lang3.StringUtils;
@@ -129,7 +130,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
         abstract void performIt(@Nonnull final SlingHttpServletRequest request,
                                 @Nonnull final SlingHttpServletResponse response,
                                 @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey)
-                throws RepositoryException, IOException, StagingReleaseManager.ReleaseClosedException;
+                throws RepositoryException, IOException, StagingReleaseManager.ReleaseClosedException, ReplicationService.ReplicationFailedException;
 
         @Override
         public void doIt(SlingHttpServletRequest request, SlingHttpServletResponse response,
@@ -163,6 +164,10 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                     LOG.error(ex.getMessage(), ex);
                     response.sendError(HttpServletResponse.SC_BAD_REQUEST,
                             "Cannot activate in a closed release (" + request.getRequestURI() + ")");
+                } catch (ReplicationService.ReplicationFailedException ex) {
+                    LOG.error(ex.getMessage(), ex);
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                            "Cannot change release since replication failed (" + request.getRequestURI() + ")");
                 }
             } else {
                 String msg = "resource is not versionable (" + request.getRequestURI() + ")";
@@ -232,7 +237,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
         public void performIt(@Nonnull final SlingHttpServletRequest request,
                               @Nonnull final SlingHttpServletResponse response,
                               @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey)
-                throws RepositoryException, IOException, StagingReleaseManager.ReleaseClosedException {
+                throws RepositoryException, IOException, StagingReleaseManager.ReleaseClosedException, ReplicationService.ReplicationFailedException {
             String versionUuid = StringUtils.defaultIfBlank(request.getParameter("versionUuid"), null);
             Set<String> references = addParameter(addParameter(new HashSet<>(), request, PARAM_PAGE_REFS), request, PARAM_ASSET_REFS);
             if (StringUtils.isNotBlank(versionUuid)) {
@@ -275,7 +280,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
         public void performIt(@Nonnull final SlingHttpServletRequest request,
                               @Nonnull final SlingHttpServletResponse response,
                               @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey)
-                throws RepositoryException, IOException, StagingReleaseManager.ReleaseClosedException {
+                throws RepositoryException, IOException, StagingReleaseManager.ReleaseClosedException, ReplicationService.ReplicationFailedException {
             Set<String> referrers = addParameter(new HashSet<>(), request, PARAM_PAGE_REFS);
             List<Resource> toDeactivate = new ArrayList<>(versionable);
             for (String referrerPath : referrers) {
@@ -300,7 +305,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
         public void performIt(@Nonnull final SlingHttpServletRequest request,
                               @Nonnull final SlingHttpServletResponse response,
                               @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey)
-                throws RepositoryException, IOException, StagingReleaseManager.ReleaseClosedException {
+                throws RepositoryException, IOException, StagingReleaseManager.ReleaseClosedException, ReplicationService.ReplicationFailedException {
             Set<String> referrers = addParameter(new HashSet<>(), request, PARAM_PAGE_REFS);
             List<Resource> toRevert = new ArrayList<>(versionable);
             for (String pagePath : referrers) {

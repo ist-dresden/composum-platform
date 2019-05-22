@@ -8,6 +8,7 @@ import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.ReleasedVersionable;
+import com.composum.sling.platform.staging.ReplicationService;
 import com.composum.sling.platform.staging.ReplicationServicePublisher;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
@@ -119,7 +120,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     protected Configuration configuration;
 
     @Reference
-    private ReplicationServicePublisher publisher;
+    protected ReplicationServicePublisher publisher;
 
     @Activate
     @Deactivate
@@ -399,18 +400,19 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Nonnull
     @Override
-    public Map<String, Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException, ReleaseClosedException {
+    public Map<String, Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException, ReleaseClosedException, ReplicationService.ReplicationFailedException {
+        ReplicationService.ReleaseChangeEvent event = new ReplicationService.ReleaseChangeEvent(release);
         Map<String, Result> result = new TreeMap<>();
         for (ReleasedVersionable releasedVersionable : releasedVersionableList) {
-            Map<String, Result> partialResult = updateReleaseInternal(release, releasedVersionable);
+            Map<String, Result> partialResult = updateReleaseInternal(release, releasedVersionable, event);
             result = Result.combine(result, partialResult);
         }
-        // FIXME(hps,2019-05-21) publish event
+        publisher.publishActivation(event);
         return result;
     }
 
     @Nonnull
-    protected Map<String, Result> updateReleaseInternal(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException, PersistenceException, ReleaseClosedException {
+    protected Map<String, Result> updateReleaseInternal(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable, ReplicationService.ReleaseChangeEvent event) throws RepositoryException, PersistenceException, ReleaseClosedException {
         boolean delete = releasedVersionable.getVersionUuid() == null;
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         Resource releaseWorkspaceCopy = release.getWorkspaceCopyNode();
@@ -435,12 +437,16 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         }
 
         if (versionReference == null) {
-            if (!delete)
+            if (!delete) {
                 versionReference = ResourceUtil.getOrCreateResource(release.getReleaseNode().getResourceResolver(), newPath,
                         TYPE_UNSTRUCTURED + '/' + TYPE_VERSIONREFERENCE);
+                event.addMoveOrUpdate(null, release.unmapFromContentCopy(newPath));
+            }
         } else if (delete) {
+            event.addMoveOrUpdate(release.unmapFromContentCopy(versionReference.getPath()), null);
             versionReference.getResourceResolver().delete(versionReference);
         } else if (!versionReference.getPath().equals(newPath)) {
+            event.addMoveOrUpdate(release.unmapFromContentCopy(versionReference.getPath()), release.unmapFromContentCopy(newPath));
             Resource oldParent = versionReference.getParent();
             ResourceResolver resolver = versionReference.getResourceResolver();
 
@@ -449,6 +455,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
             cleanupOrphans(releaseWorkspaceCopy.getPath(), oldParent);
         } else { // stays at same path
+            event.addMoveOrUpdate(release.unmapFromContentCopy(newPath), release.unmapFromContentCopy(newPath));
             String existingVersionHistory = versionReference.getValueMap().get(PROP_VERSIONHISTORY, String.class);
             if (!StringUtils.equals(existingVersionHistory, releasedVersionable.getVersionHistory())) {
                 throw new IllegalStateException("There is already a different versionable at the requested path " + releasedVersionable.getRelativePath());
@@ -597,11 +604,12 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     }
 
     @Override
-    public void setMark(@Nonnull String mark, @Nullable Release rawRelease) throws RepositoryException {
+    public void setMark(@Nonnull String mark, @Nullable Release rawRelease) throws RepositoryException, ReplicationService.ReplicationFailedException {
         ReleaseImpl release = ReleaseImpl.unwrap(rawRelease);
         ResourceHandle releasesnode = ResourceHandle.use(release.getReleaseNode().getParent()); // the cpl:releases node
         // property type REFERENCE prevents deleting it accidentially
         releasesnode.setProperty(mark, release.getUuid(), PropertyType.REFERENCE);
+        publisher.publishActivation(ReplicationService.ReleaseChangeEvent.fullUpdate(release));
     }
 
     @Override

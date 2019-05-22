@@ -1,5 +1,6 @@
 package com.composum.sling.platform.staging;
 
+import com.composum.sling.core.util.SlingResourceUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -8,6 +9,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.composum.sling.core.util.SlingResourceUtil.isSameOrDescendant;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
@@ -37,6 +39,13 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  */
 public interface ReplicationService {
 
+
+    /**
+     * This informs the replication service about an activation / deactivation / update. The publisher can decide on his own
+     * whether he is responsible. The processing should be synchronous, so that the user can be notified whether it succeeded or not.
+     */
+    void receive(ReleaseChangeEvent releaseChangeEvent) throws ReplicationFailedException;
+
     /** Information about some activated or deactivated resources in a release, to control replication. */
     public class ReleaseChangeEvent {
 
@@ -59,7 +68,7 @@ public interface ReplicationService {
 
         /** The release in which the items have been activated or deactivated. */
         @Nonnull
-        StagingReleaseManager.Release release() {
+        public StagingReleaseManager.Release release() {
             return release;
         }
 
@@ -68,7 +77,7 @@ public interface ReplicationService {
          * For all resources we have that {@link com.composum.sling.platform.staging.StagingReleaseManager.Release#appliesToPath(String)}.
          */
         @Nonnull
-        List<String> newResources() {
+        public List<String> newResources() {
             return newResources;
         }
 
@@ -79,7 +88,7 @@ public interface ReplicationService {
          * For all resources we have that {@link com.composum.sling.platform.staging.StagingReleaseManager.Release#appliesToPath(String)}.
          */
         @Nonnull
-        List<String> updatedResources() {
+        public List<String> updatedResources() {
             return updatedResources;
         }
 
@@ -88,7 +97,7 @@ public interface ReplicationService {
          * For all resources we have that {@link com.composum.sling.platform.staging.StagingReleaseManager.Release#appliesToPath(String)}.
          */
         @Nonnull
-        List<String> removedResources() {
+        public List<String> removedResources() {
             return removedResources;
         }
 
@@ -96,9 +105,9 @@ public interface ReplicationService {
         public String toString() {
             ToStringBuilder builder = new ToStringBuilder(this);
             builder.append("release", release);
-            if (!newResources.isEmpty()) builder.append("activated", newResources);
+            if (!newResources.isEmpty()) builder.append("new", newResources);
             if (!updatedResources.isEmpty()) builder.append("updated", updatedResources);
-            if (!removedResources.isEmpty()) builder.append("deactivated", removedResources);
+            if (!removedResources.isEmpty()) builder.append("removed", removedResources);
             return builder.toString();
         }
 
@@ -111,12 +120,12 @@ public interface ReplicationService {
                 throw new IllegalArgumentException("Src. path " + frompath + " is not in release " + release);
             if (isNotBlank(topath) && !release.appliesToPath(topath))
                 throw new IllegalArgumentException("Dest. path " + frompath + " is not in release " + release);
+            if (isSameOrDescendant(release.getReleaseRoot().getPath() + "/jcr:content/" + StagingConstants.NODE_RELEASES, frompath))
+                throw new IllegalArgumentException("Bug: src. path " + frompath + " is in release copy of " + release);
+            if (isSameOrDescendant(release.getReleaseRoot().getPath() + "/jcr:content/" + StagingConstants.NODE_RELEASES, topath))
+                throw new IllegalArgumentException("Bug: src. path " + frompath + " is in release copy of " + release);
 
-            if (isBlank(frompath)) {
-                if (isNotBlank(topath)) {
-                    updatedResources.add(topath);
-                }
-            } else {
+            if (isNotBlank(frompath)) {
                 if (isNotBlank(topath)) {
                     if (StringUtils.equals(frompath, topath)) {
                         updatedResources.add(topath);
@@ -124,6 +133,14 @@ public interface ReplicationService {
                         removedResources.add(frompath);
                         newResources.add(topath);
                     }
+                } else {
+                    removedResources.add(frompath);
+                }
+            } else { // blank frompath
+                if (isNotBlank(topath)) {
+                    newResources.add(topath);
+                } else {
+                    throw new IllegalArgumentException("Bug: moving null to null?");
                 }
             }
         }
@@ -131,12 +148,9 @@ public interface ReplicationService {
     }
 
     /**
-     * This informs the replication service about an activation / deactivation / update. The publisher can decide on his own
-     * whether he is responsible. The processing should be synchronous, so that the user can be notified whether it succeeded or not.
+     * Informs that a replication failed and a full site replication is needed. If there are several failures,
+     * those are appended to {@link ReplicationFailedException#getSuppressed()}.
      */
-    void receive(ReleaseChangeEvent releaseChangeEvent) throws ReplicationFailedException;
-
-    /** Informs that a replication failed and a full site replication is needed. */
     class ReplicationFailedException extends Exception {
 
         private final ReleaseChangeEvent releaseChangeEvent;
