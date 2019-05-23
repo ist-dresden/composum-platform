@@ -1,5 +1,7 @@
 package com.composum.sling.platform.staging;
 
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -8,8 +10,10 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static com.composum.sling.core.util.SlingResourceUtil.isSameOrDescendant;
@@ -55,11 +59,16 @@ public interface ReleaseChangeEventListener {
         private final StagingReleaseManager.Release release;
         private final Set<String> newResources = new LinkedHashSet<>();
         private final Set<String> updatedResources = new LinkedHashSet<>();
+        private final Map<String, String> movedResources = new LinkedHashMap<>();
         private final Set<String> removedResources = new LinkedHashSet<>();
         private boolean finalized;
 
         public ReleaseChangeEvent(@Nonnull StagingReleaseManager.Release release) {
             this.release = release;
+        }
+
+        public boolean isEmpty() {
+            return newResources.isEmpty() && updatedResources.isEmpty() && movedResources.isEmpty() && removedResources.isEmpty();
         }
 
         /** Gives an activation event that says "update to release root" - that is, everything has to be checked. */
@@ -77,11 +86,21 @@ public interface ReleaseChangeEventListener {
 
         /**
          * A collection of resources that have been activated (that is, haven't been present before in this release).
+         * This excludes resources that are in {@link #movedResources()} - you can use {@link #newOrMovedResources()} for that.
          * For all resources we have that {@link com.composum.sling.platform.staging.StagingReleaseManager.Release#appliesToPath(String)}.
          */
         @Nonnull
         public Set<String> newResources() {
             return Collections.unmodifiableSet(newResources);
+        }
+
+        /**
+         * A collection of resources that have been activated (that is, haven't been present before in this release),
+         * including resources that newly appear because they are in {@link #movedResources()}.
+         * For all resources we have that {@link com.composum.sling.platform.staging.StagingReleaseManager.Release#appliesToPath(String)}.
+         */
+        public Set<String> newOrMovedResources() {
+            return Collections.unmodifiableSet(SetUtils.union(newResources, new LinkedHashSet<>(movedResources.values())));
         }
 
         /**
@@ -97,11 +116,26 @@ public interface ReleaseChangeEventListener {
 
         /**
          * A collection of resources that have been deactivated (that is, have been removed from this release).
+         * This excludes resources that are in {@link #movedResources()} - you can use {@link #newOrMovedResources()} for that.
          * For all resources we have that {@link com.composum.sling.platform.staging.StagingReleaseManager.Release#appliesToPath(String)}.
          */
         @Nonnull
         public Set<String> removedResources() {
             return Collections.unmodifiableSet(removedResources);
+        }
+
+        /**
+         * A collection of resources that have been activated (that is, haven't been present before in this release),
+         * including resources that disappear at one place because they are in {@link #movedResources()}.
+         * For all resources we have that {@link com.composum.sling.platform.staging.StagingReleaseManager.Release#appliesToPath(String)}.
+         */
+        public Set<String> removedOrMovedResources() {
+            return Collections.unmodifiableSet(SetUtils.union(removedResources, movedResources.keySet()));
+        }
+
+        /** Maps absolute paths of resources moved from one place to the place they are moved to. */
+        public Map<String, String> movedResources() {
+            return Collections.unmodifiableMap(movedResources);
         }
 
         @Override
@@ -135,8 +169,7 @@ public interface ReleaseChangeEventListener {
                     if (StringUtils.equals(frompath, topath)) {
                         updatedResources.add(topath);
                     } else {
-                        removedResources.add(frompath);
-                        newResources.add(topath);
+                        movedResources.put(frompath, topath);
                     }
                 } else {
                     removedResources.add(frompath);
@@ -153,6 +186,8 @@ public interface ReleaseChangeEventListener {
         /** Cannot be changed through {@link #addMoveOrUpdate(String, String)} anymore. */
         @Override
         public void finalize() {
+            if (release == null)
+                throw new IllegalStateException("No release? " + toString());
             finalized = true;
         }
 

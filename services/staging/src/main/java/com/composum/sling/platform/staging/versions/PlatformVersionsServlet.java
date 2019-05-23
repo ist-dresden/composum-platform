@@ -319,7 +319,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                 toRevert.add(referrer);
             }
             PlatformVersionsService.ActivationResult result = versionsService.revert(releaseKey, toRevert);
-            // FIXME(hps,2019-05-21) do something with result. Special cause: revert moves the document -> adjust links
+            // FIXME(hps,2019-05-21) actually use result
 
             request.getResourceResolver().commit();
             writeJsonStatus(new JsonWriter(response.getWriter()), versionable.iterator().next(), releaseKey);

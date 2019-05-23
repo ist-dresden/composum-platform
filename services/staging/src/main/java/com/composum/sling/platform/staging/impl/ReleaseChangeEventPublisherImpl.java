@@ -14,6 +14,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 @Component(
@@ -34,18 +35,21 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
             cardinality = ReferenceCardinality.MULTIPLE
     )
     protected void addReleaseChangeEventListener(@Nonnull ReleaseChangeEventListener listener) {
-        LOG.info("Adding listner {}", listener.getClass().getName());
+        LOG.info("Adding listener {}@{}", listener.getClass().getName(), System.identityHashCode(listener));
+        Iterator<ReleaseChangeEventListener> it = releaseChangeEventListeners.iterator();
+        while (it.hasNext()) if (it.next() == listener) it.remove();
         releaseChangeEventListeners.add(listener);
     }
 
     protected void removeReleaseChangeEventListener(@Nonnull ReleaseChangeEventListener listener) {
-        LOG.info("Removing listner {}", listener.getClass().getName());
-        releaseChangeEventListeners.add(listener);
+        LOG.info("Removing listener {}@{}", listener.getClass().getName(), System.identityHashCode(listener));
+        Iterator<ReleaseChangeEventListener> it = releaseChangeEventListeners.iterator();
+        while (it.hasNext()) if (it.next() == listener) it.remove();
     }
 
     @Override
     public void publishActivation(ReleaseChangeEventListener.ReleaseChangeEvent event) throws ReleaseChangeEventListener.ReplicationFailedException {
-        if (event == null)
+        if (event == null || event.isEmpty())
             return;
         event.finalize();
         ReleaseChangeEventListener.ReplicationFailedException exception = null;

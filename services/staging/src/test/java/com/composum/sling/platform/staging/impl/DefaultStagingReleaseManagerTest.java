@@ -176,7 +176,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEventListener.ReleaseChangeEvent.class);
         Mockito.verify(releaseChangeEventPublisher, times(1)).publishActivation(eventCaptor.capture());
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
-        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().removedResources(), contains(versionable.getPath()));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().removedOrMovedResources(), contains(versionable.getPath()));
         Mockito.reset(releaseChangeEventPublisher);
 
         // activate it again
@@ -187,7 +187,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEventListener.ReleaseChangeEvent.class);
         Mockito.verify(releaseChangeEventPublisher, times(1)).publishActivation(eventCaptor.capture());
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
-        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newResources(), contains(versionable.getPath()));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newOrMovedResources(), contains(versionable.getPath()));
         Mockito.reset(releaseChangeEventPublisher);
 
         // remove it from the release completely.
@@ -197,7 +197,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
         Mockito.verify(releaseChangeEventPublisher, times(1)).publishActivation(eventCaptor.capture());
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
-        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().removedResources(), contains(versionable.getPath()));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().removedOrMovedResources(), contains(versionable.getPath()));
 
     }
 

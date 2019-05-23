@@ -423,9 +423,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             throw new ReleaseClosedException();
 
         Resource versionReference = releaseWorkspaceCopy.getResourceResolver().getResource(newPath);
-        if (versionReference == null ||
-                !StringUtils.equals(versionReference.getValueMap().get(JCR_VERSIONHISTORY, String.class),
-                        releasedVersionable.getVersionHistory())) {
+        ReleasedVersionable previousRV = versionReference != null ? ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference) : null;
+        if (versionReference == null || !StringUtils.equals(previousRV.getVersionHistory(), releasedVersionable.getVersionHistory())) {
             // check whether it was moved. Caution: queries work only for comitted content
             Query query = releaseWorkspaceCopy.getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
             query.path(releaseWorkspaceCopy.getPath()).type(TYPE_VERSIONREFERENCE).condition(
@@ -434,8 +433,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
             Iterator<Resource> versionReferences = query.execute().iterator();
             versionReference = versionReferences.hasNext() ? versionReferences.next() : null;
+            previousRV = versionReference != null ? ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference) : null;
         }
-        ReleasedVersionable previousRV = versionReference != null ? ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference) : null;
 
         if (versionReference == null) {
             if (!delete) {
