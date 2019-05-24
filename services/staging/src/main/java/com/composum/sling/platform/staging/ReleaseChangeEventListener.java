@@ -206,7 +206,7 @@ public interface ReleaseChangeEventListener {
             this.releaseChangeEvent = releaseChangeEvent;
         }
 
-        public ReplicationFailedException(String message, RuntimeException e, ReleaseChangeEvent releaseChangeEvent) {
+        public ReplicationFailedException(String message, Exception e, ReleaseChangeEvent releaseChangeEvent) {
             super(message, e);
             this.releaseChangeEvent = releaseChangeEvent;
         }

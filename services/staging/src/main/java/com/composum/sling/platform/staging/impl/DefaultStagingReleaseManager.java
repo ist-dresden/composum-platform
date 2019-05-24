@@ -473,12 +473,13 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     protected void updateEvent(@Nonnull Release release, @Nullable ReleasedVersionable before, @Nonnull ReleasedVersionable after, @Nonnull ReleaseChangeEventListener.ReleaseChangeEvent event) {
         boolean wasThere = before != null && before.getActive() && before.getVersionUuid() != null;
-        String wasPath = wasThere && before != null ? release.absolutePath(before.getRelativePath()) : null;
+        String wasPath = wasThere ? release.absolutePath(before.getRelativePath()) : null;
 
         boolean isThere = after.getActive() && after.getVersionUuid() != null;
         String isPath = isThere ? release.absolutePath(after.getRelativePath()) : null;
 
-        event.addMoveOrUpdate(wasPath, isPath);
+        if (wasThere || isThere)
+            event.addMoveOrUpdate(wasPath, isPath);
     }
 
     /** We check that the mandatory fields are set and that it isn't the root version. */
