@@ -9,6 +9,7 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.servlet.AbstractServiceServlet;
 import com.composum.sling.core.servlet.ServletOperation;
 import com.composum.sling.core.servlet.ServletOperationSet;
+import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.core.servlet.Status;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -159,9 +160,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                     String releaseKey = request.getParameter("release");
                     performIt(request, response, status, versionable, releaseKey);
                 } else {
-                    String msg = "resource is not versionable ({})";
-                    LOG.error(msg, request.getRequestURI());
-                    status.error(msg, request.getRequestURI());
+                    status.withLogging(LOG).error("resource is not versionable ({})", request.getRequestURI());
                 }
             }
             status.sendJson();
@@ -246,15 +245,11 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                 List<Resource> toActivate = new ArrayList<>(versionable);
                 for (String referencedPath : references) {
                     if (!StringUtils.startsWith(referencedPath, "/content")) {
-                        String msg = "Can only activate references from /content, but got: {}";
-                        LOG.error(msg, referencedPath);
-                        status.error(msg, referencedPath);
+                        status.withLogging(LOG).error("Can only activate references from /content, but got: {}", referencedPath);
                     } else {
                         Resource reference = request.getResourceResolver().getResource(referencedPath);
                         if (reference == null) {
-                            String msg = "Reference to activate not found: {}";
-                            LOG.error(msg, referencedPath);
-                            status.error(msg, referencedPath);
+                            status.withLogging(LOG).error("Reference to activate not found: {}", referencedPath);
                         } else {
                             toActivate.add(reference);
                         }
@@ -285,9 +280,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
             for (String referrerPath : referrers) {
                 Resource referrer = request.getResourceResolver().getResource(referrerPath);
                 if (referrer == null) {
-                    String msg = "Referrer to deactivate not found: {}";
-                    LOG.error(msg, referrerPath);
-                    status.error(msg, referrerPath);
+                    status.withLogging(LOG).error("Referrer to deactivate not found: {}", referrerPath);
                 } else {
                     toDeactivate.add(referrer);
                 }
@@ -315,9 +308,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
             for (String pagePath : referrers) {
                 Resource referrer = request.getResourceResolver().getResource(pagePath);
                 if (referrer == null) {
-                    String msg = "Page to revert not found: {}";
-                    LOG.error(msg, pagePath);
-                    status.error(msg, pagePath);
+                    status.withLogging(LOG).error("Page to revert not found: {}", pagePath);
                 } else {
                     toRevert.add(referrer);
                 }
