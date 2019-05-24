@@ -11,8 +11,10 @@ import org.junit.runners.model.Statement;
 import javax.annotation.Nonnull;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 /**
  * Extends JUnit's {@link org.junit.rules.ErrorCollector} so that it also prints failed checks even when we have an exception in the test, since these might contain
@@ -67,11 +69,22 @@ public class ErrorCollectorAlwaysPrintingFailures implements MethodRule {
                     runOnFailures(failures);
 
                 if (failures.size() == 2 && thrown == failures.get(0) && thrown == failures.get(1))
-                    throw failures.get(0); // don't wrap thrown if there are no other failures.
+                    throw cleanStacktrace(failures.get(0)); // don't wrap thrown if there are no other failures.
 
+                failures = failures.stream().map(ErrorCollectorAlwaysPrintingFailures.this::cleanStacktrace).collect(Collectors.toList());
                 MultipleFailureException.assertEmpty(failures);
             }
         };
+    }
+
+    // removes this class from the stacktrace since it's annoying - it always invites to click on it.
+    protected Throwable cleanStacktrace(Throwable throwable) {
+        List<StackTraceElement> stacktrace = Arrays.asList(throwable.getStackTrace());
+        stacktrace = stacktrace.stream().filter(el ->
+                !el.getClassName().contains(getClass().getName()) // there are inner classes of this, too.
+        ).collect(Collectors.toList());
+        throwable.setStackTrace(stacktrace.toArray(new StackTraceElement[0]));
+        return throwable;
     }
 
     /**
@@ -112,30 +125,72 @@ public class ErrorCollectorAlwaysPrintingFailures implements MethodRule {
     /**
      * Adds a failure to the table if {@code matcher} does not match {@code value}.
      * Execution continues, but the test will fail at the end if the match fails.
+     *
+     * @return the value
      */
-    public <T> void checkThat(T value, Matcher<T> matcher) {
-        errorCollector.checkThat(value, matcher);
+    public <T> T checkThat(T value, Matcher<T> matcher) {
+        return checkThat("", value, matcher);
     }
 
     /**
      * Adds a failure with the given {@code reason}
      * to the table if {@code matcher} does not match {@code value}.
      * Execution continues, but the test will fail at the end if the match fails.
+     *
+     * @return the value
      */
-    public <T> void checkThat(String reason, T value, Matcher<T> matcher) {
+    public <T> T checkThat(String reason, T value, Matcher<T> matcher) {
         errorCollector.checkThat(reason, value, matcher);
+        return value;
     }
+
+    /**
+     * Adds a failure to the table if {@code matcher} does not match the {@code value} returned from the callable.
+     * Execution continues, but the test will fail at the end if the match fails.
+     * Use this when it's possible that the execution throws up but the test shall continue, anyway.
+     *
+     * @return the value
+     */
+    public <T> T checkThat(Callable<T> callable, Matcher<T> matcher) {
+        return checkThat("", callable, matcher);
+    }
+
+    /**
+     * Adds a failure with the given {@code reason}
+     * to the table if {@code matcher} does not match {@code value}.
+     * Execution continues, but the test will fail at the end if the match fails.
+     *
+     * @return the value or null in case of an error
+     */
+    public <T> T checkThat(String reason, Callable<T> callable, Matcher<T> matcher) {
+        T res;
+        try {
+            res = callable.call();
+        } catch (Throwable e) {
+            addError(e);
+            return null;
+        }
+        errorCollector.checkThat(reason, res, matcher);
+        return res;
+    }
+
 
     /**
      * Adds to the table the exception, if any, thrown from {@code callable}.
      * Execution continues, but the test will fail at the end if
      * {@code callable} threw an exception.
+     *
+     * @return the result of calling the callable
      */
     public <T> T checkSucceeds(Callable<T> callable) {
         return errorCollector.checkSucceeds(callable);
     }
 
-    /** Register something that should be done on failure - e.g. printing additional debugging information. */
+    /**
+     * Register something that should be done on failure - e.g. printing additional debugging information.
+     *
+     * @return this
+     */
     public ErrorCollectorAlwaysPrintingFailures onFailure(RunnableWithException onfailure) {
         this.onFailureActions.add(onfailure);
         return this;

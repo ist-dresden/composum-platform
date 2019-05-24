@@ -162,6 +162,7 @@ public interface PlatformVersionsService {
     /**
      * Reverts a number of versionables to the state they were in the previous release
      * (in the sense of {@link com.composum.sling.platform.staging.ReleaseNumberCreator#COMPARATOR_RELEASES}).
+     * If there is no previous release, this deletes the versionable from the content (the "previous release" counting as empty in this case).
      *
      * @param releaseKey   a release number or null for the {@link #getDefaultRelease(Resource)}.
      * @param versionables ist of versionables to revert

@@ -221,12 +221,11 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             return new ActivationResult(null);
         Resource firstVersionable = versionables.get(0);
         StagingReleaseManager.Release release = getRelease(firstVersionable, releaseKey);
-        StagingReleaseManager.Release previousRelease = calculatePreviousRelease(firstVersionable, release);
+        StagingReleaseManager.Release previousRelease = release.getPreviousRelease();
         ActivationResult result = new ActivationResult(release);
-        if (previousRelease == null)
-            throw new IllegalArgumentException("No previous release found for " + release.getNumber());
 
-        LOG.info("Requested reverting in {} to previous release {} : {}", releaseKey, previousRelease.getNumber(), getPaths(versionables));
+        String previousReleaseNumber = previousRelease != null ? previousRelease.getNumber() : null;
+        LOG.info("Requested reverting in {} to previous release {} : {}", releaseKey, previousReleaseNumber, getPaths(versionables));
 
         for (Resource rawVersionable : versionables) {
             if (!release.appliesToPath(rawVersionable.getPath()))
@@ -234,18 +233,18 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             ResourceHandle versionable = normalizeVersionable(rawVersionable);
 
             ReleasedVersionable rvInRelease = releaseManager.findReleasedVersionable(release, versionable);
-            ReleasedVersionable rvInPreviousRelease = releaseManager.findReleasedVersionable(previousRelease, versionable);
             if (rvInRelease == null) {
                 LOG.warn("Not reverting in {} since not present: {}", release.getNumber(), getPath(versionable));
                 continue;
             }
-            LOG.info("Reverting in {} from {} : {}", release, previousRelease.getNumber(), rvInPreviousRelease);
+            ReleasedVersionable rvInPreviousRelease = previousRelease != null ? releaseManager.findReleasedVersionable(previousRelease, versionable) : null;
+            LOG.info("Reverting in {} from {} : {}", release, previousReleaseNumber, rvInPreviousRelease);
 
-            if (rvInPreviousRelease == null) { // delete it
+            if (rvInPreviousRelease == null) { // delete it since it wasn't in the previous release or there is no previous release
                 ReleasedVersionable update = rvInRelease.clone();
                 update.setVersionUuid(null); // delete request
                 result.getRemovedPaths().add(release.absolutePath(rvInRelease.getRelativePath()));
-                Map<String, SiblingOrderUpdateStrategy.Result> info = releaseManager.updateRelease(release, asList(rvInPreviousRelease));
+                Map<String, SiblingOrderUpdateStrategy.Result> info = releaseManager.updateRelease(release, asList(update));
                 result.getChangedPathsInfo().putAll(info);
             } else { // if (rvInPreviousRelease != null) -> update to previous state
                 Map<String, SiblingOrderUpdateStrategy.Result> info = releaseManager.updateRelease(release, asList(rvInPreviousRelease));
@@ -259,15 +258,6 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             }
         }
         return result;
-    }
-
-    @Nullable
-    protected StagingReleaseManager.Release calculatePreviousRelease(Resource firstVersionable, StagingReleaseManager.Release release) {
-        List<StagingReleaseManager.Release> releases = releaseManager.getReleases(firstVersionable);
-        Optional<StagingReleaseManager.Release> previousRelease = releases.stream()
-                .filter(r -> ReleaseNumberCreator.COMPARATOR_RELEASES.compare(r.getNumber(), release.getNumber()) < 0)
-                .max(Comparator.comparing(StagingReleaseManager.Release::getNumber, ReleaseNumberCreator.COMPARATOR_RELEASES));
-        return previousRelease.orElse(null);
     }
 
     /**

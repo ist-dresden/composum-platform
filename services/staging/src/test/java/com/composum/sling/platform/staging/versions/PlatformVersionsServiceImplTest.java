@@ -37,6 +37,7 @@ import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELE
 import static com.composum.sling.platform.testing.testutil.JcrTestUtils.array;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -93,6 +94,12 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
     public void revert() throws Exception {
         ResourceResolver resourceResolver = context.resourceResolver();
         String originalVersion = ReleasedVersionable.forBaseVersion(versionable).getVersionUuid();
+
+        // revert when release has no previous release should just delete it. (currentRelease counts as empty then).
+        ec.checkThat(releaseManager.listReleaseContents(currentRelease), hasSize(1));
+        ec.checkThat(service.revert(null, asList(versionable)).getRemovedPaths(), hasSize(1));
+        ec.checkThat(releaseManager.listReleaseContents(currentRelease), hasSize(0));
+        releaseManager.updateRelease(currentRelease, asList(ReleasedVersionable.forBaseVersion(versionable))); // put it back
 
         DefaultStagingReleaseManager.ReleaseImpl r1 = (DefaultStagingReleaseManager.ReleaseImpl) releaseManager.finalizeCurrentRelease(versionable, ReleaseNumberCreator.MAJOR);
         DefaultStagingReleaseManager.ReleaseImpl r2 = (DefaultStagingReleaseManager.ReleaseImpl) releaseManager.createRelease(r1, ReleaseNumberCreator.MAJOR); // r1 is closed...
