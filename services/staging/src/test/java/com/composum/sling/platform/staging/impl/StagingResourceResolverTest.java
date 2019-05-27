@@ -265,9 +265,8 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         assertNotNull(context.resourceResolver().getResource(folder + "/jcr:content/cpl:releases"));
         assertTrue(context.resourceResolver().getResource(folder + "/jcr:content/cpl:releases").listChildren().hasNext());
         assertNotNull(context.resourceResolver().getResource(folder + "/jcr:content/cpl:releases/current"));
-        assertNotNull(stagingResourceResolver.getResource(folder + "/jcr:content/cpl:releases"));
+        assertNull(stagingResourceResolver.getResource(folder + "/jcr:content/cpl:releases"));
         assertNull(stagingResourceResolver.getResource(folder + "/jcr:content/cpl:releases/current"));
-        assertFalse(stagingResourceResolver.getResource(folder + "/jcr:content/cpl:releases").listChildren().hasNext());
     }
 
     @Test

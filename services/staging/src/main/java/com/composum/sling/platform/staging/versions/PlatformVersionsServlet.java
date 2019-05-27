@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 
 /** This is a thin servlet making the {@link PlatformVersionsService} accessible - see there for description of the operations. */
+// FIXME(hps,2019-05-27) i18n of error messages?
 @Component(service = Servlet.class,
         property = {
                 Constants.SERVICE_DESCRIPTION + "=Composum Platform Versions Servlet",

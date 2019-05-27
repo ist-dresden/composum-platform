@@ -103,12 +103,12 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
         return false;
     }
 
-    /** Checks whether the path is below one of the special paths whose descendants are removed by the resolver. */
+    /** Checks whether the path is a special paths that is removed by the resolver. */
     protected boolean isFilteredPath(String path) {
         String rootPath = release.getReleaseRoot().getPath();
         if (release.appliesToPath(path)) {
             for (String removedPath : configuration.removed_paths()) {
-                if (path.startsWith(rootPath + '/' + removedPath + '/'))
+                if (SlingResourceUtil.isSameOrDescendant(rootPath + '/' + removedPath, path))
                     return true;
             }
         }
