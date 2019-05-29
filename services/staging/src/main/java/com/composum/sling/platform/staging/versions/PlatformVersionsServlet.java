@@ -259,7 +259,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                 if (status.isValid()) {
                     try {
                         PlatformVersionsService.ActivationResult result = versionsService.activate(releaseKey, toActivate);
-                        // FIXME(hps,2019-05-20) actually use result
+                        // TODO(hps,2019-05-20) actually use result
                         request.getResourceResolver().commit();
                     } catch (Exception ex) {
                         LOG.error(ex.getMessage(), ex);
@@ -317,7 +317,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
             if (status.isValid()) {
                 try {
                     PlatformVersionsService.ActivationResult result = versionsService.revert(releaseKey, toRevert);
-                    // FIXME(hps,2019-05-21) do something with result. Special cause: revert moves the document -> adjust links - this must do the service not the servlet (rw)
+                    // TODO(hps,2019-05-21) do something with result
                     request.getResourceResolver().commit();
                 } catch (Exception ex) {
                     LOG.error(ex.getMessage(), ex);
