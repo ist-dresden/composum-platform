@@ -4,6 +4,8 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.ResourceResolver;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.awt.image.BufferedImage;
 
 /**
  * a service to provide access to the content of referenced resources
@@ -30,4 +32,9 @@ public interface ContentRefService {
      */
     @Nonnull
     String getRenderedContent(@Nonnull SlingHttpServletRequest contextRequest, String url, boolean emptyLines);
+
+    @Nullable
+    BufferedImage getRenderedImage(@Nonnull final SlingHttpServletRequest contextRequest,
+                                   @Nonnull final String url, int width, @Nullable Integer height,
+                                   @Nullable Double scale);
 }

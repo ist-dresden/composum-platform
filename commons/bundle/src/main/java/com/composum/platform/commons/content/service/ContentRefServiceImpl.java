@@ -4,25 +4,29 @@ import com.composum.platform.commons.request.service.InternalRequestService;
 import com.composum.sling.core.util.ResourceUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.osgi.framework.Constants;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.jcr.Binary;
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.StringReader;
 import java.util.regex.Pattern;
 
-@SuppressWarnings("deprecation")
 @Component(
-        label = "Composum Platform Content Reference Service",
-        description = "retrieves the content of referenced resources"
+        property = {
+                Constants.SERVICE_DESCRIPTION + "=Composum Platform Content Reference Service"
+        }
 )
-@Service
 public class ContentRefServiceImpl implements ContentRefService {
 
     private static final Logger LOG = LoggerFactory.getLogger(ContentRefServiceImpl.class);
@@ -31,6 +35,9 @@ public class ContentRefServiceImpl implements ContentRefService {
 
     @Reference
     protected InternalRequestService internalRequestService;
+
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL)
+    protected volatile HtmlImageRenderer htmlImageRenderer;
 
     @Override
     @Nonnull
@@ -71,5 +78,25 @@ public class ContentRefServiceImpl implements ContentRefService {
             }
         }
         return content;
+    }
+
+    @Override
+    @Nullable
+    public BufferedImage getRenderedImage(@Nonnull final SlingHttpServletRequest contextRequest,
+                                          @Nonnull final String url, int width, @Nullable final Integer height,
+                                          @Nullable final Double scale) {
+        BufferedImage image = null;
+        if (htmlImageRenderer != null) {
+            final String content = getRenderedContent(contextRequest, url, false);
+            if (StringUtils.isNotBlank(content)) {
+                try {
+                    image = htmlImageRenderer.htmlToImage(contextRequest, url, new StringReader(content),
+                            width, height, scale, Color.WHITE);
+                } catch (Exception ex) {
+                    LOG.error(ex.getMessage(), ex);
+                }
+            }
+        }
+        return image;
     }
 }

@@ -78,11 +78,11 @@ h3 {
         min-height: 560px;
         margin: 0 auto;
 
-        .alert {
+        .hint, .alert {
             opacity: 0.8;
         }
 
-        .alert-hidden {
+        .hint-hidden, .alert-hidden {
             display: none;
         }
     }

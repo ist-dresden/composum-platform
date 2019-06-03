@@ -120,6 +120,19 @@
             <groupId>org.apache.sling</groupId>
             <artifactId>org.apache.sling.scripting.sightly.models.provider</artifactId>
         </dependency>
+        <dependency>
+            <!-- This needs to be before org.apache.sling.xss in the classpath, since xss embeds an old version of commons-beanutils
+            that isn't even exported, but is incompatible with what's used here. -->
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.sling</groupId>
+            <artifactId>org.apache.sling.xss</artifactId>
+            <!-- Do not export this evil JAR containing loads of embedded dependencies which isn't OSGI exported. -->
+            <scope>test</scope>
+            <optional>true</optional>
+        </dependency>
 
         <!-- JCR API, Jackrabbit -->
         <dependency>
@@ -158,10 +171,12 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
         </dependency>
+        <!-- This belongs here, so we mention it, but for technical reasons it needs to be included before sling.xss - see above.
         <dependency>
             <groupId>commons-beanutils</groupId>
             <artifactId>commons-beanutils</artifactId>
         </dependency>
+        -->
 
         <!-- OSGi, Felix -->
         <dependency>
@@ -214,7 +229,7 @@
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
+            <artifactId>mockito-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.sling</groupId>

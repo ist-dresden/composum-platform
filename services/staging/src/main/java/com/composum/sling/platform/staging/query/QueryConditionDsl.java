@@ -4,6 +4,8 @@ import com.composum.sling.core.util.ResourceUtil;
 import org.apache.commons.lang3.Validate;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
@@ -34,6 +36,8 @@ import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
  */
 public class QueryConditionDsl {
 
+    private static final Logger LOG = LoggerFactory.getLogger(QueryConditionDsl.class);
+
     protected final String selector;
 
     protected StringBuilder unversionedQuery = new StringBuilder();
@@ -49,7 +53,7 @@ public class QueryConditionDsl {
     /** Maps val1, val2, ... to the values bound */
     protected Map<String, Object> bindingVariables = new LinkedHashMap<>();
 
-    protected final QueryCondition queryCondition = new QueryCondition();
+    protected final QueryConditionImpl queryCondition = new QueryConditionImpl();
     protected final ComparisonOperator comparisonOperator = new ComparisonOperator();
     protected final ConditionStaticValue conditionStaticValue = new ConditionStaticValue();
 
@@ -374,7 +378,13 @@ public class QueryConditionDsl {
             return conditionStaticValue;
         }
 
-        /** LIKE */
+        /**
+         * LIKE : the operant matches the pattern specified by the pattern specified in the value, where in the pattern:
+         * the character “%” matches zero or more characters, and
+         * the character “_” (underscore) matches exactly one character, and
+         * the string “\x” matches the character “x”, and
+         * all other characters match themselves.
+         */
         public ConditionStaticValue like() {
             closeParentheses();
             append("LIKE ");
@@ -453,30 +463,52 @@ public class QueryConditionDsl {
             return queryCondition;
         }
 
+        /**
+         * The selector of the condition. A query can contain other selectors, too, when temporarily overridden within
+         * the query with {@link ComparisonStart#selector(String)}.
+         */
+        public String getSelector() {
+            return selector;
+        }
+
+        /** A selector for the join described with this condition for the given property. */
+        public String joinSelector(String property) {
+            Validate.isTrue(isNotBlank(property));
+            Validate.isTrue(!"*".equals(property), "Can't select all properties in a join");
+            return getSelector() + ".[" + property + "]";
+        }
+    }
+
+    /** Implementation a query condition, separated from that so we don't mess up the DSL by passing these methods outside. */
+    public class QueryConditionImpl extends QueryCondition {
+
         /** Returns the generated SQL2 for use with querying the nodes as they are outside the version storage. */
-        protected String getSQL2() {
+        public String getSQL2() {
             while (parenthesesNestingLevel > 0) queryCondition.endGroup();
             return unversionedQuery.toString();
         }
 
         /** Returns the generated SQL2 for use with querying the nodes as they are inside the version storage. */
-        protected String getVersionedSQL2() {
+        public String getVersionedSQL2() {
             while (parenthesesNestingLevel > 0) queryCondition.endGroup();
-            return unversionedQuery.toString();
+            return versionedQuery.toString();
         }
 
         /** Returns the values of the binding variables contained in the SQL queries. */
-        protected Map<String, Object> getBindingValues() {
+        public Map<String, Object> getBindingValues() {
             return Collections.unmodifiableMap(bindingVariables);
         }
 
         /** Sets the saved binding values on a jcrQuery. */
-        protected void applyBindingValues(javax.jcr.query.Query jcrQuery, ResourceResolver resolver)
+        public void applyBindingValues(javax.jcr.query.Query jcrQuery, ResourceResolver resolver)
                 throws RepositoryException {
+            StringBuilder debugbuf = new StringBuilder();
             ValueFactory valueFactory = resolver.adaptTo(Session.class).getValueFactory();
             for (Map.Entry<String, Object> entry : bindingVariables.entrySet()) {
                 String key = entry.getKey();
                 Object value = entry.getValue();
+                if (LOG.isDebugEnabled())
+                    debugbuf.append(key).append("=\"").append(value).append("\" ");
                 if (null == value) jcrQuery.bindValue(key, valueFactory.createValue((String) null));
                 else if (value instanceof String) jcrQuery.bindValue(key, valueFactory.createValue((String) value));
                 else if (value instanceof Calendar) jcrQuery.bindValue(key, valueFactory.createValue((Calendar) value));
@@ -493,6 +525,8 @@ public class QueryConditionDsl {
                 else // Bug.
                     throw new IllegalArgumentException("Unsupported value " + value + " of class " + value.getClass());
             }
+            if (LOG.isDebugEnabled())
+                LOG.debug("Binding values: {}", debugbuf);
         }
 
         @Override
@@ -500,20 +534,5 @@ public class QueryConditionDsl {
             return QueryConditionDsl.this.toString();
         }
 
-        /**
-         * The selector of the condition. A query can contain other selectors, too, when temporarily overridden within
-         * the query with {@link ComparisonStart#selector(String)}.
-         */
-        public String getSelector() {
-            return selector;
-        }
-
-        /** A selector for the join described with this condition for the given property. */
-
-        public String joinSelector(String property) {
-            Validate.isTrue(isNotBlank(property));
-            Validate.isTrue(!"*".equals(property), "Can't select all properties in a join");
-            return getSelector() + ".[" + property + "]";
-        }
     }
 }

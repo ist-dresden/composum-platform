@@ -52,15 +52,6 @@ public class LoadedResource extends ResourceWrapper {
             }
             return resource;
         }
-
-        /**
-         * assuming the Map.get() is used in templates a multi value is joined to a String
-         */
-        @Override
-        public Object get(Object key) {
-            Object value = super.get(key);
-            return value instanceof Object[] ? StringUtils.join((Object[]) value, ", ") : value;
-        }
     }
 
     public LoadedResource(@Nonnull Resource resource) {
