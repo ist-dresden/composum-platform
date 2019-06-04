@@ -161,7 +161,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                     String releaseKey = request.getParameter("release");
                     performIt(request, response, status, versionable, releaseKey);
                 } else {
-                    status.withLogging(LOG).error("resource is not versionable ({})", request.getRequestURI());
+                    status.withLogging(LOG).error("Resource is not versionable: {}", request.getRequestURI());
                 }
             }
             status.sendJson();

@@ -112,6 +112,9 @@
                             <root>/libs/composum/platform/public</root>
                         </filter>
                         <filter>
+                            <root>/libs/composum/platform/services</root>
+                        </filter>
+                        <filter>
                             <root>/libs/composum/platform/install</root>
                             <includes>
                                 <include>.*/org.apache.sling.tenant.*\.jar</include>
