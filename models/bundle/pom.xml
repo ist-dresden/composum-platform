@@ -105,22 +105,6 @@
             <artifactId>org.apache.sling.models.impl</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.sling</groupId>
-            <artifactId>org.apache.sling.scripting.sightly</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.sling</groupId>
-            <artifactId>org.apache.sling.scripting.sightly.compiler</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.sling</groupId>
-            <artifactId>org.apache.sling.scripting.sightly.compiler.java</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.sling</groupId>
-            <artifactId>org.apache.sling.scripting.sightly.models.provider</artifactId>
-        </dependency>
-        <dependency>
             <!-- This needs to be before org.apache.sling.xss in the classpath, since xss embeds an old version of commons-beanutils
             that isn't even exported, but is incompatible with what's used here. -->
             <groupId>commons-beanutils</groupId>
