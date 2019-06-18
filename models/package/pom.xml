@@ -81,9 +81,6 @@
 
                     <filters>
                         <filter>
-                            <root>/libs/composum/platform/models</root>
-                        </filter>
-                        <filter>
                             <root>/libs/composum/platform/install</root>
                             <includes>
                                 <include>.*/composum-sling-platform-models-bundle.*\.jar</include>

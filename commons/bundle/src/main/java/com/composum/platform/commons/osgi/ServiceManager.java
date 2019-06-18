@@ -5,6 +5,7 @@
  */
 package com.composum.platform.commons.osgi;
 
+import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceReference;
@@ -65,7 +66,10 @@ public abstract class ServiceManager<ServiceType> {
 
         @Override
         public int compareTo(@Nonnull final ManagedReference other) {
-            return Integer.compare(other.getRanking(), getRanking()); // sort descending
+            CompareToBuilder builder = new CompareToBuilder();
+            builder.append(other.getRanking(), getRanking()); // sort descending
+            builder.append(getServiceId(), other.getServiceId());
+            return builder.toComparison();
         }
 
         // Object
