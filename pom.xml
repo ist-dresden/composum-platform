@@ -44,7 +44,8 @@
         <package.group>com/composum/platform</package.group>
         <package.company>IST GmbH Dresden</package.company>
         <bundle.category>composum,platform</bundle.category>
-        <composum.core.version>1.10.1</composum.core.version>
+        <composum.nodes.version>1.10.2</composum.nodes.version>
+        <composum.nodes.dependency>[${composum.nodes.version},2.1)</composum.nodes.dependency>
         <sling.scheme>http</sling.scheme>
         <sling.secure>false</sling.secure>
         <sling.host>localhost</sling.host>
@@ -403,23 +404,23 @@
     <dependencyManagement>
         <dependencies>
 
-            <!-- Composum Core -->
+            <!-- Composum Nodes -->
             <dependency>
                 <groupId>com.composum.sling.core</groupId>
                 <artifactId>composum-sling-core-console</artifactId>
-                <version>${composum.core.version}</version>
+                <version>${composum.nodes.dependency}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>com.composum.sling.core</groupId>
                 <artifactId>composum-sling-user-management</artifactId>
-                <version>${composum.core.version}</version>
+                <version>${composum.nodes.dependency}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>com.composum.sling.core</groupId>
                 <artifactId>composum-sling-core-commons</artifactId>
-                <version>${composum.core.version}</version>
+                <version>${composum.nodes.dependency}</version>
                 <scope>provided</scope>
             </dependency>
 
@@ -427,7 +428,7 @@
             <dependency>
                 <groupId>com.composum.sling.core.setup</groupId>
                 <artifactId>composum-sling-core-setup-util</artifactId>
-                <version>${composum.core.version}</version>
+                <version>${composum.nodes.version}</version>
                 <scope>provided</scope>
             </dependency>
 
