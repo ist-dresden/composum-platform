@@ -5,11 +5,11 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
+import com.composum.sling.platform.staging.ReleaseChangeEventListener;
+import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.ReleasedVersionable;
-import com.composum.sling.platform.staging.ReleaseChangeEventListener;
-import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Result;
@@ -67,7 +67,6 @@ import java.util.stream.Collectors;
 import static com.composum.sling.core.util.CoreConstants.CONTENT_NODE;
 import static com.composum.sling.core.util.CoreConstants.JCR_PRIMARYTYPE;
 import static com.composum.sling.core.util.CoreConstants.JCR_UUID;
-import static com.composum.sling.core.util.CoreConstants.JCR_VERSIONHISTORY;
 import static com.composum.sling.core.util.CoreConstants.NT_VERSION;
 import static com.composum.sling.core.util.CoreConstants.PROP_MIXINTYPES;
 import static com.composum.sling.core.util.CoreConstants.PROP_PRIMARY_TYPE;
@@ -615,7 +614,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Override
     public void setMark(@Nonnull String mark, @Nullable Release rawRelease) throws RepositoryException, ReleaseChangeEventListener.ReplicationFailedException {
-        ReleaseImpl release = ReleaseImpl.unwrap(rawRelease);
+        ReleaseImpl release = Objects.requireNonNull(ReleaseImpl.unwrap(rawRelease));
         ResourceHandle releasesnode = ResourceHandle.use(release.getReleaseNode().getParent()); // the cpl:releases node
         // property type REFERENCE prevents deleting it accidentially
         releasesnode.setProperty(mark, release.getUuid(), PropertyType.REFERENCE);
@@ -689,6 +688,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     /**
      * Remove all labels starting with {@value StagingConstants#RELEASE_LABEL_PREFIX} from version histories pointing
      * into our release root that do not name a release that actually exists.
+     *
      * @return the number of broken labels
      */
     @Override
@@ -822,6 +822,12 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         @Nonnull
         public String getNumber() {
             return releaseNode.getName();
+        }
+
+        @Override
+        @Nonnull
+        public String getPath() {
+            return releaseNode.getPath();
         }
 
         @Override

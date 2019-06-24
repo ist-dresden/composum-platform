@@ -306,6 +306,9 @@ public interface StagingReleaseManager {
             return StagingConstants.RELEASE_LABEL_PREFIX + getNumber();
         }
 
+        @Nonnull
+        String getPath();
+
         /** The resource that is the top of the working tree - a {@value StagingConstants#TYPE_MIX_RELEASE_ROOT}. */
         @Nonnull
         Resource getReleaseRoot();
