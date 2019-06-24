@@ -20,6 +20,8 @@ import javax.jcr.Node;
 import javax.jcr.Property;
 import java.io.InputStream;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
+
 /**
  * Simulates a {@link org.apache.sling.api.resource.Resource}s from a release. It can either be a (writable) real resource,
  * a (read only) resource from the working tree of the release, or a wrapped frozen node from version storage.
@@ -75,7 +77,9 @@ public class StagingResource extends AbstractResource implements JcrResource {
         ValueMap vm = getValueMap();
         String result = vm.get(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY, String.class);
         if (StringUtils.isBlank(result)) {
-            result = vm.get(JcrConstants.JCR_PRIMARYTYPE, String.class);
+            result = vm.get(JCR_FROZENPRIMARYTYPE, String.class);
+            if (StringUtils.isBlank(result))
+                result = vm.get(JcrConstants.JCR_PRIMARYTYPE, String.class);
         }
         return StringUtils.defaultIfBlank(result, Resource.RESOURCE_TYPE_NON_EXISTING);
     }
@@ -128,7 +132,7 @@ public class StagingResource extends AbstractResource implements JcrResource {
     @Nonnull
     @Override
     public ValueMap getValueMap() {
-        ValueMap valueMap = StagingUtils.isInVersionStorage(underlyingResource) ?
+        ValueMap valueMap = StagingUtils.isInStorage(underlyingResource) ?
                 new StagingResourceValueMap(underlyingResource.getValueMap()) : underlyingResource.getValueMap();
         return new DeepReadValueMapDecorator(this, valueMap);
     }
@@ -161,7 +165,7 @@ public class StagingResource extends AbstractResource implements JcrResource {
     @Nonnull
     public String toString() {
         final StringBuilder sb = new StringBuilder("StagingResource{");
-        sb.append(", path='").append(path).append('\'');
+        sb.append("path='").append(path).append('\'');
         sb.append(", underlying='").append(underlyingResource.getPath()).append('\'');
         if (pathInfo != null) sb.append(", pathInfo=").append(pathInfo);
         sb.append('}');

@@ -5,6 +5,9 @@ import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
 import com.google.common.base.Predicates;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
+import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.jackrabbit.JcrConstants;
@@ -55,7 +58,7 @@ public class NodeTreeSynchronizer {
      */
     protected void updateSubtree(@Nonnull ResourceHandle from, @Nonnull ResourceHandle to) throws RepositoryException, PersistenceException {
         try {
-            updateAttributes(from, to);
+            updateAttributes(from, to, ImmutableBiMap.of());
             updateChildren(from, to);
         } catch (RuntimeException | RepositoryException | PersistenceException e) {
             LOG.warn("Exception during updating from {} : {}", SlingResourceUtil.getPath(from), e.toString());
@@ -70,47 +73,61 @@ public class NodeTreeSynchronizer {
      *
      * @param from the source
      * @param to   the destination which we update
+     * @param attributeNameTranslation any attribute contained in this map will be written to the attribute according to the value in the destination.
+     *                                 The primary key of the destination will only be touched if it's not translated or translated from a (different) attribute.
      * @throws RepositoryException if we couldn't finish the operation
      * @see #ignoreAttribute(ResourceHandle, String, boolean)
      */
-    public void updateAttributes(ResourceHandle from, ResourceHandle to) throws RepositoryException {
+    public void updateAttributes(ResourceHandle from, ResourceHandle to, BiMap<String, String> attributeNameTranslation) throws RepositoryException {
         ValueMap fromAttributes = ResourceUtil.getValueMap(from);
         ModifiableValueMap toAttributes = to.adaptTo(ModifiableValueMap.class);
-        // first copy type information since this changes attributes. Use valuemap because of mixin handling
-        toAttributes.put(PROP_PRIMARY_TYPE, fromAttributes.get(PROP_PRIMARY_TYPE));
-        toAttributes.put(PROP_MIXINTYPES, fromAttributes.get(PROP_MIXINTYPES, new String[0]));
+        // first copy type information since this changes attributes. Use valuemap because of its mixin handling
+        // if the primary type is mapped to something (else), we don't touch the primary type of the destination
+        // if the primary type is read from something, we do it now.
+        boolean primaryKeyTouched = !attributeNameTranslation.containsKey(PROP_PRIMARY_TYPE) || attributeNameTranslation.inverse().containsKey(PROP_PRIMARY_TYPE);
+        if (primaryKeyTouched)
+            toAttributes.put(PROP_PRIMARY_TYPE, fromAttributes.get(attributeNameTranslation.inverse().getOrDefault(PROP_PRIMARY_TYPE, PROP_PRIMARY_TYPE)));
+        boolean mixinsTouched = !attributeNameTranslation.containsKey(PROP_MIXINTYPES) || attributeNameTranslation.inverse().containsKey(PROP_MIXINTYPES);
+        if (mixinsTouched)
+            toAttributes.put(PROP_MIXINTYPES, fromAttributes.get(attributeNameTranslation.inverse().getOrDefault(PROP_MIXINTYPES, PROP_MIXINTYPES), new String[0]));
 
         // use nodes for others since it seems hard to handle types REFERENCE and WEAKREFERENCE correctly through ValueMap.
         Node fromNode = Objects.requireNonNull(from.getNode(), from.getPath());
         Node toNode = Objects.requireNonNull(to.getNode(), to.getPath());
+        Collection<String> toRemove = new HashSet<>(toAttributes.keySet());
 
         for (PropertyIterator fromProperties = fromNode.getProperties(); fromProperties.hasNext(); ) {
             Property prop = fromProperties.nextProperty();
             String name = prop.getName();
-            if (!ignoreAttribute(from, name, true)) {
+            String toname = attributeNameTranslation.getOrDefault(name, name);
+            toRemove.remove(toname);
+            if (!ignoreAttribute(from, name, true) || attributeNameTranslation.containsKey(name)) {
+                // an attributeNameTranslation overrides ignoreAttribute since it's the current parameter
                 if (prop.isMultiple()) {
                     Value[] values = prop.getValues();
                     try {
-                        toNode.setProperty(name, values);
+                        toNode.setProperty(toname, values);
                     } catch (IllegalArgumentException | RepositoryException e) { // probably extend protectedMetadataAttributes
-                        LOG.info("Could not copy probably protected multiple attribute {} - {}", name, e.toString());
+                        LOG.info("Could not copy to probably protected multiple attribute {} - {}", toname, e.toString());
                     }
                 } else {
                     Value value = prop.getValue();
                     try {
-                        toNode.setProperty(name, value);
+                        toNode.setProperty(toname, value);
                     } catch (IllegalArgumentException | RepositoryException e) { // probably extend protectedMetadataAttributes
-                        LOG.info("Could not copy probably protected single attribute {} - {}", name, e.toString());
+                        LOG.info("Could not copy to probably protected single attribute {} - {}", toname, e.toString());
                     }
                 }
             }
         }
 
-        Collection<String> toremove = CollectionUtils.subtract(toAttributes.keySet(), fromAttributes.keySet());
+        toRemove.remove(PROP_PRIMARY_TYPE); // would be bad idea
+        if (!mixinsTouched) toRemove.remove(PROP_MIXINTYPES);
+
         for (PropertyIterator toProperties = toNode.getProperties(); toProperties.hasNext(); ) {
             Property toProp = toProperties.nextProperty();
             String name = toProp.getName();
-            if (toremove.contains(name)) {
+            if (toRemove.contains(name)) {
                 try {
                     toProp.remove();
                 } catch (IllegalArgumentException | RepositoryException e) {

@@ -290,9 +290,8 @@ public abstract class Query {
         String direction = ascending ? "ASC" : "DESC";
         if (COLUMN_PATH.equals(orderBy) && versioned)
             return "ORDER BY history.[default] " + direction + ", n.[" + orderBy + "] " + direction + " \n";
-        if (versioned)
-            orderBy = StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(orderBy, orderBy);
-        return "ORDER BY n.[" + orderBy + "] " + direction + " \n";
+        String attr = versioned ? StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(orderBy, orderBy) : orderBy;
+        return "ORDER BY n.[" + attr + "] " + direction + " \n";
     }
 
     @Nonnull

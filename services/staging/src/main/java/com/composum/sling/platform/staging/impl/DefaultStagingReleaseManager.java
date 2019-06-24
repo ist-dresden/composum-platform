@@ -561,13 +561,13 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         String[] levels = releasedVersionable.getRelativePath().split("/");
         ResourceHandle inWorkspace = ResourceHandle.use(release.getReleaseRoot());
         ResourceHandle inRelease = ResourceHandle.use(release.getWorkspaceCopyNode());
-        Iterator<String> levelIt = IteratorUtils.arrayIterator(levels);
+        Iterator<String> levelIterator = IteratorUtils.arrayIterator(levels);
         NodeTreeSynchronizer sync = new NodeTreeSynchronizer();
 
         while (inWorkspace.isValid() && inRelease.isValid() && !inRelease.isOfType(TYPE_VERSIONREFERENCE)) {
-            sync.updateAttributes(inWorkspace, inRelease);
-            if (!levelIt.hasNext()) break;
-            String level = levelIt.next();
+            sync.updateAttributes(inWorkspace, inRelease, StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES);
+            if (!levelIterator.hasNext()) break;
+            String level = levelIterator.next();
             inWorkspace = ResourceHandle.use(inWorkspace.getChild(level));
             inRelease = ResourceHandle.use(inRelease.getChild(level));
             if (inWorkspace.isValid() && inRelease.isValid()) {

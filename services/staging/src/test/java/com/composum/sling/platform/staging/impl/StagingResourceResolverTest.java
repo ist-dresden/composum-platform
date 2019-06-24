@@ -301,37 +301,37 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
         for (Resource r : resources) {
             Node n = r.adaptTo(Node.class);
-            errorCollector.checkThat(r.getPath(), n, allOf(
+            errorCollector.checkThat(r.toString(), n, allOf(
                     notNullValue(), instanceOf(FrozenNodeWrapper.class)
             ));
             if (n != null) {
-                errorCollector.checkThat(n.getPath(), equalTo(r.getPath()));
-                errorCollector.checkThat(n.getName(), equalTo(r.getName()));
+                errorCollector.checkThat(r.toString(), n.getPath(), equalTo(r.getPath()));
+                errorCollector.checkThat(r.toString(), n.getName(), equalTo(r.getName()));
 
                 List<Resource> childResources = IteratorUtils.toList(r.listChildren());
-                errorCollector.checkThat(childResources, everyItem(instanceOf(StagingResource.class)));
+                errorCollector.checkThat(r.toString(), childResources, everyItem(instanceOf(StagingResource.class)));
 
                 List<Node> childNodes = IteratorUtils.toList(n.getNodes());
-                errorCollector.checkThat(childNodes, everyItem(instanceOf(FrozenNodeWrapper.class)));
+                errorCollector.checkThat(r.toString(), childNodes, everyItem(instanceOf(FrozenNodeWrapper.class)));
 
-                errorCollector.checkThat(childResources.stream().map(Resource::getName).collect(Collectors.joining(",")),
+                errorCollector.checkThat(r.toString(), childResources.stream().map(Resource::getName).collect(Collectors.joining(",")),
                         equalTo(childNodes.stream().map(ExceptionUtil.sneakExceptions(Node::getName)).collect(Collectors.joining(","))));
 
                 if (!StagingUtils.isRoot(r)) {
-                    errorCollector.checkThat(n.getParent().getPath(), equalTo(r.getParent().getPath()));
-                    errorCollector.checkThat(n.getParent().getName(), equalTo(r.getParent().getName()));
+                    errorCollector.checkThat(r.toString(), n.getParent().getPath(), equalTo(r.getParent().getPath()));
+                    errorCollector.checkThat(r.toString(), n.getParent().getName(), equalTo(r.getParent().getName()));
                 }
 
                 String realPrimaryType = r.getValueMap().get(PROP_PRIMARY_TYPE, String.class);
                 Property primaryType = n.getProperty(PROP_PRIMARY_TYPE);
-                errorCollector.checkThat(r.getPath(), primaryType, notNullValue());
-                errorCollector.checkThat(r.getPath(), primaryType.getString(), equalTo(realPrimaryType));
+                errorCollector.checkThat(r.toString(), primaryType, notNullValue());
+                errorCollector.checkThat(r.toString(), primaryType.getString(), equalTo(realPrimaryType));
 
                 Resource primaryTypePropertyResource = r.getChild(PROP_PRIMARY_TYPE);
                 primaryType = primaryTypePropertyResource.adaptTo(Property.class);
-                errorCollector.checkThat(primaryTypePropertyResource.getPath(), primaryType, notNullValue());
-                errorCollector.checkThat(primaryTypePropertyResource.getPath(), primaryType.getString(), equalTo(realPrimaryType));
-                errorCollector.checkThat(primaryTypePropertyResource.getPath(), primaryType.getName(), is(PROP_PRIMARY_TYPE));
+                errorCollector.checkThat(primaryTypePropertyResource.toString(), primaryType, notNullValue());
+                errorCollector.checkThat(primaryTypePropertyResource.toString(), primaryType.getString(), equalTo(realPrimaryType));
+                errorCollector.checkThat(primaryTypePropertyResource.toString(), primaryType.getName(), is(PROP_PRIMARY_TYPE));
             }
         }
 

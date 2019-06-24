@@ -1,6 +1,7 @@
 package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.util.ResourceUtil;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -100,6 +101,18 @@ public abstract class AbstractFrozenItem<T extends Item> implements Item {
     @Override
     public final void remove() throws VersionException, LockException, ConstraintViolationException, AccessDeniedException, RepositoryException {
         throw unmodifiable();
+    }
+
+    @Override
+    public String toString() {
+        ToStringBuilder toStringBuilder = new ToStringBuilder(this);
+        toStringBuilder.append("pathOverride", pathOverride);
+        try {
+            toStringBuilder.append("wrapped", wrapped.getPath());
+        } catch (RepositoryException e) { // very unexpected
+            toStringBuilder.append("wrapped", wrapped.toString());
+        }
+        return toStringBuilder.toString();
     }
 
     // =================   stuff that's probably not needed - difficult or unfeasible. Implemented as needed.

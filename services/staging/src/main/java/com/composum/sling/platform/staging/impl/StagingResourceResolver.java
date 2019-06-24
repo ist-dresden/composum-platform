@@ -10,6 +10,7 @@ import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager.Rel
 import com.composum.sling.platform.staging.query.QueryBuilder;
 import com.composum.sling.platform.staging.query.impl.QueryBuilderImpl;
 import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.LoginException;
@@ -166,7 +167,7 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
             String[] levels = relPath.split("/");
             for (String level : levels) {
                 if (underlyingResource == null) return new NonExistingResource(this, path);
-                String actualname = StagingUtils.isInVersionStorage(underlyingResource) ?
+                String actualname = StagingUtils.isInStorage(underlyingResource) ?
                         REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(level, level) // mapping for property resources
                         : level;
                 underlyingResource = underlyingResource.getChild(actualname);
@@ -237,5 +238,10 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
         return super.adaptTo(type);
     }
 
-    // ------------------ End of the easy parts.
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+                .append(release)
+                .toString();
+    }
 }

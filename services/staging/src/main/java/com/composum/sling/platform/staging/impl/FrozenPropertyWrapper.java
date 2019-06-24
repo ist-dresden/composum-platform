@@ -19,7 +19,7 @@ import java.util.Calendar;
  * We'd rather throw an exception than return a wrong value.
  * If that occurs somewhere please complain, and it'll be done.
  */
-@SuppressWarnings({"DuplicateThrows", "RedundantThrows"})
+@SuppressWarnings({"DuplicateThrows", "RedundantThrows", "deprecation"})
 public class FrozenPropertyWrapper extends AbstractFrozenItem<Property> implements Property {
 
     FrozenPropertyWrapper(@Nonnull Property wrapped, @Nullable String path) {

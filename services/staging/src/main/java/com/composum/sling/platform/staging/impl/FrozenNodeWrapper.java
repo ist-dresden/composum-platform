@@ -32,7 +32,7 @@ import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAME
  * We'd rather throw an exception than return a wrong value.
  * If that occurs somewhere please complain, and it'll be done.
  */
-@SuppressWarnings({"RedundantThrows", "DuplicateThrows"})
+@SuppressWarnings({"RedundantThrows", "DuplicateThrows", "deprecation"})
 public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node {
 
     @Nonnull
@@ -110,7 +110,7 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
             }
             return prop;
         }
-        String realName = wrapped.isNodeType("nt:frozenNode") ?
+        String realName = StagingUtils.isInStorage(wrapped) ?
                 REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(relPath, relPath)
                 : relPath;
         Property prop = wrapped.getProperty(realName);
@@ -123,11 +123,11 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
         return rewrapIntoWrappedProperty(properties);
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "ConstantConditions"})
     @Nonnull
     protected PropertyIterator rewrapIntoWrappedProperty(PropertyIterator properties) throws RepositoryException {
         Iterator filteredproperties = properties;
-        if (wrapped.isNodeType("nt:frozenNode")) {
+        if (StagingUtils.isInStorage(wrapped)) {
             filteredproperties = IteratorUtils.filteredIterator(properties,
                     (Property p) ->
                             ExceptionUtil.callAndSneakExceptions(

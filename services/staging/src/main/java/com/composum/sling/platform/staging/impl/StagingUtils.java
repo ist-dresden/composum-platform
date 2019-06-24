@@ -1,17 +1,16 @@
 package com.composum.sling.platform.staging.impl;
 
+import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.StagingConstants;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.Resource;
-import com.composum.sling.core.util.ResourceUtil;
 
 import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
-import javax.jcr.nodetype.NodeType;
+import java.util.regex.Pattern;
 
 public class StagingUtils {
 
@@ -28,38 +27,41 @@ public class StagingUtils {
         return path != null && path.startsWith(VERSIONS_ROOT);
     }
 
-    @CheckReturnValue
-    public static boolean isVersionable(@Nullable Node node) throws RepositoryException {
-        return node != null && node.isNodeType(NodeType.MIX_VERSIONABLE);
-    }
+    private static final Pattern IN_STORAGE_PATTERN = Pattern.compile(".*/" + StagingConstants.NODE_RELEASES + "/[^/]+/" + StagingConstants.NODE_RELEASE_ROOT + "(/.*|$)");
 
-    @CheckReturnValue
-    public static boolean isVersionable(@Nullable Resource resource) throws RepositoryException {
-        if (resource == null || ResourceUtil.isNonExistingResource(resource)) {
-            return false;
-        }
-        Node n = resource.adaptTo(Node.class);
-        return n != null && isVersionable(n);
-    }
-
-    @CheckReturnValue
-    public static boolean isUnderVersionControl(@Nullable Resource resource) throws RepositoryException {
+    /** True if the resource is in version storage or if it's in a release. */
+    public static boolean isInStorage(@Nullable Resource resource) {
         if (resource == null) return false;
-        if (isInVersionStorage(resource)) {
+        if (isInVersionStorage(resource))
             return true;
-        }
-        if (isVersionable(resource)) {
-            return true;
-        }
-        // now check if a parent isUnderVersionControl
-        final Resource parent = resource.getParent();
-        return parent != null && isUnderVersionControl(parent);
+        if (!IN_STORAGE_PATTERN.matcher(resource.getPath()).matches())
+            return false;
+        Resource siteCandidate = resource;
+        while (!siteCandidate.getName().equals(StagingConstants.NODE_RELEASES))
+            siteCandidate = siteCandidate.getParent();
+        if (siteCandidate.getParent().getParent() == null)
+            return false;
+        siteCandidate = siteCandidate.getParent().getParent();
+        boolean result = ResourceUtil.isNodeType(siteCandidate, StagingConstants.TYPE_MIX_RELEASE_ROOT);
+        return result;
     }
 
-    @CheckReturnValue
-    public static boolean isVersionReference(@Nullable Resource resource) {
-        return resource != null && ResourceUtil.isResourceType(resource, StagingConstants.TYPE_VERSIONREFERENCE);
+    public static boolean isInStorage(@Nullable Node node) throws RepositoryException {
+        if (node == null) return false;
+        if (node.isNodeType("nt:frozenNode"))
+            return true;
+        if (!IN_STORAGE_PATTERN.matcher(node.getPath()).matches())
+            return false;
+        Node siteCandidate = node;
+        while (!siteCandidate.getName().equals(StagingConstants.NODE_RELEASES))
+            siteCandidate = siteCandidate.getParent();
+        if (siteCandidate.getParent().getParent() == null)
+            return false;
+        siteCandidate = siteCandidate.getParent().getParent();
+        boolean result = siteCandidate.isNodeType(StagingConstants.TYPE_MIX_RELEASE_ROOT);
+        return result;
     }
+
 
     @CheckReturnValue
     public static boolean isPropertyResource(@Nullable final Resource resource) {

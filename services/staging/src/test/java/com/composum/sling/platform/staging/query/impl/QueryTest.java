@@ -110,6 +110,7 @@ public class QueryTest extends AbstractStagingTest {
         List<StagingReleaseManager.Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
         errorCollector.checkThat(releases.size(), is(1));
         stagingResourceResolver = (StagingResourceResolver) releaseManager.getResolverForRelease(releases.get(0), releaseMapper, false);
+        LOG.debug("\n===== setup done =====\n");
     }
 
     @Test
