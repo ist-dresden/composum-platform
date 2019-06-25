@@ -151,13 +151,15 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Nonnull
     protected List<Release> getReleasesImpl(@Nonnull Resource resource) {
-        ResourceHandle root = findReleaseRoot(resource);
         List<Release> result = new ArrayList<>();
-        Resource releasesNode = root.getChild(RELPATH_RELEASES_NODE);
-        if (releasesNode != null) {
-            for (Resource releaseNode : releasesNode.getChildren()) {
-                ReleaseImpl release = new ReleaseImpl(root, releaseNode);
-                result.add(release);
+        ResourceHandle root = findReleaseRoot(resource);
+        if (root != null) {
+            Resource releasesNode = root.getChild(RELPATH_RELEASES_NODE);
+            if (releasesNode != null) {
+                for (Resource releaseNode : releasesNode.getChildren()) {
+                    ReleaseImpl release = new ReleaseImpl(root, releaseNode);
+                    result.add(release);
+                }
             }
         }
         result.sort(Comparator.comparing(Release::getNumber, ReleaseNumberCreator.COMPARATOR_RELEASES));
@@ -176,11 +178,12 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 if (highestNumericRelease.isPresent()) {
                     setPreviousRelease(currentRelease, highestNumericRelease.get());
                 }
-            } catch (RepositoryException | PersistenceException e) {
-                LOG.error("Trouble creating current release for " + root.getPath(), e);
+            } catch (RepositoryException | PersistenceException ex) {
+                LOG.error("Trouble creating current release for " + root.getPath(), ex);
             }
-        } else
+        } else {
             currentRelease = new ReleaseImpl(root, currentReleaseNode);
+        }
         return currentRelease;
     }
 
