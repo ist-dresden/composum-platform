@@ -162,7 +162,7 @@ public class QueryConditionDsl {
          * Starts a comparison of the JCR name of the node to something.
          * <p>
          * Limitation: this won't work right on the topmost versioned node (often jcr:content) since that is renamed to
-         * jcr:frozenNode in the version storage. Please consider using {@link Query#element} if you make a simple
+         * jcr:frozenNode in the version storage. Please consider using {@link Query#element(String)} if you make a simple
          * equality comparison, which can take this into account.
          */
         public ComparisonOperator name() {
@@ -175,7 +175,7 @@ public class QueryConditionDsl {
          * something.
          * <p>
          * Limitation: this won't work right on the topmost versioned node (often jcr:content) since that is renamed to
-         * jcr:frozenNode in the version storage. Please consider using {@link Query#element} if you make a simple
+         * jcr:frozenNode in the version storage. Please consider using {@link Query#element(String)} if you make a simple
          * equality comparison, which can take this into account.
          */
         public ComparisonOperator localName() {

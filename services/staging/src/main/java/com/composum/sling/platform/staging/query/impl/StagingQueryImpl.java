@@ -31,14 +31,33 @@ import javax.jcr.Session;
 import javax.jcr.Value;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
-import javax.jcr.query.*;
-import java.util.*;
+import javax.jcr.query.InvalidQueryException;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
 
 import static com.composum.sling.core.util.SlingResourceUtil.isSameOrDescendant;
-import static com.composum.sling.platform.staging.StagingConstants.*;
+import static com.composum.sling.platform.staging.StagingConstants.PROP_DEACTIVATED;
+import static com.composum.sling.platform.staging.StagingConstants.PROP_VERSION;
+import static com.composum.sling.platform.staging.StagingConstants.TYPE_VERSIONREFERENCE;
+import static com.composum.sling.platform.staging.query.Query.QueryGenerationMode.NORMAL;
+import static com.composum.sling.platform.staging.query.Query.QueryGenerationMode.VERSIONSTORAGE;
+import static com.composum.sling.platform.staging.query.Query.QueryGenerationMode.WORKSPACECOPY;
 import static javax.jcr.query.Query.JCR_SQL2;
-import static org.apache.commons.collections4.ComparatorUtils.*;
-import static org.apache.commons.collections4.IteratorUtils.*;
+import static org.apache.commons.collections4.ComparatorUtils.nullHighComparator;
+import static org.apache.commons.collections4.ComparatorUtils.reversedComparator;
+import static org.apache.commons.collections4.ComparatorUtils.transformedComparator;
+import static org.apache.commons.collections4.IteratorUtils.asIterable;
+import static org.apache.commons.collections4.IteratorUtils.boundedIterator;
+import static org.apache.commons.collections4.IteratorUtils.chainedIterator;
+import static org.apache.commons.collections4.IteratorUtils.collatedIterator;
+import static org.apache.commons.collections4.IteratorUtils.emptyIterator;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENNODE;
 
 /**
@@ -120,8 +139,8 @@ public class StagingQueryImpl extends Query {
         if (release == null
                 || withinRelease && !mappingAllowed
                 || !withinRelease && !releaseIsWithinPath) {
-            String statement = buildSQL2();
-            LOG.debug("JCR-SQL2 not controlled:\n{}", statement);
+            String statement = buildSQL2(NORMAL);
+            LOG.debug("JCR-SQL2 not versioncontrolled:\n{}", statement);
             return executeNotReleasecontrolledQuery(queryManager, statement);
         }
         // OK - we are within a release and some of the descendants of path would be mapped to a release
@@ -150,43 +169,66 @@ public class StagingQueryImpl extends Query {
                 if (frozenNode == null)
                     return emptyIterator();
                 String statement = buildSQL24SingleVersion(frozenNode.getPath());
-                LOG.debug("JCR-SQL2 single:\n{}", statement);
+                LOG.debug("JCR-SQL2 single version:\n{}", statement);
                 Iterator<Row> rowsFromVersionStorage = executeNotReleasecontrolledQuery(queryManager, statement);
-                return filterOnlyReleaseMappedAndByType(rowsFromVersionStorage);
+                return filterFromVersionStorage(rowsFromVersionStorage);
             }
         }
 
-        // We need to do two queries, since this might get us direct results, results from the release content copy
-        // and from version storage.
+        // We need to do up to three queries whose results need to be merged:
+        // - within version storage
+        // - within the release content copy
+        // - outside bot
 
-        String versionStorageStatement = buildSQL2Version();
         Iterator<Row> rowsFromVersionStorage;
+        String versionStorageStatement = buildSQL2Version();
         try {
             LOG.debug("JCR-SQL2 versioned:\n{}", versionStorageStatement);
             javax.jcr.query.Query versionedQuery = initJcrQuery(queryManager, versionStorageStatement);
             if (0 <= limit && Long.MAX_VALUE != limit) versionedQuery.setLimit(offset + limit);
             rowsFromVersionStorage = versionedQuery.execute().getRows();
-            rowsFromVersionStorage = filterOnlyReleaseMappedAndByType(rowsFromVersionStorage);
+            rowsFromVersionStorage = filterFromVersionStorage(rowsFromVersionStorage);
         } catch (InvalidQueryException e) {
             throw new QuerySyntaxException(e.getMessage(), versionStorageStatement, JCR_SQL2, e);
         }
 
-        String contentStatement = buildSQL2();
-        Iterator<Row> rowsOutsideVersionStorage;
+        Iterator<Row> rowsInsideReleasetree;
+        String releaseTreeStatement = buildSQL2(WORKSPACECOPY);
         try {
-            LOG.debug("JCR-SQL2 unversioned:\n{}", contentStatement);
-            javax.jcr.query.Query unversionedQuery = initJcrQuery(queryManager, contentStatement);
+            LOG.debug("JCR-SQL2 workspace copy:\n{}", releaseTreeStatement);
+            javax.jcr.query.Query unversionedQuery = initJcrQuery(queryManager, releaseTreeStatement);
             if (0 <= limit && Long.MAX_VALUE != limit) unversionedQuery.setLimit(offset + limit);
-            rowsOutsideVersionStorage = unversionedQuery.execute().getRows();
-            rowsOutsideVersionStorage = filterUnmapped(rowsOutsideVersionStorage);
+            rowsInsideReleasetree = unversionedQuery.execute().getRows();
+            rowsInsideReleasetree = filterReleaseWorkspaceCopy(rowsInsideReleasetree);
         } catch (InvalidQueryException e) {
-            throw new QuerySyntaxException(e.getMessage(), contentStatement, JCR_SQL2, e);
+            throw new QuerySyntaxException(e.getMessage(), releaseTreeStatement, JCR_SQL2, e);
         }
 
-        Iterator<Row> rows;
-        if (null == orderBy) rows = chainedIterator(rowsOutsideVersionStorage, rowsFromVersionStorage);
-        else rows = collatedIterator(orderByRowComparator(), rowsOutsideVersionStorage, rowsFromVersionStorage);
+        Iterator<Row> rows = mergeResults(rowsFromVersionStorage, rowsInsideReleasetree);
+
+        String outsideStatement = buildSQL2(NORMAL);
+        Iterator<Row> rowsOutside;
+        try {
+            LOG.debug("JCR-SQL2 unversioned:\n{}", outsideStatement);
+            javax.jcr.query.Query unversionedQuery = initJcrQuery(queryManager, outsideStatement);
+            if (0 <= limit && Long.MAX_VALUE != limit) unversionedQuery.setLimit(offset + limit);
+            rowsOutside = unversionedQuery.execute().getRows();
+            rowsOutside = filterUnmapped(rowsOutside);
+        } catch (InvalidQueryException e) {
+            throw new QuerySyntaxException(e.getMessage(), outsideStatement, JCR_SQL2, e);
+        }
+
+        rows = mergeResults(rows, rowsOutside);
+
         rows = ensureLimitAndOffset(rows);
+        return rows;
+    }
+
+    @Nonnull
+    protected Iterator<Row> mergeResults(Iterator<Row> rowsFromVersionStorage, Iterator<Row> rowsInsideReleasetree) {
+        Iterator<Row> rows;
+        if (null == orderBy) rows = chainedIterator(rowsInsideReleasetree, rowsFromVersionStorage);
+        else rows = collatedIterator(orderByRowComparator(), rowsInsideReleasetree, rowsFromVersionStorage);
         return rows;
     }
 
@@ -272,12 +314,30 @@ public class StagingQueryImpl extends Query {
         return IteratorUtils.filteredIterator(rowsOutsideVersionStorage, filter);
     }
 
+    /**
+     * Filters results from the release workspace copy wrt. release mapping and type constraint.
+     */
+    protected Iterator<Row> filterReleaseWorkspaceCopy(Iterator<Row> rowsFromVersionStorage) {
+        Predicate<Row> filter = row -> {
+            try {
+                String pathInCopy = getString(row, "n.jcr:path");
+                String path = release.unmapFromContentCopy(pathInCopy);
+                if (!releaseMapper.releaseMappingAllowed(path)) return false;
+                if (null == typeConstraint) return true;
+                return hasAppropriateType(pathInCopy, getString(row, "query:type"),
+                        getString(row, "query:mixin"));
+            } catch (RepositoryException e) {
+                throw new SlingException("Unexpected JCR exception", e);
+            }
+        };
+        return IteratorUtils.filteredIterator(rowsFromVersionStorage, filter);
+    }
 
     /**
      * Filters results from version storage wrt. path, release mapping and type constraint.
      * A historic version of a resource is only used if it is releasemapped.
      */
-    protected Iterator<Row> filterOnlyReleaseMappedAndByType(Iterator<Row> rowsFromVersionStorage) {
+    protected Iterator<Row> filterFromVersionStorage(Iterator<Row> rowsFromVersionStorage) {
         Predicate<Row> filter = row -> {
             try {
                 String frozenPath = getString(row, "n.jcr:path");
@@ -374,34 +434,39 @@ public class StagingQueryImpl extends Query {
     }
 
     /**
-     * Queries non-versioned resources. If the path reaches into the release, we add a condition that both
-     * the content and the release content of the selected release are found (but not the other releases) -
-     * these need to be filtered afterwards.
+     * Queries non-versioned resources - depending on {inrelease} outside of the release tree or inside the workspace copy.
+     * Outside the release tree we add a condition that the query does not reach into the release tree.
+     * @param mode {@link QueryGenerationMode#NORMAL} for queries outside the release tree, {@link QueryGenerationMode#WORKSPACECOPY} within the release tree.
      */
     @Nonnull
-    protected String buildSQL2() {
+    protected String buildSQL2(QueryGenerationMode mode) {
+        if (VERSIONSTORAGE == mode) throw new IllegalArgumentException("Illegal mode " + mode);
         String notReleaseTree = "";
         String querypath = path;
         if (null != release) {
-            if (isSameOrDescendant(path, release.getReleaseRoot().getPath())) {
-                notReleaseTree = "AND ( ISDESCENDANTNODE(n, '" + release.getReleaseNode().getPath() + "') OR NOT " +
-                        "ISDESCENDANTNODE(n, '" + release.getReleaseNode().getParent().getPath() + "') )\n";
-            } else if (isSameOrDescendant(release.getReleaseRoot().getPath(), path)
-                    && releaseMapper.releaseMappingAllowed(path)) {
-                // path goes into release and is therefore mapped the content copy
-                querypath = release.mapToContentCopy(path);
+            if (WORKSPACECOPY == mode) {
+                // search whole content copy if path is outside release, or search only the mapped path if it's inside.
+                querypath = isSameOrDescendant(release.getReleaseRoot().getPath(), this.path) ? release.mapToContentCopy(this.path) : release.getWorkspaceCopyNode().getPath();
+            } else {
+                notReleaseTree = "AND NOT ISDESCENDANTNODE(n, '" + release.getReleaseNode().getParent().getPath() + "')\n";
             }
         }
         String type = StringUtils.defaultString(typeConstraint, "nt:base");
-        return "SELECT n.[jcr:path] " + orderBySelect() + additionalSelect() + joinSelects(false) + "\n" +
+        if (WORKSPACECOPY == mode) // the actual primary type / mixins are in jcr:frozen*
+            type = JcrConstants.NT_UNSTRUCTURED;
+        String frozenSelects = "";
+        if (NORMAL != mode)
+            frozenSelects = ", n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin]";
+        return "SELECT n.[jcr:path]" + frozenSelects + orderBySelect() + additionalSelect() + joinSelects() + "\n" +
                 "FROM [" + type + "] AS n \n" +
-                joins(false) +
-                "WHERE ISDESCENDANTNODE(n, '" + querypath + "') \n" +
+                joins(mode) +
+                "WHERE (ISDESCENDANTNODE(n, '" + querypath + "') OR ISSAMENODE(n, '" + querypath + "' )) \n" +
                 notReleaseTree +
-                elementConstraint(false) +
-                propertyConstraint(false) +
-                joinSelectConditions(false) +
-                orderByClause(false);
+                elementConstraint(mode) +
+                // deliberately no typeConstraint() since we need to check for subtypes, too
+                propertyConstraint(mode) +
+                joinSelectConditions(mode) +
+                orderByClause(mode);
     }
 
     /**
@@ -416,19 +481,19 @@ public class StagingQueryImpl extends Query {
     protected String buildSQL2Version() {
         return "SELECT n.[jcr:path], version.[jcr:uuid] AS [query:versionUuid], " +
                 "n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] " +
-                orderBySelect() + additionalSelect() + joinSelects(true) + "\n" +
+                orderBySelect() + additionalSelect() + joinSelects() + "\n" +
                 "FROM [nt:versionHistory] AS history \n" +
                 "INNER JOIN [nt:version] AS version ON ISCHILDNODE(version, history) \n" +
                 "INNER JOIN [nt:versionLabels] AS labels ON version.[jcr:uuid] = labels.[" + release.getReleaseLabel() + "] \n" +
                 "INNER JOIN [nt:frozenNode] AS n ON ISDESCENDANTNODE(n, version) \n" +
-                joins(true) +
+                joins(VERSIONSTORAGE) +
                 "WHERE ISDESCENDANTNODE(history, '/jcr:system/jcr:versionStorage') \n" +
                 "AND history.[default] like '" + release.getReleaseRoot().getPath() + "/%" + "' \n" +
-                elementConstraint(true) +
+                elementConstraint(VERSIONSTORAGE) +
                 // deliberately no typeConstraint() since we need to check for subtypes, too
-                propertyConstraint(true) +
-                joinSelectConditions(true) +
-                orderByClause(true);
+                propertyConstraint(VERSIONSTORAGE) +
+                joinSelectConditions(VERSIONSTORAGE) +
+                orderByClause(VERSIONSTORAGE);
     }
 
     /**
@@ -445,10 +510,10 @@ public class StagingQueryImpl extends Query {
                 "INNER JOIN [nt:versionHistory] as history ON ISDESCENDANTNODE(n, history) \n" +
                 "INNER JOIN [nt:version] AS version ON ISCHILDNODE(version, history) \n" +
                 "WHERE ISDESCENDANTNODE(n, '" + pathInsideVersionStorage + "') \n" +
-                elementConstraint(true) +
+                elementConstraint(VERSIONSTORAGE) +
                 // deliberately no typeConstraint() since we need to check for subtypes, too
-                propertyConstraint(true) +
-                orderByClause(true);
+                propertyConstraint(VERSIONSTORAGE) +
+                orderByClause(VERSIONSTORAGE);
     }
 
     protected Iterator<Resource> extractResources(Iterator<Row> rows) {

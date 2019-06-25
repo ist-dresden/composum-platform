@@ -2,6 +2,7 @@ package com.composum.sling.platform.staging.query;
 
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.impl.StagingResourceResolver;
+import com.composum.sling.platform.staging.query.impl.StagingQueryImpl;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.jackrabbit.JcrConstants;
@@ -31,6 +32,13 @@ import static org.slf4j.LoggerFactory.getLogger;
  * @author Hans-Peter Stoerr
  */
 public abstract class Query {
+
+    /** Various modi of the SQL2 generation. For internal use only. */
+    public static enum QueryGenerationMode {
+        /** Query outside version storage and release workspace copy. */ NORMAL,
+        /** Query in release workspace copy */ WORKSPACECOPY,
+        /** Query in version storage */ VERSIONSTORAGE
+    }
 
     /** Virtual column that returns the path of the resource for {@link #selectAndExecute(String...)}. */
     public static final String COLUMN_PATH = JcrConstants.JCR_PATH;
@@ -267,9 +275,9 @@ public abstract class Query {
     }
 
     @Nonnull
-    protected String propertyConstraint(boolean isInVersionSpace) {
+    protected String propertyConstraint(QueryGenerationMode mode) {
         if (queryCondition != null) {
-            String sql2 = isInVersionSpace ? queryCondition.getVersionedSQL2() : queryCondition.getSQL2();
+            String sql2 = QueryGenerationMode.NORMAL == mode ? queryCondition.getSQL2() : queryCondition.getVersionedSQL2();
             return "AND (" + sql2 + ") \n";
         } else {
             return "";
@@ -277,20 +285,20 @@ public abstract class Query {
     }
 
     @Nonnull
-    protected String elementConstraint(boolean versioned) {
+    protected String elementConstraint(QueryGenerationMode mode) {
         if (isBlank(element)) return "";
-        if (versioned) return "AND (NAME(n) = '" + element + "' OR " +
+        if (QueryGenerationMode.VERSIONSTORAGE == mode) return "AND (NAME(n) = '" + element + "' OR " +
                 "(NAME(n) = 'jcr:frozenNode' AND history.default LIKE '%/" + element + "')) ";
         else return "AND NAME(n) = '" + element + "' ";
     }
 
     @Nonnull
-    protected String orderByClause(boolean versioned) {
+    protected String orderByClause(QueryGenerationMode mode) {
         if (isBlank(orderBy)) return "";
         String direction = ascending ? "ASC" : "DESC";
-        if (COLUMN_PATH.equals(orderBy) && versioned)
+        if (COLUMN_PATH.equals(orderBy) && QueryGenerationMode.VERSIONSTORAGE == mode)
             return "ORDER BY history.[default] " + direction + ", n.[" + orderBy + "] " + direction + " \n";
-        String attr = versioned ? StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(orderBy, orderBy) : orderBy;
+        String attr = QueryGenerationMode.NORMAL == mode ? orderBy : StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(orderBy, orderBy);
         return "ORDER BY n.[" + attr + "] " + direction + " \n";
     }
 
@@ -314,7 +322,7 @@ public abstract class Query {
         return buf.toString();
     }
 
-    protected String joinSelects(boolean versioned) {
+    protected String joinSelects() {
         if (joins.isEmpty()) return "";
         StringBuilder buf = new StringBuilder();
         for (JoinData join : joins) {
@@ -323,20 +331,20 @@ public abstract class Query {
         return buf.toString();
     }
 
-    protected String joins(boolean versioned) {
+    protected String joins(StagingQueryImpl.QueryGenerationMode mode) {
         if (joins.isEmpty()) return "";
         StringBuilder buf = new StringBuilder();
         for (JoinData join : joins) {
-            buf.append(join.join(versioned));
+            buf.append(join.join(mode));
         }
         return buf.toString();
     }
 
-    protected String joinSelectConditions(boolean versioned) {
+    protected String joinSelectConditions(QueryGenerationMode mode) {
         StringBuilder buf = new StringBuilder();
         for (JoinData join : joins) {
-            buf.append(join.primaryTypeCondition(versioned));
-            buf.append("AND (").append(join.selectCondition(versioned)).append(") ");
+            buf.append(join.primaryTypeCondition(mode));
+            buf.append("AND (").append(join.selectCondition(mode)).append(") ");
         }
         return buf.toString();
     }
@@ -395,13 +403,13 @@ public abstract class Query {
             return joinSelectCondition.getSelector();
         }
 
-        public String join(boolean versioned) {
+        public String join(QueryGenerationMode mode) {
             StringBuilder buf = new StringBuilder();
             if (JoinType.Inner == type) buf.append("INNER JOIN");
             if (JoinType.RightOuter == type) buf.append("RIGHT OUTER JOIN");
             if (JoinType.LeftOuter == type) buf.append("LEFT OUTER JOIN");
             buf.append(" [");
-            buf.append(versioned ? JcrConstants.NT_FROZENNODE : defaultIfBlank(exactPrimaryType, NT_BASE));
+            buf.append(QueryGenerationMode.VERSIONSTORAGE == mode ? JcrConstants.NT_FROZENNODE : defaultIfBlank(exactPrimaryType, NT_BASE));
             buf.append("] AS ").append(joinSelectCondition.getSelector()).append(" ON ");
             if (JoinCondition.Descendant == joinCondition) buf.append("ISDESCENDANTNODE");
             if (JoinCondition.Child == joinCondition) buf.append("ISCHILDNODE");
@@ -409,15 +417,16 @@ public abstract class Query {
             return buf.toString();
         }
 
-        public String primaryTypeCondition(boolean versioned) {
+        public String primaryTypeCondition(QueryGenerationMode mode) {
             if (isBlank(exactPrimaryType)) return "";
-            if (versioned) return "AND " + getSelector() + ".[" + JCR_FROZENPRIMARYTYPE + "]='" + exactPrimaryType +
-                    "' ";
-            else return "AND " + getSelector() + ".[" + JCR_PRIMARYTYPE + "]='" + exactPrimaryType + "' ";
+            if (QueryGenerationMode.NORMAL == mode)
+                return "AND " + getSelector() + ".[" + JCR_PRIMARYTYPE + "]='" + exactPrimaryType + "' ";
+            else
+                return "AND " + getSelector() + ".[" + JCR_FROZENPRIMARYTYPE + "]='" + exactPrimaryType + "' ";
         }
 
-        public String selectCondition(boolean versioned) {
-            return versioned ? joinSelectCondition.getVersionedSQL2() : joinSelectCondition.getSQL2();
+        public String selectCondition(QueryGenerationMode mode) {
+            return QueryGenerationMode.NORMAL == mode ? joinSelectCondition.getSQL2() : joinSelectCondition.getVersionedSQL2();
         }
 
         @Override

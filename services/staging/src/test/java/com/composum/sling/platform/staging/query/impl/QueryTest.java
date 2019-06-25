@@ -2,6 +2,8 @@ package com.composum.sling.platform.staging.query.impl;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.CoreConstants;
+import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.AbstractStagingTest;
 import com.composum.sling.platform.staging.impl.StagingResourceResolver;
@@ -13,6 +15,8 @@ import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrinting
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -116,17 +120,41 @@ public class QueryTest extends AbstractStagingTest {
     @Test
     public void queryQuickCheck() throws Exception {
         StagingQueryImpl q = (StagingQueryImpl) stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
-        q.path(folder).element(PROP_JCR_CONTENT).orderBy(JcrConstants.JCR_CREATED);
-        errorCollector.checkThat(q.buildSQL2(), is("SELECT n.[jcr:path] , n.[jcr:created] AS [query:orderBy] \n" +
-                "FROM [nt:base] AS n \n" +
-                "WHERE ISDESCENDANTNODE(n, '/folder') \n" +
-                "AND ( ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/current') OR NOT ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases') )\n" +
+        q.path(folder).element(PROP_JCR_CONTENT).type("cpp:Page").orderBy(JcrConstants.JCR_CREATED);
+
+        errorCollector.checkThat(q.buildSQL2(QueryGenerationMode.NORMAL), is("SELECT n.[jcr:path], n.[jcr:created] AS [query:orderBy] \n" +
+                "FROM [cpp:Page] AS n \n" +
+                "WHERE (ISDESCENDANTNODE(n, '/folder') OR ISSAMENODE(n, '/folder' )) \n" +
+                "AND NOT ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases')\n" +
                 "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
 
+        errorCollector.checkThat(q.buildSQL2(QueryGenerationMode.WORKSPACECOPY), is("SELECT n.[jcr:path], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin], n.[jcr:created] AS [query:orderBy] \n" +
+                "FROM [nt:unstructured] AS n \n" +
+                "WHERE (ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/current/root') OR ISSAMENODE(n, '/folder/jcr:content/cpl:releases/current/root' )) \n" +
+                "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
+
+
         q.path(folder + "/xyz");
-        errorCollector.checkThat(q.buildSQL2(), is("SELECT n.[jcr:path] , n.[jcr:created] AS [query:orderBy] \n" +
-                "FROM [nt:base] AS n \n" +
-                "WHERE ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/current/root/xyz') \n" +
+        errorCollector.checkThat(q.buildSQL2(QueryGenerationMode.NORMAL), is("SELECT n.[jcr:path], n.[jcr:created] AS [query:orderBy] \n" +
+                "FROM [cpp:Page] AS n \n" +
+                "WHERE (ISDESCENDANTNODE(n, '/folder/xyz') OR ISSAMENODE(n, '/folder/xyz' )) \n" +
+                "AND NOT ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases')\n" +
+                "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
+        errorCollector.checkThat(q.buildSQL2(QueryGenerationMode.WORKSPACECOPY), is("SELECT n.[jcr:path], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin], n.[jcr:created] AS [query:orderBy] \n" +
+                "FROM [nt:unstructured] AS n \n" +
+                "WHERE (ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/current/root/xyz') OR ISSAMENODE(n, '/folder/jcr:content/cpl:releases/current/root/xyz' )) \n" +
+                "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
+
+
+        q.path(ResourceUtil.getParent(folder));
+        errorCollector.checkThat(q.buildSQL2(QueryGenerationMode.NORMAL), is("SELECT n.[jcr:path], n.[jcr:created] AS [query:orderBy] \n" +
+                "FROM [cpp:Page] AS n \n" +
+                "WHERE (ISDESCENDANTNODE(n, '/') OR ISSAMENODE(n, '/' )) \n" +
+                "AND NOT ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases')\n" +
+                "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
+        errorCollector.checkThat(q.buildSQL2(QueryGenerationMode.WORKSPACECOPY), is("SELECT n.[jcr:path], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin], n.[jcr:created] AS [query:orderBy] \n" +
+                "FROM [nt:unstructured] AS n \n" +
+                "WHERE (ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/current/root') OR ISSAMENODE(n, '/folder/jcr:content/cpl:releases/current/root' )) \n" +
                 "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
 
         errorCollector.checkThat(q.buildSQL2Version(), is("SELECT n.[jcr:path], version.[jcr:uuid] AS [query:versionUuid], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] , n.[jcr:created] AS [query:orderBy] \n" +
@@ -181,6 +209,11 @@ public class QueryTest extends AbstractStagingTest {
     @Ignore("Only for development, as needed")
     public void printVersionStorage() throws Exception {
         JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/jcr:system/jcr:versionStorage"));
+    }
+
+    @Test
+    public void printSetup() {
+        System.out.println(ReflectionToStringBuilder.reflectionToString(this, ToStringStyle.MULTI_LINE_STYLE));
     }
 
     @Test
