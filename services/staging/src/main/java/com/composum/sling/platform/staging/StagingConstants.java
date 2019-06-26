@@ -29,15 +29,15 @@ public interface StagingConstants {
     final String TYPE_MIX_RELEASE_CONFIG = "cpl:releaseConfig";
 
     /**
-     * Saves the path of the release root when it was created. This is currently not used, but reserved for
-     * handling of moving a release root in the JCR tree.
-     */
-    final String PROP_RELEASE_ROOT_HISTORY = "cpl:releaseRootHistory";
-
-    /**
      * The node containing the releases below {@link #TYPE_MIX_RELEASE_CONFIG}.
      */
     final String NODE_RELEASES = "cpl:releases";
+
+    /**
+     * Saves the path of the release root when it was created on the {@value #NODE_RELEASES}. This is currently not used, but reserved for
+     * handling of moving a release root in the JCR tree.
+     */
+    final String PROP_RELEASE_ROOT_HISTORY = "cpl:releaseRootHistory";
 
     /**
      * Mixin that makes a node a root of a release. This mainly ensures easy location of the release

@@ -5,7 +5,6 @@
 <'cpl'='http://sling.composum.com/platform/1.0'>
 
 /* Mixin for the versionable node that contains the structure of all releases in a subnode cpl:releases.
-   We also save the full path at which the release node was located in cpl:releaseRootHistory.
    The subnode cpl:releases contains the metadata and workspace copies for all releases.
  */
 [cpl:releaseConfig]

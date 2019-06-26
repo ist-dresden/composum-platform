@@ -750,15 +750,17 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                             PROP_MIXINTYPES, TYPE_MIX_RELEASE_CONFIG)));
         }
 
-        String[] history = contentnode.getProperty(PROP_RELEASE_ROOT_HISTORY, new String[0]);
+        Resource currentReleaseNode = ResourceUtil.getOrCreateChild(contentnode, NODE_RELEASES + "/" + releaseLabel, TYPE_UNSTRUCTURED);
+        SlingResourceUtil.addMixin(currentReleaseNode, TYPE_REFERENCEABLE);
+
+        ResourceHandle releasesNode = ResourceHandle.use(currentReleaseNode.getParent());
+
+        String[] history = releasesNode.getProperty(PROP_RELEASE_ROOT_HISTORY, new String[0]);
         if (!Arrays.asList(history).contains(theRoot.getPath())) {
             ArrayList<String> newHistory = new ArrayList<String>(Arrays.asList(history));
             newHistory.add(theRoot.getPath());
-            contentnode.setProperty(PROP_RELEASE_ROOT_HISTORY, newHistory);
+            releasesNode.setProperty(PROP_RELEASE_ROOT_HISTORY, newHistory);
         }
-
-        Resource currentReleaseNode = ResourceUtil.getOrCreateChild(contentnode, NODE_RELEASES + "/" + releaseLabel, TYPE_UNSTRUCTURED);
-        SlingResourceUtil.addMixin(currentReleaseNode, TYPE_REFERENCEABLE);
 
         Resource releaseWorkspaceCopy = ResourceUtil.getOrCreateChild(currentReleaseNode, NODE_RELEASE_ROOT, TYPE_UNSTRUCTURED);
 
