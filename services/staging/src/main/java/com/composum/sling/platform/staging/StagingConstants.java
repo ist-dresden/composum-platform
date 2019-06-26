@@ -23,10 +23,16 @@ public interface StagingConstants {
 
     /**
      * Mixin for the versionable node that contains the structure of all releases in a subnode cpl:releases.
-     * We also save the full path at which the release node was created in cpl:pathOnCheckin.
-     * The subnode cpl:releases
+     *  We also save the full path at which the release node was created in cpl:originalReleaseRoot.
+     *  The subnode cpl:releases contains the metadata and workspace copies for all releases.
      */
     final String TYPE_MIX_RELEASE_CONFIG = "cpl:releaseConfig";
+
+    /**
+     * Saves the path of the release root when it was created. This is currently not used, but reserved for
+     * handling of moving a release root in the JCR tree.
+     */
+    final String PROP_RELEASE_ROOT_HISTORY = "cpl:releaseRootHistory";
 
     /**
      * The node containing the releases below {@link #TYPE_MIX_RELEASE_CONFIG}.

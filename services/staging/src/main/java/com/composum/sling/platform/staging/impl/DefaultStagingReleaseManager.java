@@ -50,6 +50,7 @@ import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
@@ -83,6 +84,7 @@ import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASE_
 import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASE_ROOT;
 import static com.composum.sling.platform.staging.StagingConstants.PROP_CLOSED;
 import static com.composum.sling.platform.staging.StagingConstants.PROP_PREVIOUS_RELEASE_UUID;
+import static com.composum.sling.platform.staging.StagingConstants.PROP_RELEASE_ROOT_HISTORY;
 import static com.composum.sling.platform.staging.StagingConstants.PROP_VERSION;
 import static com.composum.sling.platform.staging.StagingConstants.PROP_VERSIONABLEUUID;
 import static com.composum.sling.platform.staging.StagingConstants.PROP_VERSIONHISTORY;
@@ -746,6 +748,13 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             contentnode = ResourceHandle.use(root.getResourceResolver().create(root, CONTENT_NODE,
                     ImmutableMap.of(PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                             PROP_MIXINTYPES, TYPE_MIX_RELEASE_CONFIG)));
+        }
+
+        String[] history = contentnode.getProperty(PROP_RELEASE_ROOT_HISTORY, new String[0]);
+        if (!Arrays.asList(history).contains(theRoot.getPath())) {
+            ArrayList<String> newHistory = new ArrayList<String>(Arrays.asList(history));
+            newHistory.add(theRoot.getPath());
+            contentnode.setProperty(PROP_RELEASE_ROOT_HISTORY, newHistory);
         }
 
         Resource currentReleaseNode = ResourceUtil.getOrCreateChild(contentnode, NODE_RELEASES + "/" + releaseLabel, TYPE_UNSTRUCTURED);
