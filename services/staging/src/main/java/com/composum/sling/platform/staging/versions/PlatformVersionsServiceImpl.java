@@ -5,11 +5,19 @@ import com.composum.platform.commons.util.JcrIteratorUtil;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.filter.ResourceFilter;
 import com.composum.sling.core.util.CoreConstants;
-import com.composum.sling.platform.staging.*;
+import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.platform.staging.ActivationInfo;
+import com.composum.sling.platform.staging.ReleaseChangeEventListener;
+import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
+import com.composum.sling.platform.staging.ReleaseMapper;
+import com.composum.sling.platform.staging.ReleasedVersionable;
+import com.composum.sling.platform.staging.StagingConstants;
+import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.sling.api.SlingException;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -25,13 +33,23 @@ import javax.jcr.RepositoryException;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.composum.sling.core.util.CoreConstants.*;
+import static com.composum.sling.core.util.CoreConstants.CONTENT_NODE;
+import static com.composum.sling.core.util.CoreConstants.PROP_CREATED;
+import static com.composum.sling.core.util.CoreConstants.PROP_LAST_MODIFIED;
+import static com.composum.sling.core.util.CoreConstants.TYPE_LAST_MODIFIED;
+import static com.composum.sling.core.util.CoreConstants.TYPE_VERSIONABLE;
 import static com.composum.sling.core.util.SlingResourceUtil.getPath;
 import static com.composum.sling.core.util.SlingResourceUtil.getPaths;
-import static com.composum.sling.platform.staging.StagingConstants.*;
 import static java.util.Arrays.asList;
 
 /**
@@ -115,15 +133,15 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         StagingReleaseManager.Release release = oldStatus.release();
         ActivationResult activationResult = new ActivationResult(release);
 
-        boolean moveRequested = null != oldStatus.releaseVersionableInfo() && null != oldStatus.currentVersionableInfo() &&
-                !StringUtils.equals(oldStatus.releaseVersionableInfo().getRelativePath(), oldStatus.currentVersionableInfo().getRelativePath());
+        boolean moveRequested = null != oldStatus.previousVersionableInfo() && null != oldStatus.currentVersionableInfo() &&
+                !StringUtils.equals(oldStatus.previousVersionableInfo().getRelativePath(), oldStatus.currentVersionableInfo().getRelativePath());
 
         if (oldStatus.getActivationState() != ActivationState.activated || moveRequested) {
 
             ReleasedVersionable updateRV = oldStatus.currentVersionableInfo().clone();
             if (StringUtils.isNotBlank(versionUuid) && !StringUtils.equals(versionUuid, updateRV.getVersionUuid())) {
-                if (oldStatus.releaseVersionableInfo() != null)
-                    updateRV = oldStatus.releaseVersionableInfo().clone(); // make sure we don't move the document around
+                if (oldStatus.previousVersionableInfo() != null)
+                    updateRV = oldStatus.previousVersionableInfo().clone(); // make sure we don't move the document around
                 updateRV.setVersionUuid(versionUuid);
             }
             updateRV.setActive(true);
@@ -132,7 +150,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             activationResult.getChangedPathsInfo().putAll(orderUpdateMap);
 
             StatusImpl newStatus = getStatus(versionable, releaseKey);
-            Validate.isTrue(newStatus.getVersionReference().isValid());
+            Validate.isTrue(newStatus.getActivationInfo() != null, "Bug: not contained in release after activation: %s", newStatus);
             Validate.isTrue(newStatus.getActivationState() == ActivationState.activated, "Bug: not active after activation: %s", newStatus);
 
             switch (oldStatus.getActivationState()) {
@@ -144,7 +162,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 case modified:
                     if (moveRequested)
                         activationResult.getMovedPaths().put(
-                                release.absolutePath(oldStatus.releaseVersionableInfo().getRelativePath()),
+                                release.absolutePath(oldStatus.previousVersionableInfo().getRelativePath()),
                                 release.absolutePath(oldStatus.currentVersionableInfo().getRelativePath())
                         );
                     break;
@@ -201,7 +219,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 case modified:
                 case activated:
                     LOG.info("Deactivating in {} : {}", status.release().getNumber(), getPath(versionable));
-                    ReleasedVersionable releasedVersionable = status.releaseVersionableInfo();
+                    ReleasedVersionable releasedVersionable = status.previousVersionableInfo();
                     releasedVersionable.setActive(false);
                     releaseManager.updateRelease(status.release(), asList(releasedVersionable));
                     break;
@@ -295,47 +313,82 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         return new ResolvedResourceFilter(resolver, release.toString(), additionalFilter);
     }
 
+
+    /**
+     * Implementation of {@link com.composum.sling.platform.staging.versions.PlatformVersionsService.Status} that describes the status of
+     * a resource in the workspace in relation to a release.
+     */
     protected static class StatusImpl implements Status {
         @Nonnull
-        private final StagingReleaseManager.Release release;
+        protected final StagingReleaseManager.Release release;
         @Nullable
-        private final ReleasedVersionable current;
+        protected final ReleasedVersionable current;
         @Nullable
-        private final ReleasedVersionable released;
+        protected final ReleasedVersionable previous;
         @Nullable // null if deleted in workspace
-        private final ResourceHandle currentResource;
+        protected final ResourceHandle workspaceResource;
         @Nullable // null if not in release
-        private final ResourceHandle releasedVersionReference;
+        protected final ActivationInfo activationInfo;
         @Nonnull
-        private final ActivationState activationState;
+        protected final ActivationState activationState;
 
+        /** Creates a StatusImpl that informs about the status of a versionable in the workspace in comparison to a release. */
         public StatusImpl(@Nonnull StagingReleaseManager.Release release, @Nullable ReleasedVersionable current, @Nullable ReleasedVersionable released) {
             this.release = Objects.requireNonNull(release);
             this.current = current;
-            this.released = released;
+            this.previous = released;
             Resource currentResourceRaw = current != null ? release.getReleaseRoot().getChild(current.getRelativePath()) : null;
-            currentResource = ResourceHandle.use(currentResourceRaw);
-            if (current != null && currentResource != null && !currentResource.isValid()) // "not null but not valid" ... strange.
+            workspaceResource = ResourceHandle.use(currentResourceRaw);
+            if (current != null && workspaceResource != null && !workspaceResource.isValid()) // "not null but not valid" ... strange.
                 throw new IllegalArgumentException("Invalid current resource " + release + " - " + current);
-            releasedVersionReference =
-                    current != null ?
-                            ResourceHandle.use(release.getMetaDataNode().getChild("../" + NODE_RELEASE_ROOT).getChild(current.getRelativePath()))
-                            : null;
-            activationState = calculateActivationState();
+            activationInfo = released != null ? release.activationInfo(released.getRelativePath()) : null;
+
+            if (release == null || released == null)
+                activationState = ActivationState.initial;
+            else if (!released.getActive())
+                activationState = ActivationState.deactivated;
+            else if (current == null ||
+                    !StringUtils.equals(current.getVersionUuid(), released.getVersionUuid()))
+                activationState = ActivationState.modified;
+            else if (activationInfo.getLastActivated() == null ||
+                    getLastModified() != null && getLastModified().after(activationInfo.getLastActivated()))
+                activationState = ActivationState.modified;
+            else activationState = ActivationState.activated;
         }
 
-        protected ActivationState calculateActivationState() {
-            if (release == null || released == null)
-                return ActivationState.initial;
-            if (!released.getActive())
-                return ActivationState.deactivated;
-            if (current == null ||
-                    !StringUtils.equals(current.getVersionUuid(), released.getVersionUuid()))
-                return ActivationState.modified;
-            if (getLastActivated() == null ||
-                    getLastModified() != null && getLastModified().after(getLastActivated()))
-                return ActivationState.modified;
-            return ActivationState.activated;
+        /** Creates a StatusImpl that informs about the status of a versionable in a release in comparison to a previous release. */
+        public StatusImpl(@Nonnull StagingReleaseManager.Release release, @Nullable ReleasedVersionable released,
+                          @Nullable StagingReleaseManager.Release previousRelease, @Nullable ReleasedVersionable previouslyReleased) {
+            this.release = Objects.requireNonNull(release);
+            this.current = released;
+            this.previous = previouslyReleased;
+            activationInfo = release.activationInfo(released.getRelativePath());
+
+            if (previouslyReleased == null)
+                activationState = ActivationState.initial;
+            else if (activationInfo == null || !activationInfo.isActive())
+                activationState = ActivationState.deactivated;
+            else if (!StringUtils.equals(released.getRelativePath(), previouslyReleased.getRelativePath()))
+                activationState = ActivationState.modified;
+            else if (!StringUtils.equals(released.getVersionUuid(), previouslyReleased.getVersionUuid()))
+                activationState = ActivationState.modified;
+            else
+                activationState = ActivationState.activated;
+
+            Resource workspaceResourceRaw = release.getReleaseRoot().getChild(released.getRelativePath());
+            if (workspaceResourceRaw != null) {
+                ReleasedVersionable workspaceRV = ReleasedVersionable.forBaseVersion(workspaceResourceRaw);
+                if (!StringUtils.equals(workspaceRV.getVersionHistory(), released.getVersionHistory()))
+                    workspaceResourceRaw = null;
+            }
+            if (workspaceResourceRaw == null) {
+                try {
+                    workspaceResourceRaw = ResourceUtil.getByUuid(release.getReleaseRoot().getResourceResolver(), released.getVersionableUuid());
+                } catch (RepositoryException e) {
+                    throw new SlingException("Error looking up " + released.getVersionableUuid(), e);
+                }
+            }
+            workspaceResource = workspaceResourceRaw != null ? ResourceHandle.use(workspaceResourceRaw) : null;
         }
 
         @Nonnull
@@ -346,24 +399,12 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
         @Nullable
         @Override
-        public Calendar getLastActivated() {
-            return releasedVersionReference != null ? releasedVersionReference.getProperty(PROP_LAST_ACTIVATED, Calendar.class) : null;
-        }
-
-        @Nullable
-        @Override
-        public String getLastActivatedBy() {
-            return releasedVersionReference != null ? releasedVersionReference.getProperty(PROP_LAST_ACTIVATED_BY, String.class) : null;
-        }
-
-        @Nullable
-        @Override
         public Calendar getLastModified() {
             Calendar result = null;
-            if (currentResource != null && currentResource.isValid()) {
-                result = currentResource.getProperty(CoreConstants.JCR_LASTMODIFIED, Calendar.class);
+            if (workspaceResource != null && workspaceResource.isValid()) {
+                result = workspaceResource.getProperty(CoreConstants.JCR_LASTMODIFIED, Calendar.class);
                 if (result == null) {
-                    result = currentResource.getProperty(CoreConstants.JCR_CREATED, Calendar.class);
+                    result = workspaceResource.getProperty(CoreConstants.JCR_CREATED, Calendar.class);
                 }
             }
             return result;
@@ -373,10 +414,10 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         @Override
         public String getLastModifiedBy() {
             String result = null;
-            if (currentResource != null && currentResource.isValid()) {
-                result = currentResource.getProperty(CoreConstants.JCR_LASTMODIFIED_BY, String.class);
+            if (workspaceResource != null && workspaceResource.isValid()) {
+                result = workspaceResource.getProperty(CoreConstants.JCR_LASTMODIFIED_BY, String.class);
                 if (StringUtils.isBlank(result)) {
-                    result = currentResource.getProperty(CoreConstants.JCR_CREATED_BY, String.class);
+                    result = workspaceResource.getProperty(CoreConstants.JCR_CREATED_BY, String.class);
                 }
             }
             return result;
@@ -384,14 +425,8 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
         @Nullable
         @Override
-        public Calendar getLastDeactivated() {
-            return releasedVersionReference != null ? releasedVersionReference.getProperty(PROP_LAST_DEACTIVATED, Calendar.class) : null;
-        }
-
-        @Nullable
-        @Override
-        public String getLastDeactivatedBy() {
-            return releasedVersionReference != null ? releasedVersionReference.getProperty(PROP_LAST_DEACTIVATED_BY, String.class) : null;
+        public ActivationInfo getActivationInfo() {
+            return activationInfo;
         }
 
         @Nonnull
@@ -402,8 +437,8 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
         @Nullable
         @Override
-        public ReleasedVersionable releaseVersionableInfo() {
-            return released;
+        public ReleasedVersionable previousVersionableInfo() {
+            return previous;
         }
 
         @Nullable
@@ -412,18 +447,13 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             return current;
         }
 
-        /** The version reference currently in the release. Might be invalid. */
-        @Nullable
-        public ResourceHandle getVersionReference() {
-            return releasedVersionReference;
-        }
-
         @Override
         public String toString() {
             return new ToStringBuilder(this)
                     .append("release", release())
                     .append("activationState", getActivationState())
-                    .append("releaseVersionableInfo", releaseVersionableInfo())
+                    .append("activationInfo", getActivationInfo())
+                    .append("releaseVersionableInfo", previousVersionableInfo())
                     .append("currentVersionableInfo", currentVersionableInfo())
                     .toString();
         }

@@ -2,6 +2,7 @@ package com.composum.sling.platform.staging.versions;
 
 import com.composum.sling.core.filter.ResourceFilter;
 import com.composum.sling.core.util.CoreConstants;
+import com.composum.sling.platform.staging.ActivationInfo;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
@@ -55,20 +56,15 @@ public interface PlatformVersionsService {
         deactivated
     }
 
-    /** Information about the status of a versionable wrt. a release. */
+    /** Information about the status of a versionable in the workspace wrt. a release, or of a versionable within a release wrt. a previous release. */
     interface Status {
 
         @Nonnull
         ActivationState getActivationState();
 
-        @Nullable
-        Calendar getLastActivated();
-
-        @Nullable
-        String getLastActivatedBy();
-
         /**
-         * The time the versionable was last modified in the workspace.
+         * The time the versionable was last modified in the workspace /
+         * the checkin date of the released version if comparing with a previous release.
          *
          * @return 'last modified' or 'created'
          */
@@ -78,11 +74,9 @@ public interface PlatformVersionsService {
         @Nullable
         String getLastModifiedBy();
 
+        /** This is the activation status in the release we are comparing the workspace to, or which we are comparing with a previous releasey. */
         @Nullable
-        Calendar getLastDeactivated();
-
-        @Nullable
-        String getLastDeactivatedBy();
+        ActivationInfo getActivationInfo();
 
         /**
          * The release this is relative to. Please note that in the case of {@link ActivationState#initial} the versionable
@@ -93,13 +87,20 @@ public interface PlatformVersionsService {
         @Nonnull
         StagingReleaseManager.Release release();
 
-        /** The detail information about the versionable within the release. This is null if the versionable is {@link ActivationState#initial}. */
-        @Nullable
-        ReleasedVersionable releaseVersionableInfo();
-
-        /** The detail information about the versionable as it is in the workspace. This is null if the status refers to a deleted versionable. */
+        /**
+         * The detail information about the versionable as it is in the workspace / the release if we're comparing a release with a previous release.
+         * This is null if the status refers to a deleted versionable.
+         */
         @Nullable
         ReleasedVersionable currentVersionableInfo();
+
+        /**
+         * The detail information about the versionable within the release if the status is about the workspace / within the previous release if it's comparing two releases. This is null if the versionable is {@link ActivationState#initial} /
+         * if the previous release did not contain the versionable at all.
+         */
+        @Nullable
+        ReleasedVersionable previousVersionableInfo();
+
     }
 
     /**

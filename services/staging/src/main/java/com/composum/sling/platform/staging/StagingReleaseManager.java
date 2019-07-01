@@ -347,6 +347,10 @@ public interface StagingReleaseManager {
         /** Compares the releaseRoot and releaseNode paths. */
         @Override
         boolean equals(Object o);
+
+        /** Returns information about the activation of a versionable at relativePath. */
+        @Nullable
+        ActivationInfo activationInfo(@Nullable String relativePath);
     }
 
     /**

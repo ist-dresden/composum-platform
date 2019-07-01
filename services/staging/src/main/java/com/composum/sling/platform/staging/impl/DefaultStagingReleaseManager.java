@@ -5,6 +5,7 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
+import com.composum.sling.platform.staging.ActivationInfo;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseMapper;
@@ -21,6 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -83,6 +85,11 @@ import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASES
 import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASE_METADATA;
 import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASE_ROOT;
 import static com.composum.sling.platform.staging.StagingConstants.PROP_CLOSED;
+import static com.composum.sling.platform.staging.StagingConstants.PROP_DEACTIVATED;
+import static com.composum.sling.platform.staging.StagingConstants.PROP_LAST_ACTIVATED;
+import static com.composum.sling.platform.staging.StagingConstants.PROP_LAST_ACTIVATED_BY;
+import static com.composum.sling.platform.staging.StagingConstants.PROP_LAST_DEACTIVATED;
+import static com.composum.sling.platform.staging.StagingConstants.PROP_LAST_DEACTIVATED_BY;
 import static com.composum.sling.platform.staging.StagingConstants.PROP_PREVIOUS_RELEASE_UUID;
 import static com.composum.sling.platform.staging.StagingConstants.PROP_RELEASE_ROOT_HISTORY;
 import static com.composum.sling.platform.staging.StagingConstants.PROP_VERSION;
@@ -894,7 +901,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             return releaseNode;
         }
 
-        /** The node that contains the workspace copy for the release. */
+        /** The node that contains the root of workspace copy for the release. */
         @Nonnull
         public Resource getWorkspaceCopyNode() {
             return workspaceCopyNode;
@@ -973,9 +980,83 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                     StringUtils.equals(releaseNode.getPath(), release.getReleaseNode().getPath());
         }
 
+        @Nullable
+        @Override
+        public ActivationInfo activationInfo(@Nullable String relativePath) {
+            ActivationInfo result = null;
+            if (relativePath != null) {
+                Resource versionReference = getWorkspaceCopyNode().getChild(relativePath);
+                if (versionReference != null) {
+                    result = new ActivationInfoImpl(this, versionReference);
+                }
+            }
+            return result;
+        }
+
         @Override
         public int hashCode() {
             return Objects.hash(releaseRoot, releaseNode);
+        }
+    }
+
+    protected static class ActivationInfoImpl implements ActivationInfo {
+
+        @Nonnull
+        private final ReleaseImpl release;
+
+        @Nonnull
+        private final ResourceHandle versionReference;
+
+        protected ActivationInfoImpl(@Nonnull ReleaseImpl release, @Nonnull Resource versionReference) {
+            this.release = Objects.requireNonNull(release);
+            this.versionReference = ResourceHandle.use(requireNonNull(versionReference));
+        }
+
+        @Override
+        public ReleasedVersionable releasedVersionable() {
+            return ReleasedVersionable.fromVersionReference(release.getWorkspaceCopyNode(), versionReference);
+        }
+
+        @Override
+        public boolean isActive() {
+            return !versionReference.getProperty(PROP_DEACTIVATED, false);
+        }
+
+        @Override
+        @Nullable
+        public Calendar getLastActivated() {
+            return versionReference != null ? versionReference.getProperty(PROP_LAST_ACTIVATED, Calendar.class) : null;
+        }
+
+        @Override
+        @Nullable
+        public String getLastActivatedBy() {
+            return versionReference != null ? versionReference.getProperty(PROP_LAST_ACTIVATED_BY, String.class) : null;
+        }
+
+        @Override
+        @Nullable
+        public Calendar getLastDeactivated() {
+            return versionReference != null ? versionReference.getProperty(PROP_LAST_DEACTIVATED, Calendar.class) : null;
+        }
+
+        @Override
+        @Nullable
+        public String getLastDeactivatedBy() {
+            return versionReference != null ? versionReference.getProperty(PROP_LAST_DEACTIVATED_BY, String.class) : null;
+        }
+
+        @Override
+        @Nonnull
+        public StagingReleaseManager.Release release() {
+            return release;
+        }
+
+        @Override
+        public String toString() {
+            return new ToStringBuilder(this)
+                    .append("versionReference", SlingResourceUtil.getPath(versionReference))
+                    .toString();
         }
     }
 

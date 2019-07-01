@@ -9,6 +9,7 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.servlet.AbstractServiceServlet;
 import com.composum.sling.core.servlet.ServletOperation;
 import com.composum.sling.core.servlet.ServletOperationSet;
+import com.composum.sling.platform.staging.ActivationInfo;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.core.servlet.Status;
 import org.apache.commons.lang3.StringUtils;
@@ -202,11 +203,14 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                     if ((time = status.getLastModified()) != null) {
                         data.put("lastModified", time.getTimeInMillis());
                     }
-                    if ((time = status.getLastActivated()) != null) {
-                        data.put("lastActivated", time.getTimeInMillis());
-                    }
-                    if ((time = status.getLastDeactivated()) != null) {
-                        data.put("lastDeactivated", time.getTimeInMillis());
+                    ActivationInfo activationInfo;
+                    if ((activationInfo = status.getActivationInfo()) != null) {
+                        if ((time = activationInfo.getLastActivated()) != null) {
+                            data.put("lastActivated", time.getTimeInMillis());
+                        }
+                        if ((time = activationInfo.getLastDeactivated()) != null) {
+                            data.put("lastDeactivated", time.getTimeInMillis());
+                        }
                     }
                 }
             } catch (Exception ex) {
