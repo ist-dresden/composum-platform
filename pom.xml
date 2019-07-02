@@ -441,7 +441,7 @@
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.api</artifactId>
-                <version>[2.16,3)</version>
+                <version>[2.18.4,3)</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -459,13 +459,13 @@
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.scripting.jsp</artifactId>
-                <version>2.3.0</version>
+                <version>2.3.4</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.scripting.jsp.taglib</artifactId>
-                <version>2.2.6</version>
+                <version>2.3.0</version>
                 <scope>provided</scope>
             </dependency>
             <dependency><!-- https://mvnrepository.com/artifact/org.apache.sling/org.apache.sling.scripting.api -->
@@ -483,19 +483,19 @@
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.jcr.base</artifactId>
-                <version>3.0.2</version>
+                <version>3.0.4</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.jcr.resource</artifactId>
-                <version>3.0.2</version>
+                <version>3.0.16</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.resourceresolver</artifactId>
-                <version>1.5.24</version>
+                <version>1.6.6</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -507,19 +507,19 @@
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>adapter-annotations</artifactId>
-                <version>1.0.0</version>
+                <version>1.0.0</version> <!-- ??? update -->
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.commons.classloader</artifactId>
-                <version>1.4.0</version>
+                <version>1.4.2</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.commons.threads</artifactId>
-                <version>3.2.6</version>
+                <version>3.2.18</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -531,25 +531,25 @@
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.servlets.get</artifactId>
-                <version>2.1.26</version>
+                <version>2.1.36</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.event</artifactId>
-                <version>[4.2.2,5)</version>
+                <version>[4.2.12,5)</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.commons.json</artifactId>
-                <version>2.0.16</version>
+                <version>2.0.16</version> <!-- ??? update -->
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.engine</artifactId>
-                <version>2.6.8</version>
+                <version>2.6.14</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -561,55 +561,55 @@
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.settings</artifactId>
-                <version>1.3.8</version>
+                <version>1.3.10</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.servlets.resolver</artifactId>
-                <version>2.4.12</version>
+                <version>2.4.22</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.i18n</artifactId>
-                <version>2.5.8</version>
+                <version>2.5.14</version>
                 <scope>provided</scope>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.hc.api</artifactId>
-                <version>1.0.0</version>
+                <version>1.0.2</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.hc.core</artifactId>
-                <version>1.2.8</version>
+                <version>1.2.10</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.hc.annotations</artifactId>
-                <version>1.0.4</version>
+                <version>1.0.4</version> <!-- ??? update -->
                 <scope>provided</scope>
             </dependency>
             <dependency><!-- https://mvnrepository.com/artifact/org.apache.sling/org.apache.sling.models.api -->
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.models.api</artifactId>
-                <version>1.3.4</version>
+                <version>1.3.6</version>
                 <scope>provided</scope>
             </dependency>
             <dependency><!-- https://mvnrepository.com/artifact/org.apache.sling/org.apache.sling.models.impl -->
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.models.impl</artifactId>
-                <version>1.4.2</version>
+                <version>1.4.8</version>
                 <scope>provided</scope>
             </dependency>
             <dependency><!-- https://mvnrepository.com/artifact/org.apache.sling/org.apache.sling.models.jacksonexporter -->
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.models.jacksonexporter</artifactId>
-                <version>1.0.6</version>
+                <version>1.0.8</version>
                 <scope>provided</scope>
             </dependency>
             <!-- https://mvnrepository.com/artifact/org.apache.sling/org.apache.sling.xss -->
@@ -636,37 +636,37 @@
             <dependency>
                 <groupId>org.apache.jackrabbit</groupId>
                 <artifactId>jackrabbit-api</artifactId>
-                <version>2.14.0</version>
+                <version>2.16.3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.jackrabbit</groupId>
                 <artifactId>jackrabbit-jcr-commons</artifactId>
-                <version>2.14.0</version>
+                <version>2.16.3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.jackrabbit</groupId>
                 <artifactId>jackrabbit-core</artifactId>
-                <version>2.14.0</version>
+                <version>2.16.3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.jackrabbit.vault</groupId>
                 <artifactId>org.apache.jackrabbit.vault</artifactId>
-                <version>[3.1.30,)</version>
+                <version>[3.2.4.30,)</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.jackrabbit</groupId>
                 <artifactId>oak-core</artifactId>
-                <version>1.6.1</version> <!-- ? -->
+                <version>1.8.8</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.jackrabbit</groupId>
                 <artifactId>oak-jcr</artifactId>
-                <version>1.6.1</version> <!-- ? -->
+                <version>1.8.8</version>
                 <scope>provided</scope>
             </dependency>
 
@@ -693,7 +693,7 @@
             <dependency>
                 <groupId>org.apache.geronimo.specs</groupId>
                 <artifactId>geronimo-atinject_1.0_spec</artifactId>
-                <version>1.0</version>
+                <version>1.1</version>
                 <scope>provided</scope>
             </dependency>
 
@@ -701,7 +701,7 @@
             <dependency>
                 <groupId>com.google.code.gson</groupId>
                 <artifactId>gson</artifactId>
-                <version>2.3.1</version>
+                <version>2.8.5</version>
                 <scope>provided</scope>
             </dependency>
 
@@ -739,13 +739,13 @@
             <dependency>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>org.apache.felix.scr</artifactId>
-                <version>2.0.12</version>
+                <version>2.1.12</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>org.apache.felix.scr.annotations</artifactId>
-                <version>1.12.0</version>
+                <version>1.12.0</version> <!-- ??? update -->
                 <scope>provided</scope>
             </dependency>
 
@@ -759,25 +759,25 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-collections4</artifactId>
-                <version>4.1</version>
+                <version>4.2</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.4</version>
+                <version>3.8.1</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
-                <version>2.5</version>
+                <version>2.6</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
-                <version>1.9</version>
+                <version>1.10</version>
                 <scope>provided</scope>
             </dependency>
             <dependency> <!-- https://mvnrepository.com/artifact/commons-beanutils/commons-beanutils -->
@@ -795,6 +795,7 @@
             </dependency>
 
             <!-- Java Annotations -->
+            <!-- https://mvnrepository.com/artifact/com.google.code.findbugs/jsr305 -->
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>
                 <artifactId>jsr305</artifactId>
@@ -802,26 +803,27 @@
                 <scope>provided</scope>
                 <optional>true</optional><!-- needed only for annotations -->
             </dependency>
-
-            <dependency> <!-- https://mvnrepository.com/artifact/javax.annotation/javax.annotation-api -->
-                <!-- Specifies some annotations Java 11 excluded. -->
+            <!-- javax.annotation-api specifies some annotations which are excluded on Java 11 (javax.annotation.PostConstruct etc.): -->
+            <!-- https://mvnrepository.com/artifact/javax.annotation/javax.annotation-api -->
+            <dependency>
                 <groupId>javax.annotation</groupId>
                 <artifactId>javax.annotation-api</artifactId>
                 <version>1.3.2</version>
                 <scope>provided</scope>
+                <optional>true</optional><!-- needed only for annotations -->
             </dependency>
 
             <!-- Logging -->
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-simple</artifactId>
-                <version>1.7.21</version>
+                <version>1.7.25</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>1.7.21</version>
+                <version>1.7.25</version>
                 <scope>provided</scope>
             </dependency>
 
@@ -829,7 +831,7 @@
             <dependency>
                 <groupId>taglibs</groupId>
                 <artifactId>standard</artifactId>
-                <version>1.1.2</version>
+                <version>1.1.2</version> <!-- ??? update -->
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -840,6 +842,7 @@
             </dependency>
 
             <!-- Test -->
+            <!-- https://mvnrepository.com/artifact/junit/junit -->
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
@@ -860,48 +863,50 @@
                 <version>1.3</version>
                 <scope>test</scope>
             </dependency>
+            <!-- https://mvnrepository.com/artifact/org.jmock/jmock-junit4 -->
             <dependency>
                 <groupId>org.jmock</groupId>
                 <artifactId>jmock-junit4</artifactId>
-                <version>2.6.0</version>
+                <version>2.12.0</version>
                 <scope>test</scope>
             </dependency>
+            <!-- https://mvnrepository.com/artifact/org.easymock/easymock -->
             <dependency>
                 <groupId>org.easymock</groupId>
                 <artifactId>easymock</artifactId>
-                <version>3.4</version>
+                <version>3.6</version>
                 <scope>test</scope>
             </dependency>
             <!-- https://mvnrepository.com/artifact/org.mockito/mockito-core -->
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>2.26.0</version>
+                <version>2.28.2</version>
                 <scope>test</scope>
             </dependency>
+            <!-- https://mvnrepository.com/artifact/org.apache.sling/org.apache.sling.testing.sling-mock-oak -->
             <dependency>
-                <!-- https://mvnrepository.com/artifact/org.apache.sling/org.apache.sling.testing.sling-mock-oak -->
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.testing.sling-mock-oak</artifactId>
-                <version>2.0.2</version>
+                <version>2.1.6</version>
                 <scope>test</scope>
             </dependency>
+            <!-- https://mvnrepository.com/artifact/org.apache.sling/org.apache.sling.testing.sling-mock -->
             <dependency>
-                <!-- https://mvnrepository.com/artifact/org.apache.sling/org.apache.sling.testing.sling-mock -->
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.testing.sling-mock</artifactId>
-                <version>2.2.12</version>
+                <version>2.2.20</version>
                 <scope>test</scope>
             </dependency>
+            <!-- https://mvnrepository.com/artifact/org.apache.sling/org.apache.sling.testing.logging-mock -->
             <dependency>
-                <!-- https://mvnrepository.com/artifact/org.apache.sling/org.apache.sling.testing.logging-mock -->
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.testing.logging-mock</artifactId>
                 <version>2.0.0</version>
                 <scope>test</scope>
             </dependency>
+            <!-- https://mvnrepository.com/artifact/org.apache.sling/org.apache.sling.testing.hamcrest -->
             <dependency>
-                <!-- https://mvnrepository.com/artifact/org.apache.sling/org.apache.sling.testing.hamcrest -->
                 <groupId>org.apache.sling</groupId>
                 <artifactId>org.apache.sling.testing.hamcrest</artifactId>
                 <version>1.0.2</version>
