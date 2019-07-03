@@ -81,25 +81,27 @@ public interface PlatformVersionsService {
         /**
          * The release this is relative to. Please note that in the case of {@link ActivationState#initial} the versionable
          * does not need to be in the release.
-         *
-         * @return the release
          */
         @Nonnull
-        StagingReleaseManager.Release release();
+        StagingReleaseManager.Release getRelease();
 
         /**
          * The detail information about the versionable as it is in the workspace / the release if we're comparing a release with a previous release.
          * This is null if the status refers to a deleted versionable.
          */
         @Nullable
-        ReleasedVersionable currentVersionableInfo();
+        ReleasedVersionable getCurrentVersionableInfo();
+
+        /** The release {@link #getPreviousVersionableInfo()} is about (see there). */
+        @Nonnull
+        StagingReleaseManager.Release getPreviousRelease();
 
         /**
          * The detail information about the versionable within the release if the status is about the workspace / within the previous release if it's comparing two releases. This is null if the versionable is {@link ActivationState#initial} /
          * if the previous release did not contain the versionable at all.
          */
         @Nullable
-        ReleasedVersionable previousVersionableInfo();
+        ReleasedVersionable getPreviousVersionableInfo();
 
     }
 
@@ -190,6 +192,12 @@ public interface PlatformVersionsService {
     @Nonnull
     ResourceFilter releaseAsResourceFilter(@Nonnull Resource resourceInRelease, @Nullable String releaseKey,
                                            @Nullable ReleaseMapper releaseMapper, @Nullable ResourceFilter additionalFilter);
+
+    /**
+     * Returns description of versionables which are changed in a release in comparision to the release before.
+     */
+    @Nonnull
+    List<Status> findReleaseChanges(@Nonnull final StagingReleaseManager.Release release) throws RepositoryException;
 
     /** Can be used to inform the user about the results of an activation. */
     class ActivationResult {

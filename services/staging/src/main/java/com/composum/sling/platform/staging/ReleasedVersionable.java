@@ -2,7 +2,6 @@ package com.composum.sling.platform.staging;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.core.util.SlingResourceUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.Resource;
@@ -37,7 +36,7 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     @Nonnull
     private String versionHistory;
 
-    /** @see #getActive() */
+    /** @see #isActive() */
     private boolean active;
 
     /** Creates a {@link ReleasedVersionable} that corresponds to the base version of the given versionable. */
@@ -134,11 +133,11 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     }
 
     /** Whether the versionable is active in the release. */
-    public boolean getActive() {
+    public boolean isActive() {
         return active;
     }
 
-    /** @see #getActive() */
+    /** @see #isActive() */
     public ReleasedVersionable setActive(boolean active) {
         this.active = active;
         return this;
@@ -155,11 +154,11 @@ public class ReleasedVersionable implements Serializable, Cloneable {
         String oldVersionHistory = rh.getProperty(StagingConstants.PROP_VERSIONHISTORY);
         if (oldVersionHistory != null && !oldVersionHistory.equals(getVersionHistory()))
             throw new IllegalArgumentException("Trying to write to different versionhistory: " + getVersionHistory() + " to " + oldVersionHistory);
-        rh.setProperty(StagingConstants.PROP_DEACTIVATED, !getActive());
+        rh.setProperty(StagingConstants.PROP_DEACTIVATED, !isActive());
         rh.setProperty(StagingConstants.PROP_VERSIONABLEUUID, getVersionableUuid(), PropertyType.WEAKREFERENCE);
         rh.setProperty(StagingConstants.PROP_VERSION, getVersionUuid(), PropertyType.REFERENCE);
         rh.setProperty(StagingConstants.PROP_VERSIONHISTORY, getVersionHistory(), PropertyType.REFERENCE);
-        if (getActive()) {
+        if (isActive()) {
             rh.setProperty(StagingConstants.PROP_LAST_ACTIVATED, Calendar.getInstance());
             rh.setProperty(StagingConstants.PROP_LAST_ACTIVATED_BY, versionReference.getResourceResolver().getUserID());
         } else {
@@ -196,7 +195,7 @@ public class ReleasedVersionable implements Serializable, Cloneable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         ReleasedVersionable that = (ReleasedVersionable) o;
-        return getActive() == that.getActive() &&
+        return isActive() == that.isActive() &&
                 Objects.equals(getRelativePath(), that.getRelativePath()) &&
                 Objects.equals(getVersionableUuid(), that.getVersionableUuid()) &&
                 Objects.equals(getVersionUuid(), that.getVersionUuid()) &&

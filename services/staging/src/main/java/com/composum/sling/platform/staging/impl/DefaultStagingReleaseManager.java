@@ -23,6 +23,7 @@ import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.sling.api.SlingException;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -102,6 +103,7 @@ import static com.composum.sling.platform.staging.StagingConstants.TYPE_VERSIONR
 import static com.composum.sling.platform.staging.query.Query.JoinCondition.Descendant;
 import static com.composum.sling.platform.staging.query.Query.JoinType.Inner;
 import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
 
 /**
@@ -483,10 +485,10 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     }
 
     protected void updateEvent(@Nonnull Release release, @Nullable ReleasedVersionable before, @Nonnull ReleasedVersionable after, @Nonnull ReleaseChangeEventListener.ReleaseChangeEvent event) {
-        boolean wasThere = before != null && before.getActive() && before.getVersionUuid() != null;
+        boolean wasThere = before != null && before.isActive() && before.getVersionUuid() != null;
         String wasPath = wasThere ? release.absolutePath(before.getRelativePath()) : null;
 
-        boolean isThere = after.getActive() && after.getVersionUuid() != null;
+        boolean isThere = after.isActive() && after.getVersionUuid() != null;
         String isPath = isThere ? release.absolutePath(after.getRelativePath()) : null;
 
         if (wasThere || isThere)
@@ -1013,6 +1015,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         }
 
         @Override
+        @Nonnull
         public ReleasedVersionable releasedVersionable() {
             return ReleasedVersionable.fromVersionReference(release.getWorkspaceCopyNode(), versionReference);
         }
@@ -1047,9 +1050,34 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         }
 
         @Override
+        @Nullable
+        public Resource getVersionResource() {
+            if (versionReference == null) return null;
+            try {
+                ResourceResolver resourceResolver = release.getReleaseRoot().getResourceResolver();
+                return ResourceUtil.getByUuid(resourceResolver, releasedVersionable().getVersionUuid());
+            } catch (RepositoryException | ClassCastException e) {
+                throw new SlingException("Trouble accessing version " + releasedVersionable().getVersionUuid(), e);
+            }
+        }
+
+        @Nullable
+        @Override
+        public Calendar getVersionCreated() {
+            Resource versionResource = getVersionResource();
+            return versionResource != null ? versionResource.getValueMap().get(JCR_CREATED, Calendar.class) : null;
+        }
+
+        @Override
         @Nonnull
         public StagingReleaseManager.Release release() {
             return release;
+        }
+
+        @Nonnull
+        @Override
+        public String path() {
+            return release.absolutePath(releasedVersionable().getRelativePath());
         }
 
         @Override
