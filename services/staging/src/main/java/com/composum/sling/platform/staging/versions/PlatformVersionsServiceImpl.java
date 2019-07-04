@@ -51,6 +51,7 @@ import static com.composum.sling.core.util.CoreConstants.TYPE_VERSIONABLE;
 import static com.composum.sling.core.util.SlingResourceUtil.getPath;
 import static com.composum.sling.core.util.SlingResourceUtil.getPaths;
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 
 /**
  * This is the default implementation of the {@link PlatformVersionsService} - see there.
@@ -69,9 +70,6 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     @Reference
     protected StagingReleaseManager releaseManager;
-
-    @Reference
-    protected ReleaseChangeEventPublisher releaseChangeEventPublisher;
 
     @Nonnull
     @Override
@@ -146,7 +144,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             }
             updateRV.setActive(true);
 
-            Map<String, SiblingOrderUpdateStrategy.Result> orderUpdateMap = releaseManager.updateRelease(release, asList(updateRV));
+            Map<String, SiblingOrderUpdateStrategy.Result> orderUpdateMap = releaseManager.updateRelease(release, singletonList(updateRV));
             activationResult.getChangedPathsInfo().putAll(orderUpdateMap);
 
             StatusImpl newStatus = getStatus(versionable, releaseKey);
@@ -221,7 +219,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                     LOG.info("Deactivating in {} : {}", status.getRelease().getNumber(), getPath(versionable));
                     ReleasedVersionable releasedVersionable = status.getPreviousVersionableInfo();
                     releasedVersionable.setActive(false);
-                    releaseManager.updateRelease(status.getRelease(), asList(releasedVersionable));
+                    releaseManager.updateRelease(status.getRelease(), singletonList(releasedVersionable));
                     break;
                 case initial:
                 case deactivated:
@@ -262,10 +260,10 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 ReleasedVersionable update = rvInRelease.clone();
                 update.setVersionUuid(null); // delete request
                 result.getRemovedPaths().add(release.absolutePath(rvInRelease.getRelativePath()));
-                Map<String, SiblingOrderUpdateStrategy.Result> info = releaseManager.updateRelease(release, asList(update));
+                Map<String, SiblingOrderUpdateStrategy.Result> info = releaseManager.updateRelease(release, singletonList(update));
                 result.getChangedPathsInfo().putAll(info);
             } else { // if (rvInPreviousRelease != null) -> update to previous state
-                Map<String, SiblingOrderUpdateStrategy.Result> info = releaseManager.updateRelease(release, asList(rvInPreviousRelease));
+                Map<String, SiblingOrderUpdateStrategy.Result> info = releaseManager.updateRelease(release, singletonList(rvInPreviousRelease));
                 result.getChangedPathsInfo().putAll(info);
                 if (!StringUtils.equals(rvInPreviousRelease.getRelativePath(), rvInRelease.getRelativePath())) {
                     result.getMovedPaths().put(
@@ -313,6 +311,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         return new ResolvedResourceFilter(resolver, release.toString(), additionalFilter);
     }
 
+    @Nonnull
     @Override
     public List<Status> findReleaseChanges(@Nonnull StagingReleaseManager.Release release) throws RepositoryException {
         List<Status> result = new ArrayList<>();
@@ -376,12 +375,11 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 throw new IllegalArgumentException("Invalid current resource " + release + " - " + current);
             activationInfo = released != null ? release.activationInfo(released.getRelativePath()) : null;
 
-            if (release == null || released == null)
+            if (released == null || activationInfo == null)
                 activationState = ActivationState.initial;
             else if (!released.isActive())
                 activationState = ActivationState.deactivated;
-            else if (current == null ||
-                    !StringUtils.equals(current.getVersionUuid(), released.getVersionUuid()))
+            else if (current == null || !Objects.equals(current, released))
                 activationState = ActivationState.modified;
             else if (activationInfo.getLastActivated() == null ||
                     getLastModified() != null && getLastModified().after(activationInfo.getLastActivated()))
@@ -400,7 +398,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             this.previousRelease = previousRelease;
             this.current = released;
             this.previous = previouslyReleased;
-            activationInfo = release.activationInfo(released.getRelativePath());
+            activationInfo = released != null ? release.activationInfo(released.getRelativePath()) : null;
 
             boolean active = activationInfo != null && activationInfo.isActive();
             boolean previouslyActive = previouslyReleased != null && previouslyReleased.isActive();
@@ -469,7 +467,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             return previous;
         }
 
-        @Nonnull
+        @Nullable
         @Override
         public StagingReleaseManager.Release getPreviousRelease() {
             return previousRelease;

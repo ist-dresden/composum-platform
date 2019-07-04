@@ -156,6 +156,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Override
     public List<Release> getReleases(@Nonnull Resource resource) {
         ResourceHandle root = findReleaseRoot(resource);
+        if (root == null)
+            return Collections.emptyList();
         ensureCurrentRelease(root);
         return getReleasesImpl(root);
     }
@@ -213,7 +215,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     /** Implementation that does not autocreate the current release, as {@link #findRelease(Resource, String)} does. */
     @Nonnull
-    protected Release findReleaseImpl(Resource resource, @Nonnull String releaseNumber) {
+    protected Release findReleaseImpl(@Nonnull Resource resource, @Nonnull String releaseNumber) {
         ResourceHandle root = findReleaseRoot(resource);
         ResourceHandle releaseNode = ResourceHandle.use(root.getChild(RELPATH_RELEASES_NODE + '/' + releaseNumber));
         if (!releaseNode.isValid())
@@ -280,7 +282,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Nonnull
     protected Release createRelease(@Nonnull Resource resource, @Nullable Release rawCopyFromRelease, @Nonnull ReleaseNumberCreator releaseType) throws ReleaseExistsException, ReleaseNotFoundException, PersistenceException, RepositoryException {
         ResourceHandle root = findReleaseRoot(resource);
-        ReleaseImpl copyFromRelease = ReleaseImpl.unwrap(rawCopyFromRelease);
+        ReleaseImpl copyFromRelease = rawCopyFromRelease != null ? ReleaseImpl.unwrap(rawCopyFromRelease) : ensureCurrentRelease(root);
 
         String newReleaseNumber = releaseType.bumpRelease(copyFromRelease.getNumber());
 
@@ -1016,7 +1018,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         @Override
         @Nonnull
-        public ReleasedVersionable releasedVersionable() {
+        public ReleasedVersionable getReleasedVersionable() {
             return ReleasedVersionable.fromVersionReference(release.getWorkspaceCopyNode(), versionReference);
         }
 
@@ -1055,9 +1057,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             if (versionReference == null) return null;
             try {
                 ResourceResolver resourceResolver = release.getReleaseRoot().getResourceResolver();
-                return ResourceUtil.getByUuid(resourceResolver, releasedVersionable().getVersionUuid());
+                return ResourceUtil.getByUuid(resourceResolver, getReleasedVersionable().getVersionUuid());
             } catch (RepositoryException | ClassCastException e) {
-                throw new SlingException("Trouble accessing version " + releasedVersionable().getVersionUuid(), e);
+                throw new SlingException("Trouble accessing version " + getReleasedVersionable().getVersionUuid(), e);
             }
         }
 
@@ -1070,14 +1072,14 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         @Override
         @Nonnull
-        public StagingReleaseManager.Release release() {
+        public StagingReleaseManager.Release getRelease() {
             return release;
         }
 
         @Nonnull
         @Override
-        public String path() {
-            return release.absolutePath(releasedVersionable().getRelativePath());
+        public String getPath() {
+            return release.absolutePath(getReleasedVersionable().getRelativePath());
         }
 
         @Override
@@ -1101,7 +1103,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         @AttributeDefinition(
                 name = "Removed Paths",
-                description = "Some paths that are removed frm the overlayed nodes (relative to the release top level)"
+                description = "Some paths that are removed form the overlayed nodes (relative to the release top level)"
         )
         String[] removed_paths() default {CONTENT_NODE + '/' + NODE_RELEASES};
 

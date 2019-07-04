@@ -93,7 +93,7 @@ public interface PlatformVersionsService {
         ReleasedVersionable getCurrentVersionableInfo();
 
         /** The release {@link #getPreviousVersionableInfo()} is about (see there). */
-        @Nonnull
+        @Nullable
         StagingReleaseManager.Release getPreviousRelease();
 
         /**

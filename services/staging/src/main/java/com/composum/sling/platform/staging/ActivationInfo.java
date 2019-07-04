@@ -10,7 +10,7 @@ import java.util.Calendar;
 public interface ActivationInfo {
 
     @Nonnull
-    ReleasedVersionable releasedVersionable();
+    ReleasedVersionable getReleasedVersionable();
 
     boolean isActive();
 
@@ -35,9 +35,9 @@ public interface ActivationInfo {
     Calendar getVersionCreated();
 
     @Nonnull
-    StagingReleaseManager.Release release();
+    StagingReleaseManager.Release getRelease();
 
     /** The absolute path for the versionable, as it appears in the release. */
     @Nonnull
-    String path();
+    String getPath();
 }
