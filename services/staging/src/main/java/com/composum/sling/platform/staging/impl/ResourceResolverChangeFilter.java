@@ -39,7 +39,8 @@ import java.util.regex.Pattern;
 
 @SlingFilter(
         label = "Composum Platform Release Resolver Filter",
-        description = "a servlet filter to select the resource resolver for the requested release",
+        description = "A servlet filter to select the resource resolver for the release requested by access mode, or the URL parameters " + ResourceResolverChangeFilter.PARAM_CPM_RELEASE
+                + " or " + ResourceResolverChangeFilter.PARAM_CPM_VERSION,
         scope = {SlingFilterScope.REQUEST},
         order = 5050,
         metatype = true)
