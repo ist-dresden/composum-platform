@@ -103,6 +103,14 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
         };
 
         @AttributeDefinition(
+                name = "Preview Hosts",
+                description = "hostname patterns to detect preview access requests"
+        )
+        String[] preview_host_patterns() default {
+                "^(preview)(\\..*)?$"
+        };
+
+        @AttributeDefinition(
                 name = "Authoring URIs",
                 description = "uri patterns which are always editing requests"
         )
@@ -212,6 +220,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
     private List<Pattern> publicAllowPathPatterns;
     private List<Pattern> publicDenyUriPatterns;
     private List<Pattern> publicDenyPathPatterns;
+    private List<Pattern> previewHostPatterns;
 
     private Config config;
 
@@ -446,6 +455,8 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
         if (accessMode == null) {
             if (isAuthorHost(request)) {
                 accessMode = AccessMode.AUTHOR;
+            } else if (isPreviewHost(request)) {
+                accessMode = AccessMode.PREVIEW;
             }
         }
 
@@ -466,6 +477,27 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
         }
         String host = request.getServerName();
         for (Pattern pattern : authorHostPatterns) {
+            if (pattern.matcher(host).matches()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isPreviewHost(SlingHttpServletRequest request) {
+        if (config.honor_sling_runmode()) {
+            Set<String> runmodes = slingSettings.getRunModes();
+            for (String runmode : runmodes) {
+                if (ACCESS_MODE_PREVIEW.equalsIgnoreCase(runmode)) {
+                    return true;
+                } else if (ACCESS_MODE_PUBLIC.equalsIgnoreCase(runmode)
+                        || ACCESS_MODE_AUTHOR.equalsIgnoreCase(runmode)) {
+                    return false;
+                }
+            }
+        }
+        String host = request.getServerName();
+        for (Pattern pattern : previewHostPatterns) {
             if (pattern.matcher(host).matches()) {
                 return true;
             }
@@ -529,6 +561,10 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
         authorHostPatterns = new ArrayList<>();
         for (String rule : PropertiesUtil.toStringArray(config.author_host_patterns())) {
             if (StringUtils.isNotBlank(rule = rule.trim())) authorHostPatterns.add(Pattern.compile(rule));
+        }
+        previewHostPatterns = new ArrayList<>();
+        for (String rule : PropertiesUtil.toStringArray(config.preview_host_patterns())) {
+            if (StringUtils.isNotBlank(rule = rule.trim())) { previewHostPatterns.add(Pattern.compile(rule)); }
         }
         authorUriPatterns = new ArrayList<>();
         for (String rule : PropertiesUtil.toStringArray(config.author_uri_patterns())) {
