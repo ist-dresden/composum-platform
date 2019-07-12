@@ -245,7 +245,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.sling</groupId>
-            <artifactId>org.apache.sling.testing.sling-mock</artifactId>
+            <artifactId>org.apache.sling.testing.sling-mock.junit4</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.sling</groupId>
@@ -263,6 +263,15 @@
             <groupId>com.composum.sling.platform</groupId>
             <artifactId>composum-sling-platform-testing-testutil</artifactId>
             <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- TODO Temporary workaround for https://issues.apache.org/jira/browse/SLING-8576 . Once that's fixed this
+  should be removed. -->
+        <dependency>
+            <groupId>org.apache.sling</groupId>
+            <artifactId>org.apache.sling.scripting.core</artifactId>
+            <version>2.0.50</version>
             <scope>test</scope>
         </dependency>
 
