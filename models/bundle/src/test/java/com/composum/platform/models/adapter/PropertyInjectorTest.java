@@ -10,6 +10,9 @@ import org.apache.sling.models.annotations.Model;
 import org.apache.sling.models.annotations.Optional;
 import org.apache.sling.models.annotations.Via;
 import org.apache.sling.models.annotations.injectorspecific.Self;
+import org.apache.sling.models.spi.Injector;
+import org.apache.sling.models.spi.ViaProvider;
+import org.apache.sling.models.spi.injectorspecific.StaticInjectAnnotationProcessorFactory;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
@@ -42,8 +45,10 @@ public class PropertyInjectorTest {
 
     @Before
     public void setUp() throws Exception {
-        context.registerInjectActivateService(new PropertyInjector());
-        context.registerInjectActivateService(new DescendantPathViaProvider());
+        PropertyInjector service = new PropertyInjector();
+        context.registerService(Injector.class, service);
+        context.registerService(StaticInjectAnnotationProcessorFactory.class, service);
+        context.registerService(ViaProvider.class, new DescendantPathViaProvider());
         context.addModelsForPackage(getClass().getPackage().getName());
 
         ResourceBuilder parentBuilder = context.build().resource("/super", PROP_PRIMARY_TYPE, "cpp:Site");

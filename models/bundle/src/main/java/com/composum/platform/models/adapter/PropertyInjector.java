@@ -7,8 +7,6 @@ import com.composum.platform.models.annotations.Property;
 import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.ResourceHandle;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.adapter.Adaptable;
 import org.apache.sling.api.resource.Resource;
@@ -21,6 +19,7 @@ import org.apache.sling.models.spi.injectorspecific.AbstractInjectAnnotationProc
 import org.apache.sling.models.spi.injectorspecific.InjectAnnotationProcessor2;
 import org.apache.sling.models.spi.injectorspecific.StaticInjectAnnotationProcessorFactory;
 import org.osgi.framework.Constants;
+import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 
 import javax.annotation.CheckForNull;
@@ -40,10 +39,14 @@ import static org.slf4j.LoggerFactory.getLogger;
  *
  * @author Hans-Peter Stoerr
  */
-@Component(immediate = true,
-        description = "Sling-Models extension to inject attributes from resource descendants, possibly inherited.")
-@Service()
-@org.apache.felix.scr.annotations.Property(name = Constants.SERVICE_RANKING, intValue = 1500)
+@Component(
+        property = {
+                Constants.SERVICE_DESCRIPTION + "=Sling-Models extension to inject attributes from resource descendants, possibly inherited.",
+                Constants.SERVICE_RANKING + ":Integer=1500"
+        },
+        service = {Injector.class, StaticInjectAnnotationProcessorFactory.class},
+        immediate = true
+)
 public class PropertyInjector implements Injector, StaticInjectAnnotationProcessorFactory, ValuePreparer,
         AcceptsNullName {
 

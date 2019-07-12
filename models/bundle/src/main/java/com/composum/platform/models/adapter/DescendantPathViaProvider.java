@@ -2,8 +2,6 @@ package com.composum.platform.models.adapter;
 
 import com.composum.platform.models.annotations.DescendantPath;
 import com.composum.sling.core.BeanContext;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.adapter.Adaptable;
 import org.apache.sling.api.resource.Resource;
@@ -11,6 +9,8 @@ import org.apache.sling.api.wrappers.SlingHttpServletRequestWrapper;
 import org.apache.sling.models.annotations.Via;
 import org.apache.sling.models.annotations.ViaProviderType;
 import org.apache.sling.models.spi.ViaProvider;
+import org.osgi.framework.Constants;
+import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -27,8 +27,9 @@ import static org.slf4j.LoggerFactory.getLogger;
  *
  * @author Hans-Peter Stoerr
  */
-@Component
-@Service
+@Component(
+        service = ViaProvider.class
+)
 public class DescendantPathViaProvider implements ViaProvider {
 
     private static final Logger LOG = getLogger(DescendantPathViaProvider.class);

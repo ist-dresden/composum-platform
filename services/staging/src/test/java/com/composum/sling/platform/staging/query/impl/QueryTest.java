@@ -18,6 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.sling.api.adapter.AdapterFactory;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
@@ -76,7 +77,8 @@ public class QueryTest extends AbstractStagingTest {
         final Session session = context.resourceResolver().adaptTo(Session.class);
         final Workspace workspace = session.getWorkspace();
         queryManager = workspace.getQueryManager();
-        context.registerInjectActivateService(new QueryBuilderAdapterFactory());
+        QueryBuilderAdapterFactory adapter = new QueryBuilderAdapterFactory();
+        context.registerService(AdapterFactory.class, adapter);
     }
 
     @Before
