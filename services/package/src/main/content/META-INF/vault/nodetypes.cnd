@@ -4,19 +4,10 @@
 <'sling'='http://sling.apache.org/jcr/sling/1.0'>
 <'cpl'='http://sling.composum.com/platform/1.0'>
 
-/* Mixin for the versionable node that contains the structure of all releases in a subnode cpl:releases.
-   The subnode cpl:releases contains the metadata and workspace copies for all releases.
- */
-[cpl:releaseConfig]
-  mixin
-  + cpl:releases (nt:base) = nt:unstructured autocreated
-
-/* Mixin that makes a node a root of a release. This mainly ensures easy location of the release
-   roots and that a jcr:content node is always present.
+/* Mixin that makes a node a root of a release. This is currently just a marker mixin.
  */
 [cpl:releaseRoot]
   mixin
-  + jcr:content (cpl:releaseConfig)
 
 /* References a version within the release tree. Allows other attributes / child nodes as release metadata.
    cpl:versionHistory is the jcr:uuid of the nt:versionHistory - the jcr:versionHistory attribute in mix:versionable ,

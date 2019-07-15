@@ -22,15 +22,10 @@ public interface StagingConstants {
     public static final String RELEASE_LABEL_PREFIX = "composum-release-";
 
     /**
-     * Mixin for the versionable node that contains the structure of all releases in a subnode cpl:releases.
-     *  We also save the full path at which the release node was created in cpl:originalReleaseRoot.
-     *  The subnode cpl:releases contains the metadata and workspace copies for all releases.
-     */
-    final String TYPE_MIX_RELEASE_CONFIG = "cpl:releaseConfig";
-
-    /**
      * The node containing the releases below {@link #TYPE_MIX_RELEASE_CONFIG}.
      */
+    // FIXME(hps,2019-07-15) REMOVE THIS
+    @Deprecated
     final String NODE_RELEASES = "cpl:releases";
 
     /**
@@ -40,8 +35,7 @@ public interface StagingConstants {
     final String PROP_RELEASE_ROOT_HISTORY = "cpl:releaseRootHistory";
 
     /**
-     * Mixin that makes a node a root of a release. This mainly ensures easy location of the release
-     * roots and that a jcr:content node with {@link #TYPE_MIX_RELEASE_CONFIG} is always present.
+     * Marker-mixin that makes a node a root of a release.
      */
     final String TYPE_MIX_RELEASE_ROOT = "cpl:releaseRoot";
 

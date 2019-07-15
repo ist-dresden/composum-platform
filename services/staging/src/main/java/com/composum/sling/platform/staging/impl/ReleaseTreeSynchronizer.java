@@ -177,7 +177,9 @@ public class ReleaseTreeSynchronizer extends NodeTreeSynchronizer {
     /** Skip {@value StagingConstants#TYPE_MIX_RELEASE_CONFIG} to avoid copying the release config into releases. */
     @Override
     protected boolean skipNode(@Nonnull Resource from) {
-        return super.skipNode(from) || ResourceHandle.use(from).isOfType(StagingConstants.TYPE_MIX_RELEASE_CONFIG);
+        // FIXME(hps,2019-07-15) this does not work like that anymore.
+        return false;
+        // return super.skipNode(from) || ResourceHandle.use(from).isOfType(StagingConstants.TYPE_MIX_RELEASE_CONFIG);
     }
 
 }

@@ -363,7 +363,7 @@ public class QueryTest extends AbstractStagingTest {
         Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
         q.path("/jcr:system/jcr:nodeTypes").type("rep:NodeType");
         List<Resource> result = IterableUtils.toList(q.execute());
-        errorCollector.checkThat(result.size(), is(96));
+        errorCollector.checkThat(result.size(), is(95));
     /* List<String> nodetypenames = new ArrayList<>();
         for (Resource r : result) nodetypenames.add(r.getName());
         Collections.sort(nodetypenames);

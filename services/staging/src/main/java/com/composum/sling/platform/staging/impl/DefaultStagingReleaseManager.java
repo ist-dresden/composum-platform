@@ -97,7 +97,6 @@ import static com.composum.sling.platform.staging.StagingConstants.PROP_VERSION;
 import static com.composum.sling.platform.staging.StagingConstants.PROP_VERSIONABLEUUID;
 import static com.composum.sling.platform.staging.StagingConstants.PROP_VERSIONHISTORY;
 import static com.composum.sling.platform.staging.StagingConstants.RELEASE_LABEL_PREFIX;
-import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_CONFIG;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_VERSIONREFERENCE;
 import static com.composum.sling.platform.staging.query.Query.JoinCondition.Descendant;
@@ -753,12 +752,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             throw new IllegalArgumentException("Not a release root: " + theRoot.getPath());
 
         ResourceHandle contentnode = ResourceHandle.use(root.getChild(CONTENT_NODE));
-        if (contentnode != null && contentnode.isValid()) { // ensure mixin is there if the node was created otherwise
-            SlingResourceUtil.addMixin(contentnode, TYPE_MIX_RELEASE_CONFIG);
-        } else {
+        if (contentnode == null || !contentnode.isValid()) {
             contentnode = ResourceHandle.use(root.getResourceResolver().create(root, CONTENT_NODE,
-                    ImmutableMap.of(PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
-                            PROP_MIXINTYPES, TYPE_MIX_RELEASE_CONFIG)));
+                    ImmutableMap.of(PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED)));
         }
 
         Resource currentReleaseNode = ResourceUtil.getOrCreateChild(contentnode, NODE_RELEASES + "/" + releaseLabel, TYPE_UNSTRUCTURED);
@@ -830,7 +826,6 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             if (!node.getPath().startsWith(root.getPath() + "/") ||
                     !node.getParent().getName().equals(NODE_RELEASES) ||
                     !node.getParent().getParent().getName().equals(CONTENT_NODE) ||
-                    !node.getParent().getParent().isOfType(TYPE_MIX_RELEASE_CONFIG) ||
                     !node.getParent(3).getPath().equals(root.getPath()))
                 throw new IllegalArgumentException("Suspicious release node in " + this);
             if (node.getChild(NODE_RELEASE_METADATA) == null)

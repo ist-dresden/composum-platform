@@ -17,16 +17,15 @@ import java.util.Map;
  * <p>Functionality to manage releases that are accessible via the {@link com.composum.sling.platform.staging.StagingResourceResolver}
  * or via replication.</p>
  * <p>
- * For a folder / site to be releasable its root has to have the mixin {@value StagingConstants#NODE_RELEASES},
- * and it needs have a jcr:content node with mixin {@value StagingConstants#TYPE_MIX_RELEASE_CONFIG}
- * with a subnode {@value StagingConstants#NODE_RELEASES} that contains one subnode for each release.
+ * For a folder / site to be releasable its root has to have the mixin {@value StagingConstants#NODE_RELEASES}.
+ * The release data is saved below <code></code>/var/composum/{path to release root}/</code> that contains one subnode for each release.
  * The current (open) release is named {@value StagingConstants#CURRENT_RELEASE}. This is the primary release the users work on.
  * Each of these release nodes can contain metadata about the release, and below a subnode
  * {@value StagingConstants#NODE_RELEASE_ROOT} a copy of the unversioned parts of the page tree with the {@value com.composum.sling.core.util.ResourceUtil#TYPE_VERSIONABLE}
  * nodes replaced by {@value StagingConstants#TYPE_VERSIONREFERENCE}s.
  * </p>
  * <pre>
- * siteRoot[{@value StagingConstants#NODE_RELEASES}]/
+ * /var/composum/{path to release root}/
  *     jcr:content[{@value StagingConstants#TYPE_MIX_RELEASE_CONFIG}]/
  *         {@value StagingConstants#NODE_RELEASES}/
  *             {@value StagingConstants#CURRENT_RELEASE}/
