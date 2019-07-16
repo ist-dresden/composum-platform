@@ -4,6 +4,7 @@ import com.composum.platform.commons.util.ExceptionUtil;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
+import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
@@ -59,6 +60,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     private String node2;
     private String unreleasedNode;
     private String unversionedNode;
+    private String releasesNode;
     private ResourceBuilder builderAtFolder;
 
     @Rule
@@ -75,6 +77,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         builderAtFolder = context.build().resource(folder, PROP_PRIMARY_TYPE, TYPE_SLING_ORDERED_FOLDER,
                 ResourceUtil.PROP_MIXINTYPES, array(TYPE_MIX_RELEASE_ROOT))
                 .withIntermediatePrimaryType(TYPE_UNSTRUCTURED).commit();
+        builderAtFolder.resource(ResourceUtil.CONTENT_NODE);
         node1 = makeNode(builderAtFolder, "document1", "n1/something", true, true, "n1");
         document1 = folder + "/" + "document1";
         document2 = folder + "/" + "document2";
@@ -87,6 +90,8 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         List<StagingReleaseManager.Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
         assertEquals(1, releases.size());
         stagingResourceResolver = (StagingResourceResolver) releaseManager.getResolverForRelease(releases.get(0), releaseMapper, false);
+        releasesNode = StagingConstants.RELEASE_ROOT_PATH + folder + '/' + StagingConstants.NODE_RELEASES;
+        assertNotNull(context.resourceResolver().getResource(releasesNode));
     }
 
 
@@ -262,11 +267,9 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
     @Test
     public void filteredChildren() {
-        assertNotNull(context.resourceResolver().getResource(folder + "/jcr:content/cpl:releases"));
-        assertTrue(context.resourceResolver().getResource(folder + "/jcr:content/cpl:releases").listChildren().hasNext());
-        assertNotNull(context.resourceResolver().getResource(folder + "/jcr:content/cpl:releases/current"));
-        assertNull(stagingResourceResolver.getResource(folder + "/jcr:content/cpl:releases"));
-        assertNull(stagingResourceResolver.getResource(folder + "/jcr:content/cpl:releases/current"));
+        assertNotNull(context.resourceResolver().getResource(releasesNode));
+        assertTrue(context.resourceResolver().getResource(releasesNode).listChildren().hasNext());
+        assertNotNull(context.resourceResolver().getResource(releasesNode + "/current"));
     }
 
     @Test
