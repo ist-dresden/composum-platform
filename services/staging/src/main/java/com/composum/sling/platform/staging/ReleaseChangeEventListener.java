@@ -1,22 +1,17 @@
 package com.composum.sling.platform.staging;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.composum.sling.core.util.SlingResourceUtil.isSameOrDescendant;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 /**
@@ -142,9 +137,9 @@ public interface ReleaseChangeEventListener {
         public String toString() {
             ToStringBuilder builder = new ToStringBuilder(this);
             builder.append("release", release);
-            if (!newResources.isEmpty()) builder.append("new", newResources);
-            if (!updatedResources.isEmpty()) builder.append("updated", updatedResources);
-            if (!removedResources.isEmpty()) builder.append("removed", removedResources);
+            if (!newResources.isEmpty()) { builder.append("new", newResources); }
+            if (!updatedResources.isEmpty()) { builder.append("updated", updatedResources); }
+            if (!removedResources.isEmpty()) { builder.append("removed", removedResources); }
             return builder.toString();
         }
 
@@ -153,16 +148,19 @@ public interface ReleaseChangeEventListener {
          * the same or null if it vanishes / appears.
          */
         public void addMoveOrUpdate(@Nullable String frompath, @Nullable String topath) {
-            if (finalized)
-                throw new IllegalStateException("Already finalized - cannot be changed anymore");
-            if (isNotBlank(frompath) && !release.appliesToPath(frompath))
+            if (finalized) { throw new IllegalStateException("Already finalized - cannot be changed anymore"); }
+            if (isNotBlank(frompath) && !release.appliesToPath(frompath)) {
                 throw new IllegalArgumentException("Src. path " + frompath + " is not in release " + release);
-            if (isNotBlank(topath) && !release.appliesToPath(topath))
+            }
+            if (isNotBlank(topath) && !release.appliesToPath(topath)) {
                 throw new IllegalArgumentException("Dest. path " + frompath + " is not in release " + release);
-            if (isSameOrDescendant(release.getReleaseRoot().getPath() + "/jcr:content/" + StagingConstants.NODE_RELEASES, frompath))
+            }
+            if (StringUtils.startsWith(frompath, StagingConstants.RELEASE_ROOT_PATH)) {
                 throw new IllegalArgumentException("Bug: src. path " + frompath + " is in release copy of " + release);
-            if (isSameOrDescendant(release.getReleaseRoot().getPath() + "/jcr:content/" + StagingConstants.NODE_RELEASES, topath))
-                throw new IllegalArgumentException("Bug: src. path " + frompath + " is in release copy of " + release);
+            }
+            if (StringUtils.startsWith(topath, StagingConstants.RELEASE_ROOT_PATH)) {
+                throw new IllegalArgumentException("Bug: src. path " + topath + " is in release copy of " + release);
+            }
 
             if (isNotBlank(frompath)) {
                 if (isNotBlank(topath)) {
@@ -186,8 +184,7 @@ public interface ReleaseChangeEventListener {
         /** Cannot be changed through {@link #addMoveOrUpdate(String, String)} anymore. */
         @Override
         public void finalize() {
-            if (release == null)
-                throw new IllegalStateException("No release? " + toString());
+            if (release == null) { throw new IllegalStateException("No release? " + toString()); }
             finalized = true;
         }
 

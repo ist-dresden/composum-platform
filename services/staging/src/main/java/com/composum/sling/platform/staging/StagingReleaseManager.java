@@ -51,7 +51,7 @@ public interface StagingReleaseManager {
      * @throws ReleaseRootNotFoundException if the resource is not below a {@link ResourceHandle#isValid()} release root
      * @throws IllegalArgumentException     if resource is null
      */
-    @Nullable
+    @Nonnull
     Resource findReleaseRoot(@Nonnull Resource resource) throws ReleaseRootNotFoundException, IllegalArgumentException;
 
     /**
@@ -125,7 +125,6 @@ public interface StagingReleaseManager {
      * @param resource    the release root or any resource below it to find the release root
      * @param releaseType how to create the release number - major, minor or bugfix release
      * @return the created release
-     * @throws ReleaseExistsException
      */
     @Nonnull
     Release finalizeCurrentRelease(@Nonnull Resource resource, @Nonnull ReleaseNumberCreator releaseType) throws ReleaseExistsException, RepositoryException, PersistenceException;
@@ -140,7 +139,7 @@ public interface StagingReleaseManager {
      * whether the version is different, the path changed or whether it's new or removed, except that
      * the {@link ReleasedVersionable#versionUuid} is null if it was removed.
      *
-     * @param release the release to compare
+     * @param release         the release to compare
      * @param previousRelease optional, a specific release to compare to. If null, we take the previous release, if there is one. If there is no previous release too, we return the release contents (all new).
      * @return The list of changes
      */
@@ -226,8 +225,7 @@ public interface StagingReleaseManager {
      * be recreated automatically when calling one of the get / find release methods.
      *
      * @param release the release, as given by {@link #findRelease(Resource, String)} or {@link #findReleaseByUuid(Resource, String)}.
-     * @throws RepositoryException
-     * @throws PersistenceException   can happen e.g. when deleting a release that is referenced somewhere
+     * @throws PersistenceException      can happen e.g. when deleting a release that is referenced somewhere
      * @throws ReleaseProtectedException if a release that has {@link Release#getMarks()} shall be deleted.
      */
     void deleteRelease(@Nonnull Release release) throws RepositoryException, PersistenceException, ReleaseProtectedException;

@@ -2,10 +2,10 @@ package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.platform.staging.ReleaseNumberCreator;
-import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
+import com.composum.sling.platform.staging.ReleaseNumberCreator;
+import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
@@ -25,6 +25,7 @@ import org.apache.sling.hamcrest.ResourceMatchers;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
+import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -137,8 +138,8 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         assertEquals(CURRENT_RELEASE, currentRelease.getNumber());
         assertNotNull(currentRelease.getUuid());
         assertEquals(releaseRoot, currentRelease.getReleaseRoot());
-        assertEquals("/content/site/jcr:content/cpl:releases/current/metaData", currentRelease.getMetaDataNode().getPath());
-        assertNotNull(releaseRoot.getChild("jcr:content/cpl:releases/current/root"));
+        assertEquals("/var/composum/content/site/cpl:releases/current/metaData", currentRelease.getMetaDataNode().getPath());
+        assertNotNull(context.resourceResolver().getResource("/var/composum/content/site/cpl:releases/current/root"));
     }
 
     @Test
@@ -203,7 +204,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
     protected void referenceRefersToVersionableVersion(Resource rawVersionReference, Resource versionable, Version version) throws RepositoryException {
         ResourceHandle versionReference = ResourceHandle.use(rawVersionReference);
-        assertTrue(versionReference.isOfType(StagingConstants.TYPE_VERSIONREFERENCE));
+        ec.checkThat(versionReference.getPath(), versionReference.isOfType(StagingConstants.TYPE_VERSIONREFERENCE), is(true));
         ec.checkThat(ResourceUtil.getReferredResource(versionReference.getChild(PROP_VERSIONABLEUUID)), ResourceMatchers.path(versionable.getPath()));
         ec.checkThat(ResourceUtil.getReferredResource(versionReference.getChild(PROP_VERSION)), ResourceMatchers.path(version.getPath()));
         ec.checkThat(ResourceUtil.getReferredResource(versionReference.getChild(PROP_VERSIONHISTORY)), ResourceMatchers.path(version.getParent().getPath()));

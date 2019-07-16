@@ -8,9 +8,14 @@ import org.apache.sling.api.resource.Resource;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 import javax.jcr.Node;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import java.util.regex.Pattern;
+
+import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASES;
+import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASE_ROOT;
+import static com.composum.sling.platform.staging.StagingConstants.RELEASE_ROOT_PATH;
 
 public class StagingUtils {
 
@@ -27,7 +32,7 @@ public class StagingUtils {
         return path != null && path.startsWith(VERSIONS_ROOT);
     }
 
-    private static final Pattern IN_STORAGE_PATTERN = Pattern.compile(".*/" + StagingConstants.NODE_RELEASES + "/[^/]+/" + StagingConstants.NODE_RELEASE_ROOT + "(/.*|$)");
+    private static final Pattern IN_STORAGE_PATTERN = Pattern.compile(RELEASE_ROOT_PATH + "/.*/" + NODE_RELEASES + "/[^/]+/" + NODE_RELEASE_ROOT + "(/.*|$)");
 
     /** True if the resource is in version storage or if it's in a release. */
     public static boolean isInStorage(@Nullable Resource resource) {
@@ -37,13 +42,15 @@ public class StagingUtils {
         if (!IN_STORAGE_PATTERN.matcher(resource.getPath()).matches())
             return false;
         Resource siteCandidate = resource;
-        while (!siteCandidate.getName().equals(StagingConstants.NODE_RELEASES))
-            siteCandidate = siteCandidate.getParent();
-        if (siteCandidate.getParent().getParent() == null)
-            return false;
-        siteCandidate = siteCandidate.getParent().getParent();
-        boolean result = ResourceUtil.isNodeType(siteCandidate, StagingConstants.TYPE_MIX_RELEASE_ROOT);
-        return result;
+        while (true) { // check whether there is actually content for what looks like a release
+            while (!siteCandidate.getName().equals(NODE_RELEASES)) {
+                siteCandidate = siteCandidate.getParent();
+                if (siteCandidate == null) { return false; }
+            }
+            Resource releaseRootCandidate = resource.getResourceResolver().getResource(siteCandidate.getPath().substring(RELEASE_ROOT_PATH.length()));
+            if (ResourceUtil.isNodeType(siteCandidate, StagingConstants.TYPE_MIX_RELEASE_ROOT))
+                return true;
+        }
     }
 
     public static boolean isInStorage(@Nullable Node node) throws RepositoryException {
@@ -53,13 +60,20 @@ public class StagingUtils {
         if (!IN_STORAGE_PATTERN.matcher(node.getPath()).matches())
             return false;
         Node siteCandidate = node;
-        while (!siteCandidate.getName().equals(StagingConstants.NODE_RELEASES))
-            siteCandidate = siteCandidate.getParent();
-        if (siteCandidate.getParent().getParent() == null)
-            return false;
-        siteCandidate = siteCandidate.getParent().getParent();
-        boolean result = siteCandidate.isNodeType(StagingConstants.TYPE_MIX_RELEASE_ROOT);
-        return result;
+        while (true) { // check whether there is actually content for what looks like a release
+            while (!siteCandidate.getName().equals(NODE_RELEASES)) {
+                siteCandidate = siteCandidate.getParent();
+                if (siteCandidate == null) { return false; }
+            }
+            try {
+                Node releaseRootCandidate = node.getSession().getNode(siteCandidate.getPath().substring(RELEASE_ROOT_PATH.length()));
+                if (releaseRootCandidate.isNodeType(StagingConstants.TYPE_MIX_RELEASE_ROOT)) {
+                    return true;
+                }
+            } catch (PathNotFoundException e) {
+                // some weirdly named subnode or broken path
+            }
+        }
     }
 
 
