@@ -974,8 +974,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         public String unmapFromContentCopy(@Nonnull String contentCopyPath) {
             String path = ResourceUtil.normalize(contentCopyPath);
             if (SlingResourceUtil.isSameOrDescendant(getWorkspaceCopyNode().getPath(), path)) {
-                path = contentCopyPath.substring(0, getReleaseRoot().getPath().length()) +
-                        path.substring(getWorkspaceCopyNode().getPath().length());
+                path = getReleaseRoot().getPath() + path.substring(getWorkspaceCopyNode().getPath().length());
             }
             return path != null ? path : contentCopyPath;
         }

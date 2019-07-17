@@ -4,6 +4,7 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
+import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.AbstractStagingTest;
 import com.composum.sling.platform.staging.impl.StagingResourceResolver;
@@ -54,7 +55,10 @@ public class QueryTest extends AbstractStagingTest {
     private static final Logger LOG = getLogger(QueryTest.class);
 
     @Rule
-    public final ErrorCollectorAlwaysPrintingFailures errorCollector = new ErrorCollectorAlwaysPrintingFailures();
+    public final ErrorCollectorAlwaysPrintingFailures errorCollector = new ErrorCollectorAlwaysPrintingFailures()
+            .onFailure(this::printContent)
+            .onFailure(this::printReleaseStorage)
+            .onFailure(this::printVersionStorage);
 
     protected String folder;
 
@@ -86,6 +90,7 @@ public class QueryTest extends AbstractStagingTest {
         folder = "/folder";
         ResourceBuilder builderAtFolder = context.build().resource(folder, PROP_PRIMARY_TYPE, TYPE_SLING_ORDERED_FOLDER,
                 PROP_MIXINTYPES, array(TYPE_MIX_RELEASE_ROOT)).commit();
+        builderAtFolder.resource(ResourceUtil.CONTENT_NODE, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED);
         document1 = folder + "/" + "document1";
         node1version = makeNode(builderAtFolder, "document1", "n1/something", true, true, "3 third title");
         node1current = node1version.replaceAll("n1/something", "n1c/something");
@@ -127,12 +132,12 @@ public class QueryTest extends AbstractStagingTest {
         errorCollector.checkThat(q.buildSQL2(QueryGenerationMode.NORMAL), is("SELECT n.[jcr:path], n.[jcr:created] AS [query:orderBy] \n" +
                 "FROM [cpp:Page] AS n \n" +
                 "WHERE (ISDESCENDANTNODE(n, '/folder') OR ISSAMENODE(n, '/folder' )) \n" +
-                "AND NOT ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases')\n" +
+                "AND NOT ISDESCENDANTNODE(n, '/var/composum/folder/cpl:releases')\n" +
                 "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
 
         errorCollector.checkThat(q.buildSQL2(QueryGenerationMode.WORKSPACECOPY), is("SELECT n.[jcr:path], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin], n.[jcr:created] AS [query:orderBy] \n" +
                 "FROM [nt:unstructured] AS n \n" +
-                "WHERE (ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/current/root') OR ISSAMENODE(n, '/folder/jcr:content/cpl:releases/current/root' )) \n" +
+                "WHERE (ISDESCENDANTNODE(n, '/var/composum/folder/cpl:releases/current/root') OR ISSAMENODE(n, '/var/composum/folder/cpl:releases/current/root' )) \n" +
                 "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
 
 
@@ -140,11 +145,11 @@ public class QueryTest extends AbstractStagingTest {
         errorCollector.checkThat(q.buildSQL2(QueryGenerationMode.NORMAL), is("SELECT n.[jcr:path], n.[jcr:created] AS [query:orderBy] \n" +
                 "FROM [cpp:Page] AS n \n" +
                 "WHERE (ISDESCENDANTNODE(n, '/folder/xyz') OR ISSAMENODE(n, '/folder/xyz' )) \n" +
-                "AND NOT ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases')\n" +
+                "AND NOT ISDESCENDANTNODE(n, '/var/composum/folder/cpl:releases')\n" +
                 "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
         errorCollector.checkThat(q.buildSQL2(QueryGenerationMode.WORKSPACECOPY), is("SELECT n.[jcr:path], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin], n.[jcr:created] AS [query:orderBy] \n" +
                 "FROM [nt:unstructured] AS n \n" +
-                "WHERE (ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/current/root/xyz') OR ISSAMENODE(n, '/folder/jcr:content/cpl:releases/current/root/xyz' )) \n" +
+                "WHERE (ISDESCENDANTNODE(n, '/var/composum/folder/cpl:releases/current/root/xyz') OR ISSAMENODE(n, '/var/composum/folder/cpl:releases/current/root/xyz' )) \n" +
                 "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
 
 
@@ -152,11 +157,11 @@ public class QueryTest extends AbstractStagingTest {
         errorCollector.checkThat(q.buildSQL2(QueryGenerationMode.NORMAL), is("SELECT n.[jcr:path], n.[jcr:created] AS [query:orderBy] \n" +
                 "FROM [cpp:Page] AS n \n" +
                 "WHERE (ISDESCENDANTNODE(n, '/') OR ISSAMENODE(n, '/' )) \n" +
-                "AND NOT ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases')\n" +
+                "AND NOT ISDESCENDANTNODE(n, '/var/composum/folder/cpl:releases')\n" +
                 "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
         errorCollector.checkThat(q.buildSQL2(QueryGenerationMode.WORKSPACECOPY), is("SELECT n.[jcr:path], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin], n.[jcr:created] AS [query:orderBy] \n" +
                 "FROM [nt:unstructured] AS n \n" +
-                "WHERE (ISDESCENDANTNODE(n, '/folder/jcr:content/cpl:releases/current/root') OR ISSAMENODE(n, '/folder/jcr:content/cpl:releases/current/root' )) \n" +
+                "WHERE (ISDESCENDANTNODE(n, '/var/composum/folder/cpl:releases/current/root') OR ISSAMENODE(n, '/var/composum/folder/cpl:releases/current/root' )) \n" +
                 "AND NAME(n) = 'jcr:content' ORDER BY n.[jcr:created] ASC \n"));
 
         errorCollector.checkThat(q.buildSQL2Version(), is("SELECT n.[jcr:path], version.[jcr:uuid] AS [query:versionUuid], n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] , n.[jcr:created] AS [query:orderBy] \n" +
@@ -205,6 +210,12 @@ public class QueryTest extends AbstractStagingTest {
     @Ignore("Only for development, as needed")
     public void printContent() throws Exception {
         JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource(folder));
+    }
+
+    @Test
+    @Ignore("Only for development, as needed")
+    public void printReleaseStorage() throws Exception {
+        JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource(StagingConstants.RELEASE_ROOT_PATH));
     }
 
     @Test
