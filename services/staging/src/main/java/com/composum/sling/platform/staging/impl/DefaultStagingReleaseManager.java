@@ -24,6 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.sling.api.SlingException;
+import org.apache.sling.api.resource.NonExistingResource;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -139,12 +140,25 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Nonnull
     @Override
     public ResourceHandle findReleaseRoot(@Nonnull Resource resource) throws ReleaseRootNotFoundException {
-        if (resource == null) { throw new IllegalArgumentException("resource was null"); }
-        ResourceHandle result = ResourceHandle.use(resource);
-        while (result.isValid() && !result.isOfType(TYPE_MIX_RELEASE_ROOT)) {
+        if (resource == null) {
+            throw new IllegalArgumentException("resource was null");
+        }
+
+        ResourceHandle result;
+        String path = ResourceUtil.normalize(resource.getPath());
+        if (SlingResourceUtil.isSameOrDescendant(RELEASE_ROOT_PATH, path)) {
+            String releaseTreePath = path.substring(RELEASE_ROOT_PATH.length());
+            result = ResourceHandle.use(new NonExistingResource(resource.getResourceResolver(), releaseTreePath));
+        } else {
+            result = ResourceHandle.use(resource);
+        }
+
+        while (!result.isOfType(TYPE_MIX_RELEASE_ROOT) || !result.isValid()) {
             result = ResourceHandle.use(result.getParent());
         }
-        if (!result.isValid()) { throw new ReleaseRootNotFoundException(SlingResourceUtil.getPath(resource)); }
+        if (!result.isValid()) {
+            throw new ReleaseRootNotFoundException(SlingResourceUtil.getPath(resource));
+        }
         return result;
     }
 
@@ -688,7 +702,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Override
     public Release findReleaseByReleaseResource(Resource releaseResource) {
-        if (releaseResource == null) { return null; }
+        if (releaseResource == null) {
+            return null;
+        }
         for (Release release : getReleasesImpl(releaseResource)) {
             if (SlingResourceUtil.isSameOrDescendant(ReleaseImpl.unwrap(release).getReleaseNode().getPath(), releaseResource.getPath())) {
                 return release;

@@ -244,7 +244,7 @@ public interface StagingReleaseManager {
     /**
      * Returns the release to which the {releaseResource} (e.g. the metaData node of the release) belongs.
      *
-     * @param releaseResource the release node (release root)/jcr:content/cpl:releases/{releasenumber} or one of its subnodes
+     * @param releaseResource the release node /var/composum/(release root)/cpl:releases/{releasenumber} or one of its subnodes
      * @return the release where releaseResource belongs, null if it doesn't
      */
     @Nullable

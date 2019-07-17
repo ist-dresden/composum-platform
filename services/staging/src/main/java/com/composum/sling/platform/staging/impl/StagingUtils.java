@@ -32,21 +32,21 @@ public class StagingUtils {
         return path != null && path.startsWith(VERSIONS_ROOT);
     }
 
-    private static final Pattern IN_STORAGE_PATTERN = Pattern.compile(RELEASE_ROOT_PATH + "/.*/" + NODE_RELEASES + "/[^/]+/" + NODE_RELEASE_ROOT + "(/.*|$)");
+    public static final Pattern RELEASE_PATH_PATTERN = Pattern.compile("^" + RELEASE_ROOT_PATH + "(/.*)" + NODE_RELEASES + "/(.+)$");
 
     /** True if the resource is in version storage or if it's in a release. */
     public static boolean isInStorage(@Nullable Resource resource) {
         if (resource == null) { return false; }
         String path = resource.getPath();
         if (isInVersionStorage(path)) { return true; }
-        return path.startsWith(RELEASE_ROOT_PATH) && IN_STORAGE_PATTERN.matcher(path).matches();
+        return path.startsWith(RELEASE_ROOT_PATH) && RELEASE_PATH_PATTERN.matcher(path).matches();
     }
 
     public static boolean isInStorage(@Nullable Node node) throws RepositoryException {
         if (node == null) { return false; }
         String path = node.getPath();
         if (path.startsWith(VERSIONS_ROOT)) { return true; }
-        return path.startsWith(RELEASE_ROOT_PATH) && IN_STORAGE_PATTERN.matcher(path).matches();
+        return path.startsWith(RELEASE_ROOT_PATH) && RELEASE_PATH_PATTERN.matcher(path).matches();
     }
 
 

@@ -146,7 +146,9 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         assertNotNull(currentRelease.getUuid());
         assertEquals(releaseRoot, currentRelease.getReleaseRoot());
         assertEquals("/var/composum/content/site/cpl:releases/current/metaData", currentRelease.getMetaDataNode().getPath());
-        assertNotNull(context.resourceResolver().getResource("/var/composum/content/site/cpl:releases/current/root"));
+        Resource resource = context.resourceResolver().getResource("/var/composum/content/site/cpl:releases/current/root");
+        assertNotNull(resource);
+        assertEquals(currentRelease, service.findReleaseByReleaseResource(resource));
     }
 
     @Test
