@@ -144,22 +144,22 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             throw new IllegalArgumentException("resource was null");
         }
 
-        ResourceHandle result;
+        Resource result;
         String path = ResourceUtil.normalize(resource.getPath());
         if (SlingResourceUtil.isSameOrDescendant(RELEASE_ROOT_PATH, path)) {
             String releaseTreePath = path.substring(RELEASE_ROOT_PATH.length());
-            result = ResourceHandle.use(new NonExistingResource(resource.getResourceResolver(), releaseTreePath));
+            result = new NonExistingResource(resource.getResourceResolver(), releaseTreePath);
         } else {
-            result = ResourceHandle.use(resource);
+            result = resource;
         }
 
-        while (!result.isOfType(TYPE_MIX_RELEASE_ROOT) || !result.isValid()) {
-            result = ResourceHandle.use(result.getParent());
+        while (result != null && !ResourceUtil.isNodeType(result, TYPE_MIX_RELEASE_ROOT)) {
+            result = result.getParent();
         }
-        if (!result.isValid()) {
+        if (result == null) {
             throw new ReleaseRootNotFoundException(SlingResourceUtil.getPath(resource));
         }
-        return result;
+        return ResourceHandle.use(result);
     }
 
     @Nonnull
