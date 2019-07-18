@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.nodetype.NodeDefinition;
@@ -146,7 +147,11 @@ public class SetupHook implements InstallHook {
                 InputStreamReader cndReader = new InputStreamReader(stream);
                 CndImporter.registerNodeTypes(cndReader, session, true);
             }
-            nodeTypeManager.unregisterNodeType("cpl:releaseConfig");
+            try {
+                nodeTypeManager.unregisterNodeType("cpl:releaseConfig");
+            } catch (RepositoryException e) { // can happen when it's still used in pages
+                LOG.warn("Could not deregister cpl:releaseConfig, probably since it's still used", e);
+            }
         } catch (Exception rex) {
             LOG.error(rex.getMessage(), rex);
             throw new PackageException(rex);
