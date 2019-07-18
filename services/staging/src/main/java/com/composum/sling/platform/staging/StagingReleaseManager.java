@@ -72,9 +72,10 @@ public interface StagingReleaseManager {
      * @param releaseNumber a label for a release, possibly {@value StagingConstants#CURRENT_RELEASE} for the current release.
      * @return the release
      * @throws ReleaseNotFoundException if the release wasn't found
+     * @throws ReleaseRootNotFoundException resource wasn't below a release root
      */
     @Nonnull
-    Release findRelease(@Nonnull Resource resource, @Nonnull String releaseNumber) throws ReleaseNotFoundException;
+    Release findRelease(@Nonnull Resource resource, @Nonnull String releaseNumber) throws ReleaseNotFoundException, ReleaseRootNotFoundException;
 
     /**
      * Looks up the next higher {@link StagingConstants#TYPE_MIX_RELEASE_ROOT} of the resource and returns

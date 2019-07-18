@@ -113,6 +113,8 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
                                     + releaseNumber + "'");
                         } catch (StagingReleaseManager.ReleaseNotFoundException e) {
                             LOGGER.warn("Release {} not found for {}", releaseNumber, path);
+                        } catch (StagingReleaseManager.ReleaseRootNotFoundException e) {
+                            LOGGER.warn("Release root not found for {}", path);
                         }
 
                     } else {
