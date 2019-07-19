@@ -107,29 +107,6 @@ public class SetupHook implements InstallHook {
         }
     }
 
-    protected void removeCplReleaseConfigMixinFromContent(InstallContext ctx) throws PackageException {
-        try {
-            ResourceResolverFactory rfactory = SetupUtil.getService(ResourceResolverFactory.class);
-            try (ResourceResolver resolver = rfactory.getAdministrativeResourceResolver(null)) {
-                Iterator<Resource> resourcesWithMixin = resolver.findResources("", Query.XPATH);
-                while (resourcesWithMixin.hasNext()) {
-                    Resource resource = resourcesWithMixin.next();
-                    ModifiableValueMap vmap = resource.adaptTo(ModifiableValueMap.class);
-                    List<String> mixins = Arrays.asList(vmap.get(JCR_MIXINTYPES, String[].class));
-                    mixins.remove("cpl:releaseConfig");
-                    // FIXME(hps,2019-07-15) is removeCplReleaseConfigMixinFromContent neccesary?
-                    // removeCplReleaseConfigMixinFromContent(ctx);
-                    // TODO: we probably need to do this in the middle of updateNodeTypes.
-                    vmap.put(JCR_MIXINTYPES, mixins.toArray(new String[0]));
-                }
-                resolver.commit();
-            }
-        } catch (Exception rex) {
-            LOG.error(rex.getMessage(), rex);
-            throw new PackageException(rex);
-        }
-    }
-
     protected void updateNodeTypes(InstallContext ctx) throws PackageException {
         try {
             Session session = ctx.getSession();

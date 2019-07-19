@@ -28,7 +28,6 @@ public interface StagingConstants {
     String RELEASE_ROOT_PATH = "/var/composum";
 
     /** The node containing the releases - see {@value #RELEASE_ROOT_PATH}. */
-    // FIXME(hps,2019-07-16) rename back
     String NODE_RELEASES = "cpl:releases";
 
     /**
