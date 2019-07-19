@@ -3,6 +3,9 @@
     "path": "/",
     "acl": [
       {
+        "principal": "everyone"
+      },
+      {
         "principal": "everyone",
         "acl": [
           {

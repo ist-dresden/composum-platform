@@ -2,41 +2,26 @@ package com.composum.platform.services.setup;
 
 import com.composum.sling.core.service.RepositorySetupService;
 import com.composum.sling.core.setup.util.SetupUtil;
-import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.vault.fs.io.Archive;
 import org.apache.jackrabbit.vault.packaging.InstallContext;
 import org.apache.jackrabbit.vault.packaging.InstallHook;
 import org.apache.jackrabbit.vault.packaging.PackageException;
-import org.apache.sling.api.resource.ModifiableValueMap;
-import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceResolver;
-import org.apache.sling.api.resource.ResourceResolverFactory;
-import org.apache.sling.api.resource.ValueMap;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
-import javax.jcr.nodetype.NodeDefinition;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
-import javax.jcr.query.Query;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 
 @SuppressWarnings("Duplicates")
 public class SetupHook implements InstallHook {
@@ -45,7 +30,6 @@ public class SetupHook implements InstallHook {
 
     public static final String PLATFORM_VERSION = "1.0.0.SNAPSHOT";
 
-    private static final String EVERYONE_ACLS = "/conf/composum/platform/security/acl/everyone.json";
     private static final String ADMIN_ACLS = "/conf/composum/platform/security/acl/administrators.json";
 
     private static final String ADMINISTRATORS_GROUP = "administrators";
@@ -98,7 +82,6 @@ public class SetupHook implements InstallHook {
         RepositorySetupService setupService = SetupUtil.getService(RepositorySetupService.class);
         try {
             Session session = ctx.getSession();
-            setupService.addJsonAcl(session, EVERYONE_ACLS, null);
             setupService.addJsonAcl(session, ADMIN_ACLS, null);
             session.save();
         } catch (Exception rex) {
