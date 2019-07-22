@@ -5,11 +5,11 @@
 
     <parent>
         <groupId>com.composum.sling.platform</groupId>
-        <artifactId>composum-sling-platform-services</artifactId>
-        <version>1.0.1</version>
+        <artifactId>composum-platform-services</artifactId>
+        <version>1.0.2</version>
     </parent>
 
-    <artifactId>composum-sling-platform-security-bundle</artifactId>
+    <artifactId>composum-platform-security-bundle</artifactId>
     <packaging>bundle</packaging>
 
     <name>Composum Platform Security Bundle</name>

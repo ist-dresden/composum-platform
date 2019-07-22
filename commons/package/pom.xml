@@ -5,11 +5,11 @@
 
     <parent>
         <groupId>com.composum.sling.platform</groupId>
-        <artifactId>composum-sling-platform-commons</artifactId>
-        <version>1.0.1</version>
+        <artifactId>composum-platform-commons</artifactId>
+        <version>1.0.2</version>
     </parent>
 
-    <artifactId>composum-sling-platform-commons-package</artifactId>
+    <artifactId>composum-platform-commons-package</artifactId>
     <packaging>content-package</packaging>
 
     <name>Composum Platform Commons Package</name>
@@ -85,7 +85,7 @@
                         <filter>
                             <root>/libs/composum/platform/install</root>
                             <includes>
-                                <include>.*/composum-sling-platform-commons-bundle.*\.jar</include>
+                                <include>.*/composum-platform-commons-bundle.*\.jar</include>
                             </includes>
                         </filter>
                     </filters>
@@ -93,7 +93,7 @@
                     <embeddeds>
                         <embedded>
                             <groupId>${project.groupId}</groupId>
-                            <artifactId>composum-sling-platform-commons-bundle</artifactId>
+                            <artifactId>composum-platform-commons-bundle</artifactId>
                             <target>/libs/composum/platform/install</target>
                         </embedded>
                     </embeddeds>
@@ -108,7 +108,7 @@
         <!-- Package Bundles -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>composum-sling-platform-commons-bundle</artifactId>
+            <artifactId>composum-platform-commons-bundle</artifactId>
             <version>${project.version}</version>
         </dependency>
 

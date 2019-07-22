@@ -4,11 +4,11 @@
 
 	<parent>
 		<groupId>com.composum.sling.platform</groupId>
-		<artifactId>composum-sling-platform</artifactId>
-		<version>1.0.1</version>
+		<artifactId>composum-platform</artifactId>
+		<version>1.0.2</version>
 	</parent>
 
-    <artifactId>composum-sling-platform-services</artifactId>
+    <artifactId>composum-platform-services</artifactId>
 	<packaging>pom</packaging>
 
     <name>Composum Platform Services</name>

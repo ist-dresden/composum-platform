@@ -5,11 +5,11 @@
 
     <parent>
         <groupId>com.composum.sling.platform</groupId>
-        <artifactId>composum-sling-platform-cache</artifactId>
-        <version>1.0.1</version>
+        <artifactId>composum-platform-cache</artifactId>
+        <version>1.0.2</version>
     </parent>
 
-    <artifactId>composum-sling-platform-cache-package</artifactId>
+    <artifactId>composum-platform-cache-package</artifactId>
     <packaging>content-package</packaging>
 
     <name>Composum Platform Cache Package</name>
@@ -86,7 +86,7 @@
                             <root>/libs/composum/platform/install</root>
                             <includes>
                                 <include>.*/ehcache-bundle.*\.jar</include>
-                                <include>.*/composum-sling-platform-cache-bundle.*\.jar</include>
+                                <include>.*/composum-platform-cache-bundle.*\.jar</include>
                             </includes>
                         </filter>
                     </filters>
@@ -99,7 +99,7 @@
                         </embedded>
                         <embedded>
                             <groupId>${project.groupId}</groupId>
-                            <artifactId>composum-sling-platform-cache-bundle</artifactId>
+                            <artifactId>composum-platform-cache-bundle</artifactId>
                             <target>/libs/composum/platform/install</target>
                         </embedded>
                     </embeddeds>
@@ -114,7 +114,7 @@
         <!-- Package Bundles -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>composum-sling-platform-cache-bundle</artifactId>
+            <artifactId>composum-platform-cache-bundle</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

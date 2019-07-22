@@ -18,7 +18,6 @@ import javax.jcr.nodetype.NodeTypeManager;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,8 +26,6 @@ import java.util.Map;
 public class SetupHook implements InstallHook {
 
     private static final Logger LOG = LoggerFactory.getLogger(SetupHook.class);
-
-    public static final String PLATFORM_VERSION = "1.0.1.SNAPSHOT";
 
     private static final String CONFIG_ACL = "/conf/composum/platform/security/acl";
     private static final String ADMIN_ACLS = CONFIG_ACL + "/administrators.json";
@@ -68,10 +65,6 @@ public class SetupHook implements InstallHook {
                 break;
             case INSTALLED:
                 LOG.info("installed: execute...");
-                SetupUtil.checkBundles(ctx, new HashMap<String, String>() {{
-                    put("com.composum.platform.staging", PLATFORM_VERSION);
-                    put("com.composum.platform.security", PLATFORM_VERSION);
-                }}, 2, 30);
                 setupAcls(ctx);
                 // updateNodeTypes should be the last actions since we need a session.save() there.
                 updateNodeTypes(ctx);
@@ -100,15 +93,17 @@ public class SetupHook implements InstallHook {
             NodeType reseaseType = nodeTypeManager.getNodeType("cpl:releaseRoot");
             NodeType releaseConfigType;
             try {
-                releaseConfigType = nodeTypeManager.getNodeType("cpl:releaseConfig");
+                nodeTypeManager.getNodeType("cpl:releaseConfig");
             } catch (NoSuchNodeTypeException e) {
                 LOG.info("OK, obsolete cpl:releaseConfig is not present, but cpl:releaseRoot is");
                 return;
             }
             Archive archive = ctx.getPackage().getArchive();
             try (InputStream stream = archive.openInputStream(archive.getEntry("/META-INF/vault/nodetypes.cnd"))) {
-                InputStreamReader cndReader = new InputStreamReader(stream);
-                CndImporter.registerNodeTypes(cndReader, session, true);
+                if (stream != null) {
+                    InputStreamReader cndReader = new InputStreamReader(stream);
+                    CndImporter.registerNodeTypes(cndReader, session, true);
+                }
             }
             try {
                 nodeTypeManager.unregisterNodeType("cpl:releaseConfig");

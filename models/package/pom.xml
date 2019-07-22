@@ -5,11 +5,11 @@
 
     <parent>
         <groupId>com.composum.sling.platform</groupId>
-        <artifactId>composum-sling-platform-models</artifactId>
-        <version>1.0.1</version>
+        <artifactId>composum-platform-models</artifactId>
+        <version>1.0.2</version>
     </parent>
 
-    <artifactId>composum-sling-platform-models-package</artifactId>
+    <artifactId>composum-platform-models-package</artifactId>
     <packaging>content-package</packaging>
 
     <name>Composum Platform Models Package</name>
@@ -83,7 +83,7 @@
                         <filter>
                             <root>/libs/composum/platform/install</root>
                             <includes>
-                                <include>.*/composum-sling-platform-models-bundle.*\.jar</include>
+                                <include>.*/composum-platform-models-bundle.*\.jar</include>
                             </includes>
                         </filter>
                     </filters>
@@ -91,7 +91,7 @@
                     <embeddeds>
                         <embedded>
                             <groupId>${project.groupId}</groupId>
-                            <artifactId>composum-sling-platform-models-bundle</artifactId>
+                            <artifactId>composum-platform-models-bundle</artifactId>
                             <target>/libs/composum/platform/install</target>
                         </embedded>
                     </embeddeds>
@@ -106,7 +106,7 @@
         <!-- Package Bundles -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>composum-sling-platform-models-bundle</artifactId>
+            <artifactId>composum-platform-models-bundle</artifactId>
             <version>${project.version}</version>
         </dependency>
 
