@@ -6,23 +6,25 @@
     <parent>
         <groupId>com.composum.meta.ist</groupId>
         <artifactId>parent-2-public</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0</version>
     </parent>
 
     <groupId>com.composum.sling.platform</groupId>
     <artifactId>composum-sling-platform</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.1</version>
 
     <name>Composum Platform</name>
     <description>Maven parent for Composum Platform packages</description>
     <url>https://github.com/ist-dresden/composum</url>
 
     <properties>
+        <release.repository.id>ossrh</release.repository.id>
+        <release.repository.url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</release.repository.url>
         <package.group>com/composum/platform</package.group>
         <bundle.category>composum,platform</bundle.category>
 
-        <composum.nodes.version>1.11.1-SNAPSHOT</composum.nodes.version>
+        <composum.nodes.version>1.11.1</composum.nodes.version>
 
     </properties>
 
@@ -34,8 +36,8 @@
 
     <distributionManagement>
         <repository>
-            <id>archiva</id>
-            <url>https://build.ist-software.com/archiva/repository/releases/</url>
+            <id>${release.repository.id}</id>
+            <url>${release.repository.url}</url>
         </repository>
         <snapshotRepository>
             <id>archiva</id>

@@ -1,0 +1,97 @@
+[
+  {
+    "path": "/libs",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/fonts",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/jslibs",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/composum",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/composum/platform",
+    "acl": [
+      {
+        "principal": "everyone",
+        "condition": "",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/composum/platform/public",
+    "acl": [
+      {
+        "principal": "everyone",
+        "condition": "",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  }
+]

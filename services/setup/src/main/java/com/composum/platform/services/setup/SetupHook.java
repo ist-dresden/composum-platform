@@ -28,9 +28,11 @@ public class SetupHook implements InstallHook {
 
     private static final Logger LOG = LoggerFactory.getLogger(SetupHook.class);
 
-    public static final String PLATFORM_VERSION = "1.0.0.SNAPSHOT";
+    public static final String PLATFORM_VERSION = "1.0.1.SNAPSHOT";
 
-    private static final String ADMIN_ACLS = "/conf/composum/platform/security/acl/administrators.json";
+    private static final String CONFIG_ACL = "/conf/composum/platform/security/acl";
+    private static final String ADMIN_ACLS = CONFIG_ACL + "/administrators.json";
+    private static final String LOGIN_ACLS = CONFIG_ACL + "/login.json";
 
     private static final String ADMINISTRATORS_GROUP = "administrators";
 
@@ -83,6 +85,7 @@ public class SetupHook implements InstallHook {
         try {
             Session session = ctx.getSession();
             setupService.addJsonAcl(session, ADMIN_ACLS, null);
+            setupService.addJsonAcl(session, LOGIN_ACLS, null);
             session.save();
         } catch (Exception rex) {
             LOG.error(rex.getMessage(), rex);
