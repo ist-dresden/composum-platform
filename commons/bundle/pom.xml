@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.composum.sling.platform</groupId>
         <artifactId>composum-sling-platform-commons</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.1</version>
     </parent>
 
     <artifactId>composum-sling-platform-commons-bundle</artifactId>
@@ -24,11 +24,6 @@
 
             <plugin>
                 <groupId>org.apache.felix</groupId>
-                <artifactId>maven-scr-plugin</artifactId>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
                 <extensions>true</extensions>
                 <configuration>
@@ -42,11 +37,14 @@
                             com.composum.platform.commons.*
                         </Export-Package>
                         <Import-Package>
+                            com.composum.sling.core.*;version="[1.11,2.1)",
+                            com.composum.sling.nodes.*;version="[1.11,2.1)",
+                            com.composum.sling.cpnl.*;version="[1.11,2.1)",
                             org.apache.sling.api.adapter.*;version="[2.2.0,3)",
                             org.apache.sling.api.request.*;version="[2.4.1,3)",
                             org.apache.sling.api.resource.*;version="[2.8.0,3)",
                             org.apache.sling.api.servlets.*;version="[2.1.1,3)",
-                            org.apache.sling.api.*;version="[2.3.1,3)",
+                            org.apache.sling.api.*;version="[2.2.2,3)",
                             javax.annotation.*;version="[0,4)",
                             *
                         </Import-Package>
@@ -89,6 +87,10 @@
             <artifactId>org.apache.sling.commons.osgi</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>jackrabbit-jcr-commons</artifactId>
+        </dependency>
+        <dependency>
             <groupId>javax.jcr</groupId>
             <artifactId>jcr</artifactId>
         </dependency>
@@ -104,14 +106,6 @@
         </dependency>
 
         <!-- OSGi, Felix -->
-        <dependency>
-            <groupId>org.apache.felix</groupId>
-            <artifactId>org.apache.felix.scr</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.felix</groupId>
-            <artifactId>org.apache.felix.scr.annotations</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
             <artifactId>org.osgi.core</artifactId>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0" xmlns:jcr="http://www.jcp.org/jcr/1.0"
+        jcr:primaryType="sling:OrderedFolder"
+        depends="[fonts/roboto/2014/roboto.css,
+                  jslibs/bootstrap/3.4.1/css/bootstrap.css,
+                  composum/platform/public/page/css/page.css,
+                  composum/platform/public/login/css/login.css]"/>

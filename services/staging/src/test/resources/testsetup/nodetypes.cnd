@@ -1,0 +1,26 @@
+<'nt'='http://www.jcp.org/jcr/nt/1.0'>
+<'mix'='http://www.jcp.org/jcr/mix/1.0'>
+<'jcr'='http://www.jcp.org/jcr/1.0'>
+<'sling'='http://sling.apache.org/jcr/sling/1.0'>
+<'cpl'='http://sling.composum.com/platform/1.0'>
+
+/* Mixin that makes a node a root of a release. This is currently just a marker mixin.
+ */
+[cpl:releaseRoot]
+  mixin
+
+/* References a version within the release tree. Allows other attributes / child nodes as release metadata.
+   cpl:versionHistory is the jcr:uuid of the nt:versionHistory - the jcr:versionHistory attribute in mix:versionable ,
+   cpl:version is the jcr:uuid of the nt:version, as in the jcr:baseVersion attribute of mix:versionable,
+   cpl:versionableUuid is the jcr:uuid of the mix:versionable, as in the jcr:versionableUuid of nt:version,
+   cpl:deactivated if true this reference is ignored
+ */
+[cpl:VersionReference] > nt:base
+  - cpl:version (REFERENCE) mandatory
+  - cpl:versionHistory (REFERENCE) mandatory
+  - cpl:versionableUuid (WEAKREFERENCE) mandatory
+  - cpl:deactivated (BOOLEAN)
+  - * (UNDEFINED) multiple
+  - * (UNDEFINED)
+  + * (nt:base) = nt:unstructured VERSION
+

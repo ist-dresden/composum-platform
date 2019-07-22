@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0" xmlns:jcr="http://www.jcp.org/jcr/1.0"
+          jcr:primaryType="sling:OrderedFolder"
+          depends="[jslibs/jquery/3.4.1/jquery.js,
+                    jslibs/underscore/1.9.1/underscore.js,
+                    jslibs/backbone/1.4.0/backbone.js,
+                    jslibs/bootstrap/3.4.1/js/bootstrap.js,
+                    composum/platform/public/login/js/login.js]"/>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>com.composum.sling.platform</groupId>
+		<artifactId>composum-sling-platform</artifactId>
+		<version>1.0.1</version>
+	</parent>
+
+    <artifactId>composum-sling-platform-cache</artifactId>
+	<packaging>pom</packaging>
+
+    <name>Composum Platform Cache Feature</name>
+    <description>Maven parent for the Composum Platform Cache module</description>
+
+	<modules>
+		<module>ehcache</module>
+		<module>bundle</module>
+		<module>package</module>
+	</modules>
+
+</project>

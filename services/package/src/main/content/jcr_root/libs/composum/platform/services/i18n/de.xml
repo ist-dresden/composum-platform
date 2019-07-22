@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0" xmlns:jcr="http://www.jcp.org/jcr/1.0"
+          jcr:language="de"
+          jcr:mixinTypes="[mix:language]"
+          jcr:primaryType="sling:Folder"
+          sling:basename="composum-platform-services">
+
+    <servlet jcr:primaryType="sling:Folder">
+        <activateOnlyContent jcr:primaryType="sling:MessageEntry"
+                             sling:key="Can only activate references from /content, but got: {}"
+                             sling:message="Es können nur Seiten aus /content aktiviert werden, nicht aber: {}"/>
+        <referenceToActivateNotFound jcr:primaryType="sling:MessageEntry"
+                                     sling:key="Reference to activate not found: {}"
+                                     sling:message="Verweis zum Aktivieren nicht gefunden: {}"/>
+        <referrerToDeactivateNotFound jcr:primaryType="sling:MessageEntry"
+                                      sling:key="Referrer to deactivate not found: {}"
+                                      sling:message="Verweiser zum Deaktivieren nicht gefunden: {}"/>
+        <pageToRevertNotFound jcr:primaryType="sling:MessageEntry"
+                              sling:key="Page to revert not found: {}"
+                              sling:message="Seite zum Zurücksetzen nicht gefunden: {}"/>
+        <resourceNotVersionable jcr:primaryType="sling:MessageEntry"
+                                sling:key="Resource is not versionable: {}"
+                                sling:message="Resource ist nicht versionierbar: {}"/>
+    </servlet>
+
+</jcr:root>

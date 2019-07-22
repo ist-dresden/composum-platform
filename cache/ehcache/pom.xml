@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.ehcache</groupId>
+    <artifactId>ehcache-bundle</artifactId>
+    <version>3.4.0</version>
+    <packaging>bundle</packaging>
+
+    <name>EhCache bundle</name>
+
+    <properties>
+        <bundle.category>platform,cache</bundle.category>
+        <bundle.name>org.ehcache-bundle</bundle.name>
+        <sling.scheme>http</sling.scheme>
+        <sling.secure>false</sling.secure>
+        <sling.host>localhost</sling.host>
+        <sling.port>9090</sling.port>
+        <sling.context></sling.context>
+        <sling.user>admin</sling.user>
+        <sling.password>admin</sling.password>
+        <source.encoding>UTF-8</source.encoding>
+        <java.source>1.7</java.source>
+        <java.target>1.7</java.target>
+        <maven.compiler.source>${java.source}</maven.compiler.source>
+        <maven.compiler.target>${java.target}</maven.compiler.target>
+    </properties>
+
+    <scm>
+        <connection>scm:git:https://github.com/ist-dresden/composum-platform.git</connection>
+        <developerConnection>scm:git:https://github.com/ist-dresden/composum-platform.git</developerConnection>
+        <url>https://github.com/ist-dresden/composum-platform.git</url>
+    </scm>
+
+    <distributionManagement>
+        <repository>
+            <id>archiva</id>
+            <url>https://build.ist-software.com/archiva/repository/releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>archiva</id>
+            <url>https://build.ist-software.com/archiva/repository/snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+    <build>
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.0.1</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <version>3.3.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Bundle-Category>${bundle.category}</Bundle-Category>
+                        <Bundle-SymbolicName>${bundle.name}</Bundle-SymbolicName>
+                        <Include-Resource>
+                            {maven-resources}
+                        </Include-Resource>
+                        <Export-Package>
+                            org.ehcache.*
+                        </Export-Package>
+                        <Import-Package>
+                            sun.misc;resolution:=optional,
+                            *
+                        </Import-Package>
+                        <Embed-Dependency>
+                            *;scope=compile|runtime
+                        </Embed-Dependency>
+                    </instructions>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.sling</groupId>
+                <artifactId>maven-sling-plugin</artifactId>
+                <version>2.3.8</version>
+                <configuration>
+                    <slingUrl>${sling.scheme}://${sling.host}:${sling.port}${sling.context}/system/console/install</slingUrl>
+                    <user>${sling.user}</user>
+                    <password>${sling.password}</password>
+                </configuration>
+            </plugin>
+
+        </plugins>
+    </build>
+    <dependencies>
+
+        <dependency>
+            <groupId>org.ehcache</groupId>
+            <artifactId>ehcache</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>javax.cache</groupId>
+            <artifactId>cache-api</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.enterprise</groupId>
+            <artifactId>cdi-api</artifactId>
+            <version>2.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.interceptor</groupId>
+            <artifactId>javax.interceptor-api</artifactId>
+            <version>1.2.1</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.el</groupId>
+            <artifactId>javax.el-api</artifactId>
+            <version>3.0.0</version>
+            <scope>compile</scope>
+        </dependency>
+
+    </dependencies>
+    <profiles>
+
+        <profile>
+            <id>installBundle</id>
+            <!--
+            <activation>
+                <property>
+                    <name>deploy.bundle</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+
+                    <plugin>
+                        <groupId>org.apache.sling</groupId>
+                        <artifactId>maven-sling-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>install-bundle</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>install</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                </plugins>
+            </build>
+            -->
+        </profile>
+        <profile>
+            <id>installPackage</id>
+        </profile>
+        <profile>
+            <id>installTestContent</id>
+        </profile>
+
+    </profiles>
+</project>

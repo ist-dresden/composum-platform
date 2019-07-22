@@ -6,9 +6,13 @@ yet another Apache Sling based Application Platform (asap)
 
 the central services to set up an Apache Sling based application platform
 
-* [Composum Platform Wiki](https://ist-software.atlassian.net/wiki/display/CMP/Composum)
+* [Composum Platform Wiki](https://ist-software.atlassian.net/wiki/display/CMP/Composum+Platform)
 
 ### see also
+
+#### [Composum Pages](https://github.com/ist-dresden/composum-pages)
+
+* [Composum Pages Wiki](https://ist-software.atlassian.net/wiki/display/CMP/Composum+Pages)
 
 #### [Composum Assets](https://github.com/ist-dresden/composum-assets)
 

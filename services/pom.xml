@@ -1,0 +1,24 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>com.composum.sling.platform</groupId>
+		<artifactId>composum-sling-platform</artifactId>
+		<version>1.0.1</version>
+	</parent>
+
+    <artifactId>composum-sling-platform-services</artifactId>
+	<packaging>pom</packaging>
+
+    <name>Composum Platform Services</name>
+    <description>Maven parent for Composum Platform core services</description>
+
+	<modules>
+		<module>security</module>
+		<module>staging</module>
+		<module>setup</module>
+		<module>package</module>
+	</modules>
+
+</project>

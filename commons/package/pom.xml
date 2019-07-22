@@ -6,13 +6,13 @@
     <parent>
         <groupId>com.composum.sling.platform</groupId>
         <artifactId>composum-sling-platform-commons</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.1</version>
     </parent>
 
     <artifactId>composum-sling-platform-commons-package</artifactId>
     <packaging>content-package</packaging>
 
-    <name>Composum Platfrom Commons Package</name>
+    <name>Composum Platform Commons Package</name>
     <description>the commons features for the platform bundled as a package</description>
 
     <build>

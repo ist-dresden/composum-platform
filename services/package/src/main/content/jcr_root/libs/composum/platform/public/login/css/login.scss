@@ -1,0 +1,17 @@
+.composum-platform-public-login {
+
+    &_body {
+
+        .composum-platform-public {
+
+            &_content {
+
+                .hint-hidden, .alert-hidden {
+                    display: block;
+                    border: none;
+                    box-shadow: none;
+                }
+            }
+        }
+    }
+}

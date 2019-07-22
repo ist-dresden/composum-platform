@@ -1,12 +1,12 @@
 package com.composum.platform.commons.request.service;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.engine.SlingRequestProcessor;
 import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
+import org.osgi.framework.Constants;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,12 +14,11 @@ import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.IOException;
 
-@SuppressWarnings("deprecation")
 @Component(
-        label = "Composum Platform Commons Internal Request Service",
-        description = "performs requests to repository resources internal"
+        property = {
+                Constants.SERVICE_DESCRIPTION + "=Composum Platform Commons Internal Request Service"
+        }
 )
-@Service
 public class InternalRequestServiceImpl implements InternalRequestService {
 
     private static final Logger LOG = LoggerFactory.getLogger(InternalRequestServiceImpl.class);
@@ -52,8 +51,13 @@ public class InternalRequestServiceImpl implements InternalRequestService {
     protected SlingResponse doGet(@Nonnull SlingHttpServletRequest contextRequest, @Nonnull PathInfo pathInfo)
             throws ServletException, IOException {
         SlingResponse response = null;
-        if (StringUtils.isNotBlank(pathInfo.getResourcePath())) {
+        String path = pathInfo.getResourcePath();
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("doGet({})", path);
+        }
+        if (StringUtils.isNotBlank(path)) {
             SlingRequest request = new SlingRequest(contextRequest, pathInfo);
+            request.setAttribute(RA_IS_INTERNAL_REQUEST, Boolean.TRUE);
             response = new SlingResponse();
             slingRequestProcessor.processRequest(request, response, contextRequest.getResourceResolver());
         }

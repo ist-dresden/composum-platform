@@ -1,0 +1,227 @@
+[
+  {
+    "path": "/",
+    "acl": [
+      {
+        "principal": "everyone"
+      },
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/content",
+    "acl": [
+      {
+        "principal": "everyone"
+      }
+    ]
+  },
+  {
+    "path": "/apps",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/clientlib"
+            }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/clientlib/*"
+            }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/clientlibs"
+            }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/clientlibs/*"
+            }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/*.css"
+            }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/*.css/jcr:content"
+            }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/*.js"
+            }
+          },
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": "/*/*.js/jcr:content"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/composum/nodes",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/composum/nodes/commons",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/sling",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/sling/servlet",
+    "acl": [
+      {
+        "principal": "everyone",
+        "condition": "",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/libs/sling/servlet/errorhandler",
+    "acl": [
+      {
+        "principal": "everyone",
+        "condition": "",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/var",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/var/composum",
+    "jcr:primaryType": "sling:Folder",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/var/composum/clientlibs",
+    "jcr:primaryType": "sling:Folder",
+    "acl": [
+      {
+        "principal": "everyone",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  }
+]
