@@ -5,11 +5,11 @@
 
     <parent>
         <groupId>com.composum.sling.platform</groupId>
-        <artifactId>composum-sling-platform-services</artifactId>
+        <artifactId>composum-platform-services</artifactId>
         <version>1.0.2-SNAPSHOT</version>
     </parent>
 
-    <artifactId>composum-sling-platform-services-package</artifactId>
+    <artifactId>composum-platform-services-package</artifactId>
     <packaging>content-package</packaging>
 
     <name>Composum Platform Services Package</name>
@@ -81,7 +81,7 @@
                             <artifactItems>
                                 <artifactItem>
                                     <groupId>${project.groupId}</groupId>
-                                    <artifactId>composum-sling-platform-services-setup</artifactId>
+                                    <artifactId>composum-platform-services-setup</artifactId>
                                     <outputDirectory>${project.build.directory}/vault-work/META-INF/vault/hooks</outputDirectory>
                                 </artifactItem>
                             </artifactItems>
@@ -118,8 +118,8 @@
                             <root>/libs/composum/platform/install</root>
                             <includes>
                                 <include>.*/org.apache.sling.tenant.*\.jar</include>
-                                <include>.*/composum-sling-platform-security-bundle.*\.jar</include>
-                                <include>.*/composum-sling-platform-staging-bundle.*\.jar</include>
+                                <include>.*/composum-platform-security-bundle.*\.jar</include>
+                                <include>.*/composum-platform-staging-bundle.*\.jar</include>
                                 <include>.*/org.apache.sling.jcr.oak.server.internal.OakSlingRepositoryManager.config</include>
                                 <include>.*/org.apache.sling.auth.form.FormAuthenticationHandler.config</include>
                                 <include>.*/org.apache.sling.engine.impl.auth.SlingAuthenticator.config</include>
@@ -136,12 +136,12 @@
                         </embedded>
                         <embedded>
                             <groupId>${project.groupId}</groupId>
-                            <artifactId>composum-sling-platform-security-bundle</artifactId>
+                            <artifactId>composum-platform-security-bundle</artifactId>
                             <target>/libs/composum/platform/install</target>
                         </embedded>
                         <embedded>
                             <groupId>${project.groupId}</groupId>
-                            <artifactId>composum-sling-platform-staging-bundle</artifactId>
+                            <artifactId>composum-platform-staging-bundle</artifactId>
                             <target>/libs/composum/platform/install</target>
                         </embedded>
                     </embeddeds>
@@ -156,29 +156,29 @@
         <!-- Package Bundles -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>composum-sling-platform-security-bundle</artifactId>
+            <artifactId>composum-platform-security-bundle</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>composum-sling-platform-staging-bundle</artifactId>
+            <artifactId>composum-platform-staging-bundle</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>composum-sling-platform-services-setup</artifactId>
+            <artifactId>composum-platform-services-setup</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <!-- Composum Platform -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>composum-sling-platform-models-bundle</artifactId>
+            <artifactId>composum-platform-models-bundle</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>composum-sling-platform-commons-bundle</artifactId>
+            <artifactId>composum-platform-commons-bundle</artifactId>
             <version>${project.version}</version>
         </dependency>
 

@@ -5,11 +5,11 @@
 
     <parent>
         <groupId>com.composum.sling.platform</groupId>
-        <artifactId>composum-sling-platform-cache</artifactId>
+        <artifactId>composum-platform-cache</artifactId>
         <version>1.0.2-SNAPSHOT</version>
     </parent>
 
-    <artifactId>composum-sling-platform-cache-bundle</artifactId>
+    <artifactId>composum-platform-cache-bundle</artifactId>
     <packaging>bundle</packaging>
 
     <name>Composum Platform Cache Bundle</name>
@@ -61,7 +61,7 @@
         <!-- Platform Commons -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>composum-sling-platform-commons-bundle</artifactId>
+            <artifactId>composum-platform-commons-bundle</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>

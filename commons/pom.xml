@@ -5,11 +5,11 @@
 
 	<parent>
 		<groupId>com.composum.sling.platform</groupId>
-		<artifactId>composum-sling-platform</artifactId>
+		<artifactId>composum-platform</artifactId>
 		<version>1.0.2-SNAPSHOT</version>
 	</parent>
 
-    <artifactId>composum-sling-platform-commons</artifactId>
+    <artifactId>composum-platform-commons</artifactId>
 	<packaging>pom</packaging>
 
     <name>Composum Platform Commons</name>
