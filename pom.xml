@@ -12,7 +12,7 @@
     <groupId>com.composum.sling.platform</groupId>
     <artifactId>composum-sling-platform</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.1</version>
+    <version>1.0.2-SNAPSHOT</version>
 
     <name>Composum Platform</name>
     <description>Maven parent for Composum Platform packages</description>
