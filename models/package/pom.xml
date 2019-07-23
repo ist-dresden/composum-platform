@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.composum.sling.platform</groupId>
         <artifactId>composum-platform-models</artifactId>
-        <version>1.0.3</version>
+        <version>1.0.4-SNAPSHOT</version>
     </parent>
 
     <artifactId>composum-platform-models-package</artifactId>
