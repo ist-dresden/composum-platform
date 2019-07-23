@@ -3,9 +3,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.composum.sling.platform</groupId>
+        <groupId>com.composum.platform</groupId>
         <artifactId>composum-platform-services</artifactId>
-        <version>1.0.3</version>
+        <version>1.0.4</version>
     </parent>
 
     <artifactId>composum-platform-staging-bundle</artifactId>
@@ -58,7 +58,7 @@
 
         <!-- Composum Platform -->
         <dependency>
-            <groupId>com.composum.sling.platform</groupId>
+            <groupId>com.composum.platform</groupId>
             <artifactId>composum-platform-security-bundle</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
@@ -68,7 +68,7 @@
             <artifactId>composum-sling-core-commons</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.composum.sling.platform</groupId>
+            <groupId>com.composum.platform</groupId>
             <artifactId>composum-platform-commons-bundle</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -247,7 +247,7 @@
             <artifactId>mockito-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.composum.sling.platform</groupId>
+            <groupId>com.composum.platform</groupId>
             <artifactId>composum-platform-testing-testutil</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
