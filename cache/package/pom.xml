@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.composum.sling.platform</groupId>
         <artifactId>composum-platform-cache</artifactId>
-        <version>1.0.2</version>
+        <version>1.0.3</version>
     </parent>
 
     <artifactId>composum-platform-cache-package</artifactId>
@@ -143,9 +143,6 @@
     <profiles>
 
         <profile>
-            <id>installBundle</id>
-        </profile>
-        <profile>
             <id>installPackage</id>
             <activation>
                 <property>
@@ -172,9 +169,6 @@
 
                 </plugins>
             </build>
-        </profile>
-        <profile>
-            <id>installTestContent</id>
         </profile>
 
     </profiles>

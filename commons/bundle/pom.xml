@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.composum.sling.platform</groupId>
         <artifactId>composum-platform-commons</artifactId>
-        <version>1.0.2</version>
+        <version>1.0.3</version>
     </parent>
 
     <artifactId>composum-platform-commons-bundle</artifactId>
@@ -140,17 +140,4 @@
         </dependency>
 
     </dependencies>
-    <profiles>
-
-        <profile>
-            <id>installBundle</id>
-        </profile>
-        <profile>
-            <id>installPackage</id>
-        </profile>
-        <profile>
-            <id>installTestContent</id>
-        </profile>
-
-    </profiles>
 </project>
