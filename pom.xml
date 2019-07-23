@@ -51,6 +51,7 @@
         <module>models</module>
         <module>services</module>
         <module>testing</module>
+        <module>package</module>
     </modules>
 
     <dependencyManagement>
