@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.composum.sling.platform</groupId>
+        <groupId>com.composum.platform</groupId>
         <artifactId>composum-platform</artifactId>
         <version>1.0.4-SNAPSHOT</version>
     </parent>
@@ -60,28 +60,28 @@
     <dependencies>
 
         <dependency>
-            <groupId>com.composum.sling.platform</groupId>
+            <groupId>com.composum.platform</groupId>
             <artifactId>composum-platform-commons-package</artifactId>
             <version>${project.version}</version>
             <type>zip</type>
         </dependency>
 
         <dependency>
-            <groupId>com.composum.sling.platform</groupId>
+            <groupId>com.composum.platform</groupId>
             <artifactId>composum-platform-cache-package</artifactId>
             <version>${project.version}</version>
             <type>zip</type>
         </dependency>
 
         <dependency>
-            <groupId>com.composum.sling.platform</groupId>
+            <groupId>com.composum.platform</groupId>
             <artifactId>composum-platform-models-package</artifactId>
             <version>${project.version}</version>
             <type>zip</type>
         </dependency>
 
         <dependency>
-            <groupId>com.composum.sling.platform</groupId>
+            <groupId>com.composum.platform</groupId>
             <artifactId>composum-platform-services-package</artifactId>
             <version>${project.version}</version>
             <type>zip</type>

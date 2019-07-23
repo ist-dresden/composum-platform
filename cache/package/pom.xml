@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.composum.sling.platform</groupId>
+        <groupId>com.composum.platform</groupId>
         <artifactId>composum-platform-cache</artifactId>
         <version>1.0.4-SNAPSHOT</version>
     </parent>
