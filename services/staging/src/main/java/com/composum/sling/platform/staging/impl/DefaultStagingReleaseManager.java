@@ -278,7 +278,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Override
     public Release finalizeCurrentRelease(@Nonnull Resource resource, @Nonnull ReleaseNumberCreator releaseType) throws ReleaseExistsException, RepositoryException, PersistenceException {
         ResourceHandle root = findReleaseRoot(resource);
-        ReleaseImpl currentRelease = ReleaseImpl.unwrap(findReleaseImpl(root, StagingConstants.CURRENT_RELEASE));
+        ReleaseImpl currentRelease = ReleaseImpl.unwrap(findRelease(root, StagingConstants.CURRENT_RELEASE));
         String newReleaseNumber = currentRelease.getPreviousRelease() != null ?
                 releaseType.bumpRelease(currentRelease.getPreviousRelease().getNumber()) :
                 releaseType.bumpRelease("");
