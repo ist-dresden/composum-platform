@@ -24,10 +24,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.sling.api.SlingException;
+import org.apache.sling.api.resource.LoginException;
 import org.apache.sling.api.resource.NonExistingResource;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.api.resource.ValueMap;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
@@ -130,6 +132,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Reference
     protected ReleaseChangeEventPublisher publisher;
 
+    @Reference
+    protected ResourceResolverFactory resolverFactory;
+
     @Activate
     @Deactivate
     @Modified
@@ -204,21 +209,34 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         Resource currentReleaseNode = releasesNode.isValid() ? releasesNode.getChild(CURRENT_RELEASE) : null;
         ReleaseImpl currentRelease = null;
         if (currentReleaseNode == null) {
-            try { // implicitly create current release which should always be there.
+            // implicitly create current release which should always be there.
+            try {
+                createCurrentReleaseWithServiceResolver(root);
+                root.getResourceResolver().refresh();
                 currentRelease = ensureRelease(root, CURRENT_RELEASE);
-                Optional<Release> highestNumericRelease = getReleasesImpl(root).stream()
-                        .filter(r -> !CURRENT_RELEASE.equals(r.getNumber()))
-                        .max(Comparator.comparing(Release::getNumber, ReleaseNumberCreator.COMPARATOR_RELEASES));
-                if (highestNumericRelease.isPresent()) {
-                    setPreviousRelease(currentRelease, highestNumericRelease.get());
-                }
-            } catch (RepositoryException | PersistenceException ex) {
+            } catch (RepositoryException | PersistenceException | LoginException ex) {
                 LOG.error("Trouble creating current release for " + root.getPath(), ex);
             }
         } else {
             currentRelease = new ReleaseImpl(root, currentReleaseNode);
         }
         return currentRelease;
+    }
+
+    /** Create the current release using a service resolver since this can be a user who hasn't the rights,
+     * and this can be called during a read operation where not having the rights is perfectly OK. */
+    private void createCurrentReleaseWithServiceResolver(ResourceHandle currentUserRoot) throws LoginException, PersistenceException, RepositoryException {
+        try (ResourceResolver serviceResolver = resolverFactory.getServiceResourceResolver(null)) {
+            Resource root = serviceResolver.getResource(currentUserRoot.getPath());
+            ReleaseImpl currentRelease = ensureRelease(root, CURRENT_RELEASE);
+            Optional<Release> highestNumericRelease = getReleasesImpl(root).stream()
+                    .filter(r -> !CURRENT_RELEASE.equals(r.getNumber()))
+                    .max(Comparator.comparing(Release::getNumber, ReleaseNumberCreator.COMPARATOR_RELEASES));
+            if (highestNumericRelease.isPresent()) {
+                setPreviousRelease(currentRelease, highestNumericRelease.get());
+            }
+            serviceResolver.commit();
+        }
     }
 
     @Nonnull

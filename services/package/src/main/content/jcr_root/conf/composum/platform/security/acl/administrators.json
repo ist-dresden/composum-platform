@@ -138,5 +138,20 @@
         ]
       }
     ]
+  },
+  {
+    "path": "/var/composum/content",
+    "jcr:primaryType": "sling:Folder",
+    "acl": [
+      {
+        "principal": "composum-platform-administrators",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:all"
+          }
+        ]
+      }
+    ]
   }
 ]

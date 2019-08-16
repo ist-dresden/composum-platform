@@ -17,6 +17,7 @@ import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
@@ -38,6 +39,7 @@ import java.util.Calendar;
 import java.util.Collections;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
+import static org.mockito.Mockito.mock;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import static com.composum.sling.platform.testing.testutil.SlingMatchers.satisfies;
 import static org.hamcrest.Matchers.*;
@@ -76,6 +78,8 @@ public abstract class AbstractStagingTest {
         releaseManager = new DefaultStagingReleaseManager() {{
             configuration = AnnotationWithDefaults.of(DefaultStagingReleaseManager.Configuration.class);
             this.publisher = Mockito.mock(ReleaseChangeEventPublisher.class);
+            this.resolverFactory = mock(ResourceResolverFactory.class);
+            when(this.resolverFactory.getServiceResourceResolver(null)).thenAnswer((x) -> context.resourceResolver().clone(null));
         }};
 
         releaseMapper = Mockito.mock(ReleaseMapper.class);
