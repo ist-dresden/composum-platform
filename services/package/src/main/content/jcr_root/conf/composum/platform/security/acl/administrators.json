@@ -144,7 +144,7 @@
     "jcr:primaryType": "sling:Folder",
     "acl": [
       {
-        "principal": "composum-platform-administrators",
+        "principal": "composum-platform-service",
         "acl": [
           {
             "allow": true,
