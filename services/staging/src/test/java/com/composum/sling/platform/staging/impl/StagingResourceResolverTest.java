@@ -60,6 +60,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     private String node2;
     private String unreleasedNode;
     private String unversionedNode;
+    private StagingReleaseManager.Release release;
     private String releasesNode;
     private ResourceBuilder builderAtFolder;
 
@@ -69,6 +70,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
                 Thread.sleep(500); // wait for logging messages to be written
                 JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/folder"));
                 JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/jcr:system/jcr:versionStorage"));
+                JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/var/composum"));
             });
 
     @Before
@@ -89,6 +91,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
         List<StagingReleaseManager.Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
         assertEquals(1, releases.size());
+        release = releases.get(0);
         stagingResourceResolver = (StagingResourceResolver) releaseManager.getResolverForRelease(releases.get(0), releaseMapper, false);
         releasesNode = StagingConstants.RELEASE_ROOT_PATH + folder + '/' + StagingConstants.NODE_RELEASES;
         assertNotNull(context.resourceResolver().getResource(releasesNode));
@@ -191,6 +194,21 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     public void releasedIsFound() {
         for (String path : new String[]{node1, node2, node1 + "/" + PROP_PRIMARY_TYPE})
             assertThat(path, stagingResourceResolver.getResource(path), existsInclusiveParents());
+    }
+
+    @Test
+    public void deactivatedFolderIsHidden() throws RepositoryException {
+        assertThat(node2, stagingResourceResolver.getResource(document1), existsInclusiveParents());
+        assertThat(node2, stagingResourceResolver.getResource(document1 + "/jcr:content"), existsInclusiveParents());
+
+        String path = releasesNode + "/current/root/document1";
+        Resource releaseCopyOfDocument1 = context.resourceResolver().getResource(path);
+        assertNotNull(path, releaseCopyOfDocument1);
+        // hide the document
+        ResourceHandle.use(releaseCopyOfDocument1).setProperty(StagingConstants.PROP_DEACTIVATED, true);
+
+        assertNull(stagingResourceResolver.getResource(document1));
+        assertNull(stagingResourceResolver.getResource(document1 + "/jcr:content"));
     }
 
     @Test

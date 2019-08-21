@@ -64,6 +64,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -551,15 +552,15 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         return new HashMap<>();
     }
 
-    protected void applyPlugins(Release rawRelease, List<ReleasedVersionable> releasedVersionableList) {
+    protected void applyPlugins(Release rawRelease, List<ReleasedVersionable> releasedVersionableList) throws RepositoryException {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         ArrayList<StagingReleaseManagerPlugin> pluginscopy = new ArrayList<>(plugins); // avoid concurrent modifiation problems
-        List<String> changedPaths = new ArrayList<>();
+        Set<String> changedPaths = new HashSet<>();
         for (ReleasedVersionable releasedVersionable : releasedVersionableList) {
             changedPaths.add(release.mapToContentCopy(releasedVersionable.getRelativePath()));
         }
         for (StagingReleaseManagerPlugin plugin : pluginscopy) {
-            plugin.fixupReleaseForChanges(release, changedPaths);
+            plugin.fixupReleaseForChanges(release, release.getWorkspaceCopyNode(), changedPaths);
         }
     }
 

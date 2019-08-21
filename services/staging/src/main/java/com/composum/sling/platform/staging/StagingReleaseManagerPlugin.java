@@ -1,9 +1,11 @@
 package com.composum.sling.platform.staging;
 
 import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
+import org.apache.sling.api.resource.Resource;
 
 import javax.annotation.Nonnull;
-import java.util.List;
+import javax.jcr.RepositoryException;
+import java.util.Set;
 
 /**
  * A hook into the {@link DefaultStagingReleaseManager}.
@@ -17,9 +19,10 @@ public interface StagingReleaseManagerPlugin {
      * the pages consist of a cpp:Page node (which can have subpages) with a mandatory cpp:PageContent, which is versionable
      * and can be deactivated, and thus vanish. This needs a workaround.
      *
-     * @param release      the release this applies to
-     * @param changedPaths a list of paths to {@link StagingConstants#TYPE_VERSIONREFERENCE} within the releases worktree copy for which there have been changes
+     * @param release           the release this applies to
+     * @param workspaceCopyNode the root of the workspace copy of the release
+     * @param changedPaths      a list of paths to {@link StagingConstants#TYPE_VERSIONREFERENCE} within the releases worktree copy for which there have been changes
      */
-    void fixupReleaseForChanges(@Nonnull StagingReleaseManager.Release release, @Nonnull List<String> changedPaths);
+    void fixupReleaseForChanges(@Nonnull StagingReleaseManager.Release release, Resource workspaceCopyNode, @Nonnull Set<String> changedPaths) throws RepositoryException;
 
 }

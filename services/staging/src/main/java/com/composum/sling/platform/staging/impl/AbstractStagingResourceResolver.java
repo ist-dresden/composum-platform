@@ -1,6 +1,9 @@
 package com.composum.sling.platform.staging.impl;
 
+import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.core.util.PropertyUtil;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.platform.staging.StagingConstants;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.NonExistingResource;
@@ -53,7 +56,9 @@ public abstract class AbstractStagingResourceResolver implements ResourceResolve
     public Resource wrapIntoStagingResource(@Nonnull String path, @Nullable Resource underlyingResource, @Nullable HttpServletRequest request, boolean useNonExisting) {
         if (underlyingResource == null)
             return useNonExisting ? new NonExistingResource(this, path) : null;
+
         if (ResourceUtil.isNonExistingResource(underlyingResource)) return useNonExisting ? underlyingResource : null;
+
         SlingHttpServletRequest slingRequest = (request instanceof SlingHttpServletRequest) ? (SlingHttpServletRequest) request : null;
         return new StagingResource(path, this, underlyingResource,
                 slingRequest != null ? slingRequest.getRequestPathInfo() : null);

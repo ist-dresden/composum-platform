@@ -203,6 +203,8 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
             if (underlyingResource != null)
                 underlyingResource = underlyingResource.getChild(JcrConstants.JCR_FROZENNODE);
             return underlyingResource;
+        } else if (resource.getValueMap().get(StagingConstants.PROP_DEACTIVATED, false)) {
+            return null;
         }
         return resource;
     }
