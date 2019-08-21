@@ -34,7 +34,7 @@ import java.io.IOException;
 @Component(
         service = {Filter.class},
         property = {
-                Constants.SERVICE_DESCRIPTION + "=Component Include Cache Filter",
+                Constants.SERVICE_DESCRIPTION + "=Composum Platform Component Cache Include Filter",
                 "sling.filter.scope=INCLUDE",
                 "service.ranking:Integer=" + 4900
         }

@@ -48,7 +48,7 @@ public interface ComponentCache {
     }
 
     @ObjectClassDefinition(
-            name = "Component Cache Configuration"
+            name = "Composum Platform Component Cache Configuration"
     )
     @interface Config {
 

@@ -29,7 +29,7 @@ import java.util.List;
 @Component(
         service = {Filter.class},
         property = {
-                Constants.SERVICE_DESCRIPTION + "=Component Request Cache Filter",
+                Constants.SERVICE_DESCRIPTION + "=Composum Platform Component Cache Request Filter",
                 "sling.filter.scope=REQUEST",
                 "service.ranking:Integer=" + 4910
         }

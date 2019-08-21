@@ -7,7 +7,7 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
  * the general caching service configuration 'object'
  */
 @ObjectClassDefinition(
-        name = "Cache Service Configuration"
+        name = "Composum Platform Cache Service Configuration"
 )
 public @interface CacheConfiguration {
 

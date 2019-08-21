@@ -23,7 +23,7 @@ import java.io.Serializable;
  */
 @Component(
         property = {
-                Constants.SERVICE_DESCRIPTION + "=Component Cache"
+                Constants.SERVICE_DESCRIPTION + "=Composum Platform Component Cache"
         },
         configurationPolicy = ConfigurationPolicy.REQUIRE
 )

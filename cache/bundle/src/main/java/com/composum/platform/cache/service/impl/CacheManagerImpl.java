@@ -28,7 +28,7 @@ import java.util.Map;
 @Component(
         service = {CacheManager.class},
         property = {
-                Constants.SERVICE_DESCRIPTION + "=Cache Services Manager"
+                Constants.SERVICE_DESCRIPTION + "=Composum Platform Cache Services Manager"
         },
         immediate = true
 )
