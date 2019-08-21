@@ -8,6 +8,7 @@ import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.ActivationInfo;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
+import com.composum.sling.platform.staging.StagingReleaseManagerPlugin;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.ReleasedVersionable;
@@ -37,6 +38,8 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
@@ -134,6 +137,26 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Reference
     protected ResourceResolverFactory resolverFactory;
+
+    protected final List<StagingReleaseManagerPlugin> plugins = Collections.synchronizedList(new ArrayList<>());
+
+    @Reference(
+            service = StagingReleaseManagerPlugin.class,
+            policy = ReferencePolicy.DYNAMIC,
+            cardinality = ReferenceCardinality.MULTIPLE
+    )
+    protected void addReleaseManagerPlugin(@Nonnull StagingReleaseManagerPlugin plugin) {
+        LOG.info("Adding plugin {}@{}", plugin.getClass().getName(), System.identityHashCode(plugin));
+        Iterator<StagingReleaseManagerPlugin> it = plugins.iterator();
+        while (it.hasNext()) { if (it.next() == plugin) { it.remove(); } }
+        plugins.add(plugin);
+    }
+
+    protected void removeReleaseManagerPlugin(@Nonnull StagingReleaseManagerPlugin plugin) {
+        LOG.info("Removing plugin {}@{}", plugin.getClass().getName(), System.identityHashCode(plugin));
+        Iterator<StagingReleaseManagerPlugin> it = plugins.iterator();
+        while (it.hasNext()) { if (it.next() == plugin) { it.remove(); } }
+    }
 
     @Activate
     @Deactivate
@@ -466,6 +489,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             Map<String, Result> partialResult = updateReleaseInternal(release, releasedVersionable, event);
             result = Result.combine(result, partialResult);
         }
+        applyPlugins(release, releasedVersionableList);
         publisher.publishActivation(event);
         return result;
     }
@@ -525,6 +549,18 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         if (!delete) { return updateParents(release, releasedVersionable); }
         return new HashMap<>();
+    }
+
+    protected void applyPlugins(Release rawRelease, List<ReleasedVersionable> releasedVersionableList) {
+        ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
+        ArrayList<StagingReleaseManagerPlugin> pluginscopy = new ArrayList<>(plugins); // avoid concurrent modifiation problems
+        List<String> changedPaths = new ArrayList<>();
+        for (ReleasedVersionable releasedVersionable : releasedVersionableList) {
+            changedPaths.add(release.mapToContentCopy(releasedVersionable.getRelativePath()));
+        }
+        for (StagingReleaseManagerPlugin plugin : pluginscopy) {
+            plugin.fixupReleaseForChanges(release, changedPaths);
+        }
     }
 
     protected void updateEvent(@Nonnull Release release, @Nullable ReleasedVersionable before, @Nonnull ReleasedVersionable after, @Nonnull ReleaseChangeEventListener.ReleaseChangeEvent event) {
@@ -987,18 +1023,29 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             }
         }
 
-        /** Maps paths pointing into the release content to the release content copy. */
+        /**
+         * Maps paths pointing into the release content to the release content copy.
+         *
+         * @param path an absolute or relative path
+         * @return if path is absolute, return the path in the releases content copy that corresponds to that path - we don't check whether it actually exists.
+         * If it is relative, returns the path in the releases content copy that has that path relative to the release.
+         */
         @Nonnull
         public String mapToContentCopy(@Nonnull String path) {
-            if (appliesToPath(path)) {
-                path = ResourceUtil.normalize(path);
-                if (releaseRoot.getPath().equals(path)) {
-                    path = getWorkspaceCopyNode().getPath();
-                } else if (null != path) {
-                    assert path.startsWith(releaseRoot.getPath());
-                    path = getWorkspaceCopyNode().getPath() + '/'
-                            + path.substring(releaseRoot.getPath().length() + 1);
+            if (path.startsWith("/")) {
+                if (appliesToPath(path)) {
+                    path = ResourceUtil.normalize(path);
+                    if (releaseRoot.getPath().equals(path)) {
+                        path = getWorkspaceCopyNode().getPath();
+                    } else if (null != path) {
+                        assert path.startsWith(releaseRoot.getPath());
+                        path = getWorkspaceCopyNode().getPath() + '/'
+                                + path.substring(releaseRoot.getPath().length() + 1);
+                    }
                 }
+            } else { // relative path
+                ResourceUtil.normalize(getWorkspaceCopyNode().getPath() + '/'
+                        + path);
             }
             return path;
         }
