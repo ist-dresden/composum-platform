@@ -490,7 +490,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             Map<String, Result> partialResult = updateReleaseInternal(release, releasedVersionable, event);
             result = Result.combine(result, partialResult);
         }
-        applyPlugins(release, releasedVersionableList);
+        applyPlugins(release, releasedVersionableList, event);
         publisher.publishActivation(event);
         return result;
     }
@@ -552,7 +552,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         return new HashMap<>();
     }
 
-    protected void applyPlugins(Release rawRelease, List<ReleasedVersionable> releasedVersionableList) throws RepositoryException {
+    protected void applyPlugins(Release rawRelease, List<ReleasedVersionable> releasedVersionableList, ReleaseChangeEventListener.ReleaseChangeEvent event) throws RepositoryException {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         ArrayList<StagingReleaseManagerPlugin> pluginscopy = new ArrayList<>(plugins); // avoid concurrent modifiation problems
         Set<String> changedPaths = new HashSet<>();
@@ -560,7 +560,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             changedPaths.add(release.mapToContentCopy(releasedVersionable.getRelativePath()));
         }
         for (StagingReleaseManagerPlugin plugin : pluginscopy) {
-            plugin.fixupReleaseForChanges(release, release.getWorkspaceCopyNode(), changedPaths);
+            plugin.fixupReleaseForChanges(release, release.getWorkspaceCopyNode(), changedPaths, event);
         }
     }
 

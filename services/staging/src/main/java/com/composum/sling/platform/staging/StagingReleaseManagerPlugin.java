@@ -22,7 +22,8 @@ public interface StagingReleaseManagerPlugin {
      * @param release           the release this applies to
      * @param workspaceCopyNode the root of the workspace copy of the release
      * @param changedPaths      a list of paths to {@link StagingConstants#TYPE_VERSIONREFERENCE} within the releases worktree copy for which there have been changes
+     * @param event             the release change event that is going to be sent - might get updated by the plugin if it changes things
      */
-    void fixupReleaseForChanges(@Nonnull StagingReleaseManager.Release release, Resource workspaceCopyNode, @Nonnull Set<String> changedPaths) throws RepositoryException;
+    void fixupReleaseForChanges(@Nonnull StagingReleaseManager.Release release, Resource workspaceCopyNode, @Nonnull Set<String> changedPaths, ReleaseChangeEventListener.ReleaseChangeEvent event) throws RepositoryException;
 
 }
