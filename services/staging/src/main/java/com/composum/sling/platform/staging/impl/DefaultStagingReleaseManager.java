@@ -548,7 +548,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         updateEvent(release, previousRV, releasedVersionable, event);
 
-        if (!delete) { return updateParents(release, releasedVersionable); }
+        if (!delete) { return updateParents(release, releasedVersionable, event); }
         return new HashMap<>();
     }
 
@@ -647,7 +647,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
      * @return a map with paths where we changed the order of children in the release.
      */
     @Nonnull
-    protected Map<String, Result> updateParents(ReleaseImpl release, ReleasedVersionable releasedVersionable) throws RepositoryException {
+    protected Map<String, Result> updateParents(ReleaseImpl release, ReleasedVersionable releasedVersionable, ReleaseChangeEventListener.ReleaseChangeEvent event) throws RepositoryException {
         Map<String, Result> resultMap = new TreeMap<>();
 
         String[] levels = releasedVersionable.getRelativePath().split("/");
@@ -657,7 +657,10 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         NodeTreeSynchronizer sync = new NodeTreeSynchronizer();
 
         while (inWorkspace.isValid() && inRelease.isValid() && !inRelease.isOfType(TYPE_VERSIONREFERENCE)) {
-            sync.updateAttributes(inWorkspace, inRelease, StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES);
+            boolean attributesChanged = sync.updateAttributes(inWorkspace, inRelease, StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES);
+            if (attributesChanged) {
+                event.addMoveOrUpdate(inWorkspace.getPath(), inWorkspace.getPath());
+            }
             if (!levelIterator.hasNext()) { break; }
             String level = levelIterator.next();
             inWorkspace = ResourceHandle.use(inWorkspace.getChild(level));
@@ -665,7 +668,10 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             if (inWorkspace.isValid() && inRelease.isValid()) {
                 // we do that for all nodes except the root but including the version reference itself:
                 Result result = updateSiblingOrder(inWorkspace, inRelease);
-                if (result != Result.unchanged) { resultMap.put(inWorkspace.getParent().getPath(), result); }
+                if (result != Result.unchanged) {
+                    resultMap.put(inWorkspace.getParentPath(), result);
+                    event.addMoveOrUpdate(inWorkspace.getParentPath(), inWorkspace.getPath());
+                }
             }
         }
 
