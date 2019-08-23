@@ -19,9 +19,11 @@ import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import com.google.common.base.Function;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
+import org.apache.sling.api.resource.LoginException;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.hamcrest.ResourceMatchers;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
@@ -33,6 +35,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -71,6 +75,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link DefaultStagingReleaseManager}.
@@ -105,7 +110,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     private final ReleaseChangeEventPublisher releaseChangeEventPublisher = mock(ReleaseChangeEventPublisher.class);
 
     @Before
-    public void setup() throws ParseException, RepositoryException, IOException {
+    public void setup() throws ParseException, RepositoryException, IOException, LoginException {
         ResourceBuilder builder = context.build().withIntermediatePrimaryType(TYPE_UNSTRUCTURED);
         Session session = context.resourceResolver().adaptTo(Session.class);
         versionManager = session.getWorkspace().getVersionManager();
@@ -121,6 +126,8 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         service = new DefaultStagingReleaseManager() {{
             this.configuration = AnnotationWithDefaults.of(DefaultStagingReleaseManager.Configuration.class);
             this.publisher = releaseChangeEventPublisher;
+            this.resolverFactory = mock(ResourceResolverFactory.class);
+            when(this.resolverFactory.getServiceResourceResolver(null)).thenAnswer((x) -> context.resourceResolver().clone(null));
         }};
         // Make sure we check each time that the JCR repository is consistent and avoid weird errors
         // that happen because queries don't find uncommitted values.

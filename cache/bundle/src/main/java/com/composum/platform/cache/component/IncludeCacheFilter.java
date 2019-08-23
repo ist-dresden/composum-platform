@@ -34,7 +34,7 @@ import java.io.IOException;
 @Component(
         service = {Filter.class},
         property = {
-                Constants.SERVICE_DESCRIPTION + "=Component Include Cache Filter",
+                Constants.SERVICE_DESCRIPTION + "=Composum Platform Component Cache Include Filter",
                 "sling.filter.scope=INCLUDE",
                 "service.ranking:Integer=" + 4900
         }
@@ -43,11 +43,17 @@ public class IncludeCacheFilter implements Filter {
 
     private static final Logger LOG = LoggerFactory.getLogger(IncludeCacheFilter.class);
 
+    public static final String ACCESS_MODE_AUTHOR = "AUTHOR";
+    public static final String ACCESS_MODE_KEY = "composum-platform-access-mode";
+
+    public static final String ATTR_CPM_RELEASE = "composum-platform-release-label";
+    public static final String ATTR_CPM_VERSION = "composum-platform-version-number";
+
     @Reference
     protected ComponentCache service;
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
+    public void init(FilterConfig filterConfig) {
         // ignore
     }
 
@@ -77,7 +83,8 @@ public class IncludeCacheFilter implements Filter {
                 writer.name("includes").beginArray();
             }
 
-            if (config.enabled()) {
+            if (config.enabled() &&
+                    !ACCESS_MODE_AUTHOR.equals(request.getAttribute(ACCESS_MODE_KEY))) {
 
                 switch (cachePolicy) {
 
@@ -121,6 +128,7 @@ public class IncludeCacheFilter implements Filter {
                             if (LOG.isDebugEnabled()) {
                                 LOG.debug("doFilter << fromCache: " + resourcePath);
                             }
+                            slingRequest.getRequestProgressTracker().log("from cache: " + cacheKey);
                             if (isDebug) {
                                 // always in cache but trace it in case of a debug request
                                 chain.doFilter(request, response);
@@ -191,6 +199,16 @@ public class IncludeCacheFilter implements Filter {
         }
         if (StringUtils.isNotBlank(value = pathInfo.getSuffix())) {
             cacheKeyBuilder.append('#').append(value);
+        }
+
+        String release = (String) request.getAttribute(ATTR_CPM_RELEASE);
+        if (release != null) {
+            cacheKeyBuilder.append('^').append(release);
+        } else {
+            String version = (String) request.getAttribute(ATTR_CPM_VERSION);
+            if (version != null) {
+                cacheKeyBuilder.append('~').append(version);
+            }
         }
 
         return cacheKeyBuilder.toString();

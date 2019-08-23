@@ -8,6 +8,7 @@ import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.ActivationInfo;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
+import com.composum.sling.platform.staging.StagingReleaseManagerPlugin;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.ReleasedVersionable;
@@ -24,10 +25,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.sling.api.SlingException;
+import org.apache.sling.api.resource.LoginException;
 import org.apache.sling.api.resource.NonExistingResource;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.api.resource.ValueMap;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
@@ -35,6 +38,8 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
@@ -59,6 +64,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -129,6 +135,29 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Reference
     protected ReleaseChangeEventPublisher publisher;
+
+    @Reference
+    protected ResourceResolverFactory resolverFactory;
+
+    protected final List<StagingReleaseManagerPlugin> plugins = Collections.synchronizedList(new ArrayList<>());
+
+    @Reference(
+            service = StagingReleaseManagerPlugin.class,
+            policy = ReferencePolicy.DYNAMIC,
+            cardinality = ReferenceCardinality.MULTIPLE
+    )
+    protected void addReleaseManagerPlugin(@Nonnull StagingReleaseManagerPlugin plugin) {
+        LOG.info("Adding plugin {}@{}", plugin.getClass().getName(), System.identityHashCode(plugin));
+        Iterator<StagingReleaseManagerPlugin> it = plugins.iterator();
+        while (it.hasNext()) { if (it.next() == plugin) { it.remove(); } }
+        plugins.add(plugin);
+    }
+
+    protected void removeReleaseManagerPlugin(@Nonnull StagingReleaseManagerPlugin plugin) {
+        LOG.info("Removing plugin {}@{}", plugin.getClass().getName(), System.identityHashCode(plugin));
+        Iterator<StagingReleaseManagerPlugin> it = plugins.iterator();
+        while (it.hasNext()) { if (it.next() == plugin) { it.remove(); } }
+    }
 
     @Activate
     @Deactivate
@@ -204,21 +233,34 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         Resource currentReleaseNode = releasesNode.isValid() ? releasesNode.getChild(CURRENT_RELEASE) : null;
         ReleaseImpl currentRelease = null;
         if (currentReleaseNode == null) {
-            try { // implicitly create current release which should always be there.
+            // implicitly create current release which should always be there.
+            try {
+                createCurrentReleaseWithServiceResolver(root);
+                root.getResourceResolver().refresh();
                 currentRelease = ensureRelease(root, CURRENT_RELEASE);
-                Optional<Release> highestNumericRelease = getReleasesImpl(root).stream()
-                        .filter(r -> !CURRENT_RELEASE.equals(r.getNumber()))
-                        .max(Comparator.comparing(Release::getNumber, ReleaseNumberCreator.COMPARATOR_RELEASES));
-                if (highestNumericRelease.isPresent()) {
-                    setPreviousRelease(currentRelease, highestNumericRelease.get());
-                }
-            } catch (RepositoryException | PersistenceException ex) {
+            } catch (RepositoryException | PersistenceException | LoginException ex) {
                 LOG.error("Trouble creating current release for " + root.getPath(), ex);
             }
         } else {
             currentRelease = new ReleaseImpl(root, currentReleaseNode);
         }
         return currentRelease;
+    }
+
+    /** Create the current release using a service resolver since this can be a user who hasn't the rights,
+     * and this can be called during a read operation where not having the rights is perfectly OK. */
+    private void createCurrentReleaseWithServiceResolver(ResourceHandle currentUserRoot) throws LoginException, PersistenceException, RepositoryException {
+        try (ResourceResolver serviceResolver = resolverFactory.getServiceResourceResolver(null)) {
+            Resource root = serviceResolver.getResource(currentUserRoot.getPath());
+            ReleaseImpl currentRelease = ensureRelease(root, CURRENT_RELEASE);
+            Optional<Release> highestNumericRelease = getReleasesImpl(root).stream()
+                    .filter(r -> !CURRENT_RELEASE.equals(r.getNumber()))
+                    .max(Comparator.comparing(Release::getNumber, ReleaseNumberCreator.COMPARATOR_RELEASES));
+            if (highestNumericRelease.isPresent()) {
+                setPreviousRelease(currentRelease, highestNumericRelease.get());
+            }
+            serviceResolver.commit();
+        }
     }
 
     @Nonnull
@@ -278,7 +320,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Override
     public Release finalizeCurrentRelease(@Nonnull Resource resource, @Nonnull ReleaseNumberCreator releaseType) throws ReleaseExistsException, RepositoryException, PersistenceException {
         ResourceHandle root = findReleaseRoot(resource);
-        ReleaseImpl currentRelease = ReleaseImpl.unwrap(findReleaseImpl(root, StagingConstants.CURRENT_RELEASE));
+        ReleaseImpl currentRelease = ReleaseImpl.unwrap(findRelease(root, StagingConstants.CURRENT_RELEASE));
         String newReleaseNumber = currentRelease.getPreviousRelease() != null ?
                 releaseType.bumpRelease(currentRelease.getPreviousRelease().getNumber()) :
                 releaseType.bumpRelease("");
@@ -448,6 +490,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             Map<String, Result> partialResult = updateReleaseInternal(release, releasedVersionable, event);
             result = Result.combine(result, partialResult);
         }
+        applyPlugins(release, releasedVersionableList, event);
         publisher.publishActivation(event);
         return result;
     }
@@ -505,8 +548,20 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         updateEvent(release, previousRV, releasedVersionable, event);
 
-        if (!delete) { return updateParents(release, releasedVersionable); }
+        if (!delete) { return updateParents(release, releasedVersionable, event); }
         return new HashMap<>();
+    }
+
+    protected void applyPlugins(Release rawRelease, List<ReleasedVersionable> releasedVersionableList, ReleaseChangeEventListener.ReleaseChangeEvent event) throws RepositoryException {
+        ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
+        ArrayList<StagingReleaseManagerPlugin> pluginscopy = new ArrayList<>(plugins); // avoid concurrent modifiation problems
+        Set<String> changedPaths = new HashSet<>();
+        for (ReleasedVersionable releasedVersionable : releasedVersionableList) {
+            changedPaths.add(release.mapToContentCopy(releasedVersionable.getRelativePath()));
+        }
+        for (StagingReleaseManagerPlugin plugin : pluginscopy) {
+            plugin.fixupReleaseForChanges(release, release.getWorkspaceCopyNode(), changedPaths, event);
+        }
     }
 
     protected void updateEvent(@Nonnull Release release, @Nullable ReleasedVersionable before, @Nonnull ReleasedVersionable after, @Nonnull ReleaseChangeEventListener.ReleaseChangeEvent event) {
@@ -592,7 +647,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
      * @return a map with paths where we changed the order of children in the release.
      */
     @Nonnull
-    protected Map<String, Result> updateParents(ReleaseImpl release, ReleasedVersionable releasedVersionable) throws RepositoryException {
+    protected Map<String, Result> updateParents(ReleaseImpl release, ReleasedVersionable releasedVersionable, ReleaseChangeEventListener.ReleaseChangeEvent event) throws RepositoryException {
         Map<String, Result> resultMap = new TreeMap<>();
 
         String[] levels = releasedVersionable.getRelativePath().split("/");
@@ -602,7 +657,10 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         NodeTreeSynchronizer sync = new NodeTreeSynchronizer();
 
         while (inWorkspace.isValid() && inRelease.isValid() && !inRelease.isOfType(TYPE_VERSIONREFERENCE)) {
-            sync.updateAttributes(inWorkspace, inRelease, StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES);
+            boolean attributesChanged = sync.updateAttributes(inWorkspace, inRelease, StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES);
+            if (attributesChanged) {
+                event.addMoveOrUpdate(inWorkspace.getPath(), inWorkspace.getPath());
+            }
             if (!levelIterator.hasNext()) { break; }
             String level = levelIterator.next();
             inWorkspace = ResourceHandle.use(inWorkspace.getChild(level));
@@ -610,7 +668,10 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             if (inWorkspace.isValid() && inRelease.isValid()) {
                 // we do that for all nodes except the root but including the version reference itself:
                 Result result = updateSiblingOrder(inWorkspace, inRelease);
-                if (result != Result.unchanged) { resultMap.put(inWorkspace.getParent().getPath(), result); }
+                if (result != Result.unchanged) {
+                    resultMap.put(inWorkspace.getParentPath(), result);
+                    event.addMoveOrUpdate(inWorkspace.getParentPath(), inWorkspace.getPath());
+                }
             }
         }
 
@@ -969,18 +1030,29 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             }
         }
 
-        /** Maps paths pointing into the release content to the release content copy. */
+        /**
+         * Maps paths pointing into the release content to the release content copy.
+         *
+         * @param path an absolute or relative path
+         * @return if path is absolute, return the path in the releases content copy that corresponds to that path - we don't check whether it actually exists.
+         * If it is relative, returns the path in the releases content copy that has that path relative to the release.
+         */
         @Nonnull
         public String mapToContentCopy(@Nonnull String path) {
-            if (appliesToPath(path)) {
-                path = ResourceUtil.normalize(path);
-                if (releaseRoot.getPath().equals(path)) {
-                    path = getWorkspaceCopyNode().getPath();
-                } else if (null != path) {
-                    assert path.startsWith(releaseRoot.getPath());
-                    path = getWorkspaceCopyNode().getPath() + '/'
-                            + path.substring(releaseRoot.getPath().length() + 1);
+            if (path.startsWith("/")) {
+                if (appliesToPath(path)) {
+                    path = ResourceUtil.normalize(path);
+                    if (releaseRoot.getPath().equals(path)) {
+                        path = getWorkspaceCopyNode().getPath();
+                    } else if (null != path) {
+                        assert path.startsWith(releaseRoot.getPath());
+                        path = getWorkspaceCopyNode().getPath() + '/'
+                                + path.substring(releaseRoot.getPath().length() + 1);
+                    }
                 }
+            } else { // relative path
+                ResourceUtil.normalize(getWorkspaceCopyNode().getPath() + '/'
+                        + path);
             }
             return path;
         }

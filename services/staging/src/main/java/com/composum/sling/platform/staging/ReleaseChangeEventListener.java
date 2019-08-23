@@ -44,6 +44,7 @@ public interface ReleaseChangeEventListener {
     /**
      * This informs the replication service about an activation / deactivation / update. The publisher can decide on his own
      * whether he is responsible. The processing should be synchronous, so that the user can be notified whether it succeeded or not.
+     * CAUTION: the changes can also encompass the attributes and node order of parent nodes of the resources transmitted in the event.
      */
     void receive(ReleaseChangeEvent releaseChangeEvent) throws ReplicationFailedException;
 

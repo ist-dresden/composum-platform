@@ -77,19 +77,27 @@ public class NodeTreeSynchronizer {
      *                                 The primary key of the destination will only be touched if it's not translated or translated from a (different) attribute.
      * @throws RepositoryException if we couldn't finish the operation
      * @see #ignoreAttribute(ResourceHandle, String, boolean)
+     * @return true when there were any differences in the attributes
      */
-    public void updateAttributes(ResourceHandle from, ResourceHandle to, BiMap<String, String> attributeNameTranslation) throws RepositoryException {
+    public boolean updateAttributes(ResourceHandle from, ResourceHandle to, BiMap<String, String> attributeNameTranslation) throws RepositoryException {
+        boolean attributesChanged = false;
         ValueMap fromAttributes = ResourceUtil.getValueMap(from);
         ModifiableValueMap toAttributes = to.adaptTo(ModifiableValueMap.class);
         // first copy type information since this changes attributes. Use valuemap because of its mixin handling
         // if the primary type is mapped to something (else), we don't touch the primary type of the destination
         // if the primary type is read from something, we do it now.
-        boolean primaryKeyTouched = !attributeNameTranslation.containsKey(PROP_PRIMARY_TYPE) || attributeNameTranslation.inverse().containsKey(PROP_PRIMARY_TYPE);
-        if (primaryKeyTouched)
-            toAttributes.put(PROP_PRIMARY_TYPE, fromAttributes.get(attributeNameTranslation.inverse().getOrDefault(PROP_PRIMARY_TYPE, PROP_PRIMARY_TYPE)));
-        boolean mixinsTouched = !attributeNameTranslation.containsKey(PROP_MIXINTYPES) || attributeNameTranslation.inverse().containsKey(PROP_MIXINTYPES);
-        if (mixinsTouched)
-            toAttributes.put(PROP_MIXINTYPES, fromAttributes.get(attributeNameTranslation.inverse().getOrDefault(PROP_MIXINTYPES, PROP_MIXINTYPES), new String[0]));
+        boolean primaryKeyRelevant = !attributeNameTranslation.containsKey(PROP_PRIMARY_TYPE) || attributeNameTranslation.inverse().containsKey(PROP_PRIMARY_TYPE);
+        if (primaryKeyRelevant) {
+            Object newValue = fromAttributes.get(attributeNameTranslation.inverse().getOrDefault(PROP_PRIMARY_TYPE, PROP_PRIMARY_TYPE));
+            Object origValue = toAttributes.put(PROP_PRIMARY_TYPE, newValue);
+            attributesChanged = attributesChanged || !Objects.equals(newValue, origValue);
+        }
+        boolean mixinsRelevant = !attributeNameTranslation.containsKey(PROP_MIXINTYPES) || attributeNameTranslation.inverse().containsKey(PROP_MIXINTYPES);
+        if (mixinsRelevant) {
+            String[] newValue = fromAttributes.get(attributeNameTranslation.inverse().getOrDefault(PROP_MIXINTYPES, PROP_MIXINTYPES), new String[0]);
+            Object origValue = toAttributes.put(PROP_MIXINTYPES, newValue);
+            attributesChanged = attributesChanged || !Objects.deepEquals(newValue, origValue);
+        }
 
         // use nodes for others since it seems hard to handle types REFERENCE and WEAKREFERENCE correctly through ValueMap.
         Node fromNode = Objects.requireNonNull(from.getNode(), from.getPath());
@@ -105,6 +113,8 @@ public class NodeTreeSynchronizer {
                 // an attributeNameTranslation overrides ignoreAttribute since it's the current parameter
                 if (prop.isMultiple()) {
                     Value[] values = prop.getValues();
+                    attributesChanged = attributesChanged || !toNode.hasProperty(toname);
+                    attributesChanged = attributesChanged || !Objects.deepEquals(values, toNode.getProperty(toname).getValues());
                     try {
                         toNode.setProperty(toname, values);
                     } catch (IllegalArgumentException | RepositoryException e) { // probably extend protectedMetadataAttributes
@@ -112,6 +122,8 @@ public class NodeTreeSynchronizer {
                     }
                 } else {
                     Value value = prop.getValue();
+                    attributesChanged = attributesChanged || !toNode.hasProperty(toname);
+                    attributesChanged = attributesChanged || !Objects.deepEquals(value, toNode.getProperty(toname).getValue());
                     try {
                         toNode.setProperty(toname, value);
                     } catch (IllegalArgumentException | RepositoryException e) { // probably extend protectedMetadataAttributes
@@ -122,7 +134,7 @@ public class NodeTreeSynchronizer {
         }
 
         toRemove.remove(PROP_PRIMARY_TYPE); // would be bad idea
-        if (!mixinsTouched) toRemove.remove(PROP_MIXINTYPES);
+        if (!mixinsRelevant) { toRemove.remove(PROP_MIXINTYPES); }
 
         for (PropertyIterator toProperties = toNode.getProperties(); toProperties.hasNext(); ) {
             Property toProp = toProperties.nextProperty();
@@ -130,12 +142,14 @@ public class NodeTreeSynchronizer {
             if (toRemove.contains(name)) {
                 try {
                     toProp.remove();
+                    attributesChanged = true;
                 } catch (IllegalArgumentException | RepositoryException e) {
                     // shouldn't be possible - how come that it isn't there on node from?
                     LOG.error("Could not remove protected attribute {} from {} - {}", name, SlingResourceUtil.getPath(from), e.toString());
                 }
             }
         }
+        return attributesChanged;
     }
 
     /**

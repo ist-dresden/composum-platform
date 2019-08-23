@@ -1,6 +1,8 @@
 package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
@@ -41,7 +43,7 @@ public class NodeTreeSynchronizerTest<T extends NodeTreeSynchronizer> {
 
         // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
         syncronizer.update(fromResource, toResource);
-        toResource.getResourceResolver().adaptTo(Session.class).save();
+        toResource.getResourceResolver().commit();
         // JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/s"));
 
         fromResource = fromResource.getResourceResolver().getResource(fromResource.getPath());
@@ -56,6 +58,21 @@ public class NodeTreeSynchronizerTest<T extends NodeTreeSynchronizer> {
         assertNull(toResource.getValueMap().get("foo"));
         assertNull(toResource.getValueMap().get(PROP_CREATED));
     }
+
+    @Test
+    public void updateAttributes() throws RepositoryException, PersistenceException {
+        Resource fromResource = context.build().resource("/s/from",
+                PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED, PROP_MIXINTYPES,
+                array(TYPE_TITLE, TYPE_LAST_MODIFIED), "bla", "blaval", "blu", 7, PROP_TITLE, "title",
+                "arrayprop", array("a1", "a2")).commit().getCurrentParent();
+        Resource toResource = context.build().resource("/s/to", PROP_PRIMARY_TYPE, TYPE_SLING_FOLDER,
+                PROP_MIXINTYPES, array(TYPE_LOCKABLE), "foo", "fooval").commit().getCurrentParent();
+
+        assertTrue(syncronizer.updateAttributes(ResourceHandle.use(fromResource), ResourceHandle.use(toResource), ImmutableBiMap.of()));
+        toResource.getResourceResolver().commit();
+        assertFalse(syncronizer.updateAttributes(ResourceHandle.use(fromResource), ResourceHandle.use(toResource), ImmutableBiMap.of()));
+    }
+
 
     @Test
     public void syncChildNodes() throws RepositoryException, PersistenceException {
