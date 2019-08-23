@@ -74,7 +74,7 @@ public interface PlatformVersionsService {
         @Nullable
         String getLastModifiedBy();
 
-        /** This is the activation status in the release we are comparing the workspace to, or which we are comparing with a previous releasey. */
+        /** This is the activation status in the release we are comparing the workspace to, or which we are comparing with a previous release. */
         @Nullable
         ActivationInfo getActivationInfo();
 
@@ -198,6 +198,12 @@ public interface PlatformVersionsService {
      */
     @Nonnull
     List<Status> findReleaseChanges(@Nonnull final StagingReleaseManager.Release release) throws RepositoryException;
+
+    /**
+     * Returns description of versionables which are changed in the workspace in comparision to the release.
+     */
+    @Nonnull
+    List<Status> findWorkspaceChanges(@Nonnull final StagingReleaseManager.Release release) throws RepositoryException;
 
     /** Can be used to inform the user about the results of an activation. */
     class ActivationResult {
