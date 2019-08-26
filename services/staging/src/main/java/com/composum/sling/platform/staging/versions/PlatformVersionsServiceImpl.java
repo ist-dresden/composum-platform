@@ -5,7 +5,7 @@ import com.composum.platform.commons.util.JcrIteratorUtil;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.filter.ResourceFilter;
 import com.composum.sling.core.util.CoreConstants;
-import com.composum.sling.platform.staging.ActivationInfo;
+import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleasedVersionable;
@@ -144,7 +144,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             activationResult.getChangedPathsInfo().putAll(orderUpdateMap);
 
             StatusImpl newStatus = getStatus(versionable, releaseKey);
-            Validate.isTrue(newStatus.getActivationInfo() != null, "Bug: not contained in release after activation: %s", newStatus);
+            Validate.isTrue(newStatus.getVersionReference() != null, "Bug: not contained in release after activation: %s", newStatus);
             Validate.isTrue(newStatus.getActivationState() == ActivationState.activated, "Bug: not active after activation: %s", newStatus);
 
             switch (oldStatus.getActivationState()) {
@@ -381,7 +381,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         @Nullable // null if deleted in workspace
         protected final ResourceHandle workspaceResource;
         @Nullable // null if not in release
-        protected final ActivationInfo activationInfo;
+        protected final VersionReference versionReference;
         @Nonnull
         protected final ActivationState activationState;
 
@@ -395,16 +395,16 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             workspaceResource = ResourceHandle.use(currentResourceRaw);
             if (current != null && workspaceResource != null && !workspaceResource.isValid()) // "not null but not valid" ... strange.
             { throw new IllegalArgumentException("Invalid current resource " + release + " - " + current); }
-            activationInfo = released != null ? release.activationInfo(released.getRelativePath()) : null;
+            versionReference = released != null ? release.versionReference(released.getRelativePath()) : null;
 
-            if (released == null || activationInfo == null) {
+            if (released == null || versionReference == null) {
                 activationState = ActivationState.initial;
             } else if (!released.isActive()) {
                 activationState = ActivationState.deactivated;
             } else if (current == null || !Objects.equals(current, released)) {
                 activationState = ActivationState.modified;
-            } else if (activationInfo.getLastActivated() == null ||
-                    getLastModified() != null && getLastModified().after(activationInfo.getLastActivated())) {
+            } else if (versionReference.getLastActivated() == null ||
+                    getLastModified() != null && getLastModified().after(versionReference.getLastActivated())) {
                 activationState = ActivationState.modified;
             } else { activationState = ActivationState.activated; }
         }
@@ -420,12 +420,12 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             this.previousRelease = previousRelease;
             this.current = released;
             this.previous = previouslyReleased;
-            activationInfo = released != null ? release.activationInfo(released.getRelativePath()) : null;
+            versionReference = released != null ? release.versionReference(released.getRelativePath()) : null;
 
-            boolean active = activationInfo != null && activationInfo.isActive();
+            boolean active = versionReference != null && versionReference.isActive();
             boolean previouslyActive = previouslyReleased != null && previouslyReleased.isActive();
 
-            if (activationInfo == null && previouslyReleased == null) {
+            if (versionReference == null && previouslyReleased == null) {
                 activationState = ActivationState.initial;
             } else if (!active) {
                 activationState = ActivationState.deactivated; // even if modified
@@ -473,8 +473,8 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
         @Nullable
         @Override
-        public ActivationInfo getActivationInfo() {
-            return activationInfo;
+        public VersionReference getVersionReference() {
+            return versionReference;
         }
 
         @Nonnull
@@ -506,7 +506,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             return new ToStringBuilder(this)
                     .append("release", getRelease())
                     .append("activationState", getActivationState())
-                    .append("activationInfo", getActivationInfo())
+                    .append("activationInfo", getVersionReference())
                     .append("releaseVersionableInfo", getPreviousVersionableInfo())
                     .append("currentVersionableInfo", getCurrentVersionableInfo())
                     .toString();

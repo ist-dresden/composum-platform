@@ -157,7 +157,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         Status status = service.getStatus(initVersionable, null);
         ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.initial));
         ec.checkThat(status.getRelease(), hasToString("Release('current',/content/release)"));
-        ec.checkThat(status.getActivationInfo(), nullValue());
+        ec.checkThat(status.getVersionReference(), nullValue());
         ec.checkThat(status.getLastModified(), instanceOf(java.util.Calendar.class));
         ec.checkThat(status.getLastModifiedBy(), is("admin"));
 
@@ -167,8 +167,8 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         status = service.getStatus(initVersionable, null);
         ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
         ec.checkThat(status.getRelease(), hasToString("Release('current',/content/release)"));
-        ec.checkThat(status.getActivationInfo().getLastActivatedBy(), is("admin"));
-        ec.checkThat(status.getActivationInfo().getLastActivated(), instanceOf(java.util.Calendar.class));
+        ec.checkThat(status.getVersionReference().getLastActivatedBy(), is("admin"));
+        ec.checkThat(status.getVersionReference().getLastActivated(), instanceOf(java.util.Calendar.class));
     }
 
 
@@ -176,8 +176,8 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
     public void releaseProgression() throws Exception {
         Status status = service.getStatus(versionable, CURRENT_RELEASE);
         ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
-        ec.checkThat(status.getActivationInfo().getLastActivatedBy(), is("admin"));
-        ec.checkThat(status.getActivationInfo().getLastActivated(), instanceOf(java.util.Calendar.class));
+        ec.checkThat(status.getVersionReference().getLastActivatedBy(), is("admin"));
+        ec.checkThat(status.getVersionReference().getLastActivated(), instanceOf(java.util.Calendar.class));
         ec.checkThat(status.getRelease(), hasToString("Release('current',/content/release)"));
 
         Release r1 = releaseManager.finalizeCurrentRelease(versionable, ReleaseNumberCreator.MAJOR);
@@ -187,7 +187,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         Status status1 = service.getStatus(versionable, r1.getNumber());
         ec.checkThat(status1.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
         ec.checkThat(status1.getRelease(), hasToString("Release('r1',/content/release)"));
-        ec.checkThat(status1.getActivationInfo().getLastActivated(), is(status.getActivationInfo().getLastActivated()));
+        ec.checkThat(status1.getVersionReference().getLastActivated(), is(status.getVersionReference().getLastActivated()));
 
         releaseManager.setMark(AccessMode.ACCESS_MODE_PUBLIC.toLowerCase(), r1);
         context.resourceResolver().commit();
@@ -202,8 +202,8 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         Status status = service.getStatus(versionable, CURRENT_RELEASE);
         ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
         ec.checkThat(status.getRelease(), hasToString("Release('current',/content/release)"));
-        ec.checkThat(status.getActivationInfo().getLastActivatedBy(), is("admin"));
-        ec.checkThat(status.getActivationInfo().getLastActivated(), instanceOf(java.util.Calendar.class));
+        ec.checkThat(status.getVersionReference().getLastActivatedBy(), is("admin"));
+        ec.checkThat(status.getVersionReference().getLastActivated(), instanceOf(java.util.Calendar.class));
         ec.checkThat(status.getLastModified(), instanceOf(java.util.Calendar.class));
         ec.checkThat(status.getLastModifiedBy(), is("admin"));
         versionManager.checkpoint(versionable.getPath());
@@ -212,28 +212,28 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         status = service.getStatus(versionable, null);
         ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
         ec.checkThat(status.getRelease(), hasToString("Release('current',/content/release)"));
-        ec.checkThat(status.getActivationInfo().getLastDeactivatedBy(), nullValue());
-        ec.checkThat(status.getActivationInfo().getLastDeactivated(), nullValue());
+        ec.checkThat(status.getVersionReference().getLastDeactivatedBy(), nullValue());
+        ec.checkThat(status.getVersionReference().getLastDeactivated(), nullValue());
 
         service.activate(null, versionable, null);
         context.resourceResolver().commit();
 
         status = service.getStatus(versionable, null);
         ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
-        ec.checkThat(status.getActivationInfo().getLastActivatedBy(), is("admin"));
-        ec.checkThat(status.getActivationInfo().getLastActivated(), instanceOf(java.util.Calendar.class));
-        ec.checkThat(status.getActivationInfo().getLastDeactivatedBy(), nullValue());
-        ec.checkThat(status.getActivationInfo().getLastDeactivated(), nullValue());
+        ec.checkThat(status.getVersionReference().getLastActivatedBy(), is("admin"));
+        ec.checkThat(status.getVersionReference().getLastActivated(), instanceOf(java.util.Calendar.class));
+        ec.checkThat(status.getVersionReference().getLastDeactivatedBy(), nullValue());
+        ec.checkThat(status.getVersionReference().getLastDeactivated(), nullValue());
 
         service.deactivate(null, asList(versionable));
         context.resourceResolver().commit();
 
         status = service.getStatus(versionable, null);
         ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.deactivated));
-        ec.checkThat(status.getActivationInfo().getLastActivatedBy(), is("admin"));
-        ec.checkThat(status.getActivationInfo().getLastActivated(), instanceOf(java.util.Calendar.class));
-        ec.checkThat(status.getActivationInfo().getLastDeactivatedBy(), is("admin"));
-        ec.checkThat(status.getActivationInfo().getLastDeactivated(), instanceOf(java.util.Calendar.class));
+        ec.checkThat(status.getVersionReference().getLastActivatedBy(), is("admin"));
+        ec.checkThat(status.getVersionReference().getLastActivated(), instanceOf(java.util.Calendar.class));
+        ec.checkThat(status.getVersionReference().getLastDeactivatedBy(), is("admin"));
+        ec.checkThat(status.getVersionReference().getLastDeactivated(), instanceOf(java.util.Calendar.class));
         ec.checkThat(status.getLastModifiedBy(), is("admin"));
 
         ec.checkThat(IteratorUtils.size(versionManager.getVersionHistory(versionable.getPath()).getAllVersions()), is(4));

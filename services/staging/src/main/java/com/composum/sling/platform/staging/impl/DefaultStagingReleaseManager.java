@@ -5,7 +5,7 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
-import com.composum.sling.platform.staging.ActivationInfo;
+import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.StagingReleaseManagerPlugin;
@@ -1080,12 +1080,12 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         @Nullable
         @Override
-        public ActivationInfo activationInfo(@Nullable String relativePath) {
-            ActivationInfo result = null;
+        public VersionReference versionReference(@Nullable String relativePath) {
+            VersionReference result = null;
             if (relativePath != null) {
                 Resource versionReference = getWorkspaceCopyNode().getChild(relativePath);
                 if (versionReference != null) {
-                    result = new ActivationInfoImpl(this, versionReference);
+                    result = new VersionReferenceImpl(this, versionReference);
                 }
             }
             return result;
@@ -1097,7 +1097,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         }
     }
 
-    protected static class ActivationInfoImpl implements ActivationInfo {
+    protected static class VersionReferenceImpl implements VersionReference {
 
         @Nonnull
         private final ReleaseImpl release;
@@ -1105,7 +1105,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         @Nonnull
         private final ResourceHandle versionReference;
 
-        protected ActivationInfoImpl(@Nonnull ReleaseImpl release, @Nonnull Resource versionReference) {
+        protected VersionReferenceImpl(@Nonnull ReleaseImpl release, @Nonnull Resource versionReference) {
             this.release = Objects.requireNonNull(release);
             this.versionReference = ResourceHandle.use(requireNonNull(versionReference));
         }

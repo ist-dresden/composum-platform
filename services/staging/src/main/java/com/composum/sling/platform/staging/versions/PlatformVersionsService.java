@@ -2,7 +2,7 @@ package com.composum.sling.platform.staging.versions;
 
 import com.composum.sling.core.filter.ResourceFilter;
 import com.composum.sling.core.util.CoreConstants;
-import com.composum.sling.platform.staging.ActivationInfo;
+import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
@@ -53,7 +53,9 @@ public interface PlatformVersionsService {
          */
         modified,
         /** Deactivated (originally present but later removed ({@link #deactivate(String, Resource)}) from release. */
-        deactivated
+        deactivated,
+        /** When comparing the workspace to a release: deleted from the workspace. */
+        deleted
     }
 
     /** Information about the status of a versionable in the workspace wrt. a release, or of a versionable within a release wrt. a previous release. */
@@ -76,7 +78,7 @@ public interface PlatformVersionsService {
 
         /** This is the activation status in the release we are comparing the workspace to, or which we are comparing with a previous release. */
         @Nullable
-        ActivationInfo getActivationInfo();
+        VersionReference getVersionReference();
 
         /**
          * The release this is relative to. Please note that in the case of {@link ActivationState#initial} the versionable

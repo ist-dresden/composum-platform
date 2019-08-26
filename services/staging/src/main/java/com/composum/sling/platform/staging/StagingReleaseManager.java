@@ -348,7 +348,7 @@ public interface StagingReleaseManager {
 
         /** Returns information about the activation of a versionable at relativePath. */
         @Nullable
-        ActivationInfo activationInfo(@Nullable String relativePath);
+        VersionReference versionReference(@Nullable String relativePath);
     }
 
     /**
