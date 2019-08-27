@@ -262,6 +262,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 setPreviousRelease(currentRelease, highestNumericRelease.get());
             }
             serviceResolver.commit();
+            LOG.info("Created current release for {} with {}", currentUserRoot.getPath(), serviceResolver.getUserID());
         }
     }
 
