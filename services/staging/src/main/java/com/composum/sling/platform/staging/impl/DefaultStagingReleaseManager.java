@@ -859,6 +859,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         }
 
         Resource releaseWorkspaceCopy = ResourceUtil.getOrCreateChild(currentReleaseNode, NODE_RELEASE_ROOT, TYPE_UNSTRUCTURED);
+        // set a frozen primary type to ensure a sane state
+        ResourceHandle.use(releaseWorkspaceCopy).setProperty(ResourceUtil.JCR_FROZENPRIMARYTYPE, ResourceUtil.TYPE_SLING_ORDERED_FOLDER);
 
         ResourceHandle metaData = ResourceHandle.use(currentReleaseNode.getChild(NODE_RELEASE_METADATA));
         if (!metaData.isValid()) {
