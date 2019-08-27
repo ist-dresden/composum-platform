@@ -1124,7 +1124,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         @Override
         @Nullable
         public Calendar getLastActivated() {
-            return versionReference != null ? versionReference.getProperty(PROP_LAST_ACTIVATED, Calendar.class) : null;
+            Calendar lastActivated = versionReference != null ? versionReference.getProperty(PROP_LAST_ACTIVATED, Calendar.class) : null;
+            return lastActivated;
         }
 
         @Override
