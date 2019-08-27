@@ -5,6 +5,7 @@ import com.composum.platform.commons.util.JcrIteratorUtil;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.filter.ResourceFilter;
 import com.composum.sling.core.util.CoreConstants;
+import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseMapper;
@@ -90,6 +91,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
      */
     protected ResourceHandle normalizeVersionable(Resource versionable) throws IllegalArgumentException {
         ResourceHandle handle = ResourceHandle.use(versionable);
+        if (ResourceUtil.isNonExistingResource(versionable)) { return handle; }
         if (handle.isValid() && handle.isOfType(TYPE_VERSIONABLE)) { return handle; }
         ResourceHandle contentResource = handle.getContentResource();
         if (contentResource.isValid() && contentResource.isOfType(TYPE_VERSIONABLE)) { return contentResource; }
@@ -101,10 +103,10 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     public StatusImpl getStatus(@Nonnull Resource rawVersionable, @Nullable String releaseKey) {
         try {
             ResourceHandle versionable = normalizeVersionable(rawVersionable);
+            ReleasedVersionable workspaced = ReleasedVersionable.forBaseVersion(versionable);
             StagingReleaseManager.Release release = getRelease(versionable, releaseKey);
-            ReleasedVersionable current = ReleasedVersionable.forBaseVersion(versionable);
             ReleasedVersionable released = releaseManager.findReleasedVersionable(release, versionable);
-            return new StatusImpl(release, current, released);
+            return new StatusImpl(workspaced, release, released);
         } catch (StagingReleaseManager.ReleaseRootNotFoundException | IllegalArgumentException e) {
             return null;
         }
@@ -119,22 +121,24 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     @Nonnull
     protected ActivationResult activateSingle(@Nullable String releaseKey, @Nonnull Resource rawVersionable, @Nullable String versionUuid) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
+        // XXX implement deletion with NonExistingResource .
+
         LOG.info("Requested activation {} in release {} to version {}", getPath(rawVersionable), releaseKey, versionUuid);
         ResourceHandle versionable = normalizeVersionable(rawVersionable);
         maybeCheckpoint(versionable);
         StatusImpl oldStatus = getStatus(versionable, releaseKey);
-        StagingReleaseManager.Release release = oldStatus.getRelease();
+        StagingReleaseManager.Release release = Objects.requireNonNull(oldStatus.getPreviousRelease());
         ActivationResult activationResult = new ActivationResult(release);
 
-        boolean moveRequested = null != oldStatus.getPreviousVersionableInfo() && null != oldStatus.getCurrentVersionableInfo() &&
-                !StringUtils.equals(oldStatus.getPreviousVersionableInfo().getRelativePath(), oldStatus.getCurrentVersionableInfo().getRelativePath());
+        boolean moveRequested = oldStatus.getNextVersionable() != null && oldStatus.getPreviousVersionable() != null &&
+                !StringUtils.equals(oldStatus.getNextVersionable().getRelativePath(), oldStatus.getPreviousVersionable().getRelativePath());
 
         if (oldStatus.getActivationState() != ActivationState.activated || moveRequested) {
 
-            ReleasedVersionable updateRV = oldStatus.getCurrentVersionableInfo().clone();
+            ReleasedVersionable updateRV = oldStatus.getNextVersionable().clone();
             if (StringUtils.isNotBlank(versionUuid) && !StringUtils.equals(versionUuid, updateRV.getVersionUuid())) {
-                if (oldStatus.getPreviousVersionableInfo() != null) {
-                    updateRV = oldStatus.getPreviousVersionableInfo().clone(); // make sure we don't move the document around
+                if (oldStatus.getPreviousVersionable() != null) {
+                    updateRV = oldStatus.getPreviousVersionable().clone(); // make sure we don't move the document around
                 }
                 updateRV.setVersionUuid(versionUuid);
             }
@@ -156,8 +160,8 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 case modified:
                     if (moveRequested) {
                         activationResult.getMovedPaths().put(
-                                release.absolutePath(oldStatus.getPreviousVersionableInfo().getRelativePath()),
-                                release.absolutePath(oldStatus.getCurrentVersionableInfo().getRelativePath())
+                                release.absolutePath(oldStatus.getPreviousVersionable().getRelativePath()),
+                                release.absolutePath(oldStatus.getNextVersionable().getRelativePath())
                         );
                     }
                     break;
@@ -165,7 +169,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                     throw new IllegalStateException("Bug: oldStatus = " + oldStatus);
             }
 
-            LOG.info("Activated {} in release {} to version {}", getPath(rawVersionable), newStatus.getRelease().getNumber(), newStatus.getCurrentVersionableInfo().getVersionUuid());
+            LOG.info("Activated {} in release {} to version {}", getPath(rawVersionable), release.getNumber(), newStatus.getNextVersionable().getVersionUuid());
         } else {
             LOG.info("Already activated in release {} : {}", release.getNumber(), getPath(rawVersionable));
         }
@@ -213,14 +217,14 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             switch (status.getActivationState()) {
                 case modified:
                 case activated:
-                    LOG.info("Deactivating in {} : {}", status.getRelease().getNumber(), getPath(versionable));
-                    ReleasedVersionable releasedVersionable = status.getPreviousVersionableInfo();
+                    LOG.info("Deactivating in {} : {}", status.getPreviousRelease().getNumber(), getPath(versionable));
+                    ReleasedVersionable releasedVersionable = status.getPreviousVersionable();
                     releasedVersionable.setActive(false);
-                    releaseManager.updateRelease(status.getRelease(), singletonList(releasedVersionable));
+                    releaseManager.updateRelease(status.getPreviousRelease(), singletonList(releasedVersionable));
                     break;
                 case initial:
                 case deactivated:
-                    LOG.info("Not deactivating in {} since not active: {}", status.getRelease().getNumber(), getPath(versionable));
+                    LOG.info("Not deactivating in {} since not active: {}", status.getPreviousRelease().getNumber(), getPath(versionable));
                     break;
                 default:
             }
@@ -322,16 +326,16 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         Map<String, ReleasedVersionable> historyIdToPrevious = previousContent.stream()
                 .collect(Collectors.toMap(ReleasedVersionable::getVersionHistory, Function.identity()));
 
-        List<ReleasedVersionable> currentContent = releaseManager.listCurrentContents(release.getReleaseRoot());
-        Map<String, ReleasedVersionable> historyIdToCurrent = currentContent.stream()
+        List<ReleasedVersionable> workspaceContent = releaseManager.listWorkspaceContents(release.getReleaseRoot());
+        Map<String, ReleasedVersionable> historyIdToWorkspace = workspaceContent.stream()
                 .collect(Collectors.toMap(ReleasedVersionable::getVersionHistory, Function.identity()));
 
         for (String versionHistoryId : SetUtils.union(historyIdToRelease.keySet(), historyIdToPrevious.keySet())) {
             ReleasedVersionable releasedVersionable = historyIdToRelease.get(versionHistoryId);
             ReleasedVersionable previouslyReleased = historyIdToPrevious.get(versionHistoryId);
             if (!Objects.equals(previouslyReleased, releasedVersionable)) {
-                Status status = new StatusImpl(release, releasedVersionable, release.getPreviousRelease(), previouslyReleased,
-                        historyIdToCurrent.get(versionHistoryId));
+                Status status = new StatusImpl(release, releasedVersionable, previousRelease, previouslyReleased,
+                        historyIdToWorkspace.get(versionHistoryId));
                 result.add(status);
             }
         }
@@ -341,22 +345,22 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     @Nonnull
     @Override
-    public List<Status> findWorkspaceChanges(@Nonnull StagingReleaseManager.Release release) throws RepositoryException {
+    public List<Status> findWorkspaceChanges(@Nonnull StagingReleaseManager.Release release) {
         List<Status> result = new ArrayList<>();
 
         List<ReleasedVersionable> releaseContent = releaseManager.listReleaseContents(release);
         Map<String, ReleasedVersionable> historyIdToRelease = releaseContent.stream()
                 .collect(Collectors.toMap(ReleasedVersionable::getVersionHistory, Function.identity()));
 
-        List<ReleasedVersionable> currentContent = releaseManager.listCurrentContents(release.getReleaseRoot());
-        Map<String, ReleasedVersionable> historyIdToCurrent = currentContent.stream()
+        List<ReleasedVersionable> workspaceContent = releaseManager.listWorkspaceContents(release.getReleaseRoot());
+        Map<String, ReleasedVersionable> historyIdToWorkspace = workspaceContent.stream()
                 .collect(Collectors.toMap(ReleasedVersionable::getVersionHistory, Function.identity()));
 
-        for (String versionHistoryId : SetUtils.union(historyIdToRelease.keySet(), historyIdToCurrent.keySet())) {
+        for (String versionHistoryId : SetUtils.union(historyIdToRelease.keySet(), historyIdToWorkspace.keySet())) {
             ReleasedVersionable releasedVersionable = historyIdToRelease.get(versionHistoryId);
-            ReleasedVersionable currentVersionable = historyIdToCurrent.get(versionHistoryId);
-            Status status = new StatusImpl(release, currentVersionable, releasedVersionable);
-            if (status.getActivationState() == ActivationState.modified || !Objects.equals(currentVersionable, releasedVersionable)) {
+            ReleasedVersionable workspaceVersionable = historyIdToWorkspace.get(versionHistoryId);
+            Status status = new StatusImpl(workspaceVersionable, release, releasedVersionable);
+            if (status.getActivationState() == ActivationState.modified || !Objects.equals(workspaceVersionable, releasedVersionable)) {
                 result.add(status);
             }
         }
@@ -370,14 +374,14 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
      * a resource in the workspace in relation to a release.
      */
     protected static class StatusImpl implements Status {
-        @Nonnull
-        protected final StagingReleaseManager.Release release;
         @Nullable
-        protected final ReleasedVersionable current;
+        protected final StagingReleaseManager.Release nextRelease;
         @Nullable
-        protected final ReleasedVersionable previous;
+        protected final ReleasedVersionable nextVersionable;
         @Nullable
         protected final StagingReleaseManager.Release previousRelease;
+        @Nullable
+        protected final ReleasedVersionable previousVersionable;
         @Nullable // null if deleted in workspace
         protected final ResourceHandle workspaceResource;
         @Nullable // null if not in release
@@ -386,22 +390,23 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         protected final ActivationState activationState;
 
         /** Creates a StatusImpl that informs about the status of a versionable in the workspace in comparison to a release. */
-        public StatusImpl(@Nonnull StagingReleaseManager.Release release, @Nullable ReleasedVersionable current, @Nullable ReleasedVersionable released) {
-            this.release = Objects.requireNonNull(release);
-            this.current = current;
-            this.previous = released;
-            this.previousRelease = null;
-            Resource currentResourceRaw = current != null ? release.getReleaseRoot().getChild(current.getRelativePath()) : null;
+        public StatusImpl(@Nullable ReleasedVersionable workspaceVersionable, @Nonnull StagingReleaseManager.Release release, @Nullable ReleasedVersionable releasedVersionable) {
+            this.previousRelease = Objects.requireNonNull(release);
+            this.previousVersionable = releasedVersionable;
+            this.nextVersionable = workspaceVersionable;
+            this.nextRelease = null;
+            Resource currentResourceRaw = workspaceVersionable != null ? release.getReleaseRoot().getChild(workspaceVersionable.getRelativePath()) : null;
             workspaceResource = ResourceHandle.use(currentResourceRaw);
-            if (current != null && workspaceResource != null && !workspaceResource.isValid()) // "not null but not valid" ... strange.
-            { throw new IllegalArgumentException("Invalid current resource " + release + " - " + current); }
-            versionReference = released != null ? release.versionReference(released.getRelativePath()) : null;
+            if (workspaceVersionable != null && workspaceResource != null && !workspaceResource.isValid()) // "not null but not valid" ... strange.
+            { throw new IllegalArgumentException("Invalid current resource " + release + " - " + workspaceVersionable); }
+            versionReference = releasedVersionable != null ? release.versionReference(releasedVersionable.getRelativePath()) : null;
 
-            if (released == null || versionReference == null) {
+            // XXX check this
+            if (releasedVersionable == null || versionReference == null) {
                 activationState = ActivationState.initial;
-            } else if (!released.isActive()) {
+            } else if (!releasedVersionable.isActive()) {
                 activationState = ActivationState.deactivated;
-            } else if (current == null || !Objects.equals(current, released)) {
+            } else if (workspaceVersionable == null || !Objects.equals(workspaceVersionable, releasedVersionable)) {
                 activationState = ActivationState.modified;
             } else if (versionReference.getLastActivated() == null ||
                     getLastModified() != null && getLastModified().after(versionReference.getLastActivated())) {
@@ -410,22 +415,23 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         }
 
         /**
-         * Creates a StatusImpl that informs about the status of a versionable in a release in comparison to a previous release.
+         * Compares the versionable from release to previous release.
          * This should only be called if released is not equal to previouslyReleased since there is no state for equal things.
          */
-        public StatusImpl(@Nonnull StagingReleaseManager.Release release, @Nullable ReleasedVersionable released,
-                          @Nullable StagingReleaseManager.Release previousRelease, @Nullable ReleasedVersionable previouslyReleased,
+        public StatusImpl(@Nonnull StagingReleaseManager.Release nextRelease, @Nullable ReleasedVersionable nextVersionable,
+                          @Nullable StagingReleaseManager.Release previousRelease, @Nullable ReleasedVersionable previousVersionable,
                           @Nullable ReleasedVersionable workspace) {
-            this.release = Objects.requireNonNull(release);
+            this.nextRelease = Objects.requireNonNull(nextRelease);
+            this.nextVersionable = nextVersionable;
             this.previousRelease = previousRelease;
-            this.current = released;
-            this.previous = previouslyReleased;
-            versionReference = released != null ? release.versionReference(released.getRelativePath()) : null;
+            this.previousVersionable = previousVersionable;
+            this.versionReference = nextVersionable != null ? nextRelease.versionReference(nextVersionable.getRelativePath()) : null;
 
             boolean active = versionReference != null && versionReference.isActive();
-            boolean previouslyActive = previouslyReleased != null && previouslyReleased.isActive();
+            boolean previouslyActive = previousVersionable != null && previousVersionable.isActive();
 
-            if (versionReference == null && previouslyReleased == null) {
+            // XXX check this
+            if (versionReference == null && previousVersionable == null) {
                 activationState = ActivationState.initial;
             } else if (!active) {
                 activationState = ActivationState.deactivated; // even if modified
@@ -435,7 +441,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             // we take modified since otherwise this constructor shouldn't be called and we have no alternative here.
             { activationState = ActivationState.modified; }
 
-            Resource workspaceResourceRaw = workspace != null ? release.getReleaseRoot().getChild(workspace.getRelativePath()) : null;
+            Resource workspaceResourceRaw = workspace != null ? nextRelease.getReleaseRoot().getChild(workspace.getRelativePath()) : null;
             workspaceResource = workspaceResourceRaw != null ? ResourceHandle.use(workspaceResourceRaw) : null;
         }
 
@@ -479,14 +485,14 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
         @Nonnull
         @Override
-        public StagingReleaseManager.Release getRelease() {
-            return release;
+        public StagingReleaseManager.Release getNextRelease() {
+            return nextRelease;
         }
 
         @Nullable
         @Override
-        public ReleasedVersionable getPreviousVersionableInfo() {
-            return previous;
+        public ReleasedVersionable getNextVersionable() {
+            return nextVersionable;
         }
 
         @Nullable
@@ -497,18 +503,25 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
         @Nullable
         @Override
-        public ReleasedVersionable getCurrentVersionableInfo() {
-            return current;
+        public ReleasedVersionable getPreviousVersionable() {
+            return previousVersionable;
+        }
+
+        @Override
+        @Nullable
+        public ResourceHandle getWorkspaceResource() {
+            return workspaceResource;
         }
 
         @Override
         public String toString() {
             return new ToStringBuilder(this)
-                    .append("release", getRelease())
+                    .append("nextRelease", getNextRelease())
+                    .append("prevRelease", getPreviousRelease())
                     .append("activationState", getActivationState())
                     .append("activationInfo", getVersionReference())
-                    .append("releaseVersionableInfo", getPreviousVersionableInfo())
-                    .append("currentVersionableInfo", getCurrentVersionableInfo())
+                    .append("nextVersionable", getNextVersionable())
+                    .append("prevVersionableInfo", getPreviousVersionable())
                     .toString();
         }
     }

@@ -2,7 +2,6 @@ package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
@@ -28,15 +27,12 @@ import org.apache.sling.hamcrest.ResourceMatchers;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
-import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -445,14 +441,14 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
     @Test
     public void listCurrentContent() throws Exception {
-        List<ReleasedVersionable> content = service.listCurrentContents(this.releaseRoot);
+        List<ReleasedVersionable> content = service.listWorkspaceContents(this.releaseRoot);
         ec.checkThat(content.size(), is(0));
 
         Resource versionable = releaseRootBuilder.resource("a/jcr:content", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                 PROP_MIXINTYPES, array(TYPE_VERSIONABLE, TYPE_TITLE, TYPE_LAST_MODIFIED), "foo", "bar", PROP_TITLE, "title")
                 .commit().getCurrentParent();
 
-        content = service.listCurrentContents(this.releaseRoot);
+        content = service.listWorkspaceContents(this.releaseRoot);
         ec.checkThat(content.size(), is(1));
         ec.checkThat(content.get(0).getRelativePath(), is("a/jcr:content"));
     }

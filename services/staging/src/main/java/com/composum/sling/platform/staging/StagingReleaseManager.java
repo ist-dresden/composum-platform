@@ -154,7 +154,7 @@ public interface StagingReleaseManager {
      * @param resource a release root or its subnodes
      */
     @Nonnull
-    List<ReleasedVersionable> listCurrentContents(@Nonnull Resource resource);
+    List<ReleasedVersionable> listWorkspaceContents(@Nonnull Resource resource);
 
     /**
      * Looks up whether a versionable is present in the release. Caution: this finds only committed content.

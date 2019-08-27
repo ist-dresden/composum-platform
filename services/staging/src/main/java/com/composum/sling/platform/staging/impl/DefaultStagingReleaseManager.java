@@ -431,7 +431,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Nonnull
     @Override
-    public List<ReleasedVersionable> listCurrentContents(@Nonnull Resource resource) {
+    public List<ReleasedVersionable> listWorkspaceContents(@Nonnull Resource resource) {
         ResourceHandle root = findReleaseRoot(resource);
         ensureCurrentRelease(ResourceHandle.use(root));
         String ignoredReleaseConfigurationPath = root.getPath() + "/" + CONTENT_NODE;
@@ -778,7 +778,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Override
     public ReleasedVersionable restoreVersionable(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
-        listCurrentContents(release.getReleaseRoot())
+        listWorkspaceContents(release.getReleaseRoot())
                 .forEach((existingVersionable) ->
                         Validate.isTrue(!StringUtils.equals(existingVersionable.getVersionHistory(), releasedVersionable.getVersionHistory()),
                                 "Cannot restore versionable %s from relese %s that exists at %s", releasedVersionable.getVersionHistory(), release, existingVersionable.getRelativePath()));
