@@ -9,11 +9,13 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.servlet.AbstractServiceServlet;
 import com.composum.sling.core.servlet.ServletOperation;
 import com.composum.sling.core.servlet.ServletOperationSet;
+import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.core.servlet.Status;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.NonExistingResource;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.HttpConstants;
@@ -147,8 +149,12 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                 for (String path : targetValues) {
                     Resource target = resolver.getResource(path);
                     if (target != null && (target = getVersionable(target)) != null) {
-                        versionable.add(getVersionable(target));
+                        target = getVersionable(target);
+                    } else { // when activating a deleted page, the path doesn't actually exist. So we use a NonExistingResource.
+                        path = StringUtils.appendIfMissing(path, "/" + ResourceUtil.CONTENT_NODE);
+                        target = new NonExistingResource(resolver, path);
                     }
+                    versionable.add(target);
                 }
             } else {
                 Resource target = getVersionable(resource);

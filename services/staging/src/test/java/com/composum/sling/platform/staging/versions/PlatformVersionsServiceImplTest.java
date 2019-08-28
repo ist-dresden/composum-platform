@@ -5,6 +5,7 @@ import com.composum.sling.core.filter.StringFilter;
 import com.composum.sling.platform.security.AccessMode;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.ReleasedVersionable;
+import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
 import com.composum.sling.platform.staging.impl.AbstractStagingTest;
 import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
@@ -13,6 +14,7 @@ import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrinting
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import com.composum.sling.platform.testing.testutil.SlingMatchers;
 import org.apache.commons.collections4.IteratorUtils;
+import org.apache.sling.api.resource.NonExistingResource;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.SyntheticResource;
@@ -23,6 +25,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import static com.composum.sling.core.util.CoreConstants.CONTENT_NODE;
@@ -37,10 +40,14 @@ import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELE
 import static com.composum.sling.platform.testing.testutil.JcrTestUtils.array;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
+import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -79,6 +86,56 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         document1 = release + "/" + "document1";
         node1version = makeNode(builderAtRelease, "document1", "n1/something", true, true, "n1 title");
         versionable = context.resourceResolver().getResource(document1).getChild(CONTENT_NODE);
+    }
+
+    @Test
+    public void delete() throws Exception {
+        ResourceResolver resourceResolver = context.resourceResolver();
+
+        Status status = service.getStatus(versionable, null);
+        ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.activated));
+
+        ec.checkThat(service.findWorkspaceChanges(currentRelease), iterableWithSize(0));
+
+        // delete the page and verify that the stati are correctly reported
+        String path = versionable.getPath();
+        resourceResolver.delete(versionable);
+        resourceResolver.commit();
+        Resource nex = new NonExistingResource(resourceResolver, path);
+
+        List<Status> workspaceChanges = service.findWorkspaceChanges(currentRelease);
+        ec.checkThat(workspaceChanges.size(), is(1));
+        ec.checkThat(workspaceChanges.get(0).getActivationState(), is(PlatformVersionsService.ActivationState.deleted));
+
+        Status statusD = service.getStatus(nex, null);
+        ec.checkThat(statusD.getActivationState(), is(PlatformVersionsService.ActivationState.deleted));
+
+        PlatformVersionsService.ActivationResult activationResult = service.activate(null, nex, null);
+        resourceResolver.commit();
+        ec.checkThat(activationResult.getRemovedPaths(), contains(path));
+
+        Status statusF = service.getStatus(nex, null);
+        ec.checkThat(statusF.getActivationState(), is(PlatformVersionsService.ActivationState.deleted));
+
+        workspaceChanges = service.findWorkspaceChanges(currentRelease);
+        ec.checkThat(workspaceChanges.toString(), workspaceChanges, iterableWithSize(0));
+
+        // restore the deleted page
+        releaseManager.restoreVersionable(currentRelease, releaseManager.findReleasedVersionable(currentRelease, nex));
+        resourceResolver.commit();
+        ec.checkThat(service.getStatus(resourceResolver.getResource(path), null).getActivationState(), is(PlatformVersionsService.ActivationState.deactivated));
+        workspaceChanges = service.findWorkspaceChanges(currentRelease);
+        ec.checkThat(workspaceChanges.toString(), workspaceChanges, iterableWithSize(1));
+        ec.checkThat(workspaceChanges.get(0).getActivationState(), is(PlatformVersionsService.ActivationState.deactivated));
+
+        // delete it again and verify stati - this time wrt. a deactivated page
+        versionable = resourceResolver.getResource(path);
+        resourceResolver.delete(versionable);
+        resourceResolver.commit();
+
+        workspaceChanges = service.findWorkspaceChanges(currentRelease);
+        ec.checkThat(workspaceChanges.size(), is(0)); // a deleted page isn't changed wrt. the release if it's deactivated there
+        ec.checkThat(service.getStatus(nex, null).getActivationState(), is(PlatformVersionsService.ActivationState.deleted));
     }
 
     @Test
@@ -139,13 +196,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
         ec.checkThat(status.getPreviousVersionable().getVersionUuid(), is(originalVersion));
 
-        if (0 == 1) {
-            // Revert in r11 to r1 : that is, delete document there
-            result = service.revert(r21.getNumber(), asList(versionable));
-            statusR11 = service.getStatus(versionable, r21.getNumber());
-            ec.checkThat(statusR11.getActivationState(), is(PlatformVersionsService.ActivationState.initial));
-            ec.checkThat(statusR11.getPreviousVersionable(), nullValue());
-        }
+        ec.checkFailsWith(() -> service.revert(r21.getNumber(), asList(versionable)), is(instanceOf(StagingReleaseManager.ReleaseClosedException.class)));
     }
 
     @Test

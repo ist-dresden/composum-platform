@@ -469,8 +469,14 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     public ReleasedVersionable findReleasedVersionable(@Nonnull Release rawRelease, @Nonnull Resource versionable) {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         String expectedPath = release.mapToContentCopy(versionable.getPath());
-        ReleasedVersionable currentVersionable = ReleasedVersionable.forBaseVersion(versionable);
         Resource versionReference = versionable.getResourceResolver().getResource(expectedPath);
+        if (ResourceUtil.isNonExistingResource(versionable)) {
+            if (versionReference != null) {
+                return ReleasedVersionable.fromVersionReference(release.getWorkspaceCopyNode(), versionReference);
+            }
+            return null;
+        }
+        ReleasedVersionable currentVersionable = ReleasedVersionable.forBaseVersion(versionable);
         if (versionReference != null) { // if it's at the expected path
             ReleasedVersionable releasedVersionable = ReleasedVersionable.fromVersionReference(release.getWorkspaceCopyNode(), versionReference);
             if (StringUtils.equals(releasedVersionable.getVersionHistory(), currentVersionable.getVersionHistory())) {

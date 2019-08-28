@@ -6,12 +6,12 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.filter.ResourceFilter;
 import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
@@ -103,11 +104,17 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     public StatusImpl getStatus(@Nonnull Resource rawVersionable, @Nullable String releaseKey) {
         try {
             ResourceHandle versionable = normalizeVersionable(rawVersionable);
-            ReleasedVersionable workspaced = ReleasedVersionable.forBaseVersion(versionable);
             StagingReleaseManager.Release release = getRelease(versionable, releaseKey);
             ReleasedVersionable released = releaseManager.findReleasedVersionable(release, versionable);
-            return new StatusImpl(workspaced, release, released);
+            if (!ResourceUtil.isNonExistingResource(rawVersionable)) {
+                ReleasedVersionable workspaced = ReleasedVersionable.forBaseVersion(versionable);
+                return new StatusImpl(workspaced, release, released);
+            } else {
+                return new StatusImpl(null, release, released);
+            }
         } catch (StagingReleaseManager.ReleaseRootNotFoundException | IllegalArgumentException e) {
+            LOG.info("Could not determine status because of {}", e.toString());
+            LOG.debug(e.toString(), e);
             return null;
         }
     }
@@ -121,8 +128,6 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     @Nonnull
     protected ActivationResult activateSingle(@Nullable String releaseKey, @Nonnull Resource rawVersionable, @Nullable String versionUuid) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
-        // XXX implement deletion with NonExistingResource .
-
         LOG.info("Requested activation {} in release {} to version {}", getPath(rawVersionable), releaseKey, versionUuid);
         ResourceHandle versionable = normalizeVersionable(rawVersionable);
         maybeCheckpoint(versionable);
@@ -132,8 +137,14 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
         boolean moveRequested = oldStatus.getNextVersionable() != null && oldStatus.getPreviousVersionable() != null &&
                 !StringUtils.equals(oldStatus.getNextVersionable().getRelativePath(), oldStatus.getPreviousVersionable().getRelativePath());
+        if (oldStatus.getActivationState() == ActivationState.deleted) {
 
-        if (oldStatus.getActivationState() != ActivationState.activated || moveRequested) {
+            ReleasedVersionable updateRV = oldStatus.getPreviousVersionable().clone();
+            updateRV.setActive(false);
+            releaseManager.updateRelease(release, singletonList(updateRV));
+            activationResult.getRemovedPaths().add(versionable.getPath());
+
+        } else if (oldStatus.getActivationState() != ActivationState.activated || moveRequested) {
 
             ReleasedVersionable updateRV = oldStatus.getNextVersionable().clone();
             if (StringUtils.isNotBlank(versionUuid) && !StringUtils.equals(versionUuid, updateRV.getVersionUuid())) {
@@ -194,18 +205,20 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     /** Checks whether the last modification date is later than the last checkin date. */
     protected void maybeCheckpoint(ResourceHandle versionable) throws RepositoryException {
-        VersionManager versionManager = versionable.getNode().getSession().getWorkspace().getVersionManager();
-        Version baseVersion = versionManager.getBaseVersion(versionable.getPath());
-        VersionHistory versionHistory = versionManager.getVersionHistory(versionable.getPath());
-        if (!versionable.isOfType(TYPE_LAST_MODIFIED)) {
-            LOG.warn("Mixin {} is required for proper function, but missing in {}", TYPE_LAST_MODIFIED, versionable.getPath());
-        }
-        Calendar lastModified = versionable.getProperty(PROP_LAST_MODIFIED, Calendar.class);
-        if (lastModified == null) { lastModified = versionable.getProperty(PROP_CREATED, Calendar.class); }
-        Version rootVersion = versionHistory.getRootVersion();
-        if (baseVersion.isSame(rootVersion) ||
-                lastModified != null && lastModified.after(baseVersion.getCreated())) {
-            versionManager.checkpoint(versionable.getPath());
+        VersionManager versionManager = versionable.getResourceResolver().adaptTo(Session.class).getWorkspace().getVersionManager();
+        if (!ResourceUtil.isNonExistingResource(versionable)) {
+            Version baseVersion = versionManager.getBaseVersion(versionable.getPath());
+            VersionHistory versionHistory = versionManager.getVersionHistory(versionable.getPath());
+            if (!versionable.isOfType(TYPE_LAST_MODIFIED)) {
+                LOG.warn("Mixin {} is required for proper function, but missing in {}", TYPE_LAST_MODIFIED, versionable.getPath());
+            }
+            Calendar lastModified = versionable.getProperty(PROP_LAST_MODIFIED, Calendar.class);
+            if (lastModified == null) { lastModified = versionable.getProperty(PROP_CREATED, Calendar.class); }
+            Version rootVersion = versionHistory.getRootVersion();
+            if (baseVersion.isSame(rootVersion) ||
+                    lastModified != null && lastModified.after(baseVersion.getCreated())) {
+                versionManager.checkpoint(versionable.getPath());
+            }
         }
     }
 
@@ -360,6 +373,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             ReleasedVersionable releasedVersionable = historyIdToRelease.get(versionHistoryId);
             ReleasedVersionable workspaceVersionable = historyIdToWorkspace.get(versionHistoryId);
             Status status = new StatusImpl(workspaceVersionable, release, releasedVersionable);
+            if (status.getActivationState() == ActivationState.deleted && !releasedVersionable.isActive()) { continue; }
             if (status.getActivationState() == ActivationState.modified || !Objects.equals(workspaceVersionable, releasedVersionable)) {
                 result.add(status);
             }
@@ -485,7 +499,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             return versionReference;
         }
 
-        @Nonnull
+        @Nullable
         @Override
         public StagingReleaseManager.Release getNextRelease() {
             return nextRelease;
