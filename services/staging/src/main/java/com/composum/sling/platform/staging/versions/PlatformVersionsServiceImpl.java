@@ -263,10 +263,6 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             ResourceHandle versionable = normalizeVersionable(rawVersionable);
 
             ReleasedVersionable rvInRelease = releaseManager.findReleasedVersionable(release, versionable);
-            if (rvInRelease == null) {
-                LOG.warn("Not reverting in {} since not present: {}", release.getNumber(), getPath(versionable));
-                continue;
-            }
             ReleasedVersionable rvInPreviousRelease = previousRelease != null ? releaseManager.findReleasedVersionable(previousRelease, versionable) : null;
             LOG.info("Reverting in {} from {} : {}", release, previousReleaseNumber, rvInPreviousRelease);
 
@@ -279,7 +275,9 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             } else { // if (rvInPreviousRelease != null) -> update to previous state
                 Map<String, SiblingOrderUpdateStrategy.Result> info = releaseManager.updateRelease(release, singletonList(rvInPreviousRelease));
                 result.getChangedPathsInfo().putAll(info);
-                if (!StringUtils.equals(rvInPreviousRelease.getRelativePath(), rvInRelease.getRelativePath())) {
+                if (rvInRelease == null) {
+                    result.getNewPaths().add(release.absolutePath(rvInPreviousRelease.getRelativePath()));
+                } else if (!StringUtils.equals(rvInPreviousRelease.getRelativePath(), rvInRelease.getRelativePath())) {
                     result.getMovedPaths().put(
                             release.absolutePath(rvInRelease.getRelativePath()),
                             release.absolutePath(rvInPreviousRelease.getRelativePath())
@@ -448,7 +446,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             boolean previouslyActive = previousVersionable != null && previousVersionable.isActive();
 
             if (versionReference == null && nextVersionable == null) {
-                activationState = ActivationState.initial;
+                activationState = ActivationState.deleted;
             } else if (!active) {
                 activationState = ActivationState.deactivated; // even if modified
             } else if (!previouslyActive && active) {
