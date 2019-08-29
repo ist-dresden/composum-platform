@@ -168,7 +168,8 @@ public interface StagingReleaseManager {
     /**
      * Looks up whether a versionable is present in the release.
      *
-     * @param versionable the versionable, from which we take the versionHistoryUuid to look it up in the release
+     * @param versionable the versionable, from which we take the versionHistoryUuid to look it up in the release. If it is a {@link org.apache.sling.api.resource.NonExistingResource},
+     *                    we just take the path from it.
      * @return the information about the item in the release, if it is present
      */
     @Nullable

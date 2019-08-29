@@ -31,8 +31,6 @@ public class SetupHook implements InstallHook {
     private static final String ADMIN_ACLS = CONFIG_ACL + "/administrators.json";
     private static final String LOGIN_ACLS = CONFIG_ACL + "/login.json";
 
-    private static final String ADMINISTRATORS_GROUP = "administrators";
-
     public static final String PLATFORM_USERS_PATH = "composum/platform/";
     public static final String PLATFORM_SYSTEM_USERS_PATH = "system/composum/platform/";
 

@@ -10,6 +10,7 @@ import com.composum.sling.core.servlet.AbstractServiceServlet;
 import com.composum.sling.core.servlet.ServletOperation;
 import com.composum.sling.core.servlet.ServletOperationSet;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.core.servlet.Status;
 import org.apache.commons.lang3.StringUtils;
@@ -154,12 +155,18 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                         path = StringUtils.appendIfMissing(path, "/" + ResourceUtil.CONTENT_NODE);
                         target = new NonExistingResource(resolver, path);
                     }
-                    versionable.add(target);
+                    if (target != null) {
+                        versionable.add(target);
+                    } else {
+                        LOG.info("Ignoring path for which we haven't found a resource: {}", path);
+                    }
                 }
             } else {
                 Resource target = getVersionable(resource);
                 if (target != null) {
                     versionable.add(getVersionable(resource));
+                } else {
+                    LOG.info("Ignoring path for which we haven't found a resource: {}", SlingResourceUtil.getPath(resource));
                 }
             }
             if (status.isValid()) {
@@ -314,18 +321,12 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                               @Nonnull final SlingHttpServletResponse response, @Nonnull final Status status,
                               @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey) {
             Set<String> referrers = addParameter(new HashSet<>(), request, PARAM_PAGE_REFS);
-            List<Resource> toRevert = new ArrayList<>(versionable);
-            for (String pagePath : referrers) {
-                Resource referrer = request.getResourceResolver().getResource(pagePath);
-                if (referrer == null) {
-                    status.withLogging(LOG).error("Page to revert not found: {}", pagePath);
-                } else {
-                    toRevert.add(referrer);
-                }
-            }
+            List<String> toRevert = new ArrayList<>();
+            versionable.forEach((r) -> toRevert.add(r.getPath()));
+            toRevert.addAll(referrers);
             if (status.isValid()) {
                 try {
-                    PlatformVersionsService.ActivationResult result = versionsService.revert(releaseKey, toRevert);
+                    PlatformVersionsService.ActivationResult result = versionsService.revert(request.getResourceResolver(), releaseKey, toRevert);
                     // TODO(hps,2019-05-21) do something with result
                     request.getResourceResolver().commit();
                 } catch (Exception ex) {

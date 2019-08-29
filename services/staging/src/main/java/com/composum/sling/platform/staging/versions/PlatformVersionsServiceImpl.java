@@ -17,6 +17,7 @@ import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.sling.api.resource.NonExistingResource;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -91,6 +92,12 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
      * @throws IllegalArgumentException if {versionable} doesn't denote a valid versionable
      */
     protected ResourceHandle normalizeVersionable(Resource versionable) throws IllegalArgumentException {
+        if (ResourceUtil.isNonExistingResource(versionable)) { // we can't check here, so we assume the actual versionable is the content node.
+            if (!versionable.getPath().endsWith("/" + CONTENT_NODE)) {
+                versionable = new NonExistingResource(versionable.getResourceResolver(), versionable.getPath() + "/" + CONTENT_NODE);
+            }
+            return ResourceHandle.use(versionable);
+        }
         ResourceHandle handle = ResourceHandle.use(versionable);
         if (ResourceUtil.isNonExistingResource(versionable)) { return handle; }
         if (handle.isValid() && handle.isOfType(TYPE_VERSIONABLE)) { return handle; }
@@ -246,24 +253,22 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     @Override
     @Nonnull
-    public ActivationResult revert(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
-        if (versionables == null || versionables.isEmpty()) { return new ActivationResult(null); }
-        Resource firstVersionable = versionables.get(0);
-        StagingReleaseManager.Release release = getRelease(firstVersionable, releaseKey);
+    public ActivationResult revert(@Nonnull ResourceResolver resolver, @Nullable String releaseKey, @Nonnull List<String> versionablePaths) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
+        if (versionablePaths == null || versionablePaths.isEmpty()) { return new ActivationResult(null); }
+        StagingReleaseManager.Release release = getRelease(new NonExistingResource(resolver, versionablePaths.get(0)), releaseKey);
         StagingReleaseManager.Release previousRelease = release.getPreviousRelease();
         ActivationResult result = new ActivationResult(release);
 
         String previousReleaseNumber = previousRelease != null ? previousRelease.getNumber() : null;
-        LOG.info("Requested reverting in {} to previous release {} : {}", releaseKey, previousReleaseNumber, getPaths(versionables));
+        LOG.info("Requested reverting in {} to previous release {} : {}", releaseKey, previousReleaseNumber, versionablePaths);
 
-        for (Resource rawVersionable : versionables) {
-            if (!release.appliesToPath(rawVersionable.getPath())) {
-                throw new IllegalArgumentException("Arguments from different releases: " + getPaths(versionables));
+        for (String path : versionablePaths) {
+            if (!release.appliesToPath(path)) {
+                throw new IllegalArgumentException("Arguments from different releases: " + versionablePaths);
             }
-            ResourceHandle versionable = normalizeVersionable(rawVersionable);
-
-            ReleasedVersionable rvInRelease = releaseManager.findReleasedVersionable(release, versionable);
-            ReleasedVersionable rvInPreviousRelease = previousRelease != null ? releaseManager.findReleasedVersionable(previousRelease, versionable) : null;
+            Resource pathResource = normalizeVersionable(new NonExistingResource(resolver, path));
+            ReleasedVersionable rvInRelease = releaseManager.findReleasedVersionable(release, pathResource);
+            ReleasedVersionable rvInPreviousRelease = previousRelease != null ? releaseManager.findReleasedVersionable(previousRelease, pathResource) : null;
             LOG.info("Reverting in {} from {} : {}", release, previousReleaseNumber, rvInPreviousRelease);
 
             if (rvInPreviousRelease == null) { // delete it since it wasn't in the previous release or there is no previous release

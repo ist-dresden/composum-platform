@@ -154,7 +154,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
 
         // revert when release has no previous release should just delete it. (currentRelease counts as empty then).
         ec.checkThat(releaseManager.listReleaseContents(currentRelease), hasSize(1));
-        ec.checkThat(service.revert(null, asList(versionable)).getRemovedPaths(), hasSize(1));
+        ec.checkThat(service.revert(resourceResolver, null, asList(versionable.getPath())).getRemovedPaths(), hasSize(1));
         ec.checkThat(releaseManager.listReleaseContents(currentRelease), hasSize(0));
         releaseManager.updateRelease(currentRelease, asList(ReleasedVersionable.forBaseVersion(versionable))); // put it back
 
@@ -189,14 +189,14 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         ec.checkThat(status.getPreviousVersionable().getVersionUuid(), is(version2));
 
         // Now revert current release version to r11
-        PlatformVersionsService.ActivationResult result = service.revert(CURRENT_RELEASE, asList(versionable));
+        PlatformVersionsService.ActivationResult result = service.revert(resourceResolver, CURRENT_RELEASE, asList(versionable.getPath()));
         ec.checkThat(result.getChangedPathsInfo(), SlingMatchers.hasMapSize(0));
 
         status = service.getStatus(versionable, CURRENT_RELEASE); // now just as in r11 - the original version
         ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.modified));
         ec.checkThat(status.getPreviousVersionable().getVersionUuid(), is(originalVersion));
 
-        ec.checkFailsWith(() -> service.revert(r21.getNumber(), asList(versionable)), is(instanceOf(StagingReleaseManager.ReleaseClosedException.class)));
+        ec.checkFailsWith(() -> service.revert(resourceResolver, r21.getNumber(), asList(versionable.getPath())), is(instanceOf(StagingReleaseManager.ReleaseClosedException.class)));
     }
 
     @Test

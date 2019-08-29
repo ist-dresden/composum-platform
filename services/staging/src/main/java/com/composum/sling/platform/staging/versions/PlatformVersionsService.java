@@ -2,15 +2,16 @@ package com.composum.sling.platform.staging.versions;
 
 import com.composum.sling.core.filter.ResourceFilter;
 import com.composum.sling.core.util.CoreConstants;
-import com.composum.sling.platform.staging.VersionReference;
+import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleasedVersionable;
-import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -177,12 +178,14 @@ public interface PlatformVersionsService {
      * (in the sense of {@link com.composum.sling.platform.staging.ReleaseNumberCreator#COMPARATOR_RELEASES}).
      * If there is no previous release, this deletes the versionable from the content (the "previous release" counting as empty in this case).
      *
-     * @param releaseKey   a release number or null for the {@link #getDefaultRelease(Resource)}.
-     * @param versionables ist of versionables to revert
+     * @param resolver         a resolver we can use
+     * @param releaseKey       a release number or null for the {@link #getDefaultRelease(Resource)}.
+     * @param versionablePaths list of paths to versionables to revert. We use paths instead of resources since they might not exist in the workspace (if moved or deleted)
+     *                         nor in the StagingResolver (if deactivated)
      * @return information about the activation
      */
     @Nonnull
-    ActivationResult revert(@Nullable String releaseKey, @Nonnull List<Resource> versionables)
+    ActivationResult revert(@Nonnull ResourceResolver resolver, @Nullable String releaseKey, @Nonnull List<String> versionablePaths)
             throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException;
 
     /** Deletes old versions of the versionable - only versions in releases and after the last version which is in a release are kept. */
