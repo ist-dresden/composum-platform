@@ -547,10 +547,12 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             }
         }
 
+        if (!delete) {
+            releasedVersionable.writeToVersionReference(release.getWorkspaceCopyNode(), requireNonNull(versionReference));
+        }
+
         updateReleaseLabel(release, releasedVersionable);
         release.updateLastModified();
-
-        if (!delete) { releasedVersionable.writeToVersionReference(requireNonNull(versionReference)); }
 
         updateEvent(release, previousRV, releasedVersionable, event);
 
@@ -602,10 +604,16 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         }
         VersionManager versionManager = session.getWorkspace().getVersionManager();
 
-        VersionHistory versionHistory;
+        VersionHistory versionHistory = null;
         try {
             versionHistory = versionManager.getVersionHistory(release.getReleaseRoot().getPath() + '/' + releasedVersionable.getRelativePath());
-        } catch (PathNotFoundException e) { // moved or deleted. Try versionhistoryuuid
+            if (!versionHistory.getIdentifier().equals(releasedVersionable.getVersionHistory())) {
+                versionHistory = null;
+            }
+        } catch (PathNotFoundException e) {
+            // moved or deleted. Try versionhistoryuuid
+        }
+        if (versionHistory == null) {
             versionHistory = (VersionHistory) session.getNodeByIdentifier(releasedVersionable.getVersionHistory());
         }
         if (versionHistory == null) {

@@ -2,9 +2,13 @@ package com.composum.sling.platform.staging;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.core.util.SlingResourceUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.sling.api.resource.ModifiableValueMap;
 import org.apache.sling.api.resource.Resource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -12,6 +16,7 @@ import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.version.Version;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Objects;
 
@@ -19,6 +24,8 @@ import static com.composum.sling.core.util.SlingResourceUtil.getPath;
 
 /** Describes the state of a versionable in a release. Can also be used as parameter object to update the release. */
 public class ReleasedVersionable implements Serializable, Cloneable {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ReleasedVersionable.class);
 
     /** @see #getRelativePath() */
     @Nonnull
@@ -149,11 +156,13 @@ public class ReleasedVersionable implements Serializable, Cloneable {
      * @deprecated only for ReleaseManager internal use, public for technical reasons.
      */
     @Deprecated
-    public void writeToVersionReference(@Nonnull Resource versionReference) throws RepositoryException {
+    public void writeToVersionReference(@Nonnull Resource workspaceCopyRoot, @Nonnull Resource versionReference) throws RepositoryException {
         ResourceHandle rh = ResourceHandle.use(versionReference);
         String oldVersionHistory = rh.getProperty(StagingConstants.PROP_VERSIONHISTORY);
-        if (oldVersionHistory != null && !oldVersionHistory.equals(getVersionHistory()))
-            throw new IllegalArgumentException("Trying to write to different versionhistory: " + getVersionHistory() + " to " + oldVersionHistory);
+        if (oldVersionHistory != null && !oldVersionHistory.equals(getVersionHistory())) {
+            LOG.warn("Writing to different versionhistory: {} written to {}", this.toString(), ReleasedVersionable.fromVersionReference(workspaceCopyRoot, versionReference));
+            clearVersionableProperties(versionReference);
+        }
         rh.setProperty(StagingConstants.PROP_DEACTIVATED, !isActive());
         rh.setProperty(StagingConstants.PROP_VERSIONABLEUUID, getVersionableUuid(), PropertyType.WEAKREFERENCE);
         rh.setProperty(StagingConstants.PROP_VERSION, getVersionUuid(), PropertyType.REFERENCE);
@@ -164,6 +173,19 @@ public class ReleasedVersionable implements Serializable, Cloneable {
         } else {
             rh.setProperty(StagingConstants.PROP_LAST_DEACTIVATED, Calendar.getInstance());
             rh.setProperty(StagingConstants.PROP_LAST_DEACTIVATED_BY, versionReference.getResourceResolver().getUserID());
+        }
+    }
+
+    protected void clearVersionableProperties(Resource versionReference) {
+        ModifiableValueMap modvm = versionReference.adaptTo(ModifiableValueMap.class);
+        for (String key : new ArrayList<String>(modvm.keySet())) {
+            if (!ResourceUtil.PROP_PRIMARY_TYPE.equals(key)) {
+                try {
+                    modvm.remove(key);
+                } catch (Exception e) {
+                    LOG.warn("Could not remove property {} from {}", key, SlingResourceUtil.getPath(versionReference));
+                }
+            }
         }
     }
 
