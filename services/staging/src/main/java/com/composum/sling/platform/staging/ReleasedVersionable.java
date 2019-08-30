@@ -158,6 +158,9 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     @Deprecated
     public void writeToVersionReference(@Nonnull Resource workspaceCopyRoot, @Nonnull Resource versionReference) throws RepositoryException {
         ResourceHandle rh = ResourceHandle.use(versionReference);
+        if (!StagingConstants.TYPE_VERSIONREFERENCE.equals(rh.getPrimaryType())) {
+            throw new IllegalArgumentException("Not a version reference: " + SlingResourceUtil.getPath(versionReference));
+        }
         String oldVersionHistory = rh.getProperty(StagingConstants.PROP_VERSIONHISTORY);
         if (oldVersionHistory != null && !oldVersionHistory.equals(getVersionHistory())) {
             LOG.warn("Writing to different versionhistory: {} written to {}", this.toString(), ReleasedVersionable.fromVersionReference(workspaceCopyRoot, versionReference));

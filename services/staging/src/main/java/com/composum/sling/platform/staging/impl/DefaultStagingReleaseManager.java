@@ -556,7 +556,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         updateEvent(release, previousRV, releasedVersionable, event);
 
-        if (!delete) { return updateParents(release, releasedVersionable, event); }
+        if (!delete) { return updateParentsFromWorkspace(release, releasedVersionable, event); }
         return new HashMap<>();
     }
 
@@ -661,32 +661,46 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
      * @return a map with paths where we changed the order of children in the release.
      */
     @Nonnull
-    protected Map<String, Result> updateParents(ReleaseImpl release, ReleasedVersionable releasedVersionable, ReleaseChangeEventListener.ReleaseChangeEvent event) throws RepositoryException {
-        Map<String, Result> resultMap = new TreeMap<>();
+    protected Map<String, Result> updateParentsFromWorkspace(ReleaseImpl release, ReleasedVersionable releasedVersionable, ReleaseChangeEventListener.ReleaseChangeEvent event) throws RepositoryException {
+        return updateParents(release, releasedVersionable, event, release.getReleaseRoot());
+    }
 
-        String[] levels = releasedVersionable.getRelativePath().split("/");
-        ResourceHandle inWorkspace = ResourceHandle.use(release.getReleaseRoot());
+    /**
+     * Goes through all parents of the version reference, sets their attributes from the working copy
+     * and fixes the node ordering if necessary.
+     *
+     * @param templateRoot either the workspace root or a previous release copy root (on revert) - where we want to copy the attributes from.
+     * @return a map with paths where we changed the order of children in the release.
+     */
+    @Nonnull
+    private Map<String, Result> updateParents(ReleaseImpl release, ReleasedVersionable releasedVersionable, ReleaseChangeEventListener.ReleaseChangeEvent event, Resource templateRoot) throws RepositoryException {
+        ResourceHandle template = ResourceHandle.use(templateRoot);
         ResourceHandle inRelease = ResourceHandle.use(release.getWorkspaceCopyNode());
+        Map<String, Result> resultMap = new TreeMap<>();
+        String[] levels = releasedVersionable.getRelativePath().split("/");
         Iterator<String> levelIterator = IteratorUtils.arrayIterator(levels);
         NodeTreeSynchronizer sync = new NodeTreeSynchronizer();
 
-        while (inWorkspace.isValid() && inRelease.isValid() && !inRelease.isOfType(TYPE_VERSIONREFERENCE)) {
-            boolean attributesChanged = sync.updateAttributes(inWorkspace, inRelease, StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES);
+        while (template.isValid() && inRelease.isValid() && !inRelease.isOfType(TYPE_VERSIONREFERENCE)) {
+            boolean attributesChanged = sync.updateAttributes(template, inRelease, StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES);
             if (attributesChanged) {
-                event.addMoveOrUpdate(inWorkspace.getPath(), inWorkspace.getPath());
+                event.addMoveOrUpdate(template.getPath(), template.getPath());
             }
             if (!levelIterator.hasNext()) { break; }
             String level = levelIterator.next();
-            inWorkspace = ResourceHandle.use(inWorkspace.getChild(level));
+            template = ResourceHandle.use(template.getChild(level));
             inRelease = ResourceHandle.use(inRelease.getChild(level));
-            if (inWorkspace.isValid() && inRelease.isValid()) {
+            if (template.isValid() && inRelease.isValid()) {
                 // we do that for all nodes except the root but including the version reference itself:
-                Result result = updateSiblingOrder(inWorkspace, inRelease);
+                Result result = updateSiblingOrder(template, inRelease);
                 if (result != Result.unchanged) {
-                    resultMap.put(inWorkspace.getParentPath(), result);
-                    event.addMoveOrUpdate(inWorkspace.getParentPath(), inWorkspace.getPath());
+                    resultMap.put(template.getParentPath(), result);
+                    event.addMoveOrUpdate(template.getParentPath(), template.getPath());
                 }
             }
+        }
+        if (levelIterator.hasNext() && !template.isValid()) {
+            throw new IllegalArgumentException("Could not copy attributes of parent nodes since node used as template not valid: " + inRelease.getPath());
         }
 
         return resultMap;
