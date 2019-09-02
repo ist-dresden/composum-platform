@@ -278,7 +278,8 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 Map<String, SiblingOrderUpdateStrategy.Result> info = releaseManager.updateRelease(release, singletonList(update));
                 result.getChangedPathsInfo().putAll(info);
             } else { // if (rvInPreviousRelease != null) -> update to previous state
-                Map<String, SiblingOrderUpdateStrategy.Result> info = releaseManager.updateRelease(release, singletonList(rvInPreviousRelease));
+                Map<String, SiblingOrderUpdateStrategy.Result> info = releaseManager.revert(release,
+                        rvInPreviousRelease.getRelativePath(), previousRelease);
                 result.getChangedPathsInfo().putAll(info);
                 if (rvInRelease == null) {
                     result.getNewPaths().add(release.absolutePath(rvInPreviousRelease.getRelativePath()));

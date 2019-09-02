@@ -460,6 +460,54 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     }
 
     @Test
+    public void restoreMovedDocument() throws Exception {
+        Resource document1 = releaseRootBuilder.resource("document1", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+                PROP_MIXINTYPES, array(TYPE_VERSIONABLE)).commit().getCurrentParent();
+        versionManager.checkpoint(document1.getPath());
+        Map<String, SiblingOrderUpdateStrategy.Result> updateResult = service.updateRelease(currentRelease, Collections.singletonList(ReleasedVersionable.forBaseVersion(document1)));
+        ec.checkThat(updateResult.toString(), equalTo("{}"));
+
+        Resource document2 = releaseRootBuilder.resource("document2", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+                PROP_MIXINTYPES, array(TYPE_VERSIONABLE)).commit().getCurrentParent();
+        String originalDocument2Path = document2.getPath();
+        versionManager.checkpoint(originalDocument2Path);
+        updateResult = service.updateRelease(currentRelease, Collections.singletonList(ReleasedVersionable.forBaseVersion(document2)));
+        ec.checkThat(updateResult.toString(), equalTo("{}"));
+
+        // save a copy for checking revert later.
+        Release prevRelease = service.finalizeCurrentRelease(releaseRoot, ReleaseNumberCreator.MAJOR);
+        currentRelease = service.findRelease(releaseRoot, StagingConstants.CURRENT_RELEASE);
+
+        ResourceResolver stagedResolver = service.getResolverForRelease(currentRelease, null, false);
+        ec.checkThat(releaseRoot.getPath(), stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document1", "document2"));
+
+        context.resourceResolver().adaptTo(Session.class).getWorkspace().move(originalDocument2Path,
+                document2.getParent().getPath() + "/moveddocument2");
+        context.resourceResolver().commit();
+        document2 = releaseRoot.getChild("moveddocument2");
+        ec.checkThat(document2, notNullValue());
+
+        // no change after staging yet
+        ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document1", "document2"));
+
+        updateResult = service.updateRelease(currentRelease, Arrays.asList(ReleasedVersionable.forBaseVersion(document2)));
+        ec.checkThat(updateResult.toString(), equalTo("{}"));
+
+        ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()),
+                ResourceMatchers.containsChildren("jcr:content", "document1", "moveddocument2"));
+
+        // now delete document2 in the workspace and try to revert the renaming
+        ReleasedVersionable document2Versionable = service.findReleasedVersionable(currentRelease, document2);
+        context.resourceResolver().delete(document2);
+        context.resourceResolver().commit();
+
+        Map<String, SiblingOrderUpdateStrategy.Result> revertResult = service.revert(currentRelease, originalDocument2Path, prevRelease);
+        ec.checkThat(revertResult.toString(), equalTo("{}"));
+        ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()),
+                ResourceMatchers.containsChildren("jcr:content", "document1", "document2"));
+    }
+
+    @Test
     public void listCurrentContent() throws Exception {
         List<ReleasedVersionable> content = service.listWorkspaceContents(this.releaseRoot);
         ec.checkThat(content.size(), is(0));

@@ -641,7 +641,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 Resource oldParent = versionReference.getParent();
 
                 createMissingParents();
-                versionReference = resolver.move(versionReference.getPath(), ResourceUtil.getParent(newPath));
+                resolver.adaptTo(Session.class).move(versionReference.getPath(), newPath);
+                versionReference = resolver.getResource(newPath);
 
                 cleanupOrphans(releaseWorkspaceCopy.getPath(), oldParent);
             } else { // stays at same path
