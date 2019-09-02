@@ -89,6 +89,7 @@ import static com.composum.sling.core.util.CoreConstants.TYPE_TITLE;
 import static com.composum.sling.core.util.CoreConstants.TYPE_UNSTRUCTURED;
 import static com.composum.sling.core.util.CoreConstants.TYPE_VERSIONABLE;
 import static com.composum.sling.platform.staging.StagingConstants.CURRENT_RELEASE;
+import static com.composum.sling.platform.staging.StagingConstants.FROZEN_PROP_NAMES_TO_REAL_NAMES;
 import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASES;
 import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASE_METADATA;
 import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASE_ROOT;
@@ -630,36 +631,50 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         /** We create, move or delete the versionReference, as appropriate for our operation. */
         protected void moveOrCreateVersionReference() throws RepositoryException, PersistenceException {
-            if (versionReference == null) {
-                if (!delete) {
+            if (delete) {
+                if (versionReference != null) {
+                    versionReference.getResourceResolver().delete(versionReference);
+                }
+            } else { // !delete
+                if (versionReference == null) {
+                    createMissingParents();
                     versionReference = ResourceUtil.getOrCreateResource(release.getReleaseNode().getResourceResolver(), newPath,
                             TYPE_UNSTRUCTURED + '/' + TYPE_VERSIONREFERENCE);
-                }
-            } else if (delete) {
-                versionReference.getResourceResolver().delete(versionReference);
-            } else if (!versionReference.getPath().equals(newPath)) { // move to a different path
-                Resource oldParent = versionReference.getParent();
+                } else if (!versionReference.getPath().equals(newPath)) { // move to a different path
+                    Resource oldParent = versionReference.getParent();
+                    createMissingParents();
+                    resolver.adaptTo(Session.class).move(versionReference.getPath(), newPath);
+                    versionReference = resolver.getResource(newPath);
 
-                createMissingParents();
-                resolver.adaptTo(Session.class).move(versionReference.getPath(), newPath);
-                versionReference = resolver.getResource(newPath);
-
-                cleanupOrphans(releaseWorkspaceCopy.getPath(), oldParent);
-            } else { // stays at same path
-                String existingVersionHistory = versionReference.getValueMap().get(PROP_VERSIONHISTORY, String.class);
-                if (!StringUtils.equals(existingVersionHistory, releasedVersionable.getVersionHistory())) {
-                    LOG.warn("Overriding a different versionable {} at the requested path {}", existingVersionHistory,
-                            releasedVersionable.getRelativePath());
+                    cleanupOrphans(releaseWorkspaceCopy.getPath(), oldParent);
+                } else { // stays at same path
+                    String existingVersionHistory = versionReference.getValueMap().get(PROP_VERSIONHISTORY, String.class);
+                    if (!StringUtils.equals(existingVersionHistory, releasedVersionable.getVersionHistory())) {
+                        LOG.warn("Overriding a different versionable {} at the requested path {}", existingVersionHistory,
+                                releasedVersionable.getRelativePath());
+                    }
                 }
             }
         }
 
-        private void createMissingParents() throws RepositoryException {
+        private void createMissingParents() throws RepositoryException, PersistenceException {
             if (copiedVersionReferenceResource == null) {
-                ResourceUtil.getOrCreateResource(resolver, ResourceUtil.getParent(newPath), TYPE_UNSTRUCTURED);
+                createParentNodesWithoutTemplate(ResourceUtil.getParent(newPath));
             } else {
                 copyParentIfMissing(ResourceUtil.getParent(newPath), copiedVersionReferenceResource.getParent());
             }
+        }
+
+        @Nonnull
+        protected Resource createParentNodesWithoutTemplate(String path) throws PersistenceException {
+            Resource nodeResource = resolver.getResource(path);
+            if (null == nodeResource) {
+                Resource parent = createParentNodesWithoutTemplate(ResourceUtil.getParent(path));
+                Map<String, Object> props = ImmutableMap.of(PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+                        ResourceUtil.JCR_FROZENPRIMARYTYPE, TYPE_UNSTRUCTURED);
+                nodeResource = resolver.create(parent, ResourceUtil.getName(path), props);
+            }
+            return nodeResource;
         }
 
         /**
