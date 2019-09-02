@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.composum.sling.core.util.CoreConstants.CONTENT_NODE;
 import static com.composum.sling.core.util.ResourceUtil.PROP_MIXINTYPES;
 import static com.composum.sling.core.util.ResourceUtil.PROP_PRIMARY_TYPE;
 import static com.composum.sling.core.util.ResourceUtil.PROP_TITLE;
@@ -461,14 +462,18 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
     @Test
     public void restoreMovedDocument() throws Exception {
-        Resource document1 = releaseRootBuilder.resource("document1", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+        // we use the normal structure document1/jcr:content , document2/jcr:content here.
+
+        Resource document1 = releaseRootBuilder.resource("document1", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED)
+                .resource(CONTENT_NODE, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                 PROP_MIXINTYPES, array(TYPE_VERSIONABLE)).commit().getCurrentParent();
         versionManager.checkpoint(document1.getPath());
         Map<String, SiblingOrderUpdateStrategy.Result> updateResult = service.updateRelease(currentRelease, Collections.singletonList(ReleasedVersionable.forBaseVersion(document1)));
         ec.checkThat(updateResult.toString(), equalTo("{}"));
 
-        Resource document2 = releaseRootBuilder.resource("document2", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
-                PROP_MIXINTYPES, array(TYPE_VERSIONABLE)).commit().getCurrentParent();
+        Resource document2 = releaseRootBuilder.resource("document2", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED)
+                .resource(CONTENT_NODE, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+                        PROP_MIXINTYPES, array(TYPE_VERSIONABLE)).commit().getCurrentParent();
         String originalDocument2Path = document2.getPath();
         versionManager.checkpoint(originalDocument2Path);
         updateResult = service.updateRelease(currentRelease, Collections.singletonList(ReleasedVersionable.forBaseVersion(document2)));
@@ -481,10 +486,10 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ResourceResolver stagedResolver = service.getResolverForRelease(currentRelease, null, false);
         ec.checkThat(releaseRoot.getPath(), stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document1", "document2"));
 
-        context.resourceResolver().adaptTo(Session.class).getWorkspace().move(originalDocument2Path,
-                document2.getParent().getPath() + "/moveddocument2");
+        context.resourceResolver().adaptTo(Session.class).getWorkspace().move(ResourceUtil.getParent(originalDocument2Path),
+                this.releaseRoot.getPath() + "/moveddocument2");
         context.resourceResolver().commit();
-        document2 = releaseRoot.getChild("moveddocument2");
+        document2 = releaseRoot.getChild("moveddocument2/jcr:content");
         ec.checkThat(document2, notNullValue());
 
         // no change after staging yet

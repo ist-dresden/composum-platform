@@ -525,7 +525,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         } else {
             // like updateRelease, but update parents from the previous release instead of the workspace,
             // and only if there originally was no parent.
-            Resource versionReferenceResource = fromRelease.versionReference(versionableInPreviousRelease.getRelativePath()).getVersionResource();
+            Resource versionReferenceResource = fromRelease.getWorkspaceCopyNode().getChild(versionableInPreviousRelease.getRelativePath());
             result = new ReleaseUpdater(release, versionableInPreviousRelease, event, versionReferenceResource).callForRevert();
 
             applyPlugins(release, Collections.singletonList(versionableInPreviousRelease), event);
@@ -681,7 +681,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             Resource node = parent.getChild(nodeName);
             if (node == null) {
                 node = ResourceUtil.getOrCreateChild(parent, nodeName, TYPE_UNSTRUCTURED);
-                sync.updateAttributes(ResourceHandle.use(nodeTemplate), ResourceHandle.use(node), null);
+                sync.updateAttributes(ResourceHandle.use(nodeTemplate), ResourceHandle.use(node), StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES);
                 if (updateSiblingOrderOnCreate) {
                     updateSiblingOderAndSaveResult(ResourceHandle.use(nodeTemplate), ResourceHandle.use(node));
                 }
