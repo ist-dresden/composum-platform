@@ -2,6 +2,7 @@ package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
@@ -421,9 +422,14 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
         Resource document2 = releaseRootBuilder.resource("document2", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                 PROP_MIXINTYPES, array(TYPE_VERSIONABLE)).commit().getCurrentParent();
-        versionManager.checkpoint(document2.getPath());
+        String document2Path = document2.getPath();
+        versionManager.checkpoint(document2Path);
         updateResult = service.updateRelease(currentRelease, Collections.singletonList(ReleasedVersionable.forBaseVersion(document2)));
         ec.checkThat(updateResult.toString(), equalTo("{}"));
+
+        // save a copy for checking revert later.
+        Release prevRelease = service.finalizeCurrentRelease(releaseRoot, ReleaseNumberCreator.MAJOR);
+        currentRelease = service.findRelease(releaseRoot, StagingConstants.CURRENT_RELEASE);
 
         ResourceResolver stagedResolver = service.getResolverForRelease(currentRelease, null, false);
         ec.checkThat(releaseRoot.getPath(), stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document1", "document2"));
@@ -436,6 +442,20 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         updateResult = service.updateRelease(currentRelease, Arrays.asList(ReleasedVersionable.forBaseVersion(document1), ReleasedVersionable.forBaseVersion(document2)));
         ec.checkThat(updateResult.toString(), equalTo("{/content/site=deterministicallyReordered}"));
 
+        ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document2", "document1"));
+
+        // now delete document 2 and try to revert that.
+        ReleasedVersionable document2Versionable = service.findReleasedVersionable(currentRelease, document2);
+        context.resourceResolver().delete(document2);
+        context.resourceResolver().commit();
+
+        document2Versionable.setActive(false);
+        Map<String, SiblingOrderUpdateStrategy.Result> deleteResult = service.updateRelease(currentRelease, Collections.singletonList(document2Versionable));
+        ec.checkThat(deleteResult.toString(), equalTo("{}"));
+        ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document1"));
+
+        Map<String, SiblingOrderUpdateStrategy.Result> revertResult = service.revert(currentRelease, document2Path, prevRelease);
+        ec.checkThat(revertResult.toString(), equalTo("{}"));
         ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document2", "document1"));
     }
 

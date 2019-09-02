@@ -180,6 +180,8 @@ public interface StagingReleaseManager {
      * If {@link ReleasedVersionable#versionUuid} is null, it is removed from the release.
      * We also set a label {@value StagingConstants#RELEASE_LABEL_PREFIX}{releasenumber} on each version contained in the release,
      * for easier referencing versions. Caution: the current release is called {@value StagingConstants#RELEASE_LABEL_PREFIX}current .
+     * This needs the workspace to copy the attributes and node orderings of the parent nodes from - the paths of the releasedVersionableList must
+     * correspond to the workspace.
      *
      * @param release                 the release to update
      * @param releasedVersionableList a number of paths to versionables for which the version denoted by {@link ReleasedVersionable#versionUuid} version should be put into the release, or to be removed when it's null.
@@ -188,6 +190,17 @@ public interface StagingReleaseManager {
      */
     @Nonnull
     Map<String, SiblingOrderUpdateStrategy.Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException, ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException;
+
+    /**
+     * Restores a versionable to the state it was in a previous release.
+     *
+     * @param release      the release to change
+     * @param pathToRevert the release-relative or absolute path of the versionable in the fromRelease
+     * @param fromRelease  the release to copy it from
+     * @return a map with paths where we changed the order of children in the release.
+     */
+    @Nonnull
+    Map<String, SiblingOrderUpdateStrategy.Result> revert(@Nonnull Release release, @Nonnull String pathToRevert, @Nonnull Release fromRelease) throws RepositoryException, PersistenceException, ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException;
 
     /**
      * Creates a {@link StagingResourceResolver} that presents the given release.
