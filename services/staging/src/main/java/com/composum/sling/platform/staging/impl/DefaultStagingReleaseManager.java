@@ -26,6 +26,7 @@ import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.sling.api.SlingException;
 import org.apache.sling.api.resource.LoginException;
+import org.apache.sling.api.resource.ModifiableValueMap;
 import org.apache.sling.api.resource.NonExistingResource;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
@@ -654,6 +655,20 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                                 releasedVersionable.getRelativePath());
                     }
                 }
+
+                if (releasedVersionable.isActive()) {
+                    resetDeletedFlag(versionReference.getParent());
+                }
+            }
+        }
+
+        protected void resetDeletedFlag(Resource parent) {
+            if (parent != null && SlingResourceUtil.isSameOrDescendant(release.getWorkspaceCopyNode().getPath(),
+                    parent.getPath())) {
+                if (parent.getValueMap().get(PROP_DEACTIVATED, false)) {
+                    parent.adaptTo(ModifiableValueMap.class).remove(PROP_DEACTIVATED);
+                }
+                resetDeletedFlag(parent.getParent());
             }
         }
 
