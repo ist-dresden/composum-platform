@@ -762,8 +762,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             Result siblingResult = updateSiblingOrder(from, to);
             if (siblingResult != Result.unchanged) {
                 String releasePath = release.unmapFromContentCopy(to.getPath());
-                result.put(ResourceUtil.getParent(releasePath), siblingResult);
-                event.addMoveOrUpdate(releasePath, releasePath);
+                String parent = ResourceUtil.getParent(releasePath);
+                result.put(parent, siblingResult);
+                event.addMoveOrUpdate(parent, parent);
             }
         }
 

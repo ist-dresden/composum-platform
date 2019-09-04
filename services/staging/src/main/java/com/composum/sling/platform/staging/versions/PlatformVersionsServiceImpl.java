@@ -312,6 +312,10 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             LOG.info("Reverting in {} from {} : {}", release, previousReleaseNumber, rvInPreviousRelease);
 
             if (rvInPreviousRelease == null) { // delete it since it wasn't in the previous release or there is no previous release
+                if (rvInRelease == null) {
+                    LOG.warn("Path {} is neither in release {} nor it's previous release", path, release);
+                    continue;
+                }
                 ReleasedVersionable update = rvInRelease.clone();
                 update.setVersionUuid(null); // delete request
                 result.getRemovedPaths().add(release.absolutePath(rvInRelease.getRelativePath()));
