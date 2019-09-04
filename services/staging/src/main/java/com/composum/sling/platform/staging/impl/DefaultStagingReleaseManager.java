@@ -982,6 +982,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
      */
     @Override
     public int cleanupLabels(@Nonnull Resource resource) throws RepositoryException {
+        long start = System.currentTimeMillis();
         int count = 0;
         ResourceHandle root = findReleaseRoot(resource);
 
@@ -991,22 +992,21 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         query.path("/jcr:system/jcr:versionStorage").type("nt:versionHistory").condition(
                 query.conditionBuilder().property("default").like().val(root.getPath() + "/%")
         );
-        QueryConditionDsl.QueryCondition versionLabelJoin = query.joinConditionBuilder().isNotNull(JCR_PRIMARYTYPE);
-        query.join(Inner, Descendant, "nt:versionLabels", versionLabelJoin);
-        for (QueryValueMap result : query.selectAndExecute()) {
-            Resource labelResource = result.getJoinResource(versionLabelJoin.getSelector());
+        for (Resource versionHistory : query.execute()) {
+            Resource labelResource = versionHistory.getChild(ResourceUtil.JCR_VERSIONLABELS);
             ValueMap valueMap = labelResource.getValueMap();
             for (String label : valueMap.keySet()) {
                 if (label.startsWith(RELEASE_LABEL_PREFIX) && !expectedLabels.contains(label)) {
                     Property versionProperty = valueMap.get(label, Property.class);
                     Node version = versionProperty.getNode();
-                    VersionHistory versionHistory = (VersionHistory) version.getParent();
-                    versionHistory.removeVersionLabel(label);
+                    VersionHistory versionHistoryNode = (VersionHistory) version.getParent();
+                    versionHistoryNode.removeVersionLabel(label);
                     LOG.debug("Removing obsolete label {} from {}", label, labelResource.getPath());
                     count++;
                 }
             }
         }
+        LOG.info("cleanupLabels removed {} obsolete labels in {}s", 0.001 * (System.currentTimeMillis() - start));
         return count;
     }
 
