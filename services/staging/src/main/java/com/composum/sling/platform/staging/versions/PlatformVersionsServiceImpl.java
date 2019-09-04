@@ -128,18 +128,41 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     @Nonnull
     @Override
-    public ActivationResult activate(@Nullable String releaseKey, @Nonnull Resource rawVersionable, @Nullable String versionUuid) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
-        ActivationResult activationResult = activateSingle(releaseKey, rawVersionable, versionUuid);
-        return activationResult;
+    public ActivationResult activate(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
+        ActivationResult result = new ActivationResult(null);
+        if (!versionables.isEmpty()) {
+            List<Resource> normalizedCheckedinVersionables = new ArrayList<>();
+            for (Resource rawVersionable : versionables) {
+                ResourceHandle versionable = normalizeVersionable(rawVersionable);
+                maybeCheckpoint(versionable);
+                normalizedCheckedinVersionables.add(versionable);
+            }
+            StagingReleaseManager.Release release = getRelease(normalizedCheckedinVersionables.get(0), releaseKey);
+            for (Resource versionable : normalizedCheckedinVersionables) {
+                result = result.merge(activateSingle(releaseKey, versionable, null, release));
+            }
+        }
+        return result;
     }
 
     @Nonnull
-    protected ActivationResult activateSingle(@Nullable String releaseKey, @Nonnull Resource rawVersionable, @Nullable String versionUuid) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
-        LOG.info("Requested activation {} in release {} to version {}", getPath(rawVersionable), releaseKey, versionUuid);
+    @Override
+    public ActivationResult activate(@Nullable String releaseKey, @Nonnull Resource rawVersionable, @Nullable String versionUuid) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
         ResourceHandle versionable = normalizeVersionable(rawVersionable);
         maybeCheckpoint(versionable);
+        StagingReleaseManager.Release release = getRelease(versionable, releaseKey);
+        ActivationResult activationResult = activateSingle(releaseKey, versionable, versionUuid, release);
+        return activationResult;
+    }
+
+    // output: ReleasedVersionable to activate, callable that updates activationResult.
+
+    @Nonnull
+    protected ActivationResult activateSingle(@Nullable String releaseKey, @Nonnull Resource versionable,
+                                              @Nullable String versionUuid, StagingReleaseManager.Release release)
+            throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
+        LOG.info("Requested activation {} in release {} to version {}", getPath(versionable), releaseKey, versionUuid);
         StatusImpl oldStatus = getStatus(versionable, releaseKey);
-        StagingReleaseManager.Release release = Objects.requireNonNull(oldStatus.getPreviousRelease());
         ActivationResult activationResult = new ActivationResult(release);
 
         boolean moveRequested = oldStatus.getNextVersionable() != null && oldStatus.getPreviousVersionable() != null &&
@@ -187,27 +210,12 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                     throw new IllegalStateException("Bug: oldStatus = " + oldStatus);
             }
 
-            LOG.info("Activated {} in release {} to version {}", getPath(rawVersionable), release.getNumber(), newStatus.getNextVersionable().getVersionUuid());
+            LOG.info("Activated {} in release {} to version {}", getPath(versionable), release.getNumber(),
+                    newStatus.getNextVersionable().getVersionUuid());
         } else {
-            LOG.info("Already activated in release {} : {}", release.getNumber(), getPath(rawVersionable));
+            LOG.info("Already activated in release {} : {}", release.getNumber(), getPath(versionable));
         }
         return activationResult;
-    }
-
-    @Nonnull
-    @Override
-    public ActivationResult activate(@Nullable String releaseKey, @Nonnull List<Resource> versionables) throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
-        ActivationResult result = new ActivationResult(null);
-        List<Resource> normalizedCheckedinVersionables = new ArrayList<>();
-        for (Resource rawVersionable : versionables) {
-            ResourceHandle versionable = normalizeVersionable(rawVersionable);
-            maybeCheckpoint(versionable);
-            normalizedCheckedinVersionables.add(versionable);
-        }
-        for (Resource versionable : normalizedCheckedinVersionables) {
-            result = result.merge(activate(releaseKey, versionable, null));
-        }
-        return result;
     }
 
     /** Checks whether the last modification date is later than the last checkin date. */
