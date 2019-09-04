@@ -17,6 +17,7 @@ import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.sling.api.resource.NonExistingResource;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
@@ -43,6 +44,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.CoreConstants.CONTENT_NODE;
@@ -138,9 +140,18 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 normalizedCheckedinVersionables.add(versionable);
             }
             StagingReleaseManager.Release release = getRelease(normalizedCheckedinVersionables.get(0), releaseKey);
+            List<Pair<ReleasedVersionable, Supplier<ActivationResult>>> activatorList = new ArrayList<>();
             for (Resource versionable : normalizedCheckedinVersionables) {
-                result = result.merge(activateSingle(releaseKey, versionable, null, release));
+                activatorList.add(activateSingle(releaseKey, versionable, null, release));
             }
+
+            List<ReleasedVersionable> releasedVersionables = activatorList.stream().map(Pair::getLeft).collect(Collectors.toList());
+            Map<String, SiblingOrderUpdateStrategy.Result> orderUpdateMap = releaseManager.updateRelease(release, releasedVersionables);
+            for (Pair<ReleasedVersionable, Supplier<ActivationResult>> activator : activatorList) {
+                ActivationResult partialResult = activator.getRight().get();
+                result = result.merge(partialResult);
+            }
+            result.getChangedPathsInfo().putAll(orderUpdateMap);
         }
         return result;
     }
@@ -151,16 +162,31 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         ResourceHandle versionable = normalizeVersionable(rawVersionable);
         maybeCheckpoint(versionable);
         StagingReleaseManager.Release release = getRelease(versionable, releaseKey);
-        ActivationResult activationResult = activateSingle(releaseKey, versionable, versionUuid, release);
+        Pair<ReleasedVersionable, Supplier<ActivationResult>> activator = activateSingle(releaseKey, versionable, versionUuid, release);
+        Map<String, SiblingOrderUpdateStrategy.Result> orderUpdateMap = releaseManager.updateRelease(release,
+                singletonList(activator.getLeft()));
+        ActivationResult activationResult = activator.getRight().get();
+        activationResult.getChangedPathsInfo().putAll(orderUpdateMap);
         return activationResult;
     }
 
-    // output: ReleasedVersionable to activate, callable that updates activationResult.
-
-    @Nonnull
-    protected ActivationResult activateSingle(@Nullable String releaseKey, @Nonnull Resource versionable,
-                                              @Nullable String versionUuid, StagingReleaseManager.Release release)
+    /**
+     * Returns a {@link ReleasedVersionable} that should be fed to {@link StagingReleaseManager#updateRelease(StagingReleaseManager.Release, List)}
+     * and a function that updates an
+     * {@link com.composum.sling.platform.staging.versions.PlatformVersionsService.ActivationResult} afterwards.
+     * The reason these are separated is that all versionables that are activated should put into one updateRelease
+     * to have them all available when the replication searches for references, but there is code to update the
+     * result afterwards.
+     */
+    @Nullable
+    protected Pair<ReleasedVersionable, Supplier<ActivationResult>> activateSingle(@Nullable String releaseKey,
+                                                                                   @Nonnull Resource versionable,
+                                                                                   @Nullable String versionUuid, StagingReleaseManager.Release release)
             throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
+        Pair<ReleasedVersionable, Supplier<ActivationResult>> result;
+        if (!release.appliesToPath(versionable.getPath())) {
+            throw new IllegalArgumentException("Activating versionable from different release: " + release + " vs. " + versionable.getPath());
+        }
         LOG.info("Requested activation {} in release {} to version {}", getPath(versionable), releaseKey, versionUuid);
         StatusImpl oldStatus = getStatus(versionable, releaseKey);
         ActivationResult activationResult = new ActivationResult(release);
@@ -171,9 +197,11 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
             ReleasedVersionable updateRV = oldStatus.getPreviousVersionable().clone();
             updateRV.setActive(false);
-            releaseManager.updateRelease(release, singletonList(updateRV));
-            activationResult.getRemovedPaths().add(versionable.getPath());
-
+            result = Pair.of(updateRV, () -> {
+                activationResult.getRemovedPaths().add(versionable.getPath());
+                LOG.info("Activated deletion of {} in release {}", versionable.getPath(), release);
+                return activationResult;
+            });
         } else if (oldStatus.getActivationState() != ActivationState.activated || moveRequested) {
 
             ReleasedVersionable updateRV = oldStatus.getNextVersionable().clone();
@@ -184,38 +212,41 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 updateRV.setVersionUuid(versionUuid);
             }
             updateRV.setActive(true);
+            ReleasedVersionable finalUpdateRV = updateRV;
 
-            Map<String, SiblingOrderUpdateStrategy.Result> orderUpdateMap = releaseManager.updateRelease(release, singletonList(updateRV));
-            activationResult.getChangedPathsInfo().putAll(orderUpdateMap);
+            result = Pair.of(updateRV, () -> {
+                StatusImpl newStatus = getStatus(versionable, releaseKey);
+                Validate.isTrue(newStatus.getVersionReference() != null, "Bug: not contained in release after activation: %s", newStatus);
+                Validate.isTrue(newStatus.getActivationState() == ActivationState.activated, "Bug: not active after activation: %s", newStatus);
 
-            StatusImpl newStatus = getStatus(versionable, releaseKey);
-            Validate.isTrue(newStatus.getVersionReference() != null, "Bug: not contained in release after activation: %s", newStatus);
-            Validate.isTrue(newStatus.getActivationState() == ActivationState.activated, "Bug: not active after activation: %s", newStatus);
+                switch (oldStatus.getActivationState()) {
+                    case initial:
+                    case deactivated: // on deactivated it's a bit unclear whether this should be new or moved or something.
+                        activationResult.getNewPaths().add(release.absolutePath(finalUpdateRV.getRelativePath()));
+                        break;
+                    case activated: // must have been a move
+                    case modified:
+                        if (moveRequested) {
+                            activationResult.getMovedPaths().put(
+                                    release.absolutePath(oldStatus.getPreviousVersionable().getRelativePath()),
+                                    release.absolutePath(oldStatus.getNextVersionable().getRelativePath())
+                            );
+                        }
+                        break;
+                    default:
+                        throw new IllegalStateException("Bug: oldStatus = " + oldStatus);
+                }
 
-            switch (oldStatus.getActivationState()) {
-                case initial:
-                case deactivated: // on deactivated it's a bit unclear whether this should be new or moved or something.
-                    activationResult.getNewPaths().add(release.absolutePath(updateRV.getRelativePath()));
-                    break;
-                case activated: // must have been a move
-                case modified:
-                    if (moveRequested) {
-                        activationResult.getMovedPaths().put(
-                                release.absolutePath(oldStatus.getPreviousVersionable().getRelativePath()),
-                                release.absolutePath(oldStatus.getNextVersionable().getRelativePath())
-                        );
-                    }
-                    break;
-                default:
-                    throw new IllegalStateException("Bug: oldStatus = " + oldStatus);
-            }
+                LOG.info("Activated {} in release {} to version {}", getPath(versionable), release.getNumber(),
+                        newStatus.getNextVersionable().getVersionUuid());
+                return activationResult;
+            });
 
-            LOG.info("Activated {} in release {} to version {}", getPath(versionable), release.getNumber(),
-                    newStatus.getNextVersionable().getVersionUuid());
         } else {
             LOG.info("Already activated in release {} : {}", release.getNumber(), getPath(versionable));
+            result = null;
         }
-        return activationResult;
+        return result;
     }
 
     /** Checks whether the last modification date is later than the last checkin date. */
