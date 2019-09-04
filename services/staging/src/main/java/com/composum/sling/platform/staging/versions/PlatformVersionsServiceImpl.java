@@ -268,7 +268,8 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             }
             Resource pathResource = normalizeVersionable(new NonExistingResource(resolver, path));
             ReleasedVersionable rvInRelease = releaseManager.findReleasedVersionable(release, pathResource);
-            ReleasedVersionable rvInPreviousRelease = previousRelease != null ? releaseManager.findReleasedVersionable(previousRelease, pathResource) : null;
+            ReleasedVersionable rvInPreviousRelease = previousRelease != null ?
+                    releaseManager.findReleasedVersionableByUuid(previousRelease, rvInRelease.getVersionHistory()) : null;
             LOG.info("Reverting in {} from {} : {}", release, previousReleaseNumber, rvInPreviousRelease);
 
             if (rvInPreviousRelease == null) { // delete it since it wasn't in the previous release or there is no previous release
