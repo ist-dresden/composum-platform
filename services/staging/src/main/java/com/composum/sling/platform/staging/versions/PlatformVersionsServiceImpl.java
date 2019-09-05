@@ -527,6 +527,9 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 if (result == null) {
                     result = workspaceResource.getProperty(CoreConstants.JCR_CREATED, Calendar.class);
                 }
+            } else if (versionReference != null) {
+                result = versionReference.isActive() ? versionReference.getLastActivated() :
+                        versionReference.getLastDeactivated();
             }
             return result;
         }
