@@ -307,8 +307,11 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             }
             Resource pathResource = normalizeVersionable(new NonExistingResource(resolver, path));
             ReleasedVersionable rvInRelease = releaseManager.findReleasedVersionable(release, pathResource);
-            ReleasedVersionable rvInPreviousRelease = previousRelease != null ?
+            ReleasedVersionable rvInPreviousRelease = previousRelease != null && rvInRelease != null ?
                     releaseManager.findReleasedVersionableByUuid(previousRelease, rvInRelease.getVersionHistory()) : null;
+            if (rvInPreviousRelease == null && previousRelease != null) {
+                rvInPreviousRelease = releaseManager.findReleasedVersionable(previousRelease, pathResource);
+            }
             LOG.info("Reverting in {} from {} : {}", release, previousReleaseNumber, rvInPreviousRelease);
 
             if (rvInPreviousRelease == null) { // delete it since it wasn't in the previous release or there is no previous release
