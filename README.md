@@ -8,7 +8,7 @@ yet another Apache Sling based Application Platform (asap)
 
 the central services to set up an Apache Sling based application platform
 
-* [Composum Pages Homepage](https://www.composum.com/home/pages.html)
+* [Composum Homepage](https://www.composum.com/home/pages.html)
 
 ### see also
 
