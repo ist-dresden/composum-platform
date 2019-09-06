@@ -17,8 +17,6 @@ import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Result;
 import com.composum.sling.platform.staging.query.Query;
 import com.composum.sling.platform.staging.query.QueryBuilder;
-import com.composum.sling.platform.staging.query.QueryConditionDsl;
-import com.composum.sling.platform.staging.query.QueryValueMap;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -66,6 +64,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IllegalFormatException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -77,7 +76,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.CoreConstants.CONTENT_NODE;
-import static com.composum.sling.core.util.CoreConstants.JCR_PRIMARYTYPE;
 import static com.composum.sling.core.util.CoreConstants.JCR_UUID;
 import static com.composum.sling.core.util.CoreConstants.NT_VERSION;
 import static com.composum.sling.core.util.CoreConstants.PROP_MIXINTYPES;
@@ -90,7 +88,6 @@ import static com.composum.sling.core.util.CoreConstants.TYPE_TITLE;
 import static com.composum.sling.core.util.CoreConstants.TYPE_UNSTRUCTURED;
 import static com.composum.sling.core.util.CoreConstants.TYPE_VERSIONABLE;
 import static com.composum.sling.platform.staging.StagingConstants.CURRENT_RELEASE;
-import static com.composum.sling.platform.staging.StagingConstants.FROZEN_PROP_NAMES_TO_REAL_NAMES;
 import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASES;
 import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASE_METADATA;
 import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASE_ROOT;
@@ -109,8 +106,6 @@ import static com.composum.sling.platform.staging.StagingConstants.RELEASE_LABEL
 import static com.composum.sling.platform.staging.StagingConstants.RELEASE_ROOT_PATH;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_VERSIONREFERENCE;
-import static com.composum.sling.platform.staging.query.Query.JoinCondition.Descendant;
-import static com.composum.sling.platform.staging.query.Query.JoinType.Inner;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
@@ -645,6 +640,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 } else if (!versionReference.getPath().equals(newPath)) { // move to a different path
                     Resource oldParent = versionReference.getParent();
                     createMissingParents();
+                    checkAndRemoveOldReferenceForMove(resolver, newPath);
                     resolver.adaptTo(Session.class).move(versionReference.getPath(), newPath);
                     versionReference = resolver.getResource(newPath);
 
@@ -660,6 +656,25 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 if (releasedVersionable.isActive()) {
                     resetDeletedFlag(versionReference.getParent());
                 }
+            }
+        }
+
+        /**
+         * When moving, we need to check whether there already is a version reference. This one has to be deleted,
+         * otherwise the move will fail. A warning is logged, but we assume the user knows what he is doing; it can
+         * will show up in the version differences and can be reverted, anyway.
+         */
+        protected void checkAndRemoveOldReferenceForMove(ResourceResolver resolver, String newPath) throws PersistenceException {
+            Resource resourceAtPath = resolver.getResource(newPath);
+            if (resourceAtPath != null) {
+                if (!ResourceUtil.isPrimaryType(resourceAtPath, TYPE_VERSIONREFERENCE)) {
+                    throw new IllegalArgumentException("Trying to replace a non-versionreference with a " +
+                            "versionreference - something is fishy, here: " + newPath);
+                }
+                VersionReferenceImpl oldVersionReference = new VersionReferenceImpl(release, resourceAtPath);
+                ReleasedVersionable releasedVersionable = oldVersionReference.getReleasedVersionable();
+                resolver.delete(resourceAtPath);
+                LOG.warn("Removing VersionReference that is going to be overwritten: " + newPath + " : " + releasedVersionable);
             }
         }
 
@@ -1295,6 +1310,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         protected VersionReferenceImpl(@Nonnull ReleaseImpl release, @Nonnull Resource versionReference) {
             this.release = Objects.requireNonNull(release);
             this.versionReference = ResourceHandle.use(requireNonNull(versionReference));
+            if (!versionReference.isResourceType(TYPE_VERSIONREFERENCE)) {
+                throw new IllegalArgumentException("Not a version reference: " + versionReference.getPath());
+            }
         }
 
         @Override
