@@ -201,6 +201,13 @@ public class IncludeCacheFilter implements Filter {
             cacheKeyBuilder.append('#').append(value);
         }
 
+        for (String paramKey : service.getConfig().honorParameters()) {
+            String paramValue = request.getParameter(paramKey);
+            if (paramValue != null) {
+                cacheKeyBuilder.append('?').append(paramKey).append('=').append(paramValue);
+            }
+        }
+
         String release = (String) request.getAttribute(ATTR_CPM_RELEASE);
         if (release != null) {
             cacheKeyBuilder.append('^').append(release);
