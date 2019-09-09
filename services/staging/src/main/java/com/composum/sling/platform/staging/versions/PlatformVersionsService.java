@@ -124,6 +124,7 @@ public interface PlatformVersionsService {
 
     /**
      * Returns the status for the versionable comparing the workspace to the given or {@link #getDefaultRelease(Resource)} release.
+     * Some non-obvious edge cases:
      *
      * @param versionable the versionable in the workspace
      * @param releaseKey the key for the release; if null we take the {@link #getDefaultRelease(Resource)}

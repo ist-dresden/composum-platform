@@ -485,6 +485,15 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         return findReleasedVersionableByUuid(release, currentVersionable.getVersionHistory());
     }
 
+    @Nullable
+    @Override
+    public ReleasedVersionable findReleasedVersionable(@Nonnull Release rawRelease, @Nonnull String path) {
+        ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
+        String abspath = release.absolutePath(path);
+        return findReleasedVersionable(release,
+                new NonExistingResource(release.getReleaseRoot().getResourceResolver(), abspath));
+    }
+
     @Nonnull
     @Override
     public Map<String, Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException, ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
@@ -507,13 +516,10 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         Map<String, Result> result = Collections.emptyMap();
 
         ReleaseImpl fromRelease = requireNonNull(ReleaseImpl.unwrap(rawFromRelease));
-        if (!pathToRevert.startsWith("/")) {
-            pathToRevert = fromRelease.absolutePath(pathToRevert);
-        }
+        pathToRevert = fromRelease.absolutePath(pathToRevert);
         ReleaseChangeEventListener.ReleaseChangeEvent event = new ReleaseChangeEventListener.ReleaseChangeEvent(release);
-        NonExistingResource pathTemplate = new NonExistingResource(release.getReleaseRoot().getResourceResolver(), pathToRevert);
-        ReleasedVersionable versionableInPreviousRelease = findReleasedVersionable(fromRelease, pathTemplate);
-        ReleasedVersionable versionableInCurrentRelease = findReleasedVersionable(release, pathTemplate);
+        ReleasedVersionable versionableInPreviousRelease = findReleasedVersionable(fromRelease, pathToRevert);
+        ReleasedVersionable versionableInCurrentRelease = findReleasedVersionable(release, pathToRevert);
         if (versionableInPreviousRelease == null) { // remove whatever is there at that path, if there is anything
             if (versionableInCurrentRelease == null || !versionableInCurrentRelease.isActive()) {
                 return new HashMap<>();
@@ -1206,7 +1212,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         @Override
         public String absolutePath(@Nonnull String relativePath) {
             Validate.notNull(relativePath);
-            Validate.isTrue(!StringUtils.startsWith(relativePath, "/"), "Must be a relative path: %s", relativePath);
+            if (StringUtils.startsWith(relativePath, "/")) { return relativePath; }
             if (StringUtils.isBlank(relativePath)) { return getReleaseRoot().getPath(); }
             return getReleaseRoot().getPath() + '/' + relativePath;
         }

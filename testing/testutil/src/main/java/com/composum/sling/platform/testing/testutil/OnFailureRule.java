@@ -18,10 +18,10 @@ import java.util.List;
 public class OnFailureRule implements MethodRule {
 
     @Nonnull
-    protected List<ErrorCollectorAlwaysPrintingFailures.RunnableWithException> onFailureActions = new ArrayList<>();
+    protected List<ErrorCollectorAlwaysPrintingFailures.TestingRunnableWithException> onFailureActions = new ArrayList<>();
 
     /** Register something that should be done on failure - e.g. printing additional debugging information. */
-    public OnFailureRule(ErrorCollectorAlwaysPrintingFailures.RunnableWithException onfailure) {
+    public OnFailureRule(ErrorCollectorAlwaysPrintingFailures.TestingRunnableWithException onfailure) {
         this.onFailureActions.add(onfailure);
     }
 
@@ -51,18 +51,18 @@ public class OnFailureRule implements MethodRule {
     }
 
     /** Register something that should be done on failure - e.g. printing additional debugging information. */
-    public OnFailureRule onFailure(ErrorCollectorAlwaysPrintingFailures.RunnableWithException onfailure) {
+    public OnFailureRule onFailure(ErrorCollectorAlwaysPrintingFailures.TestingRunnableWithException onfailure) {
         this.onFailureActions.add(onfailure);
         return this;
     }
 
     /**
-     * Runs all actions registered with {@link #onFailure(ErrorCollectorAlwaysPrintingFailures.RunnableWithException)} .
+     * Runs all actions registered with {@link #onFailure(ErrorCollectorAlwaysPrintingFailures.TestingRunnableWithException)} .
      *
      * @param failures here we add any throwables that happen during these actions.
      */
     protected void runOnFailures(List<Throwable> failures) {
-        for (ErrorCollectorAlwaysPrintingFailures.RunnableWithException<?> re : onFailureActions) {
+        for (ErrorCollectorAlwaysPrintingFailures.TestingRunnableWithException<?> re : onFailureActions) {
             try {
                 re.run();
             } catch (Throwable t) {

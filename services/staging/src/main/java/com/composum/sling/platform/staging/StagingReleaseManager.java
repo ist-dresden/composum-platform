@@ -176,6 +176,15 @@ public interface StagingReleaseManager {
     ReleasedVersionable findReleasedVersionable(@Nonnull Release release, @Nonnull Resource versionable);
 
     /**
+     * Looks up whether a versionable is present in the release.
+     *
+     * @param path the absolute or release relative path to the versionable
+     * @return the information about the item in the release, if it is present
+     */
+    @Nullable
+    ReleasedVersionable findReleasedVersionable(@Nonnull Release release, @Nonnull String path);
+
+    /**
      * Updates the release by adding or updating a number of versionables denoted by {releasedVersionable} in the release.
      * If {@link ReleasedVersionable#versionUuid} is null, it is removed from the release.
      * We also set a label {@value StagingConstants#RELEASE_LABEL_PREFIX}{releasenumber} on each version contained in the release,
@@ -352,7 +361,10 @@ public interface StagingReleaseManager {
          */
         boolean appliesToPath(@Nullable String path);
 
-        /** Maps the relative path to the absolute path ( {@link #getReleaseRoot()} + '/' + relativePath ) */
+        /**
+         * Maps the relative path to the absolute path ( {@link #getReleaseRoot()} + '/' + relativePath ) ; if it's
+         * already an absolute path this returns it unmodified.
+         */
         @Nonnull
         String absolutePath(@Nonnull String relativePath);
 

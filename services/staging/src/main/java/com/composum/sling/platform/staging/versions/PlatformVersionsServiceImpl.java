@@ -115,11 +115,16 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             ResourceHandle versionable = normalizeVersionable(rawVersionable);
             StagingReleaseManager.Release release = getRelease(versionable, releaseKey);
             ReleasedVersionable released = releaseManager.findReleasedVersionable(release, versionable);
+            if (released == null) {
+                released = releaseManager.findReleasedVersionable(release, versionable.getPath());
+            }
             if (!ResourceUtil.isNonExistingResource(rawVersionable)) {
                 ReleasedVersionable workspaced = ReleasedVersionable.forBaseVersion(versionable);
                 return new StatusImpl(workspaced, release, released);
-            } else {
+            } else if (released != null) {
                 return new StatusImpl(null, release, released);
+            } else { // non existing resource = search by path, but nothing found
+                return null;
             }
         } catch (StagingReleaseManager.ReleaseRootNotFoundException | IllegalArgumentException e) {
             LOG.info("Could not determine status because of {}", e.toString());
@@ -384,11 +389,15 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         List<ReleasedVersionable> releaseContent = releaseManager.listReleaseContents(release);
         Map<String, ReleasedVersionable> historyIdToRelease = releaseContent.stream()
                 .collect(Collectors.toMap(ReleasedVersionable::getVersionHistory, Function.identity()));
+        Map<String, ReleasedVersionable> pathToRelease = releaseContent.stream()
+                .collect(Collectors.toMap(ReleasedVersionable::getRelativePath, Function.identity()));
 
         StagingReleaseManager.Release previousRelease = release.getPreviousRelease();
         List<ReleasedVersionable> previousContent = previousRelease != null ? releaseManager.listReleaseContents(previousRelease) : Collections.emptyList();
         Map<String, ReleasedVersionable> historyIdToPrevious = previousContent.stream()
                 .collect(Collectors.toMap(ReleasedVersionable::getVersionHistory, Function.identity()));
+        Map<String, ReleasedVersionable> pathToPrevious = previousContent.stream()
+                .collect(Collectors.toMap(ReleasedVersionable::getRelativePath, Function.identity()));
 
         List<ReleasedVersionable> workspaceContent = releaseManager.listWorkspaceContents(release.getReleaseRoot());
         Map<String, ReleasedVersionable> historyIdToWorkspace = workspaceContent.stream()
@@ -397,6 +406,12 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         for (String versionHistoryId : SetUtils.union(historyIdToRelease.keySet(), historyIdToPrevious.keySet())) {
             ReleasedVersionable releasedVersionable = historyIdToRelease.get(versionHistoryId);
             ReleasedVersionable previouslyReleased = historyIdToPrevious.get(versionHistoryId);
+            if (releasedVersionable == null && pathToRelease.containsKey(previouslyReleased.getRelativePath())) {
+                continue; // avoid counting that twice
+            }
+            if (previouslyReleased == null && pathToPrevious.containsKey(releasedVersionable.getRelativePath())) {
+                previouslyReleased = pathToPrevious.get(releasedVersionable.getRelativePath());
+            }
             if (!Objects.equals(previouslyReleased, releasedVersionable)) {
                 Status status = new StatusImpl(release, releasedVersionable, previousRelease, previouslyReleased,
                         historyIdToWorkspace.get(versionHistoryId));
@@ -415,14 +430,24 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         List<ReleasedVersionable> releaseContent = releaseManager.listReleaseContents(release);
         Map<String, ReleasedVersionable> historyIdToRelease = releaseContent.stream()
                 .collect(Collectors.toMap(ReleasedVersionable::getVersionHistory, Function.identity()));
+        Map<String, ReleasedVersionable> pathToRelease = releaseContent.stream()
+                .collect(Collectors.toMap(ReleasedVersionable::getRelativePath, Function.identity()));
 
         List<ReleasedVersionable> workspaceContent = releaseManager.listWorkspaceContents(release.getReleaseRoot());
         Map<String, ReleasedVersionable> historyIdToWorkspace = workspaceContent.stream()
                 .collect(Collectors.toMap(ReleasedVersionable::getVersionHistory, Function.identity()));
+        Map<String, ReleasedVersionable> pathToWorkspace = workspaceContent.stream()
+                .collect(Collectors.toMap(ReleasedVersionable::getRelativePath, Function.identity()));
 
         for (String versionHistoryId : SetUtils.union(historyIdToRelease.keySet(), historyIdToWorkspace.keySet())) {
-            ReleasedVersionable releasedVersionable = historyIdToRelease.get(versionHistoryId);
             ReleasedVersionable workspaceVersionable = historyIdToWorkspace.get(versionHistoryId);
+            ReleasedVersionable releasedVersionable = historyIdToRelease.get(versionHistoryId);
+            if (workspaceVersionable == null && pathToWorkspace.containsKey(releasedVersionable.getRelativePath())) {
+                continue; // two different versionables at the same path - avoid processing this twice
+            }
+            if (releasedVersionable == null) { // search by path
+                releasedVersionable = pathToRelease.get(workspaceVersionable.getRelativePath());
+            }
             Status status = new StatusImpl(workspaceVersionable, release, releasedVersionable);
             if (status.getActivationState() == ActivationState.deleted && !releasedVersionable.isActive()) { continue; }
             if (status.getActivationState() == ActivationState.modified || !Objects.equals(workspaceVersionable, releasedVersionable)) {
@@ -470,7 +495,8 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 activationState = ActivationState.initial;
             } else if (nextVersionable == null || workspaceVersionable == null) {
                 activationState = ActivationState.deleted;
-            } else if (!previousVersionable.isActive()) {
+            } else // previousVersionble, versionReference, nextVersionable and workspaceVersionable are not null now
+                if (!previousVersionable.isActive()) { // previousVersionable is in the release, next* is workspace
                 activationState = ActivationState.deactivated;
             } else if (!Objects.equals(previousVersionable, nextVersionable)) {
                 activationState = ActivationState.modified;
