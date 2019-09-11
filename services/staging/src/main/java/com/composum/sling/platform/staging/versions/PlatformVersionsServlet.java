@@ -9,12 +9,14 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.servlet.AbstractServiceServlet;
 import com.composum.sling.core.servlet.ServletOperation;
 import com.composum.sling.core.servlet.ServletOperationSet;
-import com.composum.sling.platform.staging.ActivationInfo;
-import com.composum.sling.platform.staging.ReleaseChangeEventListener;
+import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.core.util.SlingResourceUtil;
+import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.core.servlet.Status;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.resource.NonExistingResource;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.HttpConstants;
@@ -148,13 +150,23 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                 for (String path : targetValues) {
                     Resource target = resolver.getResource(path);
                     if (target != null && (target = getVersionable(target)) != null) {
-                        versionable.add(getVersionable(target));
+                        target = getVersionable(target);
+                    } else { // when activating a deleted page, the path doesn't actually exist. So we use a NonExistingResource.
+                        path = StringUtils.appendIfMissing(path, "/" + ResourceUtil.CONTENT_NODE);
+                        target = new NonExistingResource(resolver, path);
+                    }
+                    if (target != null) {
+                        versionable.add(target);
+                    } else {
+                        LOG.info("Ignoring path for which we haven't found a resource: {}", path);
                     }
                 }
             } else {
                 Resource target = getVersionable(resource);
                 if (target != null) {
                     versionable.add(getVersionable(resource));
+                } else {
+                    LOG.info("Ignoring path for which we haven't found a resource: {}", SlingResourceUtil.getPath(resource));
                 }
             }
             if (status.isValid()) {
@@ -203,12 +215,12 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                     if ((time = status.getLastModified()) != null) {
                         data.put("lastModified", time.getTimeInMillis());
                     }
-                    ActivationInfo activationInfo;
-                    if ((activationInfo = status.getActivationInfo()) != null) {
-                        if ((time = activationInfo.getLastActivated()) != null) {
+                    VersionReference versionReference;
+                    if ((versionReference = status.getVersionReference()) != null) {
+                        if ((time = versionReference.getLastActivated()) != null) {
                             data.put("lastActivated", time.getTimeInMillis());
                         }
-                        if ((time = activationInfo.getLastDeactivated()) != null) {
+                        if ((time = versionReference.getLastDeactivated()) != null) {
                             data.put("lastDeactivated", time.getTimeInMillis());
                         }
                     }
@@ -309,18 +321,12 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                               @Nonnull final SlingHttpServletResponse response, @Nonnull final Status status,
                               @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey) {
             Set<String> referrers = addParameter(new HashSet<>(), request, PARAM_PAGE_REFS);
-            List<Resource> toRevert = new ArrayList<>(versionable);
-            for (String pagePath : referrers) {
-                Resource referrer = request.getResourceResolver().getResource(pagePath);
-                if (referrer == null) {
-                    status.withLogging(LOG).error("Page to revert not found: {}", pagePath);
-                } else {
-                    toRevert.add(referrer);
-                }
-            }
+            List<String> toRevert = new ArrayList<>();
+            versionable.forEach((r) -> toRevert.add(r.getPath()));
+            toRevert.addAll(referrers);
             if (status.isValid()) {
                 try {
-                    PlatformVersionsService.ActivationResult result = versionsService.revert(releaseKey, toRevert);
+                    PlatformVersionsService.ActivationResult result = versionsService.revert(request.getResourceResolver(), releaseKey, toRevert);
                     // TODO(hps,2019-05-21) do something with result
                     request.getResourceResolver().commit();
                 } catch (Exception ex) {

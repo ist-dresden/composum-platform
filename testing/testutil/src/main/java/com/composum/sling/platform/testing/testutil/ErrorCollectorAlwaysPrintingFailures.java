@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -26,7 +27,7 @@ import java.util.stream.Collectors;
 public class ErrorCollectorAlwaysPrintingFailures implements MethodRule {
 
     @Nonnull
-    protected List<RunnableWithException> onFailureActions = new ArrayList<>();
+    protected List<TestingRunnableWithException> onFailureActions = new ArrayList<>();
 
     protected final InternalErrorCollector errorCollector = new InternalErrorCollector();
 
@@ -106,7 +107,7 @@ public class ErrorCollectorAlwaysPrintingFailures implements MethodRule {
      * Execution continues, but the test will fail at the end if
      * {@code runnable} threw an exception and {@code exceptionMatcher} does not accept that.
      */
-    public void checkFailsWith(RunnableWithException runnable, Matcher<Throwable> exceptionMatcher) {
+    public void checkFailsWith(TestingRunnableWithException runnable, Matcher<Throwable> exceptionMatcher) {
         try {
             runnable.run();
             errorCollector.checkThat(null, exceptionMatcher);
@@ -145,14 +146,46 @@ public class ErrorCollectorAlwaysPrintingFailures implements MethodRule {
     }
 
     /**
+     * Checks that the application of {function} to the {value} matches the {matcher}, swallowing exceptions.
+     * Execution continues, but the test will fail at the end if the match fails.
+     * Use this when it's possible that the execution throws up but the test shall continue, anyway.
+     *
+     * @return the result of the application of {function} to {value}, or null if it throws
+     */
+    public <T, U, E extends Throwable> U checkAppliedThat(
+            T value, TestingFunctionWithException<T, U, E> function, Matcher<U> matcher) {
+        return checkAppliedThat("", value, function, matcher);
+    }
+
+    /**
+     * Checks that the application of {function} to the {value} matches the {matcher}, swallowing exceptions.
+     * Execution continues, but the test will fail at the end if the match fails.
+     * Use this when it's possible that the execution throws up but the test shall continue, anyway.
+     *
+     * @return the result of the application of {function} to {value}, or null if it throws
+     */
+    public <T, U, E extends Throwable> U checkAppliedThat(
+            String reason, T value, TestingFunctionWithException<T, U, E> function, Matcher<U> matcher) {
+        U res;
+        try {
+            res = function.apply(value);
+        } catch (Throwable e) {
+            addError(e);
+            return null;
+        }
+        errorCollector.checkThat(reason, res, matcher);
+        return res;
+    }
+
+    /**
      * Adds a failure to the table if {@code matcher} does not match the {@code value} returned from the callable.
      * Execution continues, but the test will fail at the end if the match fails.
      * Use this when it's possible that the execution throws up but the test shall continue, anyway.
      *
      * @return the value
      */
-    public <T> T checkThat(Callable<T> callable, Matcher<T> matcher) {
-        return checkThat("", callable, matcher);
+    public <T> T checkCallThat(Callable<T> callable, Matcher<T> matcher) {
+        return checkCallThat("", callable, matcher);
     }
 
     /**
@@ -162,7 +195,7 @@ public class ErrorCollectorAlwaysPrintingFailures implements MethodRule {
      *
      * @return the value or null in case of an error
      */
-    public <T> T checkThat(String reason, Callable<T> callable, Matcher<T> matcher) {
+    public <T> T checkCallThat(String reason, Callable<T> callable, Matcher<T> matcher) {
         T res;
         try {
             res = callable.call();
@@ -191,18 +224,18 @@ public class ErrorCollectorAlwaysPrintingFailures implements MethodRule {
      *
      * @return this
      */
-    public ErrorCollectorAlwaysPrintingFailures onFailure(RunnableWithException onfailure) {
+    public ErrorCollectorAlwaysPrintingFailures onFailure(TestingRunnableWithException onfailure) {
         this.onFailureActions.add(onfailure);
         return this;
     }
 
     /**
-     * Runs all actions registered with {@link #onFailure(RunnableWithException)} .
+     * Runs all actions registered with {@link #onFailure(TestingRunnableWithException)} .
      *
      * @param failures here we add any throwables that happen during these actions.
      */
     protected void runOnFailures(List<Throwable> failures) {
-        for (RunnableWithException<?> re : onFailureActions) {
+        for (TestingRunnableWithException<?> re : onFailureActions) {
             try {
                 re.run();
             } catch (Throwable t) {
@@ -213,11 +246,25 @@ public class ErrorCollectorAlwaysPrintingFailures implements MethodRule {
 
     /** A runnable that can throw an exception. */
     @FunctionalInterface
-    public interface RunnableWithException<E extends Throwable> {
+    public interface TestingRunnableWithException<E extends Throwable> {
         /** Do something perhaps throwing an exception. */
         void run() throws Throwable;
     }
 
+    /**
+     * Function that can throw checked exceptions. You can use this whenever you need a function object for a function that
+     * throws checked exceptions - which doesn't fit into {@link java.util.function.Function}.
+     */
+    @FunctionalInterface
+    public interface TestingFunctionWithException<ARG, VALUE, EXCEPTION extends Throwable> {
+        /**
+         * Applies this function to the given argument.
+         *
+         * @param t the function argument
+         * @return the function result
+         */
+        VALUE apply(ARG t) throws EXCEPTION;
+    }
 
     protected class InternalErrorCollector extends ErrorCollector {
         @Override

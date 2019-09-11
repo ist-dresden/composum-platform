@@ -154,7 +154,7 @@ public interface StagingReleaseManager {
      * @param resource a release root or its subnodes
      */
     @Nonnull
-    List<ReleasedVersionable> listCurrentContents(@Nonnull Resource resource);
+    List<ReleasedVersionable> listWorkspaceContents(@Nonnull Resource resource);
 
     /**
      * Looks up whether a versionable is present in the release. Caution: this finds only committed content.
@@ -168,17 +168,29 @@ public interface StagingReleaseManager {
     /**
      * Looks up whether a versionable is present in the release.
      *
-     * @param versionable the versionable, from which we take the versionHistoryUuid to look it up in the release
+     * @param versionable the versionable, from which we take the versionHistoryUuid to look it up in the release. If it is a {@link org.apache.sling.api.resource.NonExistingResource},
+     *                    we just take the path from it.
      * @return the information about the item in the release, if it is present
      */
     @Nullable
     ReleasedVersionable findReleasedVersionable(@Nonnull Release release, @Nonnull Resource versionable);
 
     /**
+     * Looks up whether a versionable is present in the release.
+     *
+     * @param path the absolute or release relative path to the versionable
+     * @return the information about the item in the release, if it is present
+     */
+    @Nullable
+    ReleasedVersionable findReleasedVersionable(@Nonnull Release release, @Nonnull String path);
+
+    /**
      * Updates the release by adding or updating a number of versionables denoted by {releasedVersionable} in the release.
      * If {@link ReleasedVersionable#versionUuid} is null, it is removed from the release.
      * We also set a label {@value StagingConstants#RELEASE_LABEL_PREFIX}{releasenumber} on each version contained in the release,
      * for easier referencing versions. Caution: the current release is called {@value StagingConstants#RELEASE_LABEL_PREFIX}current .
+     * This needs the workspace to copy the attributes and node orderings of the parent nodes from - the paths of the releasedVersionableList must
+     * correspond to the workspace.
      *
      * @param release                 the release to update
      * @param releasedVersionableList a number of paths to versionables for which the version denoted by {@link ReleasedVersionable#versionUuid} version should be put into the release, or to be removed when it's null.
@@ -187,6 +199,17 @@ public interface StagingReleaseManager {
      */
     @Nonnull
     Map<String, SiblingOrderUpdateStrategy.Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException, ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException;
+
+    /**
+     * Restores a versionable to the state it was in a previous release.
+     *
+     * @param release      the release to change
+     * @param pathToRevert the release-relative or absolute path of the versionable in the fromRelease
+     * @param fromRelease  the release to copy it from
+     * @return a map with paths where we changed the order of children in the release.
+     */
+    @Nonnull
+    Map<String, SiblingOrderUpdateStrategy.Result> revert(@Nonnull Release release, @Nonnull String pathToRevert, @Nonnull Release fromRelease) throws RepositoryException, PersistenceException, ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException;
 
     /**
      * Creates a {@link StagingResourceResolver} that presents the given release.
@@ -338,7 +361,10 @@ public interface StagingReleaseManager {
          */
         boolean appliesToPath(@Nullable String path);
 
-        /** Maps the relative path to the absolute path ( {@link #getReleaseRoot()} + '/' + relativePath ) */
+        /**
+         * Maps the relative path to the absolute path ( {@link #getReleaseRoot()} + '/' + relativePath ) ; if it's
+         * already an absolute path this returns it unmodified.
+         */
         @Nonnull
         String absolutePath(@Nonnull String relativePath);
 
@@ -348,7 +374,7 @@ public interface StagingReleaseManager {
 
         /** Returns information about the activation of a versionable at relativePath. */
         @Nullable
-        ActivationInfo activationInfo(@Nullable String relativePath);
+        VersionReference versionReference(@Nullable String relativePath);
     }
 
     /**

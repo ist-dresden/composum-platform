@@ -20,7 +20,7 @@ public class ExceptionUtil {
      * @return does never return - just for coding clarit
      */
     public static RuntimeException sneakyThrowException(@Nonnull Exception exception) {
-        throw ExceptionUtil.<RuntimeException>sneakyThrowExceptionImpl(exception);
+        throw ExceptionUtil.sneakyThrowExceptionImpl(exception);
     }
 
     /**
@@ -30,21 +30,19 @@ public class ExceptionUtil {
      * That'd look for example like:
      * <code>list.stream().map(ExceptionUtil.sneakExceptions(Node::getPath).collect(Collectors.toList());</code>
      *
-     * @param <T>      the type parameter
-     * @param callable the callable
+     * @param <ARG> argument type of the function
+     * @param <VALUE> return type of the function
+     * @param function the function to call
      * @return the result of calling the callable
      */
     @Nonnull
     public static <ARG, VALUE>
-    Function<ARG, VALUE> sneakExceptions(@Nonnull final ExceptionThrowingFunction<ARG, VALUE> function) {
-        return new Function<ARG, VALUE>() {
-            @Override
-            public VALUE apply(ARG t) {
-                try {
-                    return function.apply(t);
-                } catch (Exception e) {
-                    throw sneakyThrowException(e);
-                }
+    Function<ARG, VALUE> sneakExceptions(@Nonnull final ExceptionThrowingFunction<ARG, VALUE, Exception> function) {
+        return t -> {
+            try {
+                return function.apply(t);
+            } catch (Exception e) {
+                throw sneakyThrowException(e);
             }
         };
     }
@@ -73,20 +71,6 @@ public class ExceptionUtil {
     @SuppressWarnings("unchecked")
     private static <T extends Throwable> RuntimeException sneakyThrowExceptionImpl(Throwable exception) throws T {
         throw (T) exception;
-    }
-
-    /**
-     * Function that can throw exceptions.
-     */
-    @FunctionalInterface
-    public static interface ExceptionThrowingFunction<ARG, VALUE> {
-        /**
-         * Applies this function to the given argument.
-         *
-         * @param t the function argument
-         * @return the function result
-         */
-        VALUE apply(ARG t) throws Exception;
     }
 
 }

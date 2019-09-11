@@ -5,20 +5,18 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
-import com.composum.sling.platform.staging.ActivationInfo;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
-import com.composum.sling.platform.staging.StagingReleaseManagerPlugin;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.composum.sling.platform.staging.StagingReleaseManagerPlugin;
+import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Result;
 import com.composum.sling.platform.staging.query.Query;
 import com.composum.sling.platform.staging.query.QueryBuilder;
-import com.composum.sling.platform.staging.query.QueryConditionDsl;
-import com.composum.sling.platform.staging.query.QueryValueMap;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -26,6 +24,7 @@ import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.sling.api.SlingException;
 import org.apache.sling.api.resource.LoginException;
+import org.apache.sling.api.resource.ModifiableValueMap;
 import org.apache.sling.api.resource.NonExistingResource;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
@@ -65,6 +64,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IllegalFormatException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -76,7 +76,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.CoreConstants.CONTENT_NODE;
-import static com.composum.sling.core.util.CoreConstants.JCR_PRIMARYTYPE;
 import static com.composum.sling.core.util.CoreConstants.JCR_UUID;
 import static com.composum.sling.core.util.CoreConstants.NT_VERSION;
 import static com.composum.sling.core.util.CoreConstants.PROP_MIXINTYPES;
@@ -107,8 +106,6 @@ import static com.composum.sling.platform.staging.StagingConstants.RELEASE_LABEL
 import static com.composum.sling.platform.staging.StagingConstants.RELEASE_ROOT_PATH;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_VERSIONREFERENCE;
-import static com.composum.sling.platform.staging.query.Query.JoinCondition.Descendant;
-import static com.composum.sling.platform.staging.query.Query.JoinType.Inner;
 import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
@@ -260,6 +257,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 setPreviousRelease(currentRelease, highestNumericRelease.get());
             }
             serviceResolver.commit();
+            LOG.info("Created current release for {} with {}", currentUserRoot.getPath(), serviceResolver.getUserID());
         }
     }
 
@@ -431,7 +429,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Nonnull
     @Override
-    public List<ReleasedVersionable> listCurrentContents(@Nonnull Resource resource) {
+    public List<ReleasedVersionable> listWorkspaceContents(@Nonnull Resource resource) {
         ResourceHandle root = findReleaseRoot(resource);
         ensureCurrentRelease(ResourceHandle.use(root));
         String ignoredReleaseConfigurationPath = root.getPath() + "/" + CONTENT_NODE;
@@ -469,8 +467,14 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     public ReleasedVersionable findReleasedVersionable(@Nonnull Release rawRelease, @Nonnull Resource versionable) {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         String expectedPath = release.mapToContentCopy(versionable.getPath());
-        ReleasedVersionable currentVersionable = ReleasedVersionable.forBaseVersion(versionable);
         Resource versionReference = versionable.getResourceResolver().getResource(expectedPath);
+        if (ResourceUtil.isNonExistingResource(versionable)) {
+            if (versionReference != null) {
+                return ReleasedVersionable.fromVersionReference(release.getWorkspaceCopyNode(), versionReference);
+            }
+            return null;
+        }
+        ReleasedVersionable currentVersionable = ReleasedVersionable.forBaseVersion(versionable);
         if (versionReference != null) { // if it's at the expected path
             ReleasedVersionable releasedVersionable = ReleasedVersionable.fromVersionReference(release.getWorkspaceCopyNode(), versionReference);
             if (StringUtils.equals(releasedVersionable.getVersionHistory(), currentVersionable.getVersionHistory())) {
@@ -479,6 +483,15 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         }
         // otherwise we have to search (was moved or isn't present at all).
         return findReleasedVersionableByUuid(release, currentVersionable.getVersionHistory());
+    }
+
+    @Nullable
+    @Override
+    public ReleasedVersionable findReleasedVersionable(@Nonnull Release rawRelease, @Nonnull String path) {
+        ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
+        String abspath = release.absolutePath(path);
+        return findReleasedVersionable(release,
+                new NonExistingResource(release.getReleaseRoot().getResourceResolver(), abspath));
     }
 
     @Nonnull
@@ -496,61 +509,345 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     }
 
     @Nonnull
-    protected Map<String, Result> updateReleaseInternal(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable, ReleaseChangeEventListener.ReleaseChangeEvent event) throws RepositoryException, PersistenceException, ReleaseClosedException {
-        boolean delete = releasedVersionable.getVersionUuid() == null;
-        ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
-        Resource releaseWorkspaceCopy = release.getWorkspaceCopyNode();
-        String newPath = releaseWorkspaceCopy.getPath() + '/' + releasedVersionable.getRelativePath();
-        validateForUpdate(releasedVersionable, release);
+    @Override
+    public Map<String, Result> revert(@Nonnull Release release, @Nonnull String pathToRevert,
+                                      @Nonnull Release rawFromRelease) throws RepositoryException, PersistenceException
+            , ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
+        Map<String, Result> result = Collections.emptyMap();
 
-        if (release.isClosed()) { throw new ReleaseClosedException(); }
-
-        Resource versionReference = releaseWorkspaceCopy.getResourceResolver().getResource(newPath);
-        ReleasedVersionable previousRV = versionReference != null ? ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference) : null;
-        if (versionReference == null || !StringUtils.equals(previousRV.getVersionHistory(), releasedVersionable.getVersionHistory())) {
-            // check whether it was moved. Caution: queries work only for comitted content
-            Query query = releaseWorkspaceCopy.getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
-            query.path(releaseWorkspaceCopy.getPath()).type(TYPE_VERSIONREFERENCE).condition(
-                    query.conditionBuilder().property(PROP_VERSIONABLEUUID).eq().val(releasedVersionable.getVersionableUuid())
-            );
-
-            Iterator<Resource> versionReferences = query.execute().iterator();
-            versionReference = versionReferences.hasNext() ? versionReferences.next() : null;
-            previousRV = versionReference != null ? ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference) : null;
-        }
-
-        if (versionReference == null) {
-            if (!delete) {
-                versionReference = ResourceUtil.getOrCreateResource(release.getReleaseNode().getResourceResolver(), newPath,
-                        TYPE_UNSTRUCTURED + '/' + TYPE_VERSIONREFERENCE);
+        ReleaseImpl fromRelease = requireNonNull(ReleaseImpl.unwrap(rawFromRelease));
+        pathToRevert = fromRelease.absolutePath(pathToRevert);
+        ReleaseChangeEventListener.ReleaseChangeEvent event = new ReleaseChangeEventListener.ReleaseChangeEvent(release);
+        ReleasedVersionable versionableInPreviousRelease = findReleasedVersionable(fromRelease, pathToRevert);
+        ReleasedVersionable versionableInCurrentRelease = findReleasedVersionable(release, pathToRevert);
+        if (versionableInPreviousRelease == null) { // remove whatever is there at that path, if there is anything
+            if (versionableInCurrentRelease == null || !versionableInCurrentRelease.isActive()) {
+                return new HashMap<>();
             }
-        } else if (delete) {
-            versionReference.getResourceResolver().delete(versionReference);
-        } else if (!versionReference.getPath().equals(newPath)) {
-            Resource oldParent = versionReference.getParent();
-            ResourceResolver resolver = versionReference.getResourceResolver();
+            versionableInCurrentRelease.setActive(false);
+            return updateRelease(release, Collections.singletonList(versionableInCurrentRelease));
+        } else {
+            // like updateRelease, but update parents from the previous release instead of the workspace,
+            // and only if there originally was no parent.
+            Resource versionReferenceResource = fromRelease.getWorkspaceCopyNode().getChild(versionableInPreviousRelease.getRelativePath());
+            result = new ReleaseUpdater(release, versionableInPreviousRelease, event, versionReferenceResource).callForRevert();
 
-            ResourceUtil.getOrCreateResource(resolver, ResourceUtil.getParent(newPath), TYPE_UNSTRUCTURED);
-            versionReference = resolver.move(versionReference.getPath(), ResourceUtil.getParent(newPath));
-
-            cleanupOrphans(releaseWorkspaceCopy.getPath(), oldParent);
-        } else { // stays at same path
-            String existingVersionHistory = versionReference.getValueMap().get(PROP_VERSIONHISTORY, String.class);
-            if (!StringUtils.equals(existingVersionHistory, releasedVersionable.getVersionHistory())) {
-                throw new IllegalStateException("There is already a different versionable at the requested path " + releasedVersionable.getRelativePath());
-            }
+            applyPlugins(release, Collections.singletonList(versionableInPreviousRelease), event);
         }
-
-        updateReleaseLabel(release, releasedVersionable);
-        release.updateLastModified();
-
-        if (!delete) { releasedVersionable.writeToVersionReference(requireNonNull(versionReference)); }
-
-        updateEvent(release, previousRV, releasedVersionable, event);
-
-        if (!delete) { return updateParents(release, releasedVersionable, event); }
-        return new HashMap<>();
+        publisher.publishActivation(event);
+        return result;
     }
+    @Nonnull
+    protected Map<String, Result> updateReleaseInternal(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable, ReleaseChangeEventListener.ReleaseChangeEvent event) throws RepositoryException, PersistenceException, ReleaseClosedException {
+        return new ReleaseUpdater(rawRelease, releasedVersionable, event).callForUpdate();
+    }
+
+    /**
+     * Method object that performs the heavy lifting for update or revert. We use a method object to be able to
+     * structure things better without passing around gazillions of (possibly even return-)parameters.
+     */
+    protected class ReleaseUpdater {
+        protected final ReleaseImpl release;
+        protected final ReleasedVersionable releasedVersionable;
+        protected final ReleaseChangeEventListener.ReleaseChangeEvent event;
+        protected final boolean delete;
+        protected final ResourceResolver resolver;
+        protected Resource copiedVersionReferenceResource = null;
+        protected final NodeTreeSynchronizer sync = new NodeTreeSynchronizer();
+
+        protected Resource versionReference;
+        protected final Resource releaseWorkspaceCopy;
+        protected final String newPath;
+        protected ReleasedVersionable previousRV;
+        protected final Map<String, Result> result = new HashMap<>();
+
+        public ReleaseUpdater(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable,
+                              @Nonnull ReleaseChangeEventListener.ReleaseChangeEvent event) throws ReleaseClosedException,
+                RepositoryException {
+            this.releasedVersionable = releasedVersionable;
+            delete = releasedVersionable.getVersionUuid() == null;
+            this.event = event;
+
+            release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
+            if (release.isClosed()) { throw new ReleaseClosedException(); }
+            validateForUpdate(releasedVersionable, release);
+            releaseWorkspaceCopy = release.getWorkspaceCopyNode();
+            newPath = releaseWorkspaceCopy.getPath() + '/' + releasedVersionable.getRelativePath();
+            resolver = release.getReleaseRoot().getResourceResolver();
+
+            determineCurrentUseInRelease();
+        }
+
+        public ReleaseUpdater(@Nonnull Release release, @Nonnull ReleasedVersionable releasedVersionable,
+                              @Nonnull ReleaseChangeEventListener.ReleaseChangeEvent event,
+                              @Nonnull Resource copiedVersionReferenceResource) throws ReleaseClosedException,
+                RepositoryException {
+            this(release, releasedVersionable, event);
+            this.copiedVersionReferenceResource = copiedVersionReferenceResource;
+        }
+
+        /** Finds out whether the releasedVersionable is already in the release-> versionReference, previousRV . */
+        protected void determineCurrentUseInRelease() {
+            versionReference = releaseWorkspaceCopy.getResourceResolver().getResource(newPath);
+            previousRV = versionReference != null ? ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference) : null;
+            if (versionReference == null || !StringUtils.equals(previousRV.getVersionHistory(), releasedVersionable.getVersionHistory())) {
+                // check whether it was moved. Caution: queries work only for comitted content
+                Query query = releaseWorkspaceCopy.getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
+                query.path(releaseWorkspaceCopy.getPath()).type(TYPE_VERSIONREFERENCE).condition(
+                        query.conditionBuilder().property(PROP_VERSIONABLEUUID).eq().val(releasedVersionable.getVersionableUuid())
+                );
+
+                Iterator<Resource> versionReferences = query.execute().iterator();
+                versionReference = versionReferences.hasNext() ? versionReferences.next() : null;
+                previousRV = versionReference != null ? ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference) : null;
+            }
+        }
+
+        public Map<String, Result> callForUpdate() throws RepositoryException, PersistenceException {
+            moveOrCreateVersionReference();
+
+            if (!delete) {
+                releasedVersionable.writeToVersionReference(releaseWorkspaceCopy, requireNonNull(versionReference));
+            }
+
+            updateReleaseLabel();
+            release.updateLastModified();
+            updateEvent();
+            updateParentsAndCreateResult();
+            return result;
+        }
+
+        public Map<String, Result> callForRevert() throws RepositoryException, PersistenceException {
+            moveOrCreateVersionReference();
+
+            if (!delete) {
+                releasedVersionable.writeToVersionReference(releaseWorkspaceCopy, requireNonNull(versionReference));
+            }
+
+            updateReleaseLabel();
+            release.updateLastModified();
+            updateEvent();
+            // do not update parents from workspace - we only update parents we create
+            return result;
+        }
+
+
+        /** We create, move or delete the versionReference, as appropriate for our operation. */
+        protected void moveOrCreateVersionReference() throws RepositoryException, PersistenceException {
+            if (delete) {
+                if (versionReference != null) {
+                    versionReference.getResourceResolver().delete(versionReference);
+                }
+            } else { // !delete
+                if (versionReference == null) {
+                    createMissingParents();
+                    versionReference = ResourceUtil.getOrCreateResource(release.getReleaseNode().getResourceResolver(), newPath,
+                            TYPE_UNSTRUCTURED + '/' + TYPE_VERSIONREFERENCE);
+                } else if (!versionReference.getPath().equals(newPath)) { // move to a different path
+                    Resource oldParent = versionReference.getParent();
+                    createMissingParents();
+                    checkAndRemoveOldReferenceForMove(resolver, newPath);
+                    resolver.adaptTo(Session.class).move(versionReference.getPath(), newPath);
+                    versionReference = resolver.getResource(newPath);
+
+                    cleanupOrphans(releaseWorkspaceCopy.getPath(), oldParent);
+                } else { // stays at same path
+                    String existingVersionHistory = versionReference.getValueMap().get(PROP_VERSIONHISTORY, String.class);
+                    if (!StringUtils.equals(existingVersionHistory, releasedVersionable.getVersionHistory())) {
+                        LOG.warn("Overriding a different versionable {} at the requested path {}", existingVersionHistory,
+                                releasedVersionable.getRelativePath());
+                    }
+                }
+
+                if (releasedVersionable.isActive()) {
+                    resetDeletedFlag(versionReference.getParent());
+                }
+            }
+        }
+
+        /**
+         * When moving, we need to check whether there already is a version reference. This one has to be deleted,
+         * otherwise the move will fail. A warning is logged, but we assume the user knows what he is doing; it can
+         * will show up in the version differences and can be reverted, anyway.
+         */
+        protected void checkAndRemoveOldReferenceForMove(ResourceResolver resolver, String newPath) throws PersistenceException {
+            Resource resourceAtPath = resolver.getResource(newPath);
+            if (resourceAtPath != null) {
+                if (!ResourceUtil.isPrimaryType(resourceAtPath, TYPE_VERSIONREFERENCE)) {
+                    throw new IllegalArgumentException("Trying to replace a non-versionreference with a " +
+                            "versionreference - something is fishy, here: " + newPath);
+                }
+                VersionReferenceImpl oldVersionReference = new VersionReferenceImpl(release, resourceAtPath);
+                ReleasedVersionable releasedVersionable = oldVersionReference.getReleasedVersionable();
+                resolver.delete(resourceAtPath);
+                LOG.warn("Removing VersionReference that is going to be overwritten: " + newPath + " : " + releasedVersionable);
+            }
+        }
+
+        protected void resetDeletedFlag(Resource parent) {
+            if (parent != null && SlingResourceUtil.isSameOrDescendant(release.getWorkspaceCopyNode().getPath(),
+                    parent.getPath())) {
+                if (parent.getValueMap().get(PROP_DEACTIVATED, false)) {
+                    parent.adaptTo(ModifiableValueMap.class).remove(PROP_DEACTIVATED);
+                }
+                resetDeletedFlag(parent.getParent());
+            }
+        }
+
+        private void createMissingParents() throws RepositoryException, PersistenceException {
+            if (copiedVersionReferenceResource == null) {
+                createParentNodesWithoutTemplate(ResourceUtil.getParent(newPath));
+            } else {
+                copyParentIfMissing(ResourceUtil.getParent(newPath), copiedVersionReferenceResource.getParent());
+            }
+        }
+
+        @Nonnull
+        protected Resource createParentNodesWithoutTemplate(String path) throws PersistenceException {
+            Resource nodeResource = resolver.getResource(path);
+            if (null == nodeResource) {
+                Resource parent = createParentNodesWithoutTemplate(ResourceUtil.getParent(path));
+                Map<String, Object> props = ImmutableMap.of(PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
+                        ResourceUtil.JCR_FROZENPRIMARYTYPE, TYPE_UNSTRUCTURED);
+                nodeResource = resolver.create(parent, ResourceUtil.getName(path), props);
+            }
+            return nodeResource;
+        }
+
+        /**
+         * Create all levels of parents; on the first created parent update the sibling order.
+         *
+         * @return the possibly created node with path nodeToCreate
+         */
+        @Nonnull
+        private Resource copyParentIfMissing(String nodeToCreate, Resource nodeTemplate) throws RepositoryException {
+            String parentPath = ResourceUtil.getParent(nodeToCreate);
+            Resource parent = resolver.getResource(parentPath);
+            boolean updateSiblingOrderOnCreate = false;
+            if (parent == null) {
+                parent = copyParentIfMissing(parentPath, nodeTemplate.getParent());
+            } else {
+                updateSiblingOrderOnCreate = true;
+            }
+            String nodeName = ResourceUtil.getName(nodeToCreate);
+            Resource node = parent.getChild(nodeName);
+            if (node == null) {
+                node = ResourceUtil.getOrCreateChild(parent, nodeName, TYPE_UNSTRUCTURED);
+                sync.updateAttributes(ResourceHandle.use(nodeTemplate), ResourceHandle.use(node), StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES);
+                if (updateSiblingOrderOnCreate) {
+                    updateSiblingOderAndSaveResult(ResourceHandle.use(nodeTemplate), ResourceHandle.use(node));
+                }
+            }
+            return node;
+        }
+
+        protected void updateParentsAndCreateResult() throws RepositoryException {
+            if (!delete && releasedVersionable.isActive()) {
+                updateParentsFromWorkspace();
+            }
+        }
+
+        /**
+         * Goes through all parents of the version reference, sets their attributes from the working copy
+         * and fixes the node ordering if necessary.
+         *
+         * @return a map with paths where we changed the order of children in the release.
+         */
+        @Nonnull
+        protected void updateParentsFromWorkspace() throws RepositoryException {
+            ResourceHandle template = ResourceHandle.use(release.getReleaseRoot());
+            ResourceHandle inRelease = ResourceHandle.use(release.getWorkspaceCopyNode());
+            String[] levels = releasedVersionable.getRelativePath().split("/");
+            Iterator<String> levelIterator = IteratorUtils.arrayIterator(levels);
+            NodeTreeSynchronizer sync = new NodeTreeSynchronizer();
+
+            while (template.isValid() && inRelease.isValid() && !inRelease.isOfType(TYPE_VERSIONREFERENCE)) {
+                boolean attributesChanged = sync.updateAttributes(template, inRelease, StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES);
+                if (attributesChanged) {
+                    event.addMoveOrUpdate(template.getPath(), template.getPath());
+                }
+                if (!levelIterator.hasNext()) { break; }
+                String level = levelIterator.next();
+                template = ResourceHandle.use(template.getChild(level));
+                inRelease = ResourceHandle.use(inRelease.getChild(level));
+                if (template.isValid() && inRelease.isValid()) {
+                    // we do that for all nodes except the root but including the version reference itself:
+                    updateSiblingOderAndSaveResult(template, inRelease);
+                }
+            }
+            if (levelIterator.hasNext() && !template.isValid()) {
+                throw new IllegalArgumentException("Could not copy attributes of parent nodes since node used as template not valid: " + inRelease.getPath());
+            }
+        }
+
+        protected void updateSiblingOderAndSaveResult(ResourceHandle from, ResourceHandle to) throws RepositoryException {
+            Result siblingResult = updateSiblingOrder(from, to);
+            if (siblingResult != Result.unchanged) {
+                String releasePath = release.unmapFromContentCopy(to.getPath());
+                String parent = ResourceUtil.getParent(releasePath);
+                result.put(parent, siblingResult);
+                event.addMoveOrUpdate(parent, parent);
+            }
+        }
+
+        protected void updateEvent() {
+            boolean wasThere = previousRV != null && previousRV.isActive() && previousRV.getVersionUuid() != null;
+            String wasPath = wasThere ? release.absolutePath(previousRV.getRelativePath()) : null;
+
+            boolean isThere = releasedVersionable.isActive() && releasedVersionable.getVersionUuid() != null;
+            String isPath = isThere ? release.absolutePath(releasedVersionable.getRelativePath()) : null;
+
+            if (wasThere || isThere) { event.addMoveOrUpdate(wasPath, isPath); }
+        }
+
+        /** Sets the label {@link StagingConstants#RELEASE_LABEL_PREFIX}-{releasenumber} on the version the releasedVersionable refers to. */
+        protected void updateReleaseLabel() throws RepositoryException {
+            Resource root = release.getReleaseRoot();
+            Session session = root.getResourceResolver().adaptTo(Session.class);
+            if (session == null) {
+                throw new RepositoryException("No session for " + root.getPath()); // impossible
+            }
+            VersionManager versionManager = session.getWorkspace().getVersionManager();
+
+            VersionHistory versionHistory = null;
+            try {
+                versionHistory = versionManager.getVersionHistory(release.getReleaseRoot().getPath() + '/' + releasedVersionable.getRelativePath());
+                if (!versionHistory.getIdentifier().equals(releasedVersionable.getVersionHistory())) {
+                    versionHistory = null;
+                }
+            } catch (PathNotFoundException e) {
+                // moved or deleted. Try versionhistoryuuid
+            }
+            if (versionHistory == null) {
+                versionHistory = (VersionHistory) session.getNodeByIdentifier(releasedVersionable.getVersionHistory());
+            }
+            if (versionHistory == null) {
+                LOG.debug("No version history anymore for {} : {}", release, releasedVersionable);
+                return;
+            }
+            String label = release.getReleaseLabel();
+
+            if (StringUtils.isBlank(releasedVersionable.getVersionUuid())) {
+                try {
+                    versionHistory.removeVersionLabel(label);
+                } catch (VersionException e) {
+                    LOG.debug("Label {} wasn't set - OK.", label);
+                }
+                return;
+            }
+
+            for (Version version : JcrIteratorUtil.asIterable(versionHistory.getAllVersions())) {
+                if (releasedVersionable.getVersionUuid().equals(version.getIdentifier())) {
+                    versionHistory.addVersionLabel(version.getName(), label, true);
+                    LOG.debug("Setting label {} on version {}", label, version.getIdentifier());
+                    return;
+                }
+            }
+
+            throw new IllegalArgumentException("Version not found for " + releasedVersionable + " in release " + release);
+        }
+    }
+
 
     protected void applyPlugins(Release rawRelease, List<ReleasedVersionable> releasedVersionableList, ReleaseChangeEventListener.ReleaseChangeEvent event) throws RepositoryException {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
@@ -562,16 +859,6 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         for (StagingReleaseManagerPlugin plugin : pluginscopy) {
             plugin.fixupReleaseForChanges(release, release.getWorkspaceCopyNode(), changedPaths, event);
         }
-    }
-
-    protected void updateEvent(@Nonnull Release release, @Nullable ReleasedVersionable before, @Nonnull ReleasedVersionable after, @Nonnull ReleaseChangeEventListener.ReleaseChangeEvent event) {
-        boolean wasThere = before != null && before.isActive() && before.getVersionUuid() != null;
-        String wasPath = wasThere ? release.absolutePath(before.getRelativePath()) : null;
-
-        boolean isThere = after.isActive() && after.getVersionUuid() != null;
-        String isPath = isThere ? release.absolutePath(after.getRelativePath()) : null;
-
-        if (wasThere || isThere) { event.addMoveOrUpdate(wasPath, isPath); }
     }
 
     /** We check that the mandatory fields are set and that it isn't the root version. */
@@ -587,47 +874,6 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         }
     }
 
-    /** Sets the label {@link StagingConstants#RELEASE_LABEL_PREFIX}-{releasenumber} on the version the releasedVersionable refers to. */
-    protected void updateReleaseLabel(ReleaseImpl release, ReleasedVersionable releasedVersionable) throws RepositoryException {
-        Resource root = release.getReleaseRoot();
-        Session session = root.getResourceResolver().adaptTo(Session.class);
-        if (session == null) {
-            throw new RepositoryException("No session for " + root.getPath()); // impossible
-        }
-        VersionManager versionManager = session.getWorkspace().getVersionManager();
-
-        VersionHistory versionHistory;
-        try {
-            versionHistory = versionManager.getVersionHistory(release.getReleaseRoot().getPath() + '/' + releasedVersionable.getRelativePath());
-        } catch (PathNotFoundException e) { // moved or deleted. Try versionhistoryuuid
-            versionHistory = (VersionHistory) session.getNodeByIdentifier(releasedVersionable.getVersionHistory());
-        }
-        if (versionHistory == null) {
-            LOG.debug("No version history anymore for {} : {}", release, releasedVersionable);
-            return;
-        }
-        String label = release.getReleaseLabel();
-
-        if (StringUtils.isBlank(releasedVersionable.getVersionUuid())) {
-            try {
-                versionHistory.removeVersionLabel(label);
-            } catch (VersionException e) {
-                LOG.debug("Label {} wasn't set - OK.", label);
-            }
-            return;
-        }
-
-        for (Version version : JcrIteratorUtil.asIterable(versionHistory.getAllVersions())) {
-            if (releasedVersionable.getVersionUuid().equals(version.getIdentifier())) {
-                versionHistory.addVersionLabel(version.getName(), label, true);
-                LOG.debug("Setting label {} on version {}", label, version.getIdentifier());
-                return;
-            }
-        }
-
-        throw new IllegalArgumentException("Version not found for " + releasedVersionable + " in release " + release);
-    }
-
     /** Sets the label on the versionables contained in all versionables in the release */
     protected void updateReleaseLabels(@Nonnull ReleaseImpl release) throws RepositoryException {
         for (Resource releaseContent : SlingResourceUtil.descendants(release.getWorkspaceCopyNode())) {
@@ -641,50 +887,12 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     }
 
     /**
-     * Goes through all parents of the version reference, sets their attributes from the working copy
-     * and fixes the node ordering if necessary.
-     *
-     * @return a map with paths where we changed the order of children in the release.
-     */
-    @Nonnull
-    protected Map<String, Result> updateParents(ReleaseImpl release, ReleasedVersionable releasedVersionable, ReleaseChangeEventListener.ReleaseChangeEvent event) throws RepositoryException {
-        Map<String, Result> resultMap = new TreeMap<>();
-
-        String[] levels = releasedVersionable.getRelativePath().split("/");
-        ResourceHandle inWorkspace = ResourceHandle.use(release.getReleaseRoot());
-        ResourceHandle inRelease = ResourceHandle.use(release.getWorkspaceCopyNode());
-        Iterator<String> levelIterator = IteratorUtils.arrayIterator(levels);
-        NodeTreeSynchronizer sync = new NodeTreeSynchronizer();
-
-        while (inWorkspace.isValid() && inRelease.isValid() && !inRelease.isOfType(TYPE_VERSIONREFERENCE)) {
-            boolean attributesChanged = sync.updateAttributes(inWorkspace, inRelease, StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES);
-            if (attributesChanged) {
-                event.addMoveOrUpdate(inWorkspace.getPath(), inWorkspace.getPath());
-            }
-            if (!levelIterator.hasNext()) { break; }
-            String level = levelIterator.next();
-            inWorkspace = ResourceHandle.use(inWorkspace.getChild(level));
-            inRelease = ResourceHandle.use(inRelease.getChild(level));
-            if (inWorkspace.isValid() && inRelease.isValid()) {
-                // we do that for all nodes except the root but including the version reference itself:
-                Result result = updateSiblingOrder(inWorkspace, inRelease);
-                if (result != Result.unchanged) {
-                    resultMap.put(inWorkspace.getParentPath(), result);
-                    event.addMoveOrUpdate(inWorkspace.getParentPath(), inWorkspace.getPath());
-                }
-            }
-        }
-
-        return resultMap;
-    }
-
-    /**
-     * Adjusts the place of inRelease wrt. it's siblings to be consistent with inWorkspace.
+     * Adjusts the place of {to} wrt. it's siblings to be consistent with {from}.
      *
      * @return true if the ordering was deterministic, false if there was heuristics involved and the user should check the result.
      */
-    protected Result updateSiblingOrder(ResourceHandle inWorkspace, ResourceHandle inRelease) throws RepositoryException {
-        return getSiblingOrderUpdateStrategy().adjustSiblingOrderOfDestination(inWorkspace, inRelease);
+    protected Result updateSiblingOrder(ResourceHandle from, ResourceHandle to) throws RepositoryException {
+        return getSiblingOrderUpdateStrategy().adjustSiblingOrderOfDestination(from, to);
     }
 
     protected SiblingOrderUpdateStrategy getSiblingOrderUpdateStrategy() {
@@ -778,7 +986,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Override
     public ReleasedVersionable restoreVersionable(@Nonnull Release rawRelease, @Nonnull ReleasedVersionable releasedVersionable) throws RepositoryException {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
-        listCurrentContents(release.getReleaseRoot())
+        listWorkspaceContents(release.getReleaseRoot())
                 .forEach((existingVersionable) ->
                         Validate.isTrue(!StringUtils.equals(existingVersionable.getVersionHistory(), releasedVersionable.getVersionHistory()),
                                 "Cannot restore versionable %s from relese %s that exists at %s", releasedVersionable.getVersionHistory(), release, existingVersionable.getRelativePath()));
@@ -797,6 +1005,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
      */
     @Override
     public int cleanupLabels(@Nonnull Resource resource) throws RepositoryException {
+        long start = System.currentTimeMillis();
         int count = 0;
         ResourceHandle root = findReleaseRoot(resource);
 
@@ -806,22 +1015,21 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         query.path("/jcr:system/jcr:versionStorage").type("nt:versionHistory").condition(
                 query.conditionBuilder().property("default").like().val(root.getPath() + "/%")
         );
-        QueryConditionDsl.QueryCondition versionLabelJoin = query.joinConditionBuilder().isNotNull(JCR_PRIMARYTYPE);
-        query.join(Inner, Descendant, "nt:versionLabels", versionLabelJoin);
-        for (QueryValueMap result : query.selectAndExecute()) {
-            Resource labelResource = result.getJoinResource(versionLabelJoin.getSelector());
+        for (Resource versionHistory : query.execute()) {
+            Resource labelResource = versionHistory.getChild(ResourceUtil.JCR_VERSIONLABELS);
             ValueMap valueMap = labelResource.getValueMap();
             for (String label : valueMap.keySet()) {
                 if (label.startsWith(RELEASE_LABEL_PREFIX) && !expectedLabels.contains(label)) {
                     Property versionProperty = valueMap.get(label, Property.class);
                     Node version = versionProperty.getNode();
-                    VersionHistory versionHistory = (VersionHistory) version.getParent();
-                    versionHistory.removeVersionLabel(label);
+                    VersionHistory versionHistoryNode = (VersionHistory) version.getParent();
+                    versionHistoryNode.removeVersionLabel(label);
                     LOG.debug("Removing obsolete label {} from {}", label, labelResource.getPath());
                     count++;
                 }
             }
         }
+        LOG.info("cleanupLabels removed {} obsolete labels in {}s", 0.001 * (System.currentTimeMillis() - start));
         return count;
     }
 
@@ -1004,7 +1212,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         @Override
         public String absolutePath(@Nonnull String relativePath) {
             Validate.notNull(relativePath);
-            Validate.isTrue(!StringUtils.startsWith(relativePath, "/"), "Must be a relative path: %s", relativePath);
+            if (StringUtils.startsWith(relativePath, "/")) { return relativePath; }
             if (StringUtils.isBlank(relativePath)) { return getReleaseRoot().getPath(); }
             return getReleaseRoot().getPath() + '/' + relativePath;
         }
@@ -1080,12 +1288,12 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         @Nullable
         @Override
-        public ActivationInfo activationInfo(@Nullable String relativePath) {
-            ActivationInfo result = null;
+        public VersionReference versionReference(@Nullable String relativePath) {
+            VersionReference result = null;
             if (relativePath != null) {
                 Resource versionReference = getWorkspaceCopyNode().getChild(relativePath);
                 if (versionReference != null) {
-                    result = new ActivationInfoImpl(this, versionReference);
+                    result = new VersionReferenceImpl(this, versionReference);
                 }
             }
             return result;
@@ -1097,7 +1305,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         }
     }
 
-    protected static class ActivationInfoImpl implements ActivationInfo {
+    protected static class VersionReferenceImpl implements VersionReference {
 
         @Nonnull
         private final ReleaseImpl release;
@@ -1105,9 +1313,12 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         @Nonnull
         private final ResourceHandle versionReference;
 
-        protected ActivationInfoImpl(@Nonnull ReleaseImpl release, @Nonnull Resource versionReference) {
+        protected VersionReferenceImpl(@Nonnull ReleaseImpl release, @Nonnull Resource versionReference) {
             this.release = Objects.requireNonNull(release);
             this.versionReference = ResourceHandle.use(requireNonNull(versionReference));
+            if (!versionReference.isResourceType(TYPE_VERSIONREFERENCE)) {
+                throw new IllegalArgumentException("Not a version reference: " + versionReference.getPath());
+            }
         }
 
         @Override
@@ -1124,7 +1335,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         @Override
         @Nullable
         public Calendar getLastActivated() {
-            return versionReference != null ? versionReference.getProperty(PROP_LAST_ACTIVATED, Calendar.class) : null;
+            Calendar lastActivated = versionReference != null ? versionReference.getProperty(PROP_LAST_ACTIVATED, Calendar.class) : null;
+            return lastActivated;
         }
 
         @Override
