@@ -35,3 +35,21 @@ inactive | inactive, active | deactivated
 active different versionable | inactive | activated 
 active different versionable | active | modified
 inactive different versionable | active or inactive | deactivated
+
+## Important classes:
+
+class name | important attributes | description
+--- | --- | ---
+ActivationState |   | enum initial, activated, modified, deactivated, deleted
+VersionReference | resource | access to attributes of versionreference  (previously ActivationInfo)
+PlatformVersionsService.Status |   | comparison workspace wrt. release or release wrt. previous release
+ReleasedVersionable | path,... | release-agnostic info about a versionable within a release / in the workspace
+PageVersion | release, Status, Page | model to display workspace difference or release difference
+
+## Important JSPs:
+
+Modified (Änderungen Workspace): libs/composum/pages/stage/edit/site/page/modified/modified.jsp -> 
+Site.modifiedPages -> PagesVersionsService#findModifiedPages -> PlatformVersionsServiceImpl#findWorkspaceChanges
+
+Activated (Änderungen Release gegen Vorgängerrelease): libs/composum/pages/stage/edit/site/page/activated/activated.jsp ->
+Site#getReleaseChanges() -> PagesVersionsService#findReleaseChanges -> PlatformVersionsServiceImpl#findWorkspaceChanges

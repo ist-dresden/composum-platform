@@ -53,6 +53,11 @@ public class SimpleModel extends AbstractServletBean {
         return locale;
     }
 
+    /** Retrieves a service. */
+    public <T> T getService(Class<T> serviceInterface) {
+        return context.getService(serviceInterface);
+    }
+
     public class GenericProperties extends GenericMap {
 
         public GenericProperties() {
