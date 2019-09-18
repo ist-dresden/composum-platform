@@ -234,7 +234,14 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             try {
                 createCurrentReleaseWithServiceResolver(root);
                 root.getResourceResolver().refresh();
-                currentRelease = ensureRelease(root, CURRENT_RELEASE);
+                releasesNode = getReleasesNode(root);
+                currentReleaseNode = releasesNode.isValid() ? releasesNode.getChild(CURRENT_RELEASE) : null;
+                if (currentReleaseNode != null) {
+                    currentRelease = new ReleaseImpl(root, currentReleaseNode);
+                } else {
+                    LOG.warn("Release node not accessible for {} : {}", root.getResourceResolver().getUserID(),
+                            SlingResourceUtil.getPath(root));
+                }
             } catch (RepositoryException | PersistenceException | LoginException ex) {
                 LOG.error("Trouble creating current release for " + root.getPath(), ex);
             }
