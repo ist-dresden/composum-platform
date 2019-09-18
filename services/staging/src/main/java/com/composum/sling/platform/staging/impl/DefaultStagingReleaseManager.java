@@ -245,16 +245,24 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     }
 
     /** Create the current release using a service resolver since this can be a user who hasn't the rights,
-     * and this can be called during a read operation where not having the rights is perfectly OK. */
+     * and this can be called during a read operation where not having the rights is perfectly OK.
+     * If there are other releases, we copy it from the highest numbered release. (That happens if you delete the
+     * current release to reset it). */
     private void createCurrentReleaseWithServiceResolver(ResourceHandle currentUserRoot) throws LoginException, PersistenceException, RepositoryException {
         try (ResourceResolver serviceResolver = resolverFactory.getServiceResourceResolver(null)) {
             Resource root = serviceResolver.getResource(currentUserRoot.getPath());
-            ReleaseImpl currentRelease = ensureRelease(root, CURRENT_RELEASE);
+            ReleaseImpl currentRelease;
             Optional<Release> highestNumericRelease = getReleasesImpl(root).stream()
                     .filter(r -> !CURRENT_RELEASE.equals(r.getNumber()))
                     .max(Comparator.comparing(Release::getNumber, ReleaseNumberCreator.COMPARATOR_RELEASES));
             if (highestNumericRelease.isPresent()) {
+                currentRelease = createReleaseImpl(ResourceHandle.use(root),
+                        ReleaseImpl.unwrap(highestNumericRelease.get()), CURRENT_RELEASE);
                 setPreviousRelease(currentRelease, highestNumericRelease.get());
+                serviceResolver.delete(currentRelease.getMetaDataNode()); // clear metadata and recreate the node
+                currentRelease = ensureRelease(root, CURRENT_RELEASE);
+            } else {
+                currentRelease = ensureRelease(root, CURRENT_RELEASE);
             }
             serviceResolver.commit();
             LOG.info("Created current release for {} with {}", currentUserRoot.getPath(), serviceResolver.getUserID());
@@ -1056,8 +1064,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                     ResourceUtil.getOrCreateResource(root.getResourceResolver(), getReleasesNodePath(root), TYPE_UNSTRUCTURED));
         }
 
-        Resource currentReleaseNode = ResourceUtil.getOrCreateChild(releasesNode, releaseLabel, TYPE_UNSTRUCTURED);
-        SlingResourceUtil.addMixin(currentReleaseNode, TYPE_REFERENCEABLE);
+        Resource releaseNode = ResourceUtil.getOrCreateChild(releasesNode, releaseLabel, TYPE_UNSTRUCTURED);
+        SlingResourceUtil.addMixin(releaseNode, TYPE_REFERENCEABLE);
 
         String[] history = releasesNode.getProperty(PROP_RELEASE_ROOT_HISTORY, new String[0]);
         if (!Arrays.asList(history).contains(theRoot.getPath())) {
@@ -1066,19 +1074,19 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             releasesNode.setProperty(PROP_RELEASE_ROOT_HISTORY, newHistory);
         }
 
-        Resource releaseWorkspaceCopy = ResourceUtil.getOrCreateChild(currentReleaseNode, NODE_RELEASE_ROOT, TYPE_UNSTRUCTURED);
+        Resource releaseWorkspaceCopy = ResourceUtil.getOrCreateChild(releaseNode, NODE_RELEASE_ROOT, TYPE_UNSTRUCTURED);
         // set a frozen primary type to ensure a sane state
         ResourceHandle.use(releaseWorkspaceCopy).setProperty(ResourceUtil.JCR_FROZENPRIMARYTYPE, ResourceUtil.TYPE_SLING_ORDERED_FOLDER);
 
-        ResourceHandle metaData = ResourceHandle.use(currentReleaseNode.getChild(NODE_RELEASE_METADATA));
+        ResourceHandle metaData = ResourceHandle.use(releaseNode.getChild(NODE_RELEASE_METADATA));
         if (!metaData.isValid()) {
-            metaData = ResourceHandle.use(root.getResourceResolver().create(currentReleaseNode, NODE_RELEASE_METADATA,
+            metaData = ResourceHandle.use(root.getResourceResolver().create(releaseNode, NODE_RELEASE_METADATA,
                     ImmutableMap.of(PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                             PROP_MIXINTYPES,
                             new String[]{TYPE_CREATED, TYPE_LAST_MODIFIED, TYPE_TITLE})));
         }
 
-        return new ReleaseImpl(root, currentReleaseNode); // incl. validation
+        return new ReleaseImpl(root, releaseNode); // incl. validation
     }
 
     /** Pseudo- {@link ReleaseNumberCreator} that returns a given release name */

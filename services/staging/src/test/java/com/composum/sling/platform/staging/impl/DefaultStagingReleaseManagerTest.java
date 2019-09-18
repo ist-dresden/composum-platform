@@ -583,6 +583,15 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
         ec.checkThat(versionManager.getVersionHistory(versionable.getPath()).getVersionLabels(),
                 arrayContainingInAnyOrder("composum-release-current", "composum-release-r1.1")); // label is gone
+
+        currentRelease = service.findRelease(versionable, StagingConstants.CURRENT_RELEASE);
+        service.deleteRelease(currentRelease);
+        currentRelease = service.findRelease(versionable, StagingConstants.CURRENT_RELEASE);
+        ec.checkThat(currentRelease.getPreviousRelease().getNumber(), is(r11.getNumber()));
+
+        List<ReleasedVersionable> contents = service.listReleaseContents(currentRelease);
+        ec.checkThat(contents.size(), is(1));
+        ec.checkThat(contents.get(0).getRelativePath(), is("a/jcr:content"));
     }
 
     protected void commitAndCheck() throws PersistenceException, RepositoryException {
