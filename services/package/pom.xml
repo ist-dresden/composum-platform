@@ -128,6 +128,12 @@
                                 <include>.*/com.composum.sling.core.CoreConfigImpl.config</include>
                             </includes>
                         </filter>
+                        <filter>
+                            <root>/libs/composum/platform/config</root>
+                            <includes>
+                                <include>.*/com.composum.sling.core.CoreConfigImpl.config</include>
+                            </includes>
+                        </filter>
                     </filters>
 
                     <embeddeds>
