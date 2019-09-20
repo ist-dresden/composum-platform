@@ -20,7 +20,7 @@ import java.util.List;
 @Component(
         service = {ReleaseChangeEventPublisher.class},
         property = {
-                Constants.SERVICE_DESCRIPTION + "=Platform Replication Service Publisher"
+                Constants.SERVICE_DESCRIPTION + "=Composum Platform Replication Service Publisher"
         }
 )
 public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublisher {
