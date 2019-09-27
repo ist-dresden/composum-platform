@@ -68,7 +68,9 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
     public static final String ACCESS_MODE_KEY = "composum-platform-access-mode";
 
     @ObjectClassDefinition(
-            name = "Composum Platform Access Filter Configuration"
+            name = "Composum Platform Access Filter Configuration",
+            description = "If enabled, this filter distinguishes between author, preview and public hosts and" +
+                    " provides access protection based on these modi configurable in detail."
     )
     @interface Config {
 
