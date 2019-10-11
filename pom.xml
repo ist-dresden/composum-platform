@@ -6,13 +6,13 @@
     <parent>
         <groupId>com.composum.meta.ist</groupId>
         <artifactId>parent-2-public</artifactId>
-        <version>1.2-SNAPSHOT</version>
+        <version>1.2</version>
     </parent>
 
     <groupId>com.composum.platform</groupId>
     <artifactId>composum-platform</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.6-SNAPSHOT</version>
+    <version>1.1.0</version>
 
     <name>Composum Platform</name>
     <description>Maven parent for Composum Platform packages</description>
@@ -24,7 +24,7 @@
         <package.group>com/composum/platform</package.group>
         <bundle.category>composum,platform</bundle.category>
 
-        <composum.nodes.version>1.11.1</composum.nodes.version>
+        <composum.nodes.version>1.11.6</composum.nodes.version>
 
     </properties>
 
