@@ -42,6 +42,13 @@ public interface StagingConstants {
     String TYPE_MIX_RELEASE_ROOT = "cpl:releaseRoot";
 
     /**
+     * Mixin on replicated versionables that allows specifying the property #PROP_REPLICATED_VERSION. We need a mixin
+     * since otherwise we could not specify that attribute on things like nt:resource that do not admit additional
+     * properties otherwise.
+     */
+    String TYPE_MIX_REPLICATEDVERSIONABLE = "mix:ReplicatedVersionable";
+
+    /**
      * References a version within the release tree.
      *
      * @see #PROP_VERSION
@@ -88,6 +95,12 @@ public interface StagingConstants {
 
     /** Property of release node: the Uuid of the previous release from which this one was copied. */
     String PROP_PREVIOUS_RELEASE_UUID = "previousReleaseUuid";
+
+    /**
+     * Property that saves on a replicated versionable the original version it was replicated from. For use with
+     * mixin {@link #TYPE_MIX_REPLICATEDVERSIONABLE}.
+     */
+    String PROP_REPLICATED_VERSION = "cpl:replicatedVersion";
 
     /**
      * "Releasenumber" or key of the current release : {@value #CURRENT_RELEASE}. This also serves as the "current release" (the release that's in construction and will be used as default preview)

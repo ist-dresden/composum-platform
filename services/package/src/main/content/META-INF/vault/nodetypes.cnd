@@ -24,3 +24,8 @@
   - * (UNDEFINED)
   + * (nt:base) = nt:unstructured VERSION
 
+/** A mixin to add to replicated versionables which specifies from which version it was replicated.
+ We create a mixin for that since this can be added to e.g. nt:resource, which doesn't admit additional properties. */
+[mix:ReplicatedVersionable]
+  mixin
+  - cpl:replicatedVersion (REFERENCE)
