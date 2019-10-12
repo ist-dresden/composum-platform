@@ -1,6 +1,6 @@
 package com.composum.sling.platform.testing.testutil;
 
-import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures.RunnableWithException;
+import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures.TestingRunnableWithException;
 import org.apache.commons.lang3.ClassUtils;
 import org.junit.runners.model.MultipleFailureException;
 import org.slf4j.Logger;
@@ -21,11 +21,11 @@ public class AroundActionsWrapper implements InvocationHandler {
     private static final Logger LOG = LoggerFactory.getLogger(AroundActionsWrapper.class);
 
     private final Object wrappedObject;
-    private final RunnableWithException<? extends Throwable> before;
-    private final RunnableWithException<? extends Throwable> after;
-    private final RunnableWithException<? extends Throwable> onError;
+    private final TestingRunnableWithException<? extends Throwable> before;
+    private final TestingRunnableWithException<? extends Throwable> after;
+    private final TestingRunnableWithException<? extends Throwable> onError;
 
-    protected AroundActionsWrapper(Object wrappedObject, RunnableWithException<? extends Throwable> before, RunnableWithException<? extends Throwable> after, RunnableWithException<? extends Throwable> onError) {
+    protected AroundActionsWrapper(Object wrappedObject, TestingRunnableWithException<? extends Throwable> before, TestingRunnableWithException<? extends Throwable> after, TestingRunnableWithException<? extends Throwable> onError) {
         this.wrappedObject = wrappedObject;
         this.before = before;
         this.after = after;
@@ -44,12 +44,12 @@ public class AroundActionsWrapper implements InvocationHandler {
      */
     @SuppressWarnings("unchecked")
     @Nonnull
-    public static <T> T of(@Nonnull T wrappedObject, @Nullable RunnableWithException<? extends Throwable> before, @Nullable RunnableWithException<? extends Throwable> after, RunnableWithException<? extends Throwable> onError) {
+    public static <T> T of(@Nonnull T wrappedObject, @Nullable TestingRunnableWithException<? extends Throwable> before, @Nullable TestingRunnableWithException<? extends Throwable> after, TestingRunnableWithException<? extends Throwable> onError) {
         Class[] interfaces = ClassUtils.getAllInterfaces(wrappedObject.getClass()).toArray(new Class[0]);
         return (T) Proxy.newProxyInstance(wrappedObject.getClass().getClassLoader(), interfaces, new AroundActionsWrapper(wrappedObject, before, after, onError));
     }
 
-    /** Retrieves the object wrapped with {@link #of(Object, RunnableWithException, RunnableWithException)}. */
+    /** Retrieves the object wrapped with {@link #of(Object, TestingRunnableWithException, TestingRunnableWithException)}. */
     @SuppressWarnings("unchecked")
     public static <T> T retrieveWrappedObject(T wrapper) {
         InvocationHandler handler = Proxy.getInvocationHandler(wrapper);

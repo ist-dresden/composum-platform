@@ -2,15 +2,16 @@ package com.composum.sling.platform.staging.versions;
 
 import com.composum.sling.core.filter.ResourceFilter;
 import com.composum.sling.core.util.CoreConstants;
-import com.composum.sling.platform.staging.ActivationInfo;
+import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleasedVersionable;
-import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -53,19 +54,20 @@ public interface PlatformVersionsService {
          */
         modified,
         /** Deactivated (originally present but later removed ({@link #deactivate(String, Resource)}) from release. */
-        deactivated
+        deactivated,
+        /** When comparing the workspace to a release: deleted from the workspace. */
+        deleted
     }
 
     /** Information about the status of a versionable in the workspace wrt. a release, or of a versionable within a release wrt. a previous release. */
     interface Status {
 
+        /** Calculated modification status. */
         @Nonnull
         ActivationState getActivationState();
 
         /**
-         * The time the versionable was last modified in the workspace /
-         * the checkin date of the released version if comparing with a previous release.
-         *
+         * The time the versionable was last modified in the workspace.
          * @return 'last modified' or 'created'
          */
         @Nullable
@@ -74,25 +76,28 @@ public interface PlatformVersionsService {
         @Nullable
         String getLastModifiedBy();
 
-        /** This is the activation status in the release we are comparing the workspace to, or which we are comparing with a previous releasey. */
-        @Nullable
-        ActivationInfo getActivationInfo();
-
         /**
-         * The release this is relative to. Please note that in the case of {@link ActivationState#initial} the versionable
-         * does not need to be in the release.
+         * The latest version reference - when comparing workspace to release, this is in the release; when
+         * comparing release to release, this is in {@link #getNextRelease()}. Might be null in case of {@link ActivationState#initial}.
          */
-        @Nonnull
-        StagingReleaseManager.Release getRelease();
+        @Nullable
+        VersionReference getVersionReference();
+
+        /** The release we compare from. If we compare the workspace, this is null. */
+        @Nullable
+        StagingReleaseManager.Release getNextRelease();
 
         /**
          * The detail information about the versionable as it is in the workspace / the release if we're comparing a release with a previous release.
          * This is null if the status refers to a deleted versionable.
          */
         @Nullable
-        ReleasedVersionable getCurrentVersionableInfo();
+        ReleasedVersionable getNextVersionable();
 
-        /** The release {@link #getPreviousVersionableInfo()} is about (see there). */
+        /**
+         * The release {@link #getPreviousVersionableInfo()} is about (see there). When comparing workspace to release this is not null,
+         * when comparing release to release this might be null (if there was no previous release).
+         */
         @Nullable
         StagingReleaseManager.Release getPreviousRelease();
 
@@ -101,7 +106,11 @@ public interface PlatformVersionsService {
          * if the previous release did not contain the versionable at all.
          */
         @Nullable
-        ReleasedVersionable getPreviousVersionableInfo();
+        ReleasedVersionable getPreviousVersionable();
+
+        /** The workspace resource (versionable) that corresponds to the released stuff. */
+        @Nullable
+        Resource getWorkspaceResource();
 
     }
 
@@ -114,8 +123,11 @@ public interface PlatformVersionsService {
     StagingReleaseManager.Release getDefaultRelease(@Nonnull Resource versionable);
 
     /**
-     * Returns the status for the versionable for the given or {@link #getDefaultRelease(Resource)} release.
+     * Returns the status for the versionable comparing the workspace to the given or {@link #getDefaultRelease(Resource)} release.
+     * Some non-obvious edge cases:
      *
+     * @param versionable the versionable in the workspace
+     * @param releaseKey the key for the release; if null we take the {@link #getDefaultRelease(Resource)}
      * @return the status or null if this isn't applicable because there is no release root or the resource is not a versionable.
      */
     @Nullable
@@ -130,7 +142,7 @@ public interface PlatformVersionsService {
      * Caution: since this may do a checkpoint, it needs a clean resolver before calling.
      *
      * @param releaseKey  a release number or null for the {@link #getDefaultRelease(Resource)}.
-     * @param versionable the path to a versionable
+     * @param versionable the path to a versionable. In case of the "activation" of a deletion, this can be {@link org.apache.sling.api.resource.NonExistingResource}. In this case we use the path to find it in the release.
      * @param versionUuid optionally, a previous version of the document that is
      * @return information about the activation
      */
@@ -167,12 +179,14 @@ public interface PlatformVersionsService {
      * (in the sense of {@link com.composum.sling.platform.staging.ReleaseNumberCreator#COMPARATOR_RELEASES}).
      * If there is no previous release, this deletes the versionable from the content (the "previous release" counting as empty in this case).
      *
-     * @param releaseKey   a release number or null for the {@link #getDefaultRelease(Resource)}.
-     * @param versionables ist of versionables to revert
+     * @param resolver         a resolver we can use
+     * @param releaseKey       a release number or null for the {@link #getDefaultRelease(Resource)}.
+     * @param versionablePaths list of paths to versionables to revert. We use paths instead of resources since they might not exist in the workspace (if moved or deleted)
+     *                         nor in the StagingResolver (if deactivated)
      * @return information about the activation
      */
     @Nonnull
-    ActivationResult revert(@Nullable String releaseKey, @Nonnull List<Resource> versionables)
+    ActivationResult revert(@Nonnull ResourceResolver resolver, @Nullable String releaseKey, @Nonnull List<String> versionablePaths)
             throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException;
 
     /** Deletes old versions of the versionable - only versions in releases and after the last version which is in a release are kept. */
@@ -198,6 +212,12 @@ public interface PlatformVersionsService {
      */
     @Nonnull
     List<Status> findReleaseChanges(@Nonnull final StagingReleaseManager.Release release) throws RepositoryException;
+
+    /**
+     * Returns description of versionables which are changed in the workspace in comparision to the release.
+     */
+    @Nonnull
+    List<Status> findWorkspaceChanges(@Nonnull final StagingReleaseManager.Release release) throws RepositoryException;
 
     /** Can be used to inform the user about the results of an activation. */
     class ActivationResult {

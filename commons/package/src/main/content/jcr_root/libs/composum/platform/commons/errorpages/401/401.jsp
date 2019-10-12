@@ -1,14 +1,13 @@
-<%@page session="false" pageEncoding="utf-8"
-        import="com.composum.platform.commons.request.LoginUtil" %>
+<%@page session="false" pageEncoding="utf-8" %>
 <%@taglib prefix="sling" uri="http://sling.apache.org/taglibs/sling/1.2" %>
 <%@taglib prefix="cpn" uri="http://sling.composum.com/cpnl/1.0" %>
 <sling:defineObjects/>
-<%
-    if (LoginUtil.redirectToLogin(slingRequest, slingResponse)) {
+<cpn:component var="model" type="com.composum.platform.commons.request.ErrorPage"><%
+    if (model.redirectToLogin(slingRequest, slingResponse)) {
         return;
     }
+    slingResponse.setStatus((Integer) slingRequest.getAttribute("errorpage.status"));
 %>
-<% slingResponse.setStatus((Integer) slingRequest.getAttribute("errorpage.status")); %>
 <html>
 <head>
     <sling:call script="../head.jsp"/>
@@ -25,3 +24,4 @@
 </div>
 </body>
 </html>
+</cpn:component>

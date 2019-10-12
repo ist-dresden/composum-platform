@@ -1,19 +1,19 @@
 <%@page session="false" pageEncoding="utf-8"
-        import="com.composum.sling.core.CoreConfiguration,
-                com.composum.platform.commons.request.LoginUtil" %><%
+        import="com.composum.sling.core.CoreConfiguration" %>
+<%
 %><%@taglib prefix="sling" uri="http://sling.apache.org/taglibs/sling/1.2"%><%
 %><%@taglib prefix="cpn" uri="http://sling.composum.com/cpnl/1.0"%><%
-%><sling:defineObjects/><%
+%><sling:defineObjects/><cpn:component var="model" type="com.composum.platform.commons.request.ErrorPage"><%
     if ("XMLHttpRequest".equals(request.getHeader("X-Requested-With"))) {
         // send the raw status code in the case of an Ajax request
         slingResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
     } else {
         // try to login if no user is signed in currently
-        CoreConfiguration configuration = sling.getService(CoreConfiguration.class);
+        CoreConfiguration configuration = model.getCoreConfiguration();
         if (configuration == null ||
                 // try to forward to a custom error page
                 !configuration.forwardToErrorpage(slingRequest, slingResponse, HttpServletResponse.SC_FORBIDDEN)) {
-            if (!LoginUtil.loginIfAnonymous(slingRequest, slingResponse)) {
+            if (!model.loginIfAnonymous(slingRequest, slingResponse)) {
                 slingResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
 %>
 <html>
@@ -37,3 +37,4 @@
         }
     }
 %>
+</cpn:component>

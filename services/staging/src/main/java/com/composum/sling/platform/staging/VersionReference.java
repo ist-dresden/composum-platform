@@ -7,7 +7,7 @@ import javax.annotation.Nullable;
 import java.util.Calendar;
 
 /** Provides access to the data saved about the activation in a version reference within a release (the {@link StagingConstants#TYPE_VERSIONREFERENCE} nodes. */
-public interface ActivationInfo {
+public interface VersionReference {
 
     @Nonnull
     ReleasedVersionable getReleasedVersionable();
