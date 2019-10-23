@@ -133,7 +133,7 @@ public class StagingResource extends AbstractResource implements JcrResource {
     @Override
     public ValueMap getValueMap() {
         ValueMap valueMap = StagingUtils.isInStorage(underlyingResource) ?
-                new StagingResourceValueMap(underlyingResource.getValueMap()) : underlyingResource.getValueMap();
+                new StagingResourceValueMap(underlyingResource) : underlyingResource.getValueMap();
         return new DeepReadValueMapDecorator(this, valueMap);
     }
 

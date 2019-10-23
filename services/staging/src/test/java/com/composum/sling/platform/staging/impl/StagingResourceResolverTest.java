@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
+import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_REPLICATEDVERSIONABLE;
 import static com.composum.sling.platform.testing.testutil.JcrTestUtils.array;
 import static com.composum.sling.platform.testing.testutil.SlingMatchers.isA;
 import static com.composum.sling.platform.testing.testutil.SlingMatchers.*;
@@ -393,28 +394,31 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
         // JcrTestUtils.printResourceRecursivelyAsJson(versionedNode);
         // JcrTestUtils.printResourceRecursivelyAsJson(frozenNode);
-        StagingResourceValueMap vm = new StagingResourceValueMap(frozenNode.getValueMap());
-        StagingResourceValueMap vmsub = new StagingResourceValueMap(frozenNode.getChild("sub").getValueMap());
+        StagingResourceValueMap vm = new StagingResourceValueMap(frozenNode);
+        StagingResourceValueMap vmsub = new StagingResourceValueMap(frozenNode.getChild("sub"));
 
         // new SlingAssertionCodeGenerator("vm", vm).useErrorCollector().printAssertions().printMapAssertions();
         // new SlingAssertionCodeGenerator("vmsub", vmsub).useErrorCollector().printAssertions().printMapAssertions();
 
-        errorCollector.checkThat(vm.get(PROP_MIXINTYPES, String[].class), arrayContainingInAnyOrder(TYPE_TITLE, TYPE_LAST_MODIFIED, MIX_VERSIONABLE));
+        errorCollector.checkThat(vm.get(PROP_MIXINTYPES, String[].class), arrayContainingInAnyOrder(TYPE_TITLE,
+                TYPE_LAST_MODIFIED, MIX_VERSIONABLE, StagingConstants.TYPE_MIX_REPLICATEDVERSIONABLE));
 
         errorCollector.checkThat(vm.isEmpty(), is(false));
-        errorCollector.checkThat(vm.entrySet(), iterableWithSize(7));
-        errorCollector.checkThat(vm.keySet(), contains("jcr:lastModifiedBy", "jcr:lastModified", "foo", "jcr:uuid", "jcr:primaryType", "jcr:title", "jcr:mixinTypes"));
-        errorCollector.checkThat(vm.size(), is(7));
-        errorCollector.checkThat(vm.values(), iterableWithSize(7));
+        errorCollector.checkThat(vm.keySet(), containsInAnyOrder(StagingConstants.PROP_REPLICATED_VERSION, "jcr:lastModifiedBy",
+                "jcr:lastModified", "foo", "jcr:uuid", "jcr:primaryType", "jcr:title", "jcr:mixinTypes"));
+        errorCollector.checkThat("" + vm.entrySet(), vm.entrySet(), iterableWithSize(8));
+        errorCollector.checkThat(vm.size(), is(8));
+        errorCollector.checkThat(vm.values(), iterableWithSize(8));
 
-        errorCollector.checkThat(vm.size(), is(7));
         errorCollector.checkThat(vm.get("jcr:uuid"), stringMatchingPattern("[0-9a-f-]{36}"));
         errorCollector.checkThat(vm.get("foo"), is("bar"));
         errorCollector.checkThat(vm.get("jcr:title"), is("title"));
         errorCollector.checkThat(vm.get("jcr:lastModifiedBy"), is("admin"));
         errorCollector.checkThat(vm.get("jcr:lastModified"), instanceOf(java.util.Calendar.class));
         errorCollector.checkThat(vm.get("jcr:primaryType"), is("nt:unstructured"));
-        errorCollector.checkThat((String[]) vm.get("jcr:mixinTypes"), arrayContainingInAnyOrder(TYPE_TITLE, TYPE_LAST_MODIFIED, MIX_VERSIONABLE));
+        errorCollector.checkThat((String[]) vm.get("jcr:mixinTypes"), arrayContainingInAnyOrder(TYPE_TITLE,
+                TYPE_LAST_MODIFIED, MIX_VERSIONABLE, TYPE_MIX_REPLICATEDVERSIONABLE));
+        errorCollector.checkThat(vm.get(StagingConstants.PROP_REPLICATED_VERSION), is(version.getIdentifier()));
 
         errorCollector.checkThat(vmsub.isEmpty(), is(false));
         errorCollector.checkThat(vmsub.entrySet(), iterableWithSize(2));
@@ -538,7 +542,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         errorCollector.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
         errorCollector.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured"));
         errorCollector.checkThat(r.getPath(), r.getValueMap(), allOf(
-                hasMapSize(5),
+                hasMapSize(6),
                 // SlingMatchers.hasEntryMatching(is("jcr:versionHistory"), stringMatchingPattern("[0-9a-f-]{36}")),
                 // SlingMatchers.hasEntryMatching(is("jcr:predecessors"), arrayContaining(stringMatchingPattern("[0-9a-f-]{36}"))),
                 // SlingMatchers.hasEntryMatching(is("jcr:isCheckedOut"), is(true)),
@@ -547,7 +551,8 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
                 SlingMatchers.hasEntryMatching(is("jcr:primaryType"), is("nt:unstructured")),
                 SlingMatchers.<Object, String>hasEntryMatching(is("jcr:uuid"), stringMatchingPattern("[0-9a-f-]{36}")),
                 SlingMatchers.hasEntryMatching(is("jcr:lastModifiedBy"), is("admin")),
-                SlingMatchers.hasEntryMatching(is("jcr:lastModified"), instanceOf(java.util.Calendar.class))
+                SlingMatchers.hasEntryMatching(is("jcr:lastModified"), instanceOf(java.util.Calendar.class)),
+                SlingMatchers.hasEntryMatching(is(StagingConstants.PROP_REPLICATED_VERSION), instanceOf(String.class))
         ));
 
 
