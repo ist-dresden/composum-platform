@@ -4,6 +4,7 @@ import com.composum.sling.core.mapping.MappingRules;
 import com.composum.sling.core.util.JsonUtil;
 import com.google.gson.stream.JsonWriter;
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -44,6 +45,24 @@ public class JcrTestUtils {
             }
         } else {
             System.out.println("NO RESOURCE");
+        }
+    }
+
+    /**
+     * Prints a resource and its subresources as JSON, depth effectively unlimited.
+     */
+    public static void printResourceRecursivelyAsJson(@Nullable ResourceResolver resolver, @Nullable String path) {
+        if (resolver == null) {
+            System.out.println("NO RESOLVER for printing resource");
+        } else if (path == null) {
+            System.out.println("INVALID NULL PATH");
+        } else {
+            Resource resource = resolver.getResource(path);
+            if (resource != null) {
+                printResourceRecursivelyAsJson(resource);
+            } else {
+                System.out.println("NO RESOURCE at " + path);
+            }
         }
     }
 
