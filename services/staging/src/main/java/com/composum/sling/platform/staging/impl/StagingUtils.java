@@ -46,6 +46,13 @@ public class StagingUtils {
                 ResourceUtil.isPrimaryType(resource.getParent(), JcrConstants.NT_VERSION);
     }
 
+    /** Checks whether a node is the jcr:frozenNode that represents the original versionable in the version storage. */
+    public static boolean isStoredVersionTopNode(@Nullable Node node) throws RepositoryException {
+        if (!isInStorage(node)) { return false; }
+        return JcrConstants.JCR_FROZENNODE.equals(node.getName()) &&
+                node.getParent().getPrimaryNodeType().isNodeType(JcrConstants.NT_VERSION);
+    }
+
     public static boolean isInStorage(@Nullable Node node) throws RepositoryException {
         if (node == null) { return false; }
         String path = node.getPath();

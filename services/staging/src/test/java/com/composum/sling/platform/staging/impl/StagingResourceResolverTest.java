@@ -4,6 +4,7 @@ import com.composum.platform.commons.util.ExceptionUtil;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
+import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
@@ -16,7 +17,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
-import org.apache.sling.api.resource.*;
+import org.apache.sling.api.resource.NonExistingResource;
+import org.apache.sling.api.resource.PersistenceException;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -25,23 +30,61 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 
-import javax.jcr.*;
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyIterator;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.version.Version;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.composum.sling.core.util.ResourceUtil.*;
+import static com.composum.sling.core.util.ResourceUtil.CONTENT_NODE;
+import static com.composum.sling.core.util.ResourceUtil.MIX_VERSIONABLE;
+import static com.composum.sling.core.util.ResourceUtil.PROP_DESCRIPTION;
+import static com.composum.sling.core.util.ResourceUtil.PROP_MIXINTYPES;
+import static com.composum.sling.core.util.ResourceUtil.PROP_PRIMARY_TYPE;
+import static com.composum.sling.core.util.ResourceUtil.PROP_TITLE;
+import static com.composum.sling.core.util.ResourceUtil.TYPE_LAST_MODIFIED;
+import static com.composum.sling.core.util.ResourceUtil.TYPE_SLING_FOLDER;
+import static com.composum.sling.core.util.ResourceUtil.TYPE_SLING_ORDERED_FOLDER;
+import static com.composum.sling.core.util.ResourceUtil.TYPE_TITLE;
+import static com.composum.sling.core.util.ResourceUtil.TYPE_UNSTRUCTURED;
+import static com.composum.sling.core.util.ResourceUtil.TYPE_VERSIONABLE;
+import static com.composum.sling.platform.staging.StagingConstants.PROP_REPLICATED_VERSION;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_REPLICATEDVERSIONABLE;
 import static com.composum.sling.platform.testing.testutil.JcrTestUtils.array;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.allOf;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.arrayContaining;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.arrayContainingInAnyOrder;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.contains;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.containsInAnyOrder;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.emptyIterable;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.everyItem;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.hasMapSize;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.hasResourcePath;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.instanceOf;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.is;
 import static com.composum.sling.platform.testing.testutil.SlingMatchers.isA;
-import static com.composum.sling.platform.testing.testutil.SlingMatchers.*;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.iterableWithSize;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.iteratorWithSize;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.mappedMatches;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.notNullValue;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.nullValue;
+import static com.composum.sling.platform.testing.testutil.SlingMatchers.stringMatchingPattern;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
@@ -87,8 +130,9 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         node2 = makeNode(builderAtFolder, "document2", "n2/some/kind/of/hierarchy/something", true, true, "n2");
         unreleasedNode = makeNode(builderAtFolder, "unreleasedDocument", "un/something", true, false, "un");
         unversionedNode = makeNode(builderAtFolder, "unversionedDocument", "uv/something", false, false, "uv");
-        for (String path : new String[]{folder, node1, document2, node2, unreleasedNode, unversionedNode})
+        for (String path : new String[]{folder, node1, document2, node2, unreleasedNode, unversionedNode}) {
             assertNotNull(path + " doesn't exist", context.resourceResolver().getResource(path));
+        }
 
         List<StagingReleaseManager.Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
         assertEquals(1, releases.size());
@@ -193,8 +237,9 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
     @Test
     public void releasedIsFound() {
-        for (String path : new String[]{node1, node2, node1 + "/" + PROP_PRIMARY_TYPE})
+        for (String path : new String[]{node1, node2, node1 + "/" + PROP_PRIMARY_TYPE}) {
             assertThat(path, stagingResourceResolver.getResource(path), existsInclusiveParents());
+        }
     }
 
     @Test
@@ -314,6 +359,41 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         }
     }
 
+    /** Verifies that {@link StagingConstants#PROP_REPLICATED_VERSION} is there. */
+    @Test
+    public void cplReplicatedVersion() throws Exception {
+        String pathDocument1Node = document1 + "/" + ResourceUtil.CONTENT_NODE;
+        Resource stagedResource = stagingResourceResolver.getResource(pathDocument1Node);
+        ReleasedVersionable releasedVersionable = releaseManager.findReleasedVersionable(release, pathDocument1Node);
+        String versionUuid = releasedVersionable.getVersionUuid();
+
+        // for StagedResource
+        errorCollector.checkThat(versionUuid, notNullValue(String.class));
+        errorCollector.checkThat(stagedResource.getValueMap().get(PROP_REPLICATED_VERSION,
+                String.class), is(versionUuid));
+
+        // for JCR nodes
+        Node node = stagedResource.adaptTo(Node.class);
+        Property property = node.getProperty(PROP_REPLICATED_VERSION);
+        errorCollector.checkThat(property.getString(), is(versionUuid));
+
+        errorCollector.checkThat(findReplicatedProperty(node.getProperties()), notNullValue());
+        errorCollector.checkThat(findReplicatedProperty(node.getProperties("cpl:*")), notNullValue());
+        errorCollector.checkThat(findReplicatedProperty(node.getProperties("nix")), nullValue());
+        errorCollector.checkThat(findReplicatedProperty(node.getProperties(new String[]{"cpl:*", "whatever"})),
+                notNullValue());
+        errorCollector.checkThat(findReplicatedProperty(node.getProperties(new String[]{"nix", "whatever"})),
+                nullValue());
+    }
+
+    protected Property findReplicatedProperty(PropertyIterator propertyIterator) throws RepositoryException {
+        while (propertyIterator.hasNext()) {
+            Property property = propertyIterator.nextProperty();
+            if (PROP_REPLICATED_VERSION.equals(property.getName())) { return property; }
+        }
+        return null;
+    }
+
     @Test
     public void testAdaptToJcrTypes() throws Exception {
         deleteInJcr(document1, document2); // make sure we read from version space
@@ -404,7 +484,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
                 TYPE_LAST_MODIFIED, MIX_VERSIONABLE, StagingConstants.TYPE_MIX_REPLICATEDVERSIONABLE));
 
         errorCollector.checkThat(vm.isEmpty(), is(false));
-        errorCollector.checkThat(vm.keySet(), containsInAnyOrder(StagingConstants.PROP_REPLICATED_VERSION, "jcr:lastModifiedBy",
+        errorCollector.checkThat(vm.keySet(), containsInAnyOrder(PROP_REPLICATED_VERSION, "jcr:lastModifiedBy",
                 "jcr:lastModified", "foo", "jcr:uuid", "jcr:primaryType", "jcr:title", "jcr:mixinTypes"));
         errorCollector.checkThat("" + vm.entrySet(), vm.entrySet(), iterableWithSize(8));
         errorCollector.checkThat(vm.size(), is(8));
@@ -418,7 +498,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         errorCollector.checkThat(vm.get("jcr:primaryType"), is("nt:unstructured"));
         errorCollector.checkThat((String[]) vm.get("jcr:mixinTypes"), arrayContainingInAnyOrder(TYPE_TITLE,
                 TYPE_LAST_MODIFIED, MIX_VERSIONABLE, TYPE_MIX_REPLICATEDVERSIONABLE));
-        errorCollector.checkThat(vm.get(StagingConstants.PROP_REPLICATED_VERSION), is(version.getIdentifier()));
+        errorCollector.checkThat(vm.get(PROP_REPLICATED_VERSION), is(version.getIdentifier()));
 
         errorCollector.checkThat(vmsub.isEmpty(), is(false));
         errorCollector.checkThat(vmsub.entrySet(), iterableWithSize(2));
@@ -552,7 +632,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
                 SlingMatchers.<Object, String>hasEntryMatching(is("jcr:uuid"), stringMatchingPattern("[0-9a-f-]{36}")),
                 SlingMatchers.hasEntryMatching(is("jcr:lastModifiedBy"), is("admin")),
                 SlingMatchers.hasEntryMatching(is("jcr:lastModified"), instanceOf(java.util.Calendar.class)),
-                SlingMatchers.hasEntryMatching(is(StagingConstants.PROP_REPLICATED_VERSION), instanceOf(String.class))
+                SlingMatchers.hasEntryMatching(is(PROP_REPLICATED_VERSION), instanceOf(String.class))
         ));
 
 
