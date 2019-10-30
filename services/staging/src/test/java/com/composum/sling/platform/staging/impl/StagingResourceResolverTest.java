@@ -36,15 +36,14 @@ import javax.jcr.PropertyIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.Value;
 import javax.jcr.version.Version;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.composum.sling.core.util.CoreConstants.MIX_LAST_MODIFIED;
 import static com.composum.sling.core.util.ResourceUtil.CONTENT_NODE;
 import static com.composum.sling.core.util.ResourceUtil.MIX_VERSIONABLE;
 import static com.composum.sling.core.util.ResourceUtil.PROP_DESCRIPTION;
@@ -94,8 +93,6 @@ import static org.slf4j.LoggerFactory.getLogger;
  * Tests for {@link StagingResourceResolver}.
  */
 public class StagingResourceResolverTest extends AbstractStagingTest {
-
-    private static final Logger LOG = getLogger(StagingResourceResolverTest.class);
 
     private String folder;
     private String node1;
@@ -371,25 +368,38 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         errorCollector.checkThat(versionUuid, notNullValue(String.class));
         errorCollector.checkThat(stagedResource.getValueMap().get(PROP_REPLICATED_VERSION,
                 String.class), is(versionUuid));
+        errorCollector.checkThat(stagedResource.getValueMap().entrySet().stream()
+                .anyMatch((e) -> PROP_REPLICATED_VERSION.equals(e.getKey())), is(true));
+        errorCollector.checkThat(stagedResource.getValueMap().get(PROP_MIXINTYPES, String[].class),
+                arrayContaining(MIX_VERSIONABLE, MIX_LAST_MODIFIED, TYPE_MIX_REPLICATEDVERSIONABLE));
 
         // for JCR nodes
         Node node = stagedResource.adaptTo(Node.class);
         Property property = node.getProperty(PROP_REPLICATED_VERSION);
         errorCollector.checkThat(property.getString(), is(versionUuid));
 
-        errorCollector.checkThat(findReplicatedProperty(node.getProperties()), notNullValue());
-        errorCollector.checkThat(findReplicatedProperty(node.getProperties("cpl:*")), notNullValue());
-        errorCollector.checkThat(findReplicatedProperty(node.getProperties("nix")), nullValue());
-        errorCollector.checkThat(findReplicatedProperty(node.getProperties(new String[]{"cpl:*", "whatever"})),
+        property = node.getProperty(PROP_MIXINTYPES);
+        errorCollector.checkThat(property.isMultiple(), is(true));
+        Value[] values = property.getValues();
+        errorCollector.checkThat(values.length, is(3));
+        errorCollector.checkThat(findProperty(node.getProperties(), PROP_MIXINTYPES).getValues().length, is(3));
+        errorCollector.checkThat(values[0].getString(), is(MIX_VERSIONABLE));
+        errorCollector.checkThat(values[1].getString(), is(MIX_LAST_MODIFIED));
+        errorCollector.checkThat(values[2].getString(), is(TYPE_MIX_REPLICATEDVERSIONABLE));
+
+        errorCollector.checkThat(findProperty(node.getProperties(), PROP_REPLICATED_VERSION), notNullValue());
+        errorCollector.checkThat(findProperty(node.getProperties("cpl:*"), PROP_REPLICATED_VERSION), notNullValue());
+        errorCollector.checkThat(findProperty(node.getProperties("nix"), PROP_REPLICATED_VERSION), nullValue());
+        errorCollector.checkThat(findProperty(node.getProperties(new String[]{"cpl:*", "whatever"}), PROP_REPLICATED_VERSION),
                 notNullValue());
-        errorCollector.checkThat(findReplicatedProperty(node.getProperties(new String[]{"nix", "whatever"})),
+        errorCollector.checkThat(findProperty(node.getProperties(new String[]{"nix", "whatever"}), PROP_REPLICATED_VERSION),
                 nullValue());
     }
 
-    protected Property findReplicatedProperty(PropertyIterator propertyIterator) throws RepositoryException {
+    protected Property findProperty(PropertyIterator propertyIterator, String propertyName) throws RepositoryException {
         while (propertyIterator.hasNext()) {
             Property property = propertyIterator.nextProperty();
-            if (PROP_REPLICATED_VERSION.equals(property.getName())) { return property; }
+            if (propertyName.equals(property.getName())) { return property; }
         }
         return null;
     }
@@ -532,7 +542,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
      */
     @Test
     @Ignore
-    public void generateFullcheckSource() throws Exception {
+    public void generateFullcheckSource() {
         ResourceResolver resourceResolver = context.resourceResolver();
         List<String> paths = new ArrayList<>();
         Resource r = resourceResolver.getResource(node1);
@@ -540,7 +550,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
             paths.add(r.getPath());
             paths.add(r.getPath() + "/jcr:primaryType"); // also check property resources
         } while ((r = r.getParent()) != null && r.getPath().startsWith(folder));
-        Collections.sort(paths, Comparator.comparing((String p) -> "" + StringUtils.countMatches(p, "/") + p));
+        paths.sort(Comparator.comparing((String p) -> "" + StringUtils.countMatches(p, "/") + p));
         for (String path : paths) {
             r = resourceResolver.getResource(path);
             System.out.println("\n        r = resourceResolver.getResource(\"" + path + "\");");

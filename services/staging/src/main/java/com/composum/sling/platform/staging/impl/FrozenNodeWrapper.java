@@ -4,6 +4,7 @@ import com.composum.platform.commons.util.ExceptionUtil;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.StagingConstants;
 import org.apache.commons.collections4.IteratorUtils;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
@@ -162,6 +163,9 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
             }
             return prop;
         }
+        if (ResourceUtil.PROP_MIXINTYPES.equals(relPath) && isStoredVersionTopNode()) {
+            return mixinsWithMixReplicatedVersionable();
+        }
         String realName;
         if (PROP_REPLICATED_VERSION.equals(relPath) && isStoredVersionTopNode()) {
             realName = TOP_FROZENNODE_PROP_REPLICATEDVERSION;
@@ -184,14 +188,39 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
         return result;
     }
 
+    /** Creates a property that adds the mixin {@link StagingConstants#TYPE_MIX_REPLICATEDVERSIONABLE} to the mixins. */
+    protected Property mixinsWithMixReplicatedVersionable() throws RepositoryException {
+        String path = resource.getPath() + "/" + ResourceUtil.PROP_MIXINTYPES;
+        List<String> values = new ArrayList<>();
+        if (wrapped.hasProperty(JcrConstants.JCR_FROZENMIXINTYPES)) {
+            Property frozenProp = wrapped.getProperty(JcrConstants.JCR_FROZENMIXINTYPES);
+            for (Value value : frozenProp.getValues()) {
+                values.add(value.getString());
+            }
+        }
+        if (!values.contains(StagingConstants.TYPE_MIX_REPLICATEDVERSIONABLE)) {
+            values.add(StagingConstants.TYPE_MIX_REPLICATEDVERSIONABLE);
+        }
+        return new SimulatedMixinProperty(path, wrapped.getSession(), values);
+    }
+
     @Nonnull
     protected PropertyIterator addCplReplicatedVersionProperty(PropertyIterator propertyIterator) throws RepositoryException {
         FrozenPropertyWrapper replproperty = FrozenPropertyWrapper.wrap(wrapped.getProperty(TOP_FROZENNODE_PROP_REPLICATEDVERSION),
                 resource.getPath() + "/" + PROP_REPLICATED_VERSION);
+        Property mixinProperty = mixinsWithMixReplicatedVersionable();
         return new PropertyIteratorAdapter(IteratorUtils.chainedIterator(
-                propertyIterator,
-                IteratorUtils.<Property>singletonIterator(replproperty)
+                IteratorUtils.<Property>filteredIterator(propertyIterator, this::notMixinProperty),
+                IteratorUtils.arrayIterator(replproperty, mixinProperty)
         ));
+    }
+
+    protected boolean notMixinProperty(Property property) {
+        try {
+            return !ResourceUtil.PROP_MIXINTYPES.equals(property.getName());
+        } catch (RepositoryException e) { // should be impossible
+            throw new IllegalStateException("Should be impossible: " + e, e);
+        }
     }
 
     @SuppressWarnings({"unchecked", "ConstantConditions"})
