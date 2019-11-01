@@ -22,13 +22,13 @@ import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.api.resource.ValueMap;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.slf4j.Logger;
 
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -87,7 +87,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
-import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Tests for {@link StagingResourceResolver}.
@@ -366,11 +365,15 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
         // for StagedResource
         errorCollector.checkThat(versionUuid, notNullValue(String.class));
-        errorCollector.checkThat(stagedResource.getValueMap().get(PROP_REPLICATED_VERSION,
+        ValueMap stagedValueMap = stagedResource.getValueMap();
+        errorCollector.checkThat(stagedValueMap.get(PROP_REPLICATED_VERSION,
                 String.class), is(versionUuid));
-        errorCollector.checkThat(stagedResource.getValueMap().entrySet().stream()
+        errorCollector.checkThat(stagedValueMap.entrySet().stream()
                 .anyMatch((e) -> PROP_REPLICATED_VERSION.equals(e.getKey())), is(true));
-        errorCollector.checkThat(stagedResource.getValueMap().get(PROP_MIXINTYPES, String[].class),
+        errorCollector.checkThat((String[]) stagedValueMap.entrySet().stream()
+                        .filter((e) -> PROP_MIXINTYPES.equals(e.getKey())).findFirst().get().getValue(),
+                arrayContaining(MIX_VERSIONABLE, MIX_LAST_MODIFIED, TYPE_MIX_REPLICATEDVERSIONABLE));
+        errorCollector.checkThat(stagedValueMap.get(PROP_MIXINTYPES, String[].class),
                 arrayContaining(MIX_VERSIONABLE, MIX_LAST_MODIFIED, TYPE_MIX_REPLICATEDVERSIONABLE));
 
         // for JCR nodes
@@ -637,7 +640,8 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
                 // SlingMatchers.hasEntryMatching(is("jcr:predecessors"), arrayContaining(stringMatchingPattern("[0-9a-f-]{36}"))),
                 // SlingMatchers.hasEntryMatching(is("jcr:isCheckedOut"), is(true)),
                 // SlingMatchers.hasEntryMatching(is("jcr:baseVersion"), stringMatchingPattern("[0-9a-f-]{36}")),
-                SlingMatchers.hasEntryMatching(is("jcr:mixinTypes"), arrayContainingInAnyOrder(is("mix:versionable"), is("mix:lastModified"))),
+                SlingMatchers.hasEntryMatching(is("jcr:mixinTypes"), arrayContainingInAnyOrder(is("mix:versionable"),
+                        is("mix:lastModified"), is(TYPE_MIX_REPLICATEDVERSIONABLE))),
                 SlingMatchers.hasEntryMatching(is("jcr:primaryType"), is("nt:unstructured")),
                 SlingMatchers.<Object, String>hasEntryMatching(is("jcr:uuid"), stringMatchingPattern("[0-9a-f-]{36}")),
                 SlingMatchers.hasEntryMatching(is("jcr:lastModifiedBy"), is("admin")),

@@ -18,12 +18,14 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.platform.staging.StagingConstants.FROZEN_PROP_NAMES_TO_REAL_NAMES;
 import static com.composum.sling.platform.staging.StagingConstants.PROP_REPLICATED_VERSION;
 import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES;
+import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_REPLICATEDVERSIONABLE;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
@@ -151,7 +153,14 @@ public class StagingResourceValueMap extends ValueMapDecorator {
                 result.add(entry);
             }
         }
-        if (versionUuid != null) { result.add(new PrivateEntry(PROP_REPLICATED_VERSION, versionUuid)); }
+        if (versionUuid != null) {
+            result.add(new PrivateEntry(PROP_REPLICATED_VERSION, versionUuid));
+            String[] mixinArray = get(JCR_MIXINTYPES, String[].class);
+            // get inserted the missing StagingConstants.TYPE_MIX_REPLICATEDVERSIONABLE ; insert into entry set:
+            mixinArray = mixinArray != null ? mixinArray : new String[0];
+            result.removeIf((e) -> JCR_MIXINTYPES.equals(e.getKey()));
+            result.add(new PrivateEntry(JCR_MIXINTYPES, mixinArray));
+        }
         return Collections.unmodifiableSet(result);
     }
 
