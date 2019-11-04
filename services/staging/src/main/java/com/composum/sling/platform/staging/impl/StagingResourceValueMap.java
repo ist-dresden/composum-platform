@@ -18,14 +18,12 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.platform.staging.StagingConstants.FROZEN_PROP_NAMES_TO_REAL_NAMES;
 import static com.composum.sling.platform.staging.StagingConstants.PROP_REPLICATED_VERSION;
 import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES;
-import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_REPLICATEDVERSIONABLE;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENUUID;
@@ -59,7 +57,7 @@ public class StagingResourceValueMap extends ValueMapDecorator {
         return versionUuid;
     }
 
-    protected StagingResourceValueMap(Map frozen, String versionUuid) {
+    protected StagingResourceValueMap(Map<String, Object> frozen, String versionUuid) {
         super(frozen);
         // safety check that we are either wrapping a frozen nodes properties, or a property resources empty set
         if (!frozen.isEmpty() && frozen.get(JCR_FROZENPRIMARYTYPE) == null) {
@@ -102,13 +100,14 @@ public class StagingResourceValueMap extends ValueMapDecorator {
         return super.get(REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(name, name), type);
     }
 
+    @SuppressWarnings("unchecked")
     @Nonnull
     @Override
     public <T> T get(String name, T defaultValue) {
         if (JCR_UUID.equals(name) && haveToRemoveUuid()) { return defaultValue; }
-        if (PROP_REPLICATED_VERSION.equals(name)) {
+        if (PROP_REPLICATED_VERSION.equals(name) || (versionUuid != null && JCR_MIXINTYPES.equals(name))) {
             // type casting mechanism is inaccessible from here. :-(
-            return (T) versionUuid;
+            return (T) defaultValue.getClass().cast(get(name));
         }
         return super.get(REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(name, name), defaultValue);
     }

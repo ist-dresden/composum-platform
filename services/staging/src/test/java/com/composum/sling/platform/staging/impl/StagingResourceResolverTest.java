@@ -375,6 +375,9 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
                 arrayContaining(MIX_VERSIONABLE, MIX_LAST_MODIFIED, TYPE_MIX_REPLICATEDVERSIONABLE));
         errorCollector.checkThat(stagedValueMap.get(PROP_MIXINTYPES, String[].class),
                 arrayContaining(MIX_VERSIONABLE, MIX_LAST_MODIFIED, TYPE_MIX_REPLICATEDVERSIONABLE));
+        String[] mixins = stagedValueMap.get(PROP_MIXINTYPES, new String[0]);
+        errorCollector.checkThat(mixins,
+                arrayContaining(MIX_VERSIONABLE, MIX_LAST_MODIFIED, TYPE_MIX_REPLICATEDVERSIONABLE));
 
         // for JCR nodes
         Node node = stagedResource.adaptTo(Node.class);
