@@ -64,7 +64,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IllegalFormatException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -145,15 +144,13 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     )
     protected void addReleaseManagerPlugin(@Nonnull StagingReleaseManagerPlugin plugin) {
         LOG.info("Adding plugin {}@{}", plugin.getClass().getName(), System.identityHashCode(plugin));
-        Iterator<StagingReleaseManagerPlugin> it = plugins.iterator();
-        while (it.hasNext()) { if (it.next() == plugin) { it.remove(); } }
+        plugins.removeIf(stagingReleaseManagerPlugin -> stagingReleaseManagerPlugin == plugin);
         plugins.add(plugin);
     }
 
     protected void removeReleaseManagerPlugin(@Nonnull StagingReleaseManagerPlugin plugin) {
         LOG.info("Removing plugin {}@{}", plugin.getClass().getName(), System.identityHashCode(plugin));
-        Iterator<StagingReleaseManagerPlugin> it = plugins.iterator();
-        while (it.hasNext()) { if (it.next() == plugin) { it.remove(); } }
+        plugins.removeIf(stagingReleaseManagerPlugin -> stagingReleaseManagerPlugin == plugin);
     }
 
     @Activate
@@ -199,12 +196,12 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     /** Finds the node below which the release data is saved - see {@link StagingConstants#RELEASE_ROOT_PATH}. */
     @Nonnull
-    protected ResourceHandle getReleasesNode(@Nullable Resource releaseRoot) {
+    protected ResourceHandle getReleasesNode(@Nonnull Resource releaseRoot) {
         return ResourceHandle.use(releaseRoot.getResourceResolver().getResource(getReleasesNodePath(releaseRoot)));
     }
 
     @Nonnull
-    private String getReleasesNodePath(@Nullable Resource releaseRoot) {
+    private String getReleasesNodePath(@Nonnull Resource releaseRoot) {
         return RELEASE_ROOT_PATH + releaseRoot.getPath() + '/' + NODE_RELEASES;
     }
 
@@ -255,9 +252,14 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
      * and this can be called during a read operation where not having the rights is perfectly OK.
      * If there are other releases, we copy it from the highest numbered release. (That happens if you delete the
      * current release to reset it). */
-    private void createCurrentReleaseWithServiceResolver(ResourceHandle currentUserRoot) throws LoginException, PersistenceException, RepositoryException {
+    private void createCurrentReleaseWithServiceResolver(@Nonnull ResourceHandle currentUserRoot) throws LoginException,
+            PersistenceException, RepositoryException {
         try (ResourceResolver serviceResolver = resolverFactory.getServiceResourceResolver(null)) {
             Resource root = serviceResolver.getResource(currentUserRoot.getPath());
+            if (root == null) {
+                LOG.warn("Service resolver can't access {}", currentUserRoot.getPath());
+                return;
+            }
             ReleaseImpl currentRelease;
             Optional<Release> highestNumericRelease = getReleasesImpl(root).stream()
                     .filter(r -> !CURRENT_RELEASE.equals(r.getNumber()))
@@ -267,10 +269,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                         ReleaseImpl.unwrap(highestNumericRelease.get()), CURRENT_RELEASE);
                 setPreviousRelease(currentRelease, highestNumericRelease.get());
                 serviceResolver.delete(currentRelease.getMetaDataNode()); // clear metadata and recreate the node
-                currentRelease = ensureRelease(root, CURRENT_RELEASE);
-            } else {
-                currentRelease = ensureRelease(root, CURRENT_RELEASE);
             }
+            currentRelease = ensureRelease(root, CURRENT_RELEASE);
             serviceResolver.commit();
             LOG.info("Created current release for {} with {}", currentUserRoot.getPath(), serviceResolver.getUserID());
         }
@@ -528,7 +528,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     public Map<String, Result> revert(@Nonnull Release release, @Nonnull String pathToRevert,
                                       @Nonnull Release rawFromRelease) throws RepositoryException, PersistenceException
             , ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
-        Map<String, Result> result = Collections.emptyMap();
+        Map<String, Result> result;
 
         ReleaseImpl fromRelease = requireNonNull(ReleaseImpl.unwrap(rawFromRelease));
         pathToRevert = fromRelease.absolutePath(pathToRevert);
@@ -595,7 +595,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         public ReleaseUpdater(@Nonnull Release release, @Nonnull ReleasedVersionable releasedVersionable,
                               @Nonnull ReleaseChangeEventListener.ReleaseChangeEvent event,
-                              @Nonnull Resource copiedVersionReferenceResource) throws ReleaseClosedException,
+                              @Nullable Resource copiedVersionReferenceResource) throws ReleaseClosedException,
                 RepositoryException {
             this(release, releasedVersionable, event);
             this.copiedVersionReferenceResource = copiedVersionReferenceResource;
@@ -765,10 +765,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         /**
          * Goes through all parents of the version reference, sets their attributes from the working copy
          * and fixes the node ordering if necessary.
-         *
-         * @return a map with paths where we changed the order of children in the release.
          */
-        @Nonnull
         protected void updateParentsFromWorkspace() throws RepositoryException {
             ResourceHandle template = ResourceHandle.use(release.getReleaseRoot());
             ResourceHandle inRelease = ResourceHandle.use(release.getWorkspaceCopyNode());
