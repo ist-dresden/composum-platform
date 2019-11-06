@@ -186,7 +186,7 @@ public class QueryTest extends AbstractStagingTest {
         q.path("/").element(PROP_JCR_CONTENT).type(TYPE_UNSTRUCTURED).orderBy(JcrConstants.JCR_CREATED);
         // TODO: this doesn't work right, but would be very hard to fix:
         // q.condition(q.conditionBuilder().name().eq().val(PROP_JCR_CONTENT));
-        assertResults(q, folder + "/" + PROP_JCR_CONTENT, document1 + "/" + PROP_JCR_CONTENT, document2 + "/" + PROP_JCR_CONTENT);
+        assertResults(q, document1 + "/" + PROP_JCR_CONTENT, document2 + "/" + PROP_JCR_CONTENT);
     }
 
     @Test

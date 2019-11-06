@@ -1417,7 +1417,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 name = "Overlayed Nodes",
                 description = "Some nodes that are overlayed from the top level of the working content into the release"
         )
-        String[] overlayed_nodes() default {CONTENT_NODE, "assets"};
+        String[] overlayed_nodes() default {"assets"};
 
         @AttributeDefinition(
                 name = "Removed Paths",

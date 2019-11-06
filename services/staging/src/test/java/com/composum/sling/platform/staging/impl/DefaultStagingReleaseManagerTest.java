@@ -28,6 +28,7 @@ import org.apache.sling.hamcrest.ResourceMatchers;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.apache.sling.testing.mock.sling.junit.SlingContext;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -49,6 +50,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.CoreConstants.CONTENT_NODE;
+import static com.composum.sling.core.util.CoreConstants.PROP_MIXINTYPES;
 import static com.composum.sling.core.util.ResourceUtil.PROP_MIXINTYPES;
 import static com.composum.sling.core.util.ResourceUtil.PROP_PRIMARY_TYPE;
 import static com.composum.sling.core.util.ResourceUtil.PROP_TITLE;
@@ -59,6 +61,7 @@ import static com.composum.sling.core.util.ResourceUtil.TYPE_VERSIONABLE;
 import static com.composum.sling.platform.testing.testutil.JcrTestUtils.array;
 import static com.composum.sling.platform.testing.testutil.SlingMatchers.exceptionOf;
 import static com.composum.sling.platform.testing.testutil.SlingMatchers.throwableWithMessage;
+import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.contains;
@@ -108,7 +111,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     private final ReleaseChangeEventPublisher releaseChangeEventPublisher = mock(ReleaseChangeEventPublisher.class);
 
     @Before
-    public void setup() throws ParseException, RepositoryException, IOException, LoginException {
+    public void setup() throws Exception {
         ResourceBuilder builder = context.build().withIntermediatePrimaryType(TYPE_UNSTRUCTURED);
         Session session = context.resourceResolver().adaptTo(Session.class);
         versionManager = session.getWorkspace().getVersionManager();
@@ -117,8 +120,8 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         assertEquals(2, nodeTypes.length);
 
         releaseRootBuilder = builder.resource("/content/site", ResourceUtil.PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
-                ResourceUtil.PROP_MIXINTYPES, array(TYPE_MIX_RELEASE_ROOT));
-        releaseRootBuilder.resource(ResourceUtil.CONTENT_NODE);
+                PROP_MIXINTYPES, array(TYPE_MIX_RELEASE_ROOT));
+        Resource siteconfig = releaseRootBuilder.resource(CONTENT_NODE, PROP_MIXINTYPES, array(TYPE_VERSIONABLE)).getCurrentParent();
         releaseRoot = ResourceHandle.use(releaseRootBuilder.commit().getCurrentParent());
 
         service = new DefaultStagingReleaseManager() {{
@@ -137,6 +140,9 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
                         new QueryBuilderAdapterFactory().getAdapter(resolver, QueryBuilder.class));
 
         currentRelease = service.findRelease(releaseRoot, StagingConstants.CURRENT_RELEASE);
+
+        versionManager.checkpoint(siteconfig.getPath());
+        service.updateRelease(currentRelease, asList(ReleasedVersionable.forBaseVersion(siteconfig)));
 
         releaseStorageRoot = context.resourceResolver().getResource("/var/composum/content/site/cpl:releases");
         assertNotNull(releaseStorageRoot);
@@ -167,7 +173,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         service.updateRelease(currentRelease, Collections.singletonList(releasedVersionable));
 
         ArgumentCaptor<ReleaseChangeEventListener.ReleaseChangeEvent> eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEventListener.ReleaseChangeEvent.class);
-        Mockito.verify(releaseChangeEventPublisher, times(1)).publishActivation(eventCaptor.capture());
+        Mockito.verify(releaseChangeEventPublisher, times(2)).publishActivation(eventCaptor.capture());
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newResources(), contains(versionable.getPath()));
         Mockito.reset(releaseChangeEventPublisher);
@@ -185,7 +191,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
         // deactivate it
         releasedVersionable.setActive(false);
-        service.updateRelease(currentRelease, Arrays.asList(releasedVersionable));
+        service.updateRelease(currentRelease, asList(releasedVersionable));
 
         // check that the right event is sent
         eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEventListener.ReleaseChangeEvent.class);
@@ -196,7 +202,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
         // activate it again
         releasedVersionable.setActive(true);
-        service.updateRelease(currentRelease, Arrays.asList(releasedVersionable));
+        service.updateRelease(currentRelease, asList(releasedVersionable));
 
         // check that the right event is sent
         eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEventListener.ReleaseChangeEvent.class);
@@ -207,7 +213,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
         // remove it from the release completely.
         releasedVersionable.setVersionUuid(null); // instruction to remove it
-        service.updateRelease(currentRelease, Arrays.asList(releasedVersionable));
+        service.updateRelease(currentRelease, asList(releasedVersionable));
         ec.checkThat(stagedResolver.getResource(versionable.getPath()), nullValue());
 
         Mockito.verify(releaseChangeEventPublisher, times(1)).publishActivation(eventCaptor.capture());
@@ -236,9 +242,10 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         // check that it's returned as release content and has the right label
         referenceRefersToVersionableVersion(releaseStorageRoot.getChild("current/root/a/jcr:content"), versionable, version);
         List<ReleasedVersionable> contents = service.listReleaseContents(currentRelease);
-        ec.checkThat(contents.size(), is(1));
+        ec.checkThat(contents.size(), is(2));
         ec.checkThat(contents.get(0).getRelativePath(), is("a/jcr:content"));
         ec.checkThat(contents.get(0).getVersionUuid(), is(version.getUUID()));
+        ec.checkThat(contents.get(1).getRelativePath(), is("jcr:content"));
 
         ReleasedVersionable foundReleasedVersionable = service.findReleasedVersionableByUuid(currentRelease, version.getContainingHistory().getIdentifier());
         ec.checkThat(foundReleasedVersionable.getRelativePath(), is("a/jcr:content"));
@@ -255,8 +262,8 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         Release r1 = service.finalizeCurrentRelease(releaseRoot, ReleaseNumberCreator.MAJOR);
         ec.checkThat(r1.getNumber(), is("r1"));
         referenceRefersToVersionableVersion(releaseStorageRoot.getChild("r1/root/a/jcr:content"), versionable, version);
-        ec.checkThat(service.listReleaseContents(currentRelease).size(), is(1));
-        ec.checkThat(service.listReleaseContents(r1).size(), is(1));
+        ec.checkThat(service.listReleaseContents(currentRelease).size(), is(2));
+        ec.checkThat(service.listReleaseContents(r1).size(), is(2));
         currentRelease = service.findRelease(releaseRoot, CURRENT_RELEASE); // refresh since its nodes were exchanged. Triggers a bug otherwise
 
         // move the document and put a new version of the document into the current release
@@ -271,7 +278,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         Version version2 = versionManager.checkpoint(newPath);
         // see that updating to a new version works as expected
         ec.checkThat(service.updateRelease(currentRelease,
-                Arrays.asList(ReleasedVersionable.forBaseVersion(newVersionable), ReleasedVersionable.forBaseVersion(newVersionable))).toString(),
+                asList(ReleasedVersionable.forBaseVersion(newVersionable), ReleasedVersionable.forBaseVersion(newVersionable))).toString(),
                 equalTo("{}"));
         referenceRefersToVersionableVersion(releaseStorageRoot.getChild("current/root/b/c/jcr:content"), newVersionable, version2);
 
@@ -440,7 +447,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         // no change after staging yet
         ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document1", "document2"));
 
-        updateResult = service.updateRelease(currentRelease, Arrays.asList(ReleasedVersionable.forBaseVersion(document1), ReleasedVersionable.forBaseVersion(document2)));
+        updateResult = service.updateRelease(currentRelease, asList(ReleasedVersionable.forBaseVersion(document1), ReleasedVersionable.forBaseVersion(document2)));
         ec.checkThat(updateResult.toString(), equalTo("{/content/site=deterministicallyReordered}"));
 
         ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document2", "document1"));
@@ -495,7 +502,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         // no change after staging yet
         ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()), ResourceMatchers.containsChildren("jcr:content", "document1", "document2"));
 
-        updateResult = service.updateRelease(currentRelease, Arrays.asList(ReleasedVersionable.forBaseVersion(document2)));
+        updateResult = service.updateRelease(currentRelease, asList(ReleasedVersionable.forBaseVersion(document2)));
         ec.checkThat(updateResult.toString(), equalTo("{}"));
 
         ec.checkThat(stagedResolver.getResource(releaseRoot.getPath()),
@@ -536,7 +543,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
         service.updateRelease(currentRelease, Collections.singletonList(ReleasedVersionable.forBaseVersion(versionable)));
 
-        ec.checkThat(service.listReleaseContents(currentRelease), hasSize(1));
+        ec.checkThat(service.listReleaseContents(currentRelease), hasSize(2));
         ec.checkFailsWith(() -> service.restoreVersionable(currentRelease, service.listReleaseContents(currentRelease).get(0)), instanceOf(IllegalArgumentException.class));
 
         // delete the document
@@ -545,7 +552,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ec.checkThat(context.resourceResolver().getResource(versionablePath), nullValue());
 
         List<ReleasedVersionable> releasedVersionables = service.listReleaseContents(currentRelease);
-        ec.checkThat(releasedVersionables, hasSize(1));
+        ec.checkThat(releasedVersionables, hasSize(2));
         ReleasedVersionable deletedVersionable = releasedVersionables.get(0);
 
         ReleasedVersionable result = service.restoreVersionable(currentRelease, deletedVersionable);
@@ -590,8 +597,9 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ec.checkThat(currentRelease.getPreviousRelease().getNumber(), is(r11.getNumber()));
 
         List<ReleasedVersionable> contents = service.listReleaseContents(currentRelease);
-        ec.checkThat(contents.size(), is(1));
+        ec.checkThat(contents.size(), is(2));
         ec.checkThat(contents.get(0).getRelativePath(), is("a/jcr:content"));
+        ec.checkThat(contents.get(1).getRelativePath(), is("jcr:content"));
     }
 
     protected void commitAndCheck() throws PersistenceException, RepositoryException {

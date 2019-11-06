@@ -295,7 +295,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         Resource folderResource = stagingResourceResolver.resolve(folder);
         // JcrTestUtils.printResourceRecursivelyAsJson(folderResource);
         checkChildren(folderResource);
-        assertEquals(3, IterableUtils.size(folderResource.getChildren()));
+        assertEquals(2, IterableUtils.size(folderResource.getChildren()));
         // unreleasedDocument is not contained in release, and thus not found.
         assertNull(folderResource.getChild("unreleasedDocument"));
     }
@@ -576,9 +576,9 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         r = resourceResolver.getResource("/folder");
         errorCollector.checkThat(r.getPath(), r, existsInclusiveParents());
 
-        errorCollector.checkThat(r.getPath(), r.getChildren(), mappedMatches(SlingMatchers::resourcePaths, contains("/folder/jcr:content", "/folder/document1", "/folder/document2")));
+        errorCollector.checkThat(r.getPath(), r.getChildren(), mappedMatches(SlingMatchers::resourcePaths, contains("/folder/document1", "/folder/document2")));
         errorCollector.checkThat(r.getPath(), r.hasChildren(), is(true));
-        errorCollector.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(3));
+        errorCollector.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(2));
         errorCollector.checkThat(r.getPath(), r.getName(), is("folder"));
         errorCollector.checkThat(r.getPath(), r.getParent(), hasResourcePath("/"));
         errorCollector.checkThat(r.getPath(), r.getPath(), is("/folder"));
