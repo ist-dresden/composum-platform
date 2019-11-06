@@ -522,15 +522,16 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     @Test
     public void listCurrentContent() throws Exception {
         List<ReleasedVersionable> content = service.listWorkspaceContents(this.releaseRoot);
-        ec.checkThat(content.size(), is(0));
+        ec.checkThat(content.size(), is(1));
 
         Resource versionable = releaseRootBuilder.resource("a/jcr:content", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                 PROP_MIXINTYPES, array(TYPE_VERSIONABLE, TYPE_TITLE, TYPE_LAST_MODIFIED), "foo", "bar", PROP_TITLE, "title")
                 .commit().getCurrentParent();
 
         content = service.listWorkspaceContents(this.releaseRoot);
-        ec.checkThat(content.size(), is(1));
+        ec.checkThat(content.size(), is(2));
         ec.checkThat(content.get(0).getRelativePath(), is("a/jcr:content"));
+        ec.checkThat(content.get(1).getRelativePath(), is("jcr:content"));
     }
 
     @Test

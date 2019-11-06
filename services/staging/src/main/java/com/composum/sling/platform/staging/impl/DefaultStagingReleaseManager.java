@@ -447,16 +447,12 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     public List<ReleasedVersionable> listWorkspaceContents(@Nonnull Resource resource) {
         ResourceHandle root = findReleaseRoot(resource);
         ensureCurrentRelease(ResourceHandle.use(root));
-        String ignoredReleaseConfigurationPath = root.getPath() + "/" + CONTENT_NODE;
-
         Query query = root.getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
         query.path(root.getPath()).type(TYPE_VERSIONABLE);
 
         List<ReleasedVersionable> result = new ArrayList<>();
         for (Resource versionable : query.execute()) {
-            if (!SlingResourceUtil.isSameOrDescendant(ignoredReleaseConfigurationPath, versionable.getPath())) {
-                result.add(ReleasedVersionable.forBaseVersion(versionable));
-            }
+            result.add(ReleasedVersionable.forBaseVersion(versionable));
         }
         return result;
     }
