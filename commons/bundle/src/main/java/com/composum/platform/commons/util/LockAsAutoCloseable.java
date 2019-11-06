@@ -14,9 +14,6 @@ public class LockAsAutoCloseable implements AutoCloseable {
     protected LockAsAutoCloseable(Lock lock) {
         this.lock = lock;
         lock.lock();
-        try (LockAsAutoCloseable locked = LockAsAutoCloseable.lock(lock)) {
-
-        }
     }
 
     /**
