@@ -26,7 +26,8 @@
             "allow": true,
             "privileges": [
               "jcr:read",
-              "rep:write"
+              "rep:write",
+              "jcr:versionManagement"
             ]
           }
         ]
@@ -79,7 +80,8 @@
             "allow": true,
             "privileges": [
               "jcr:read",
-              "rep:write"
+              "rep:write",
+              "jcr:versionManagement"
             ]
           }
         ]
