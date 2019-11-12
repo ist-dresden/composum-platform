@@ -62,6 +62,8 @@ public interface PlatformVersionsService {
     /** Information about the status of a versionable in the workspace wrt. a release, or of a versionable within a release wrt. a previous release. */
     interface Status {
 
+        String getPath();
+
         /** Calculated modification status. */
         @Nonnull
         ActivationState getActivationState();

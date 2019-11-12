@@ -491,6 +491,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
      * a resource in the workspace in relation to a release.
      */
     protected static class StatusImpl implements Status {
+
         @Nullable
         protected final StagingReleaseManager.Release nextRelease;
         @Nullable
@@ -505,6 +506,10 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         protected final VersionReference versionReference;
         @Nonnull
         protected final ActivationState activationState;
+
+        private transient String path;
+        private transient Calendar lastModified;
+        private transient String lastModifiedBy;
 
         /**
          * Creates a StatusImpl that informs about the status of a versionable in the workspace in comparison to a release.
@@ -571,6 +576,17 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             workspaceResource = workspaceResourceRaw != null ? ResourceHandle.use(workspaceResourceRaw) : null;
         }
 
+        public String getPath() {
+            if (path == null) {
+                if (workspaceResource != null) {
+                    path = workspaceResource.getPath();
+                } else if (versionReference != null) {
+                    path = versionReference.getPath();
+                }
+            }
+            return path;
+        }
+
         @Nonnull
         @Override
         public ActivationState getActivationState() {
@@ -580,30 +596,32 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         @Nullable
         @Override
         public Calendar getLastModified() {
-            Calendar result = null;
-            if (workspaceResource != null && workspaceResource.isValid()) {
-                result = workspaceResource.getProperty(CoreConstants.JCR_LASTMODIFIED, Calendar.class);
-                if (result == null) {
-                    result = workspaceResource.getProperty(CoreConstants.JCR_CREATED, Calendar.class);
+            if (lastModified == null) {
+                if (workspaceResource != null && workspaceResource.isValid()) {
+                    lastModified = workspaceResource.getProperty(CoreConstants.JCR_LASTMODIFIED, Calendar.class);
+                    if (lastModified == null) {
+                        lastModified = workspaceResource.getProperty(CoreConstants.JCR_CREATED, Calendar.class);
+                    }
+                } else if (versionReference != null) {
+                    lastModified = versionReference.isActive() ? versionReference.getLastActivated() :
+                            versionReference.getLastDeactivated();
                 }
-            } else if (versionReference != null) {
-                result = versionReference.isActive() ? versionReference.getLastActivated() :
-                        versionReference.getLastDeactivated();
             }
-            return result;
+            return lastModified;
         }
 
         @Nullable
         @Override
         public String getLastModifiedBy() {
-            String result = null;
-            if (workspaceResource != null && workspaceResource.isValid()) {
-                result = workspaceResource.getProperty(CoreConstants.JCR_LASTMODIFIED_BY, String.class);
-                if (StringUtils.isBlank(result)) {
-                    result = workspaceResource.getProperty(CoreConstants.JCR_CREATED_BY, String.class);
+            if (lastModifiedBy == null) {
+                if (workspaceResource != null && workspaceResource.isValid()) {
+                    lastModifiedBy = workspaceResource.getProperty(CoreConstants.JCR_LASTMODIFIED_BY, String.class);
+                    if (StringUtils.isBlank(lastModifiedBy)) {
+                        lastModifiedBy = workspaceResource.getProperty(CoreConstants.JCR_CREATED_BY, String.class);
+                    }
                 }
             }
-            return result;
+            return lastModifiedBy;
         }
 
         @Nullable
