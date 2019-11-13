@@ -1,0 +1,89 @@
+[
+  {
+    "path": "/",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/content",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": [
+              "jcr:read",
+              "rep:write"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/var",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/var/composum",
+    "jcr:primaryType": "sling:Folder",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/var/composum/content",
+    "jcr:primaryType": "sling:Folder",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": [
+              "jcr:read",
+              "rep:write"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]
