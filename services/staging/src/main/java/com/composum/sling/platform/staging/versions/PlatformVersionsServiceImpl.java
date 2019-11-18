@@ -322,7 +322,10 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         if (versionablePaths == null || versionablePaths.isEmpty()) {
             return new ActivationResult(null);
         }
-        StagingReleaseManager.Release release = getRelease(new NonExistingResource(resolver, versionablePaths.get(0)), releaseKey);
+        Resource firstResource = resolver.getResource(versionablePaths.get(0));
+        firstResource = firstResource != null ? firstResource :
+                new NonExistingResource(resolver, versionablePaths.get(0));
+        StagingReleaseManager.Release release = getRelease(firstResource, releaseKey);
         StagingReleaseManager.Release previousRelease = release.getPreviousRelease();
         ActivationResult result = new ActivationResult(release);
 
@@ -576,6 +579,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             workspaceResource = workspaceResourceRaw != null ? ResourceHandle.use(workspaceResourceRaw) : null;
         }
 
+        @Override
         public String getPath() {
             if (path == null) {
                 if (workspaceResource != null) {
