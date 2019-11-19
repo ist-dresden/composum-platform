@@ -524,20 +524,19 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             this.nextRelease = null;
             Resource rawWorkspaceResource = workspaceVersionable != null ? release.getReleaseRoot().getChild(workspaceVersionable.getRelativePath()) : null;
             workspaceResource = rawWorkspaceResource != null ? ResourceHandle.use(rawWorkspaceResource) : null;
-            if (workspaceVersionable != null && workspaceResource != null && !workspaceResource.isValid()) // "not null but not valid" ... strange.
-            {
+            if (workspaceVersionable != null && workspaceResource != null && !workspaceResource.isValid()) { // "not null but not valid" ... strange.
                 throw new IllegalArgumentException("Invalid current resource " + release + " - " + workspaceVersionable);
             }
             versionReference = releasedVersionable != null ? release.versionReference(releasedVersionable.getRelativePath()) : null;
 
-            if (previousVersionable == null || versionReference == null) {
+            if (releasedVersionable == null || versionReference == null) {
                 activationState = ActivationState.initial;
-            } else if (nextVersionable == null || workspaceVersionable == null) {
+            } else if (workspaceVersionable == null) {
                 activationState = ActivationState.deleted;
-            } else // previousVersionble, versionReference, nextVersionable and workspaceVersionable are not null now
-                if (!previousVersionable.isActive()) { // previousVersionable is in the release, next* is workspace
+            } else { // releasedVersionable, versionReference, workspaceVersionable are not null now
+                if (!releasedVersionable.isActive()) {
                     activationState = ActivationState.deactivated;
-                } else if (!Objects.equals(previousVersionable, nextVersionable)) {
+                } else if (!Objects.equals(releasedVersionable, workspaceVersionable)) {
                     activationState = ActivationState.modified;
                 } else if (versionReference.getLastActivated() == null ||
                         getLastModified() != null && getLastModified().after(versionReference.getLastActivated())) {
@@ -545,6 +544,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 } else {
                     activationState = ActivationState.activated;
                 }
+            }
         }
 
         /**
