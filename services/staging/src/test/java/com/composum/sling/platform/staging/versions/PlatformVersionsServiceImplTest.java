@@ -137,10 +137,11 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         // restore the deleted page
         releaseManager.restoreVersionable(currentRelease, releaseManager.findReleasedVersionable(currentRelease, nex));
         resourceResolver.commit();
-        ec.checkThat(service.getStatus(resourceResolver.getResource(versionablePath), null).getActivationState(), is(PlatformVersionsService.ActivationState.deactivated));
+        ec.checkThat(service.getStatus(resourceResolver.getResource(versionablePath), null).getActivationState(),
+                is(PlatformVersionsService.ActivationState.initial));
         workspaceChanges = service.findWorkspaceChanges(currentRelease);
         ec.checkThat(workspaceChanges.toString(), workspaceChanges, iterableWithSize(1));
-        ec.checkThat(workspaceChanges.get(0).getActivationState(), is(PlatformVersionsService.ActivationState.deactivated));
+        ec.checkThat(workspaceChanges.get(0).getActivationState(), is(PlatformVersionsService.ActivationState.initial));
 
         // delete it again and verify stati - this time wrt. a deactivated page
         versionable = resourceResolver.getResource(versionablePath);
@@ -294,7 +295,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         resourceResolver.commit();
 
         status = service.getStatus(versionable, null);
-        ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.deactivated));
+        ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.initial));
         ec.checkThat(status.getVersionReference().getLastActivatedBy(), is("admin"));
         ec.checkThat(status.getVersionReference().getLastActivated(), instanceOf(java.util.Calendar.class));
         ec.checkThat(status.getVersionReference().getLastDeactivatedBy(), is("admin"));
@@ -433,12 +434,12 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         versionable = resourceResolver.getResource(document1).getChild(CONTENT_NODE);
 
         status = service.getStatus(versionable, null);
-        ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.deactivated));
+        ec.checkThat(status.getActivationState(), is(PlatformVersionsService.ActivationState.initial));
 
         workspaceChanges = service.findWorkspaceChanges(currentRelease);
         ec.checkThat(workspaceChanges.size(), is(1));
         ec.checkAppliedThat(workspaceChanges, (w) -> w.get(0).getActivationState(),
-                is(PlatformVersionsService.ActivationState.deactivated));
+                is(PlatformVersionsService.ActivationState.initial));
 
         releaseChanges = service.findReleaseChanges(currentRelease);
         ec.checkThat(releaseChanges.size(), is(1));

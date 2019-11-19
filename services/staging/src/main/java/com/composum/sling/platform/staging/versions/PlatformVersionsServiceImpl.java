@@ -128,13 +128,13 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             }
             if (!ResourceUtil.isNonExistingResource(rawVersionable)) {
                 ReleasedVersionable workspaced = ReleasedVersionable.forBaseVersion(versionable);
-                return new StatusImpl(workspaced, release, released);
+                return new StatusImpl(workspaced, release, released, releaseManager);
             } else if (released != null) {
-                return new StatusImpl(null, release, released);
+                return new StatusImpl(null, release, released, releaseManager);
             } else { // non existing resource = search by path, but nothing found
                 return null;
             }
-        } catch (StagingReleaseManager.ReleaseRootNotFoundException | IllegalArgumentException e) {
+        } catch (StagingReleaseManager.ReleaseRootNotFoundException | IllegalArgumentException | RepositoryException e) {
             LOG.info("Could not determine status because of {}", e.toString());
             LOG.debug(e.toString(), e);
             return null;
@@ -476,7 +476,14 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             if (releasedVersionable == null) { // search by path
                 releasedVersionable = pathToRelease.get(workspaceVersionable.getRelativePath());
             }
-            Status status = new StatusImpl(workspaceVersionable, release, releasedVersionable);
+            Status status;
+            try {
+                status = new StatusImpl(workspaceVersionable, release, releasedVersionable, releaseManager);
+            } catch (RepositoryException e) { // shouldn't happen
+                LOG.error("Could not determine status for " + workspaceVersionable + " / " + releasedVersionable
+                        + " in " + release, e);
+                continue;
+            }
             if (status.getActivationState() == ActivationState.deleted && !releasedVersionable.isActive()) {
                 continue;
             }
@@ -517,14 +524,17 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         /**
          * Creates a StatusImpl that informs about the status of a versionable in the workspace in comparison to a release.
          */
-        public StatusImpl(@Nullable ReleasedVersionable workspaceVersionable, @Nonnull StagingReleaseManager.Release release, @Nullable ReleasedVersionable releasedVersionable) {
+        public StatusImpl(@Nullable ReleasedVersionable workspaceVersionable,
+                          @Nonnull StagingReleaseManager.Release release, @Nullable ReleasedVersionable releasedVersionable,
+                          @Nonnull StagingReleaseManager releaseManager) throws RepositoryException {
             this.previousRelease = Objects.requireNonNull(release);
             this.previousVersionable = releasedVersionable;
             this.nextVersionable = workspaceVersionable;
             this.nextRelease = null;
             Resource rawWorkspaceResource = workspaceVersionable != null ? release.getReleaseRoot().getChild(workspaceVersionable.getRelativePath()) : null;
             workspaceResource = rawWorkspaceResource != null ? ResourceHandle.use(rawWorkspaceResource) : null;
-            if (workspaceVersionable != null && workspaceResource != null && !workspaceResource.isValid()) { // "not null but not valid" ... strange.
+            if (workspaceVersionable != null && (workspaceResource == null || !workspaceResource.isValid())) {
+                // "not null but not valid" ... strange. Should be a bug.
                 throw new IllegalArgumentException("Invalid current resource " + release + " - " + workspaceVersionable);
             }
             versionReference = releasedVersionable != null ? release.versionReference(releasedVersionable.getRelativePath()) : null;
@@ -533,9 +543,16 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 activationState = ActivationState.initial;
             } else if (workspaceVersionable == null) {
                 activationState = ActivationState.deleted;
-            } else { // releasedVersionable, versionReference, workspaceVersionable are not null now
+            } else { // releasedVersionable, versionReference, workspaceVersionable are not null
                 if (!releasedVersionable.isActive()) {
-                    activationState = ActivationState.deactivated;
+                    StagingReleaseManager.Release previousRelease = release.getPreviousRelease();
+                    ReleasedVersionable inPreviousRelease = previousRelease != null ?
+                            releaseManager.findReleasedVersionable(previousRelease, workspaceResource) : null;
+                    if (inPreviousRelease != null) {
+                        activationState = ActivationState.deactivated;
+                    } else { // first time in a release, but already deactivated - we ignore this.
+                        activationState = ActivationState.initial;
+                    }
                 } else if (!Objects.equals(releasedVersionable, workspaceVersionable)) {
                     activationState = ActivationState.modified;
                 } else if (versionReference.getLastActivated() == null ||
