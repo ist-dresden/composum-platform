@@ -582,13 +582,13 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
             if (versionReference == null && nextVersionable == null) {
                 activationState = ActivationState.deleted;
-            } else if (!active) {
+            } else if (!active && previousVersionable == null) {
+                activationState = ActivationState.initial;
+            } else if (!active && previouslyActive) {
                 activationState = ActivationState.deactivated; // even if modified
             } else if (!previouslyActive && active) {
                 activationState = ActivationState.activated;
-            } else // both previously and now active.
-            // we take modified since otherwise this constructor shouldn't be called and we have no alternative here.
-            {
+            } else {
                 activationState = ActivationState.modified;
             }
 
