@@ -117,7 +117,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         versionManager = session.getWorkspace().getVersionManager();
         InputStreamReader cndReader = new InputStreamReader(getClass().getResourceAsStream("/testsetup/nodetypes.cnd"));
         NodeType[] nodeTypes = CndImporter.registerNodeTypes(cndReader, session);
-        assertEquals(2, nodeTypes.length);
+        assertEquals(5, nodeTypes.length);
 
         releaseRootBuilder = builder.resource("/content/site", ResourceUtil.PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                 PROP_MIXINTYPES, array(TYPE_MIX_RELEASE_ROOT));

@@ -71,7 +71,7 @@ public abstract class AbstractStagingTest {
     public final void setUpResolver() throws Exception {
         InputStreamReader cndReader = new InputStreamReader(getClass().getResourceAsStream("/testsetup/nodetypes.cnd"));
         NodeType[] nodeTypes = CndImporter.registerNodeTypes(cndReader, context.resourceResolver().adaptTo(Session.class));
-        assertEquals(2, nodeTypes.length);
+        assertEquals(5, nodeTypes.length);
 
         versionManager = context.resourceResolver().adaptTo(Session.class).getWorkspace().getVersionManager();
 

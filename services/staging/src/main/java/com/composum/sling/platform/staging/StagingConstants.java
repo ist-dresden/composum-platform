@@ -49,6 +49,15 @@ public interface StagingConstants {
     String TYPE_MIX_REPLICATEDVERSIONABLE = "mix:ReplicatedVersionable";
 
     /**
+     * Mixin for a {@value org.apache.jackrabbit.JcrConstants#NT_RESOURCE} that allows adding a metadata node, and
+     * adds the preconditions for a file to be used with staging - being mix:versionable.
+     */
+    String TYPE_MIX_PLATFORM_RESOURCE = "cpl:Resource";
+
+    /** Nodetype for metadata below {@link #TYPE_MIX_PLATFORM_RESOURCE}. */
+    String TYPE_METADATA = "cpl:MetaData";
+
+    /**
      * References a version within the release tree.
      *
      * @see #PROP_VERSION

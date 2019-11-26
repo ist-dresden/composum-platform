@@ -24,3 +24,16 @@
   - * (UNDEFINED)
   + * (nt:base) = nt:unstructured VERSION
 
+/** A mixin to add to replicated versionables which specifies from which version it was replicated.
+ We create a mixin for that since this can be added to e.g. nt:resource, which doesn't admit additional properties. */
+[mix:ReplicatedVersionable]
+  mixin
+  - cpl:replicatedVersion (REFERENCE)
+
+[cpl:MetaData] > nt:unstructured, mix:created, mix:lastModified
+
+/** Is often added to nt:resource to allow it having a metadata node, and also makes it versionable so that it
+ is easily usable with the staging mechanisms. */
+[cpl:Resource] > sling:Resource, mix:created, mix:versionable
+  mixin
+  + meta (cpl:MetaData) = cpl:MetaData
