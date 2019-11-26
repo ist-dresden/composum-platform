@@ -201,7 +201,14 @@ public class QueryTest extends AbstractStagingTest {
         assertResults(q, node2oldandnew);
 
         condition = q.conditionBuilder().isNotNull(PROP_CREATED).and().startGroup()
-                .upper().property(PROP_TITLE).eq().val("3 THIRD TITLE").or().contains(PROP_TITLE, "THIRD");
+                .upper().property(PROP_TITLE).eq().val("3 THIRD TITLE").or().contains(PROP_TITLE, "THIRD").endGroup();
+        q.condition(condition);
+        assertResults(q, node1version);
+
+        // same thing with alternative group syntax:
+        condition = q.conditionBuilder().isNotNull(PROP_CREATED).and().group((b) -> b.
+                upper().property(PROP_TITLE).eq().val("3 THIRD TITLE").or().contains(PROP_TITLE, "THIRD")
+        );
         q.condition(condition);
         assertResults(q, node1version);
     }
@@ -464,7 +471,6 @@ public class QueryTest extends AbstractStagingTest {
         }
         errorCollector.checkThat(results, contains(document1 + "/" + PROP_JCR_CONTENT, document2 + "/" + PROP_JCR_CONTENT));
     }
-
 
     protected void assertResults(Query q, String... expected) throws RepositoryException {
         assertResults(IterableUtils.toList(q.execute()), expected);
