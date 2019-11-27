@@ -50,7 +50,7 @@ public class CryptoServiceImplTest {
         ec.checkThat(new String(service.decrypt(service.encrypt("test".getBytes(), key), key)), is("test"));
 
         long begin = System.currentTimeMillis();
-        int loops = 10;
+        int loops = 100; // use larger values if you actually want to find out the time.
         for (int i = 0; i < loops; ++i) {
             ec.checkThat(service.decrypt(service.encrypt("test", key), key), is("test"));
         }

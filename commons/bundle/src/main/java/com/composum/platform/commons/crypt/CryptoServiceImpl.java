@@ -1,6 +1,7 @@
 package com.composum.platform.commons.crypt;
 
 import org.apache.commons.io.IOUtils;
+import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,27 +38,40 @@ import java.util.Objects;
  *
  * @see "https://proandroiddev.com/security-best-practices-symmetric-encryption-with-aes-in-java-7616beaaade9"
  */
-@Component
+@Component(service = CryptoService.class,
+        property = {
+                Constants.SERVICE_DESCRIPTION + "=Composum Platform Crypto Service"
+        })
 public class CryptoServiceImpl implements CryptoService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CryptoServiceImpl.class);
 
     private final SecureRandom secureRandom = SecureRandom.getInstanceStrong();
 
-    public static final String ALGORITHM = "AES/GCM/NoPadding";
+    protected static final String ALGORITHM = "AES/GCM/NoPadding";
 
     /** Initialization vector length for {@link #ALGORITHM} = Cipher#getBlockSize(). */
-    public static final int IVLEN = 16;
+    protected static final int IVLEN = 16;
+
+    /**
+     * This is the number of rounds used to distribute the entropy in the password. 100 is not much to provide
+     * additional protection of the password against brute force, but otherwise this decreases performance for small
+     * stuff significantly.
+     */
+    protected static final int ITERATION_COUNT = 100;
 
     /**
      * Random salt length for encoding password. This adds some protection for the password, which might be used in
      * various locations.
      */
-    public static final int SALTLEN = 8;
+    protected static final int SALTLEN = 8;
 
-    public CryptoServiceImpl() throws NoSuchPaddingException, NoSuchAlgorithmException {
-        // encrypt("test", "test"); // just check immediately that there is no problem
-        // FIXME(hps,27.11.19) reactivate this
+    public CryptoServiceImpl() throws NoSuchAlgorithmException, IllegalArgumentException {
+        // check immediately that there is no problem with the chosen algorithms
+        String result = decrypt(encrypt("test", "testkey"), "testkey");
+        if (!"test".equals(result)) { // BUG!
+            throw new IllegalArgumentException("Crypt + decrypt quicktest yielded wrong result: " + result);
+        }
     }
 
     @Nonnull
@@ -67,7 +81,7 @@ public class CryptoServiceImpl implements CryptoService {
         GCMParameterSpec parameterSpec = new GCMParameterSpec(128, iv);
 
         SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-        KeySpec spec = new PBEKeySpec(key.toCharArray(), salt, 1000, 192);
+        KeySpec spec = new PBEKeySpec(key.toCharArray(), salt, ITERATION_COUNT, 192);
         SecretKey tmp = factory.generateSecret(spec);
         SecretKey secretKey = new SecretKeySpec(tmp.getEncoded(), "AES");
 
