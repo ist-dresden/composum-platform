@@ -1,6 +1,8 @@
 package com.composum.platform.commons.crypt;
 
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -29,7 +31,6 @@ import static org.hamcrest.Matchers.nullValue;
 /**
  * Tests {@link CryptoServiceImpl}.
  *
- * @see "https://proandroiddev.com/security-best-practices-symmetric-encryption-with-aes-in-java-7616beaaade9"
  */
 public class CryptoServiceImplTest {
 
@@ -47,6 +48,20 @@ public class CryptoServiceImplTest {
         System.out.println(service.encrypt("test", key));
         ec.checkThat(service.decrypt(service.encrypt("test", key), key), is("test"));
         ec.checkThat(new String(service.decrypt(service.encrypt("test".getBytes(), key), key)), is("test"));
+
+        long begin = System.currentTimeMillis();
+        int loops = 10;
+        for (int i = 0; i < loops; ++i) {
+            ec.checkThat(service.decrypt(service.encrypt("test", key), key), is("test"));
+        }
+        System.out.println("Timing per encrypt + decrypt (seconds): " + (System.currentTimeMillis() - begin) * 0.001f / loops);
+    }
+
+    @Test
+    public void encryptDecryptLargeMessage() {
+        String key = RandomStringUtils.randomAlphanumeric(512);
+        String message = RandomStringUtils.randomAlphanumeric(65536);
+        ec.checkThat(service.decrypt(service.encrypt(message, key), key), is(message));
     }
 
     @Test
@@ -60,7 +75,7 @@ public class CryptoServiceImplTest {
 
     @Test
     public void encryptedVaries() {
-        String key = "key";
+        String key = service.makeKey();
         String text = "test";
         String first = service.encrypt(text, key);
         String second = service.encrypt(text, key);
@@ -69,13 +84,19 @@ public class CryptoServiceImplTest {
         ec.checkThat(service.decrypt(second, key), is(text));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void keyMatters() {
-        ec.checkThat(service.decrypt(service.encrypt("test", "key1"), "key2"), not(is("test")));
+        String encrypted = service.encrypt("test", "key1");
+        try {
+            ec.checkThat(service.decrypt(encrypted, "key2"), not(is("test")));
+            Assert.fail("IllegalArgumentException expected.");
+        } catch (IllegalArgumentException e) {
+            // wrong key should normally break things.
+        }
     }
 
     @Test
-    public void generateKey() {
+    public void makeKey() {
         String key1 = service.makeKey();
         String key2 = service.makeKey();
         ec.checkThat(key1, not(isEmptyOrNullString()));

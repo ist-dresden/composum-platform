@@ -1,21 +1,26 @@
 package com.composum.platform.commons.crypt;
 
+import org.apache.commons.io.IOUtils;
 import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.CipherInputStream;
+import javax.crypto.CipherOutputStream;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.nio.ByteBuffer;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -27,7 +32,11 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Objects;
 
-/** Default implementation of {@link CryptoService}. */
+/**
+ * Default implementation of {@link CryptoService}.
+ *
+ * @see "https://proandroiddev.com/security-best-practices-symmetric-encryption-with-aes-in-java-7616beaaade9"
+ */
 @Component
 public class CryptoServiceImpl implements CryptoService {
 
@@ -58,7 +67,7 @@ public class CryptoServiceImpl implements CryptoService {
         GCMParameterSpec parameterSpec = new GCMParameterSpec(128, iv);
 
         SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-        KeySpec spec = new PBEKeySpec(key.toCharArray(), salt, 65536, 192);
+        KeySpec spec = new PBEKeySpec(key.toCharArray(), salt, 1000, 192);
         SecretKey tmp = factory.generateSecret(spec);
         SecretKey secretKey = new SecretKeySpec(tmp.getEncoded(), "AES");
 
@@ -98,69 +107,98 @@ public class CryptoServiceImpl implements CryptoService {
     @Nullable
     @Override
     public byte[] encrypt(@Nullable byte[] message, @Nonnull String key) {
-        Objects.requireNonNull(key);
         if (message == null) { return null; }
+        ByteArrayOutputStream cipherStream = new ByteArrayOutputStream();
         try {
-            byte[] salt = new byte[SALTLEN];
-            secureRandom.nextBytes(salt);
-
-            byte[] iv = new byte[IVLEN];
-            secureRandom.nextBytes(iv);
-
-            Cipher cipher = makeCipher(key, salt, iv, Cipher.ENCRYPT_MODE);
-            byte[] cipherText = cipher.doFinal(message);
-
-            byte[] result = new byte[4 + SALTLEN + 4 + IVLEN + cipherText.length];
-            ByteBuffer buf = ByteBuffer.wrap(result);
-            buf.putInt(salt.length);
-            buf.put(salt);
-            buf.putInt(iv.length);
-            buf.put(iv);
-            buf.put(cipherText);
-
-            Arrays.fill(salt, (byte) 0); // minize traces in memory.
-            Arrays.fill(iv, (byte) 0);
-            return result;
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) { // impossible here since tested in constructor
-            throw new IllegalStateException(e);
-        } catch (BadPaddingException | IllegalBlockSizeException | InvalidKeyException | InvalidKeySpecException | InvalidAlgorithmParameterException e) {
+            encrypt(new ByteArrayInputStream(message), cipherStream, key);
+        } catch (IOException e) { // should be impossible on ByteArrayOutputStream
             throw new IllegalArgumentException(e);
         }
+        return cipherStream.toByteArray();
     }
 
     @Nullable
     @Override
-    public byte[] decrypt(@Nullable byte[] cipherText, @Nonnull String key) {
-        Objects.requireNonNull(key);
-        if (cipherText == null) { return null; }
+    public byte[] decrypt(@Nullable byte[] ciphertext, @Nonnull String key) throws IllegalArgumentException {
+        if (ciphertext == null) { return null; }
+        ByteArrayOutputStream messageStream = new ByteArrayOutputStream();
         try {
-            ByteBuffer byteBuffer = ByteBuffer.wrap(cipherText);
-            int saltLength = byteBuffer.getInt();
+            decrypt(new ByteArrayInputStream(ciphertext), messageStream, key);
+        } catch (IOException e) { // should be impossible on ByteArrayOutputStream
+            throw new IllegalArgumentException(e);
+        }
+        return messageStream.toByteArray();
+    }
+
+    @Override
+    public boolean encrypt(@Nullable InputStream messageStream, @Nonnull OutputStream cipherStream, @Nonnull String key) throws IOException {
+        Objects.requireNonNull(key);
+        if (messageStream == null) { return false; }
+        byte[] salt = new byte[SALTLEN];
+        byte[] iv = new byte[IVLEN];
+        try {
+            secureRandom.nextBytes(salt);
+            cipherStream.write((byte) salt.length);
+            cipherStream.write(salt);
+
+            secureRandom.nextBytes(iv);
+            cipherStream.write((byte) iv.length);
+            cipherStream.write(iv);
+
+            Cipher cipher = makeCipher(key, salt, iv, Cipher.ENCRYPT_MODE);
+            try (CipherOutputStream cipherOutputStream = new CipherOutputStream(cipherStream, cipher)) {
+                IOUtils.copy(messageStream, cipherOutputStream);
+            }
+
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) { // impossible here since tested in constructor
+            throw new IllegalStateException(e);
+        } catch (InvalidKeyException | InvalidKeySpecException | InvalidAlgorithmParameterException e) {
+            throw new IllegalArgumentException(e);
+        } finally {
+            Arrays.fill(salt, (byte) 0); // minize traces in memory.
+            Arrays.fill(iv, (byte) 0);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean decrypt(@Nullable InputStream cipherStream, @Nonnull OutputStream messageStream, @Nonnull String key) throws IllegalArgumentException, IOException {
+        Objects.requireNonNull(key);
+        if (cipherStream == null) { return false; }
+        byte[] salt = null;
+        byte[] iv = null;
+        try {
+            int saltLength = cipherStream.read();
             if (saltLength < 1 || saltLength > 16) {
                 throw new IllegalArgumentException("invalid salt len " + saltLength);
             }
-            byte[] salt = new byte[saltLength];
-            byteBuffer.get(salt);
+            salt = new byte[saltLength];
+            int read = cipherStream.read(salt);
+            if (read != saltLength) {
+                throw new IllegalArgumentException("Could not read complete salt but only " + read);
+            }
 
-            int ivLength = byteBuffer.getInt();
+            int ivLength = cipherStream.read();
             if (ivLength < 12 || ivLength > 16) { throw new IllegalArgumentException("invalid iv length " + ivLength);}
-            byte[] iv = new byte[ivLength];
-            byteBuffer.get(iv);
-
-            byte[] strippedCipherText = new byte[byteBuffer.remaining()];
-            byteBuffer.get(strippedCipherText);
+            iv = new byte[ivLength];
+            read = cipherStream.read(iv);
+            if (read != ivLength) {
+                throw new IllegalArgumentException("Could not read complete iv but only " + read);
+            }
 
             Cipher cipher = makeCipher(key, salt, iv, Cipher.DECRYPT_MODE);
-            byte[] message = cipher.doFinal(strippedCipherText);
-
-            Arrays.fill(salt, (byte) 0); // minize traces in memory.
-            Arrays.fill(iv, (byte) 0);
-            return message;
+            try (CipherInputStream cipherInputStream = new CipherInputStream(cipherStream, cipher)) {
+                IOUtils.copy(cipherInputStream, messageStream);
+            }
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) { // impossible here since tested in constructor
             throw new IllegalStateException(e);
-        } catch (BadPaddingException | IllegalBlockSizeException | InvalidKeyException | InvalidKeySpecException | InvalidAlgorithmParameterException e) {
+        } catch (InvalidKeyException | InvalidKeySpecException | InvalidAlgorithmParameterException e) {
             throw new IllegalArgumentException(e);
+        } finally { // minize traces in memory.
+            if (salt != null) { Arrays.fill(salt, (byte) 0); }
+            if (iv != null) { Arrays.fill(iv, (byte) 0); }
         }
+        return true;
     }
 
 }
