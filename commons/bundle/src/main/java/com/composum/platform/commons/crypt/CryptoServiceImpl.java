@@ -1,6 +1,8 @@
 package com.composum.platform.commons.crypt;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
@@ -66,6 +68,17 @@ public class CryptoServiceImpl implements CryptoService {
      */
     protected static final int SALTLEN = 8;
 
+    /** The base64-representation of {@link #VERSIONMARKER} - see there for explanation. */
+    protected static final String VERSIONMARKER_STRING = "cry0";
+
+    /**
+     * A prefix for the encoded string which serves as marker that this is an encrypted thing and gives us later
+     * the possibility to change something without breaking backwards compatibility. In base64 encoded
+     * String representation this gives a "cry0" - crypt , version 0.
+     */
+    protected static final byte[] VERSIONMARKER =
+            Base64.getUrlDecoder().decode(VERSIONMARKER_STRING.getBytes(StandardCharsets.UTF_8));
+
     public CryptoServiceImpl() throws NoSuchAlgorithmException, IllegalArgumentException {
         // check immediately that there is no problem with the chosen algorithms
         String result = decrypt(encrypt("test", "testkey"), "testkey");
@@ -92,10 +105,13 @@ public class CryptoServiceImpl implements CryptoService {
     @Override
     @Nonnull
     public String makeKey() {
-        byte[] bytes = new byte[32];
-        secureRandom.nextBytes(bytes);
-        String key = Base64.getUrlEncoder().encodeToString(bytes).replaceAll("=", "");
+        String key = RandomStringUtils.random(43, 0, 0, true, true, null, secureRandom);
         return key;
+    }
+
+    @Override
+    public boolean isEncrypted(@Nullable String ciphertext) {
+        return StringUtils.startsWith(ciphertext, VERSIONMARKER_STRING);
     }
 
     @Nullable
@@ -151,6 +167,8 @@ public class CryptoServiceImpl implements CryptoService {
         byte[] salt = new byte[SALTLEN];
         byte[] iv = new byte[IVLEN];
         try {
+            cipherStream.write(VERSIONMARKER);
+
             secureRandom.nextBytes(salt);
             cipherStream.write((byte) salt.length);
             cipherStream.write(salt);
@@ -182,6 +200,13 @@ public class CryptoServiceImpl implements CryptoService {
         byte[] salt = null;
         byte[] iv = null;
         try {
+            byte[] versionMarker = new byte[VERSIONMARKER.length];
+            if (cipherStream.read(versionMarker) != VERSIONMARKER.length
+                    || !Arrays.equals(versionMarker, VERSIONMARKER)) {
+                throw new IllegalArgumentException("could not read version marker " + VERSIONMARKER_STRING +
+                        " - probably not encrypted.");
+            }
+
             int saltLength = cipherStream.read();
             if (saltLength < 1 || saltLength > 16) {
                 throw new IllegalArgumentException("invalid salt len " + saltLength);

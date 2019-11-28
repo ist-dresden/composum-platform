@@ -15,11 +15,8 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -30,7 +27,6 @@ import static org.hamcrest.Matchers.nullValue;
 
 /**
  * Tests {@link CryptoServiceImpl}.
- *
  */
 public class CryptoServiceImplTest {
 
@@ -152,5 +148,23 @@ public class CryptoServiceImplTest {
         cipher.init(mode, secretKey, parameterSpec);
         return cipher;
     }
+
+    @Test
+    public void isEncrypted() {
+        for (int i = 0; i < 10; ++i) {
+            String key = service.makeKey();
+            String text = service.makeKey();
+            String ciphertext = service.encrypt(text, key);
+            // this can fail, but with something like 1:4 million probability:
+            ec.checkThat("original text was " + text, service.isEncrypted(text), is(false));
+            // this must never fail:
+            ec.checkThat("encrypting " + text + " with " + key + " gave " + ciphertext,
+                    service.isEncrypted(ciphertext), is(true));
+            String reconstructed = service.decrypt(ciphertext, key);
+            ec.checkThat("encrypting " + text + " with " + key + " gave " + ciphertext,
+                    reconstructed, is(text));
+        }
+    }
+
 
 }
