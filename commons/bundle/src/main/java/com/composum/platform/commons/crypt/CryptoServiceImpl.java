@@ -94,11 +94,16 @@ public class CryptoServiceImpl implements CryptoService {
         GCMParameterSpec parameterSpec = new GCMParameterSpec(128, iv);
 
         SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-        KeySpec spec = new PBEKeySpec(key.toCharArray(), salt, ITERATION_COUNT, 192);
-        SecretKey tmp = factory.generateSecret(spec);
-        SecretKey secretKey = new SecretKeySpec(tmp.getEncoded(), "AES");
+        char[] keyChars = key.toCharArray();
+        try {
+            KeySpec spec = new PBEKeySpec(keyChars, salt, ITERATION_COUNT, 192);
+            SecretKey tmp = factory.generateSecret(spec);
+            SecretKey secretKey = new SecretKeySpec(tmp.getEncoded(), "AES");
 
-        cipher.init(mode, secretKey, parameterSpec);
+            cipher.init(mode, secretKey, parameterSpec);
+        } finally {
+            Arrays.fill(keyChars, (char) 0); // reduce traces in memory
+        }
         return cipher;
     }
 
@@ -187,7 +192,7 @@ public class CryptoServiceImpl implements CryptoService {
         } catch (InvalidKeyException | InvalidKeySpecException | InvalidAlgorithmParameterException e) {
             throw new IllegalArgumentException(e);
         } finally {
-            Arrays.fill(salt, (byte) 0); // minize traces in memory.
+            Arrays.fill(salt, (byte) 0); // reduce traces in memory.
             Arrays.fill(iv, (byte) 0);
         }
         return true;
@@ -233,7 +238,7 @@ public class CryptoServiceImpl implements CryptoService {
             throw new IllegalStateException(e);
         } catch (InvalidKeyException | InvalidKeySpecException | InvalidAlgorithmParameterException e) {
             throw new IllegalArgumentException(e);
-        } finally { // minize traces in memory.
+        } finally { // reduce traces in memory.
             if (salt != null) { Arrays.fill(salt, (byte) 0); }
             if (iv != null) { Arrays.fill(iv, (byte) 0); }
         }

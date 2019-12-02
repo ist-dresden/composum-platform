@@ -13,6 +13,7 @@ import com.composum.sling.platform.testing.testutil.SlingMatchers;
 import com.composum.sling.platform.testing.testutil.codegen.SlingAssertionCodeGenerator;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.collections4.IteratorUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -30,6 +31,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
+import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
@@ -39,6 +41,7 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
 import javax.jcr.version.Version;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -105,7 +108,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     private ResourceBuilder builderAtFolder;
 
     @Rule
-    public final ErrorCollectorAlwaysPrintingFailures errorCollector = new ErrorCollectorAlwaysPrintingFailures()
+    public final ErrorCollectorAlwaysPrintingFailures ec = new ErrorCollectorAlwaysPrintingFailures()
             .onFailure(() -> {
                 Thread.sleep(500); // wait for logging messages to be written
                 JcrTestUtils.printResourceRecursivelyAsJson(context.resourceResolver().getResource("/folder"));
@@ -346,12 +349,12 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         String relPath = SlingResourceUtil.relativePath(folder + "/..", node2);
         { // deep read works normally
             Resource top = context.resourceResolver().getResource(folder).getParent();
-            errorCollector.checkThat(top.getValueMap().get(relPath + "/jcr:title"), equalTo("n2"));
+            ec.checkThat(top.getValueMap().get(relPath + "/jcr:title"), equalTo("n2"));
         }
         { // and also here.
             deleteInJcr(document1, document2); // make sure we read from version space
             Resource top = stagingResourceResolver.getResource(folder).getParent();
-            errorCollector.checkThat(top.getValueMap().get(relPath + "/jcr:title"), equalTo("n2"));
+            ec.checkThat(top.getValueMap().get(relPath + "/jcr:title"), equalTo("n2"));
         }
     }
 
@@ -364,41 +367,41 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         String versionUuid = releasedVersionable.getVersionUuid();
 
         // for StagedResource
-        errorCollector.checkThat(versionUuid, notNullValue(String.class));
+        ec.checkThat(versionUuid, notNullValue(String.class));
         ValueMap stagedValueMap = stagedResource.getValueMap();
-        errorCollector.checkThat(stagedValueMap.get(PROP_REPLICATED_VERSION,
+        ec.checkThat(stagedValueMap.get(PROP_REPLICATED_VERSION,
                 String.class), is(versionUuid));
-        errorCollector.checkThat(stagedValueMap.entrySet().stream()
+        ec.checkThat(stagedValueMap.entrySet().stream()
                 .anyMatch((e) -> PROP_REPLICATED_VERSION.equals(e.getKey())), is(true));
-        errorCollector.checkThat((String[]) stagedValueMap.entrySet().stream()
+        ec.checkThat((String[]) stagedValueMap.entrySet().stream()
                         .filter((e) -> PROP_MIXINTYPES.equals(e.getKey())).findFirst().get().getValue(),
                 arrayContaining(MIX_VERSIONABLE, MIX_LAST_MODIFIED, TYPE_MIX_REPLICATEDVERSIONABLE));
-        errorCollector.checkThat(stagedValueMap.get(PROP_MIXINTYPES, String[].class),
+        ec.checkThat(stagedValueMap.get(PROP_MIXINTYPES, String[].class),
                 arrayContaining(MIX_VERSIONABLE, MIX_LAST_MODIFIED, TYPE_MIX_REPLICATEDVERSIONABLE));
         String[] mixins = stagedValueMap.get(PROP_MIXINTYPES, new String[0]);
-        errorCollector.checkThat(mixins,
+        ec.checkThat(mixins,
                 arrayContaining(MIX_VERSIONABLE, MIX_LAST_MODIFIED, TYPE_MIX_REPLICATEDVERSIONABLE));
 
         // for JCR nodes
         Node node = stagedResource.adaptTo(Node.class);
         Property property = node.getProperty(PROP_REPLICATED_VERSION);
-        errorCollector.checkThat(property.getString(), is(versionUuid));
+        ec.checkThat(property.getString(), is(versionUuid));
 
         property = node.getProperty(PROP_MIXINTYPES);
-        errorCollector.checkThat(property.isMultiple(), is(true));
+        ec.checkThat(property.isMultiple(), is(true));
         Value[] values = property.getValues();
-        errorCollector.checkThat(values.length, is(3));
-        errorCollector.checkThat(findProperty(node.getProperties(), PROP_MIXINTYPES).getValues().length, is(3));
-        errorCollector.checkThat(values[0].getString(), is(MIX_VERSIONABLE));
-        errorCollector.checkThat(values[1].getString(), is(MIX_LAST_MODIFIED));
-        errorCollector.checkThat(values[2].getString(), is(TYPE_MIX_REPLICATEDVERSIONABLE));
+        ec.checkThat(values.length, is(3));
+        ec.checkThat(findProperty(node.getProperties(), PROP_MIXINTYPES).getValues().length, is(3));
+        ec.checkThat(values[0].getString(), is(MIX_VERSIONABLE));
+        ec.checkThat(values[1].getString(), is(MIX_LAST_MODIFIED));
+        ec.checkThat(values[2].getString(), is(TYPE_MIX_REPLICATEDVERSIONABLE));
 
-        errorCollector.checkThat(findProperty(node.getProperties(), PROP_REPLICATED_VERSION), notNullValue());
-        errorCollector.checkThat(findProperty(node.getProperties("cpl:*"), PROP_REPLICATED_VERSION), notNullValue());
-        errorCollector.checkThat(findProperty(node.getProperties("nix"), PROP_REPLICATED_VERSION), nullValue());
-        errorCollector.checkThat(findProperty(node.getProperties(new String[]{"cpl:*", "whatever"}), PROP_REPLICATED_VERSION),
+        ec.checkThat(findProperty(node.getProperties(), PROP_REPLICATED_VERSION), notNullValue());
+        ec.checkThat(findProperty(node.getProperties("cpl:*"), PROP_REPLICATED_VERSION), notNullValue());
+        ec.checkThat(findProperty(node.getProperties("nix"), PROP_REPLICATED_VERSION), nullValue());
+        ec.checkThat(findProperty(node.getProperties(new String[]{"cpl:*", "whatever"}), PROP_REPLICATED_VERSION),
                 notNullValue());
-        errorCollector.checkThat(findProperty(node.getProperties(new String[]{"nix", "whatever"}), PROP_REPLICATED_VERSION),
+        ec.checkThat(findProperty(node.getProperties(new String[]{"nix", "whatever"}), PROP_REPLICATED_VERSION),
                 nullValue());
     }
 
@@ -415,67 +418,67 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         deleteInJcr(document1, document2); // make sure we read from version space
 
         List<Resource> resources = JcrTestUtils.ancestorsAndSelf(stagingResourceResolver.resolve(node1));
-        errorCollector.checkThat(resources, allOf(Matchers.iterableWithSize(6), everyItem(instanceOf(StagingResource.class))));
+        ec.checkThat(resources, allOf(Matchers.iterableWithSize(6), everyItem(instanceOf(StagingResource.class))));
 
         for (Resource r : resources) {
             Node n = r.adaptTo(Node.class);
-            errorCollector.checkThat(r.toString(), n, allOf(
+            ec.checkThat(r.toString(), n, allOf(
                     notNullValue(), instanceOf(FrozenNodeWrapper.class)
             ));
             if (n != null) {
-                errorCollector.checkThat(r.toString(), n.getPath(), equalTo(r.getPath()));
-                errorCollector.checkThat(r.toString(), n.getName(), equalTo(r.getName()));
+                ec.checkThat(r.toString(), n.getPath(), equalTo(r.getPath()));
+                ec.checkThat(r.toString(), n.getName(), equalTo(r.getName()));
 
                 List<Resource> childResources = IteratorUtils.toList(r.listChildren());
-                errorCollector.checkThat(r.toString(), childResources, everyItem(instanceOf(StagingResource.class)));
+                ec.checkThat(r.toString(), childResources, everyItem(instanceOf(StagingResource.class)));
 
                 List<Node> childNodes = IteratorUtils.toList(n.getNodes());
-                errorCollector.checkThat(r.toString(), childNodes, everyItem(instanceOf(FrozenNodeWrapper.class)));
+                ec.checkThat(r.toString(), childNodes, everyItem(instanceOf(FrozenNodeWrapper.class)));
 
-                errorCollector.checkThat(r.toString(), childResources.stream().map(Resource::getName).collect(Collectors.joining(",")),
+                ec.checkThat(r.toString(), childResources.stream().map(Resource::getName).collect(Collectors.joining(",")),
                         equalTo(childNodes.stream().map(ExceptionUtil.sneakExceptions(Node::getName)).collect(Collectors.joining(","))));
 
                 if (!StagingUtils.isRoot(r)) {
-                    errorCollector.checkThat(r.toString(), n.getParent().getPath(), equalTo(r.getParent().getPath()));
-                    errorCollector.checkThat(r.toString(), n.getParent().getName(), equalTo(r.getParent().getName()));
+                    ec.checkThat(r.toString(), n.getParent().getPath(), equalTo(r.getParent().getPath()));
+                    ec.checkThat(r.toString(), n.getParent().getName(), equalTo(r.getParent().getName()));
                 }
 
                 String realPrimaryType = r.getValueMap().get(PROP_PRIMARY_TYPE, String.class);
                 Property primaryType = n.getProperty(PROP_PRIMARY_TYPE);
-                errorCollector.checkThat(r.toString(), primaryType, notNullValue());
-                errorCollector.checkThat(r.toString(), primaryType.getString(), equalTo(realPrimaryType));
+                ec.checkThat(r.toString(), primaryType, notNullValue());
+                ec.checkThat(r.toString(), primaryType.getString(), equalTo(realPrimaryType));
 
                 Resource primaryTypePropertyResource = r.getChild(PROP_PRIMARY_TYPE);
                 primaryType = primaryTypePropertyResource.adaptTo(Property.class);
-                errorCollector.checkThat(primaryTypePropertyResource.toString(), primaryType, notNullValue());
-                errorCollector.checkThat(primaryTypePropertyResource.toString(), primaryType.getString(), equalTo(realPrimaryType));
-                errorCollector.checkThat(primaryTypePropertyResource.toString(), primaryType.getName(), is(PROP_PRIMARY_TYPE));
+                ec.checkThat(primaryTypePropertyResource.toString(), primaryType, notNullValue());
+                ec.checkThat(primaryTypePropertyResource.toString(), primaryType.getString(), equalTo(realPrimaryType));
+                ec.checkThat(primaryTypePropertyResource.toString(), primaryType.getName(), is(PROP_PRIMARY_TYPE));
             }
         }
 
         List<Property> props = IteratorUtils.<Property>toList(stagingResourceResolver.resolve(node1).adaptTo(Node.class).getProperties());
         props.sort(Comparator.comparing(ExceptionUtil.sneakExceptions(Property::getName)));
-        errorCollector.checkThat(
+        ec.checkThat(
                 props.stream().map(ExceptionUtil.sneakExceptions(Property::getName)).collect(Collectors.joining(", ")),
                 equalTo("jcr:created, jcr:createdBy, jcr:lastModified, jcr:lastModifiedBy, jcr:mixinTypes, jcr:primaryType, jcr:title, jcr:uuid, sling:resourceType"));
     }
 
     @Test
     public void testPrimaryType() throws RepositoryException {
-        errorCollector.checkThat(ResourceUtil.getPrimaryType(context.resourceResolver().getResource(node1)), equalTo("rep:Unstructured"));
-        errorCollector.checkThat(context.resourceResolver().getResource(node1).adaptTo(Node.class).isNodeType("rep:Unstructured"), equalTo(true));
-        errorCollector.checkThat(ResourceUtil.getPrimaryType(stagingResourceResolver.getResource(node1)), equalTo("rep:Unstructured"));
-        errorCollector.checkThat(stagingResourceResolver.getResource(node1).adaptTo(Node.class).isNodeType("rep:Unstructured"), equalTo(true));
-        errorCollector.checkThat(ResourceUtil.getPrimaryType(context.resourceResolver().getResource(node1).getChild(PROP_PRIMARY_TYPE)), nullValue());
-        errorCollector.checkThat(ResourceUtil.getPrimaryType(stagingResourceResolver.getResource(node1).getChild(PROP_PRIMARY_TYPE)), nullValue());
+        ec.checkThat(ResourceUtil.getPrimaryType(context.resourceResolver().getResource(node1)), equalTo("rep:Unstructured"));
+        ec.checkThat(context.resourceResolver().getResource(node1).adaptTo(Node.class).isNodeType("rep:Unstructured"), equalTo(true));
+        ec.checkThat(ResourceUtil.getPrimaryType(stagingResourceResolver.getResource(node1)), equalTo("rep:Unstructured"));
+        ec.checkThat(stagingResourceResolver.getResource(node1).adaptTo(Node.class).isNodeType("rep:Unstructured"), equalTo(true));
+        ec.checkThat(ResourceUtil.getPrimaryType(context.resourceResolver().getResource(node1).getChild(PROP_PRIMARY_TYPE)), nullValue());
+        ec.checkThat(ResourceUtil.getPrimaryType(stagingResourceResolver.getResource(node1).getChild(PROP_PRIMARY_TYPE)), nullValue());
     }
 
     @Test
     public void resourceType() {
-        errorCollector.checkThat(ResourceUtil.isResourceType(context.resourceResolver().getResource(folder), TYPE_SLING_ORDERED_FOLDER), equalTo(true));
-        errorCollector.checkThat(ResourceUtil.isResourceType(stagingResourceResolver.getResource(folder), TYPE_SLING_ORDERED_FOLDER), equalTo(true));
-        errorCollector.checkThat(ResourceUtil.isResourceType(context.resourceResolver().getResource(folder), TYPE_SLING_FOLDER), equalTo(true));
-        errorCollector.checkThat(ResourceUtil.isResourceType(stagingResourceResolver.getResource(folder), TYPE_SLING_FOLDER), equalTo(true));
+        ec.checkThat(ResourceUtil.isResourceType(context.resourceResolver().getResource(folder), TYPE_SLING_ORDERED_FOLDER), equalTo(true));
+        ec.checkThat(ResourceUtil.isResourceType(stagingResourceResolver.getResource(folder), TYPE_SLING_ORDERED_FOLDER), equalTo(true));
+        ec.checkThat(ResourceUtil.isResourceType(context.resourceResolver().getResource(folder), TYPE_SLING_FOLDER), equalTo(true));
+        ec.checkThat(ResourceUtil.isResourceType(stagingResourceResolver.getResource(folder), TYPE_SLING_FOLDER), equalTo(true));
     }
 
 
@@ -496,34 +499,54 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         // new SlingAssertionCodeGenerator("vm", vm).useErrorCollector().printAssertions().printMapAssertions();
         // new SlingAssertionCodeGenerator("vmsub", vmsub).useErrorCollector().printAssertions().printMapAssertions();
 
-        errorCollector.checkThat(vm.get(PROP_MIXINTYPES, String[].class), arrayContainingInAnyOrder(TYPE_TITLE,
+        ec.checkThat(vm.get(PROP_MIXINTYPES, String[].class), arrayContainingInAnyOrder(TYPE_TITLE,
                 TYPE_LAST_MODIFIED, MIX_VERSIONABLE, StagingConstants.TYPE_MIX_REPLICATEDVERSIONABLE));
 
-        errorCollector.checkThat(vm.isEmpty(), is(false));
-        errorCollector.checkThat(vm.keySet(), containsInAnyOrder(PROP_REPLICATED_VERSION, "jcr:lastModifiedBy",
+        ec.checkThat(vm.isEmpty(), is(false));
+        ec.checkThat(vm.keySet(), containsInAnyOrder(PROP_REPLICATED_VERSION, "jcr:lastModifiedBy",
                 "jcr:lastModified", "foo", "jcr:uuid", "jcr:primaryType", "jcr:title", "jcr:mixinTypes"));
-        errorCollector.checkThat("" + vm.entrySet(), vm.entrySet(), iterableWithSize(8));
-        errorCollector.checkThat(vm.size(), is(8));
-        errorCollector.checkThat(vm.values(), iterableWithSize(8));
+        ec.checkThat("" + vm.entrySet(), vm.entrySet(), iterableWithSize(8));
+        ec.checkThat(vm.size(), is(8));
+        ec.checkThat(vm.values(), iterableWithSize(8));
 
-        errorCollector.checkThat(vm.get("jcr:uuid"), stringMatchingPattern("[0-9a-f-]{36}"));
-        errorCollector.checkThat(vm.get("foo"), is("bar"));
-        errorCollector.checkThat(vm.get("jcr:title"), is("title"));
-        errorCollector.checkThat(vm.get("jcr:lastModifiedBy"), is("admin"));
-        errorCollector.checkThat(vm.get("jcr:lastModified"), instanceOf(java.util.Calendar.class));
-        errorCollector.checkThat(vm.get("jcr:primaryType"), is("nt:unstructured"));
-        errorCollector.checkThat((String[]) vm.get("jcr:mixinTypes"), arrayContainingInAnyOrder(TYPE_TITLE,
+        ec.checkThat(vm.get("jcr:uuid"), stringMatchingPattern("[0-9a-f-]{36}"));
+        ec.checkThat(vm.get("foo"), is("bar"));
+        ec.checkThat(vm.get("jcr:title"), is("title"));
+        ec.checkThat(vm.get("jcr:lastModifiedBy"), is("admin"));
+        ec.checkThat(vm.get("jcr:lastModified"), instanceOf(java.util.Calendar.class));
+        ec.checkThat(vm.get("jcr:primaryType"), is("nt:unstructured"));
+        ec.checkThat((String[]) vm.get("jcr:mixinTypes"), arrayContainingInAnyOrder(TYPE_TITLE,
                 TYPE_LAST_MODIFIED, MIX_VERSIONABLE, TYPE_MIX_REPLICATEDVERSIONABLE));
-        errorCollector.checkThat(vm.get(PROP_REPLICATED_VERSION), is(version.getIdentifier()));
+        ec.checkThat(vm.get(PROP_REPLICATED_VERSION), is(version.getIdentifier()));
 
-        errorCollector.checkThat(vmsub.isEmpty(), is(false));
-        errorCollector.checkThat(vmsub.entrySet(), iterableWithSize(2));
-        errorCollector.checkThat(vmsub.keySet(), contains("jcr:primaryType", "nix"));
-        errorCollector.checkThat(vmsub.size(), is(2));
-        errorCollector.checkThat(vmsub.values(), contains("nt:unstructured", "nux"));
+        ec.checkThat(vmsub.isEmpty(), is(false));
+        ec.checkThat(vmsub.entrySet(), iterableWithSize(2));
+        ec.checkThat(vmsub.keySet(), contains("jcr:primaryType", "nix"));
+        ec.checkThat(vmsub.size(), is(2));
+        ec.checkThat(vmsub.values(), contains("nt:unstructured", "nux"));
 
-        errorCollector.checkThat(vmsub.get("jcr:primaryType"), is("nt:unstructured"));
-        errorCollector.checkThat(vmsub.get("nix"), is("nux"));
+        ec.checkThat(vmsub.get("jcr:primaryType"), is("nt:unstructured"));
+        ec.checkThat(vmsub.get("nix"), is("nux"));
+    }
+
+    @Test
+    public void checkBinaryReadFromNode() throws Exception {
+        ResourceBuilder versionableResourceBuilder = context.build().resource("/folder/file",
+                PROP_PRIMARY_TYPE, ResourceUtil.NT_FILE,
+                PROP_MIXINTYPES, array(TYPE_VERSIONABLE, TYPE_TITLE, TYPE_LAST_MODIFIED));
+        versionableResourceBuilder.resource(CONTENT_NODE, PROP_PRIMARY_TYPE, ResourceUtil.NT_RESOURCE,
+                ResourceUtil.PROP_DATA, "testdata");
+        Resource file = versionableResourceBuilder.commit().getCurrentParent();
+        versionManager.checkin(file.getPath());
+
+        Binary binary = ResourceUtil.getBinaryData(file);
+        ec.checkThat(IOUtils.toString(binary.getStream()), is("testdata"));
+        releaseManager.updateRelease(release, Arrays.asList(ReleasedVersionable.forBaseVersion(file)));
+
+        Resource stagedFile = stagingResourceResolver.getResource(file.getPath());
+        ec.checkThat(stagedFile, notNullValue());
+        binary = ResourceUtil.getBinaryData(stagedFile);
+        ec.checkThat(IOUtils.toString(binary.getStream()), is("testdata"));
     }
 
     /**
@@ -574,18 +597,18 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         Resource r;
 
         r = resourceResolver.getResource("/folder");
-        errorCollector.checkThat(r.getPath(), r, existsInclusiveParents());
+        ec.checkThat(r.getPath(), r, existsInclusiveParents());
 
-        errorCollector.checkThat(r.getPath(), r.getChildren(), mappedMatches(SlingMatchers::resourcePaths, contains("/folder/document1", "/folder/document2")));
-        errorCollector.checkThat(r.getPath(), r.hasChildren(), is(true));
-        errorCollector.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(2));
-        errorCollector.checkThat(r.getPath(), r.getName(), is("folder"));
-        errorCollector.checkThat(r.getPath(), r.getParent(), hasResourcePath("/"));
-        errorCollector.checkThat(r.getPath(), r.getPath(), is("/folder"));
-        errorCollector.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
-        errorCollector.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
-        errorCollector.checkThat(r.getPath(), r.getResourceType(), is("sling:OrderedFolder"));
-        errorCollector.checkThat(r.getPath(), r.getValueMap(), allOf(
+        ec.checkThat(r.getPath(), r.getChildren(), mappedMatches(SlingMatchers::resourcePaths, contains("/folder/document1", "/folder/document2")));
+        ec.checkThat(r.getPath(), r.hasChildren(), is(true));
+        ec.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(2));
+        ec.checkThat(r.getPath(), r.getName(), is("folder"));
+        ec.checkThat(r.getPath(), r.getParent(), hasResourcePath("/"));
+        ec.checkThat(r.getPath(), r.getPath(), is("/folder"));
+        ec.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
+        ec.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
+        ec.checkThat(r.getPath(), r.getResourceType(), is("sling:OrderedFolder"));
+        ec.checkThat(r.getPath(), r.getValueMap(), allOf(
                 hasMapSize(2),
                 SlingMatchers.hasEntryMatching(is("jcr:mixinTypes"), arrayContaining(is("cpl:releaseRoot"))),
                 SlingMatchers.hasEntryMatching(is("jcr:primaryType"), is("sling:OrderedFolder"))
@@ -593,51 +616,51 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
 
         r = resourceResolver.getResource("/folder/document1");
-        errorCollector.checkThat(r.getPath(), r, existsInclusiveParents());
+        ec.checkThat(r.getPath(), r, existsInclusiveParents());
 
-        errorCollector.checkThat(r.getPath(), r.getChildren(), mappedMatches(SlingMatchers::resourcePaths, contains("/folder/document1/jcr:content")));
-        errorCollector.checkThat(r.getPath(), r.hasChildren(), is(true));
-        errorCollector.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(1));
-        errorCollector.checkThat(r.getPath(), r.getName(), is("document1"));
-        errorCollector.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder"));
-        errorCollector.checkThat(r.getPath(), r.getPath(), is("/folder/document1"));
-        errorCollector.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
-        errorCollector.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
-        errorCollector.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured"));
-        errorCollector.checkThat(r.getPath(), r.getValueMap(), allOf(
+        ec.checkThat(r.getPath(), r.getChildren(), mappedMatches(SlingMatchers::resourcePaths, contains("/folder/document1/jcr:content")));
+        ec.checkThat(r.getPath(), r.hasChildren(), is(true));
+        ec.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(1));
+        ec.checkThat(r.getPath(), r.getName(), is("document1"));
+        ec.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder"));
+        ec.checkThat(r.getPath(), r.getPath(), is("/folder/document1"));
+        ec.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
+        ec.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
+        ec.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured"));
+        ec.checkThat(r.getPath(), r.getValueMap(), allOf(
                 hasMapSize(1),
                 SlingMatchers.hasEntryMatching(is("jcr:primaryType"), is("nt:unstructured"))
         ));
 
 
         r = resourceResolver.getResource("/folder/jcr:primaryType");
-        errorCollector.checkThat(r.getPath(), r, existsInclusiveParents());
+        ec.checkThat(r.getPath(), r, existsInclusiveParents());
 
-        errorCollector.checkThat(r.getPath(), r.getChildren(), emptyIterable());
-        errorCollector.checkThat(r.getPath(), r.hasChildren(), is(false));
-        errorCollector.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(0));
-        errorCollector.checkThat(r.getPath(), r.getName(), is("jcr:primaryType"));
-        errorCollector.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder"));
-        errorCollector.checkThat(r.getPath(), r.getPath(), is("/folder/jcr:primaryType"));
-        errorCollector.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
-        errorCollector.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
-        errorCollector.checkThat(r.getPath(), r.getResourceType(), is("sling:OrderedFolder/jcr:primaryType"));
-        errorCollector.checkThat(r.getPath(), r.getValueMap(), hasMapSize(0));
+        ec.checkThat(r.getPath(), r.getChildren(), emptyIterable());
+        ec.checkThat(r.getPath(), r.hasChildren(), is(false));
+        ec.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(0));
+        ec.checkThat(r.getPath(), r.getName(), is("jcr:primaryType"));
+        ec.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder"));
+        ec.checkThat(r.getPath(), r.getPath(), is("/folder/jcr:primaryType"));
+        ec.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
+        ec.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
+        ec.checkThat(r.getPath(), r.getResourceType(), is("sling:OrderedFolder/jcr:primaryType"));
+        ec.checkThat(r.getPath(), r.getValueMap(), hasMapSize(0));
 
 
         r = resourceResolver.getResource("/folder/document1/jcr:content");
-        errorCollector.checkThat(r.getPath(), r, existsInclusiveParents());
+        ec.checkThat(r.getPath(), r, existsInclusiveParents());
 
-        errorCollector.checkThat(r.getPath(), r.getChildren(), mappedMatches(SlingMatchers::resourcePaths, contains("/folder/document1/jcr:content/n1")));
-        errorCollector.checkThat(r.getPath(), r.hasChildren(), is(true));
-        errorCollector.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(1));
-        errorCollector.checkThat(r.getPath(), r.getName(), is("jcr:content"));
-        errorCollector.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder/document1"));
-        errorCollector.checkThat(r.getPath(), r.getPath(), is("/folder/document1/jcr:content"));
-        errorCollector.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
-        errorCollector.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
-        errorCollector.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured"));
-        errorCollector.checkThat(r.getPath(), r.getValueMap(), allOf(
+        ec.checkThat(r.getPath(), r.getChildren(), mappedMatches(SlingMatchers::resourcePaths, contains("/folder/document1/jcr:content/n1")));
+        ec.checkThat(r.getPath(), r.hasChildren(), is(true));
+        ec.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(1));
+        ec.checkThat(r.getPath(), r.getName(), is("jcr:content"));
+        ec.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder/document1"));
+        ec.checkThat(r.getPath(), r.getPath(), is("/folder/document1/jcr:content"));
+        ec.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
+        ec.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
+        ec.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured"));
+        ec.checkThat(r.getPath(), r.getValueMap(), allOf(
                 hasMapSize(6),
                 // SlingMatchers.hasEntryMatching(is("jcr:versionHistory"), stringMatchingPattern("[0-9a-f-]{36}")),
                 // SlingMatchers.hasEntryMatching(is("jcr:predecessors"), arrayContaining(stringMatchingPattern("[0-9a-f-]{36}"))),
@@ -654,81 +677,81 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
 
         r = resourceResolver.getResource("/folder/document1/jcr:primaryType");
-        errorCollector.checkThat(r.getPath(), r, existsInclusiveParents());
+        ec.checkThat(r.getPath(), r, existsInclusiveParents());
 
-        errorCollector.checkThat(r.getPath(), r.getChildren(), emptyIterable());
-        errorCollector.checkThat(r.getPath(), r.hasChildren(), is(false));
-        errorCollector.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(0));
-        errorCollector.checkThat(r.getPath(), r.getName(), is("jcr:primaryType"));
-        errorCollector.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder/document1"));
-        errorCollector.checkThat(r.getPath(), r.getPath(), is("/folder/document1/jcr:primaryType"));
-        errorCollector.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
-        errorCollector.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
-        errorCollector.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured/jcr:primaryType"));
-        errorCollector.checkThat(r.getPath(), r.getValueMap(), hasMapSize(0));
+        ec.checkThat(r.getPath(), r.getChildren(), emptyIterable());
+        ec.checkThat(r.getPath(), r.hasChildren(), is(false));
+        ec.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(0));
+        ec.checkThat(r.getPath(), r.getName(), is("jcr:primaryType"));
+        ec.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder/document1"));
+        ec.checkThat(r.getPath(), r.getPath(), is("/folder/document1/jcr:primaryType"));
+        ec.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
+        ec.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
+        ec.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured/jcr:primaryType"));
+        ec.checkThat(r.getPath(), r.getValueMap(), hasMapSize(0));
 
 
         r = resourceResolver.getResource("/folder/document1/jcr:content/jcr:primaryType");
-        errorCollector.checkThat(r.getPath(), r, existsInclusiveParents());
+        ec.checkThat(r.getPath(), r, existsInclusiveParents());
 
-        errorCollector.checkThat(r.getPath(), r.getChildren(), emptyIterable());
-        errorCollector.checkThat(r.getPath(), r.hasChildren(), is(false));
-        errorCollector.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(0));
-        errorCollector.checkThat(r.getPath(), r.getName(), is("jcr:primaryType"));
-        errorCollector.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder/document1/jcr:content"));
-        errorCollector.checkThat(r.getPath(), r.getPath(), is("/folder/document1/jcr:content/jcr:primaryType"));
-        errorCollector.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
-        errorCollector.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
-        errorCollector.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured/jcr:primaryType"));
-        errorCollector.checkThat(r.getPath(), r.getValueMap(), hasMapSize(0));
+        ec.checkThat(r.getPath(), r.getChildren(), emptyIterable());
+        ec.checkThat(r.getPath(), r.hasChildren(), is(false));
+        ec.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(0));
+        ec.checkThat(r.getPath(), r.getName(), is("jcr:primaryType"));
+        ec.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder/document1/jcr:content"));
+        ec.checkThat(r.getPath(), r.getPath(), is("/folder/document1/jcr:content/jcr:primaryType"));
+        ec.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
+        ec.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
+        ec.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured/jcr:primaryType"));
+        ec.checkThat(r.getPath(), r.getValueMap(), hasMapSize(0));
 
 
         r = resourceResolver.getResource("/folder/document1/jcr:content/n1");
-        errorCollector.checkThat(r.getPath(), r, existsInclusiveParents());
+        ec.checkThat(r.getPath(), r, existsInclusiveParents());
 
-        errorCollector.checkThat(r.getPath(), r.getChildren(), mappedMatches(SlingMatchers::resourcePaths, contains("/folder/document1/jcr:content/n1/something")));
-        errorCollector.checkThat(r.getPath(), r.hasChildren(), is(true));
-        errorCollector.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(1));
-        errorCollector.checkThat(r.getPath(), r.getName(), is("n1"));
-        errorCollector.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder/document1/jcr:content"));
-        errorCollector.checkThat(r.getPath(), r.getPath(), is("/folder/document1/jcr:content/n1"));
-        errorCollector.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
-        errorCollector.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
-        errorCollector.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured"));
-        errorCollector.checkThat(r.getPath(), r.getValueMap(), allOf(
+        ec.checkThat(r.getPath(), r.getChildren(), mappedMatches(SlingMatchers::resourcePaths, contains("/folder/document1/jcr:content/n1/something")));
+        ec.checkThat(r.getPath(), r.hasChildren(), is(true));
+        ec.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(1));
+        ec.checkThat(r.getPath(), r.getName(), is("n1"));
+        ec.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder/document1/jcr:content"));
+        ec.checkThat(r.getPath(), r.getPath(), is("/folder/document1/jcr:content/n1"));
+        ec.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
+        ec.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
+        ec.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured"));
+        ec.checkThat(r.getPath(), r.getValueMap(), allOf(
                 hasMapSize(1),
                 SlingMatchers.hasEntryMatching(is("jcr:primaryType"), is("nt:unstructured"))
         ));
 
 
         r = resourceResolver.getResource("/folder/document1/jcr:content/n1/jcr:primaryType");
-        errorCollector.checkThat(r.getPath(), r, existsInclusiveParents());
+        ec.checkThat(r.getPath(), r, existsInclusiveParents());
 
-        errorCollector.checkThat(r.getPath(), r.getChildren(), emptyIterable());
-        errorCollector.checkThat(r.getPath(), r.hasChildren(), is(false));
-        errorCollector.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(0));
-        errorCollector.checkThat(r.getPath(), r.getName(), is("jcr:primaryType"));
-        errorCollector.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder/document1/jcr:content/n1"));
-        errorCollector.checkThat(r.getPath(), r.getPath(), is("/folder/document1/jcr:content/n1/jcr:primaryType"));
-        errorCollector.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
-        errorCollector.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
-        errorCollector.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured/jcr:primaryType"));
-        errorCollector.checkThat(r.getPath(), r.getValueMap(), hasMapSize(0));
+        ec.checkThat(r.getPath(), r.getChildren(), emptyIterable());
+        ec.checkThat(r.getPath(), r.hasChildren(), is(false));
+        ec.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(0));
+        ec.checkThat(r.getPath(), r.getName(), is("jcr:primaryType"));
+        ec.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder/document1/jcr:content/n1"));
+        ec.checkThat(r.getPath(), r.getPath(), is("/folder/document1/jcr:content/n1/jcr:primaryType"));
+        ec.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
+        ec.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
+        ec.checkThat(r.getPath(), r.getResourceType(), is("nt:unstructured/jcr:primaryType"));
+        ec.checkThat(r.getPath(), r.getValueMap(), hasMapSize(0));
 
 
         r = resourceResolver.getResource("/folder/document1/jcr:content/n1/something");
-        errorCollector.checkThat(r.getPath(), r, existsInclusiveParents());
+        ec.checkThat(r.getPath(), r, existsInclusiveParents());
 
-        errorCollector.checkThat(r.getPath(), r.getChildren(), emptyIterable());
-        errorCollector.checkThat(r.getPath(), r.hasChildren(), is(false));
-        errorCollector.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(0));
-        errorCollector.checkThat(r.getPath(), r.getName(), is("something"));
-        errorCollector.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder/document1/jcr:content/n1"));
-        errorCollector.checkThat(r.getPath(), r.getPath(), is("/folder/document1/jcr:content/n1/something"));
-        errorCollector.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
-        errorCollector.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
-        errorCollector.checkThat(r.getPath(), r.getResourceType(), is("sling/somethingres"));
-        errorCollector.checkThat(r.getPath(), r.getValueMap(), allOf(
+        ec.checkThat(r.getPath(), r.getChildren(), emptyIterable());
+        ec.checkThat(r.getPath(), r.hasChildren(), is(false));
+        ec.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(0));
+        ec.checkThat(r.getPath(), r.getName(), is("something"));
+        ec.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder/document1/jcr:content/n1"));
+        ec.checkThat(r.getPath(), r.getPath(), is("/folder/document1/jcr:content/n1/something"));
+        ec.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
+        ec.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
+        ec.checkThat(r.getPath(), r.getResourceType(), is("sling/somethingres"));
+        ec.checkThat(r.getPath(), r.getValueMap(), allOf(
                 hasMapSize(8),
                 SlingMatchers.hasEntryMatching(is("jcr:lastModifiedBy"), is("admin")),
                 SlingMatchers.hasEntryMatching(is("jcr:created"), notNullValue(java.util.Calendar.class)),
@@ -742,20 +765,18 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
 
 
         r = resourceResolver.getResource("/folder/document1/jcr:content/n1/something/jcr:primaryType");
-        errorCollector.checkThat(r.getPath(), r, existsInclusiveParents());
+        ec.checkThat(r.getPath(), r, existsInclusiveParents());
 
-        errorCollector.checkThat(r.getPath(), r.getChildren(), emptyIterable());
-        errorCollector.checkThat(r.getPath(), r.hasChildren(), is(false));
-        errorCollector.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(0));
-        errorCollector.checkThat(r.getPath(), r.getName(), is("jcr:primaryType"));
-        errorCollector.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder/document1/jcr:content/n1/something"));
-        errorCollector.checkThat(r.getPath(), r.getPath(), is("/folder/document1/jcr:content/n1/something/jcr:primaryType"));
-        errorCollector.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
-        errorCollector.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
-        errorCollector.checkThat(r.getPath(), r.getResourceType(), is("sling/somethingres/jcr:primaryType"));
-        errorCollector.checkThat(r.getPath(), r.getValueMap(), hasMapSize(0));
-
-
+        ec.checkThat(r.getPath(), r.getChildren(), emptyIterable());
+        ec.checkThat(r.getPath(), r.hasChildren(), is(false));
+        ec.checkThat(r.getPath(), r.listChildren(), iteratorWithSize(0));
+        ec.checkThat(r.getPath(), r.getName(), is("jcr:primaryType"));
+        ec.checkThat(r.getPath(), r.getParent(), hasResourcePath("/folder/document1/jcr:content/n1/something"));
+        ec.checkThat(r.getPath(), r.getPath(), is("/folder/document1/jcr:content/n1/something/jcr:primaryType"));
+        ec.checkThat(r.getPath(), r.getResourceResolver(), notNullValue(ResourceResolver.class));
+        ec.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
+        ec.checkThat(r.getPath(), r.getResourceType(), is("sling/somethingres/jcr:primaryType"));
+        ec.checkThat(r.getPath(), r.getValueMap(), hasMapSize(0));
     }
 
 }

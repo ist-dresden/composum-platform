@@ -343,7 +343,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             if (rvInPreviousRelease == null && previousRelease != null) {
                 rvInPreviousRelease = releaseManager.findReleasedVersionable(previousRelease, pathResource);
             }
-            LOG.info("Reverting in {} from {} : {}", release, previousReleaseNumber, rvInPreviousRelease);
+            LOG.info("Reverting in {} from {} : {}", release, rvInRelease, rvInPreviousRelease);
 
             if (rvInPreviousRelease == null) { // delete it since it wasn't in the previous release or there is no previous release
                 if (rvInRelease == null) {
