@@ -13,7 +13,12 @@ import javax.jcr.Session;
 import javax.jcr.ValueFactory;
 import java.math.BigDecimal;
 import java.net.URI;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static com.composum.sling.core.util.ResourceUtil.PROP_PRIMARY_TYPE;
 import static com.composum.sling.core.util.ResourceUtil.PROP_UUID;
@@ -43,26 +48,36 @@ public class QueryConditionDsl {
     protected StringBuilder unversionedQuery = new StringBuilder();
     protected StringBuilder versionedQuery = new StringBuilder();
 
-    /** Nesting level of parentheses. >=0 */
+    /**
+     * Nesting level of parentheses. >=0
+     */
     protected int parenthesesNestingLevel;
 
-    /** Number of needed closing parentheses (after lower / upper) before the comparison operator can start. */
+    /**
+     * Number of needed closing parentheses (after lower / upper) before the comparison operator can start.
+     */
     protected int closeParensBeforeComparison;
 
     protected int nextBindingVarNumber = 1;
-    /** Maps val1, val2, ... to the values bound */
+    /**
+     * Maps val1, val2, ... to the values bound
+     */
     protected Map<String, Object> bindingVariables = new LinkedHashMap<>();
 
     protected final QueryConditionImpl queryCondition = new QueryConditionImpl();
     protected final ComparisonOperator comparisonOperator = new ComparisonOperator();
     protected final ConditionStaticValue conditionStaticValue = new ConditionStaticValue();
 
-    /** Use {@link Query#conditionBuilder()} or {@link Query#joinConditionBuilder()}. */
+    /**
+     * Use {@link Query#conditionBuilder()} or {@link Query#joinConditionBuilder()}.
+     */
     protected QueryConditionDsl(String selector) {
         this.selector = selector;
     }
 
-    /** Entry point. */
+    /**
+     * Entry point.
+     */
     public QueryConditionBuilder builder() {
         return new QueryConditionBuilder(selector);
     }
@@ -93,14 +108,18 @@ public class QueryConditionDsl {
         return res.queryCondition;
     }
 
-    /** Appends some SQL2 fragment */
+    /**
+     * Appends some SQL2 fragment
+     */
     protected QueryConditionDsl append(String fragment) {
         unversionedQuery.append(fragment);
         versionedQuery.append(fragment);
         return this;
     }
 
-    /** Appends a reference to a property of the selected node. */
+    /**
+     * Appends a reference to a property of the selected node.
+     */
     protected QueryConditionDsl appendPropertyReference(String theSelector, String propertyName) {
         if ("*".equals(propertyName)) {
             unversionedQuery.append(theSelector + ".").append(propertyName).append(" ");
@@ -115,7 +134,9 @@ public class QueryConditionDsl {
         return this;
     }
 
-    /** Inserts a binding variable into the SQL and saves the value. */
+    /**
+     * Inserts a binding variable into the SQL and saves the value.
+     */
     protected QueryConditionDsl appendValue(Object value) {
         if (null == value) throw new IllegalArgumentException("Argument value is null - please use isNull instead.");
         String bindingVariable = selector + "val" + nextBindingVarNumber;
@@ -125,20 +146,26 @@ public class QueryConditionDsl {
         return this;
     }
 
-    /** Appends a string value, applying quoting. */
+    /**
+     * Appends a string value, applying quoting.
+     */
     protected QueryConditionDsl appendString(@Nonnull String value) {
         if (null == value) append("'' ");
         else append("'").append(value.replaceAll("'", "''")).append("' ");
         return this;
     }
 
-    /** Returns the SQL2 of the current query, as far as constructed. */
+    /**
+     * Returns the SQL2 of the current query, as far as constructed.
+     */
     @Override
     public String toString() {
         return unversionedQuery.toString();
     }
 
-    /** Start of a comparison with a dynamic operand. */
+    /**
+     * Start of a comparison with a dynamic operand.
+     */
     public class ComparisonStart {
         protected String nextSelector;
 
@@ -146,13 +173,17 @@ public class QueryConditionDsl {
             this.nextSelector = nextSelector;
         }
 
-        /** Starts a comparison of a property of the node to something. */
+        /**
+         * Starts a comparison of a property of the node to something.
+         */
         public ComparisonOperator property(String property) {
             appendPropertyReference(nextSelector, property);
             return comparisonOperator;
         }
 
-        /** Starts a comparison of the length of a property of the node to something. */
+        /**
+         * Starts a comparison of the length of a property of the node to something.
+         */
         public ComparisonOperator length(String property) {
             append("LENGTH(").appendPropertyReference(nextSelector, property).append(") ");
             return comparisonOperator;
@@ -184,20 +215,26 @@ public class QueryConditionDsl {
         }
 
 
-        /** Starts a comparison of the score of the full-text search score of a node to something. */
+        /**
+         * Starts a comparison of the score of the full-text search score of a node to something.
+         */
         public ComparisonOperator score() {
             append("SCORE(" + nextSelector + ") ");
             return comparisonOperator;
         }
 
-        /** Applies LOWER (lowercase) to the following dynamic operand. */
+        /**
+         * Applies LOWER (lowercase) to the following dynamic operand.
+         */
         public ComparisonStart lower() {
             append("LOWER( ");
             closeParensBeforeComparison++;
             return this;
         }
 
-        /** Applies UPPER (uppercase) to the following dynamic operand. */
+        /**
+         * Applies UPPER (uppercase) to the following dynamic operand.
+         */
         public ComparisonStart upper() {
             append("UPPER( ");
             closeParensBeforeComparison++;
@@ -216,54 +253,70 @@ public class QueryConditionDsl {
         }
     }
 
-    /** Builder for a {@link QueryCondition} in fluent API style. Now we start a constraint with a queryCondition. */
+    /**
+     * Builder for a {@link QueryCondition} in fluent API style. Now we start a constraint with a queryCondition.
+     */
     public class QueryConditionBuilder extends ComparisonStart {
         protected QueryConditionBuilder(String nextSelector) {
             super(nextSelector);
         }
 
-        /** Starts a group of conditions with an opening parenthesis. */
+        /**
+         * Starts a group of conditions with an opening parenthesis.
+         */
         public QueryConditionBuilder startGroup() {
             append("( ");
             parenthesesNestingLevel++;
             return this;
         }
 
-        /** Negates the following constraintStart. */
+        /**
+         * Negates the following constraintStart.
+         */
         public QueryConditionBuilder not() {
             append("NOT ");
             return this;
         }
 
-        /** The selected node is exactly the node with the given path. */
+        /**
+         * The selected node is exactly the node with the given path.
+         */
         public QueryCondition isSameNodeAs(@Nonnull String path) {
             append("ISSAMENODE(" + nextSelector + ",").appendString(path).append(") ");
             nextSelector = null;
             return queryCondition;
         }
 
-        /** The selected node is the child of the node with the given path. */
+        /**
+         * The selected node is the child of the node with the given path.
+         */
         public QueryCondition isChildOf(@Nonnull String path) {
             append("ISCHILDNODE(" + nextSelector + ",").appendString(path).append(") ");
             nextSelector = null;
             return queryCondition;
         }
 
-        /** The selected node is the child of the node with the given path. */
+        /**
+         * The selected node is the child of the node with the given path.
+         */
         public QueryCondition isDescendantOf(@Nonnull String path) {
             append("ISDESCENDANTNODE(" + nextSelector + ",").appendString(path).append(") ");
             nextSelector = null;
             return queryCondition;
         }
 
-        /** QueryCondition that the given property is not null. */
+        /**
+         * QueryCondition that the given property is not null.
+         */
         public QueryCondition isNotNull(String property) {
             appendPropertyReference(nextSelector, property).append("IS NOT NULL ");
             nextSelector = null;
             return queryCondition;
         }
 
-        /** QueryCondition that the given property is null. */
+        /**
+         * QueryCondition that the given property is null.
+         */
         public QueryCondition isNull(String property) {
             appendPropertyReference(nextSelector, property).append("IS NULL ");
             nextSelector = null;
@@ -307,12 +360,16 @@ public class QueryConditionDsl {
             return queryCondition;
         }
 
-        /** The selected node's property is one of the given values. (Extension over JCR-SQL2). */
+        /**
+         * The selected node's property is one of the given values. (Extension over JCR-SQL2).
+         */
         public QueryCondition in(String property, String... values) {
             return in(property, Arrays.asList(values));
         }
 
-        /** The selected node's property is one of the given values. (Extension over JCR-SQL2). */
+        /**
+         * The selected node's property is one of the given values. (Extension over JCR-SQL2).
+         */
         public QueryCondition in(String property, Collection<String> values) {
             if (null == values || values.isEmpty()) return isNull(property);
             QueryConditionBuilder cond = this.startGroup();
@@ -326,9 +383,13 @@ public class QueryConditionDsl {
         }
     }
 
-    /** Within a comparison in a queryCondition - the dynamic operant has been given, now expecting an operator. */
+    /**
+     * Within a comparison in a queryCondition - the dynamic operant has been given, now expecting an operator.
+     */
     public class ComparisonOperator {
-        /** Close parentheses after previous lower / upper */
+        /**
+         * Close parentheses after previous lower / upper
+         */
         protected void closeParentheses() {
             while (closeParensBeforeComparison > 0) {
                 append(") ");
@@ -336,42 +397,54 @@ public class QueryConditionDsl {
             }
         }
 
-        /** = */
+        /**
+         * =
+         */
         public ConditionStaticValue eq() {
             closeParentheses();
             append("= ");
             return conditionStaticValue;
         }
 
-        /** <> */
+        /**
+         * <>
+         */
         public ConditionStaticValue neq() {
             closeParentheses();
             append("<> ");
             return conditionStaticValue;
         }
 
-        /** < */
+        /**
+         * <
+         */
         public ConditionStaticValue lt() {
             closeParentheses();
             append("< ");
             return conditionStaticValue;
         }
 
-        /** <= */
+        /**
+         * <=
+         */
         public ConditionStaticValue leq() {
             closeParentheses();
             append("<= ");
             return conditionStaticValue;
         }
 
-        /** > */
+        /**
+         * >
+         */
         public ConditionStaticValue gt() {
             closeParentheses();
             append("> ");
             return conditionStaticValue;
         }
 
-        /** >= */
+        /**
+         * >=
+         */
         public ConditionStaticValue geq() {
             closeParentheses();
             append(">= ");
@@ -392,33 +465,45 @@ public class QueryConditionDsl {
         }
     }
 
-    /** A comparison has a dynamic value and operator - now expecting the static operand. */
+    /**
+     * A comparison has a dynamic value and operator - now expecting the static operand.
+     */
     public class ConditionStaticValue {
-        /** Compares with the given String. */
+        /**
+         * Compares with the given String.
+         */
         public QueryCondition val(@Nonnull String val) {
             appendValue(val);
             return queryCondition;
         }
 
-        /** Compares with the given Number. */
+        /**
+         * Compares with the given Number.
+         */
         public QueryCondition val(@Nonnull Number i) {
             appendValue(i);
             return queryCondition;
         }
 
-        /** Compares with the given Calendar. */
+        /**
+         * Compares with the given Calendar.
+         */
         public QueryCondition val(@Nonnull Calendar d) {
             appendValue(d);
             return queryCondition;
         }
 
-        /** Compares with the path of the given resource. */
+        /**
+         * Compares with the path of the given resource.
+         */
         public QueryCondition pathOf(@Nonnull Resource resource) {
             appendValue(resource.getPath());
             return queryCondition;
         }
 
-        /** Compares with the {@link ResourceUtil#PROP_UUID} of the given resource. */
+        /**
+         * Compares with the {@link ResourceUtil#PROP_UUID} of the given resource.
+         */
         public QueryCondition uuidOf(@Nonnull Resource resource) {
             String uuid = resource.getValueMap().get(PROP_UUID, String.class);
             Validate.notNull(uuid, "Resource has no " + PROP_UUID + ": %s", resource.getPath());
@@ -426,15 +511,28 @@ public class QueryConditionDsl {
             return queryCondition;
         }
 
-        /** Compares with the given Boolean. */
+        /**
+         * Compares with the given Boolean.
+         */
         public QueryCondition val(@Nonnull Boolean i) {
             appendValue(i);
             return queryCondition;
         }
 
-        /** Compares with the given URI (in {@link URI#toString()} representation). */
+        /**
+         * Compares with the given URI (in {@link URI#toString()} representation).
+         */
         public QueryCondition val(@Nonnull URI uri) {
             appendValue(uri.toString());
+            return queryCondition;
+        }
+
+        /**
+         * Compares with the given literal transformed to the designated type.
+         */
+        @Nonnull
+        public QueryCondition cast(@Nonnull final String literal, @Nonnull final String type) {
+            append("CAST('").append(literal).append("' as ").append(type).append(") ");
             return queryCondition;
         }
     }
@@ -454,7 +552,9 @@ public class QueryConditionDsl {
             return new QueryConditionBuilder(selector);
         }
 
-        /** Finishes a group of conditions with a closing parenthesis. */
+        /**
+         * Finishes a group of conditions with a closing parenthesis.
+         */
         public @Nonnull
         QueryCondition endGroup() {
             if (parenthesesNestingLevel <= 0) throw new IllegalStateException("There is no group to close left.");
@@ -471,7 +571,9 @@ public class QueryConditionDsl {
             return selector;
         }
 
-        /** A selector for the join described with this condition for the given property. */
+        /**
+         * A selector for the join described with this condition for the given property.
+         */
         public String joinSelector(String property) {
             Validate.isTrue(isNotBlank(property));
             Validate.isTrue(!"*".equals(property), "Can't select all properties in a join");
@@ -479,27 +581,37 @@ public class QueryConditionDsl {
         }
     }
 
-    /** Implementation a query condition, separated from that so we don't mess up the DSL by passing these methods outside. */
+    /**
+     * Implementation a query condition, separated from that so we don't mess up the DSL by passing these methods outside.
+     */
     public class QueryConditionImpl extends QueryCondition {
 
-        /** Returns the generated SQL2 for use with querying the nodes as they are outside the version storage. */
+        /**
+         * Returns the generated SQL2 for use with querying the nodes as they are outside the version storage.
+         */
         public String getSQL2() {
             while (parenthesesNestingLevel > 0) queryCondition.endGroup();
             return unversionedQuery.toString();
         }
 
-        /** Returns the generated SQL2 for use with querying the nodes as they are inside the version storage. */
+        /**
+         * Returns the generated SQL2 for use with querying the nodes as they are inside the version storage.
+         */
         public String getVersionedSQL2() {
             while (parenthesesNestingLevel > 0) queryCondition.endGroup();
             return versionedQuery.toString();
         }
 
-        /** Returns the values of the binding variables contained in the SQL queries. */
+        /**
+         * Returns the values of the binding variables contained in the SQL queries.
+         */
         public Map<String, Object> getBindingValues() {
             return Collections.unmodifiableMap(bindingVariables);
         }
 
-        /** Sets the saved binding values on a jcrQuery. */
+        /**
+         * Sets the saved binding values on a jcrQuery.
+         */
         public void applyBindingValues(javax.jcr.query.Query jcrQuery, ResourceResolver resolver)
                 throws RepositoryException {
             StringBuilder debugbuf = new StringBuilder();
