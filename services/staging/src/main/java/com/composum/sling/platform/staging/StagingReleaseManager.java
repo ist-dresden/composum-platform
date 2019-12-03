@@ -327,6 +327,10 @@ public interface StagingReleaseManager {
             return StagingConstants.RELEASE_LABEL_PREFIX + getNumber();
         }
 
+        /**
+         * Path to internal release node. This is an unique identifier for the release, but use sparingly since this
+         * is implementation dependent.
+         */
         @Nonnull
         String getPath();
 
