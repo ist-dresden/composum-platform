@@ -383,8 +383,8 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         releaseManager.updateRelease(r2, Collections.singletonList(rv));
 
         filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r2.getNumber(), null, null);
-        ec.checkThat(filter.accept(new SyntheticResource(resourceResolver, document1, TYPE_UNSTRUCTURED)), is(true)); // normally the cpp:Page - still there
-        ec.checkThat(filter.accept(new SyntheticResource(resourceResolver, document1 + "/jcr:content", TYPE_UNSTRUCTURED)), is(false)); // only this is removed
+        ec.checkThat(filter.accept(new SyntheticResource(resourceResolver, document1, TYPE_UNSTRUCTURED)), is(false)); // normally the cpp:Page - removed as well
+        ec.checkThat(filter.accept(new SyntheticResource(resourceResolver, document1 + "/jcr:content", TYPE_UNSTRUCTURED)), is(false));
 
         filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r2.getNumber(), null, contentNodeFilter);
         // its content node is absent -> contentNodeFilter now blocks document1 , normally the cpp:Page
