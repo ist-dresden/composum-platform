@@ -11,6 +11,8 @@ import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.composum.sling.platform.staging.StagingReleaseManager.ReleaseNotFoundException;
+import com.composum.sling.platform.staging.StagingReleaseManager.ReleaseRootNotFoundException;
 import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
 import org.apache.commons.collections4.SetUtils;
@@ -134,8 +136,8 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             } else { // non existing resource = search by path, but nothing found
                 return null;
             }
-        } catch (StagingReleaseManager.ReleaseRootNotFoundException | IllegalArgumentException e) {
-            LOG.info("Could not determine status because of {}", e.toString());
+        } catch (ReleaseRootNotFoundException | ReleaseNotFoundException | IllegalArgumentException e) {
+            LOG.warn("Could not determine status because of {}", e.toString());
             LOG.debug(e.toString(), e);
             return null;
         }

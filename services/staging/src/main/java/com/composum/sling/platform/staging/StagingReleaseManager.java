@@ -14,8 +14,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * <p>Functionality to manage releases that are accessible via the {@link com.composum.sling.platform.staging.StagingResourceResolver}
- * or via replication.</p>
+ * <p>Functionality to manage releases that are accessible via the {@link StagingResourceResolver} or via replication
+ * .</p>
  * <p>
  * For a folder / site to be releasable its root has to have the mixin {@value StagingConstants#NODE_RELEASES}.
  * The release data is saved below <code></code>/var/composum/{path to release root}/</code> that contains one subnode for each release.
@@ -26,16 +26,15 @@ import java.util.Map;
  * </p>
  * <pre>
  * /var/composum/{path to release root}/
- *     jcr:content[{@value StagingConstants#TYPE_MIX_RELEASE_CONFIG}]/
- *         {@value StagingConstants#NODE_RELEASES}/
- *             {@value StagingConstants#CURRENT_RELEASE}/
- *                 {@value StagingConstants#NODE_RELEASE_ROOT}
- *                     ... copy of the working tree for the release
- *                 {@value StagingConstants#NODE_RELEASE_METADATA}
- *             otherrelase
- *                 {@value StagingConstants#NODE_RELEASE_ROOT}
- *                     ... copy of the working tree for the release
- *                 {@value StagingConstants#NODE_RELEASE_METADATA}
+ *      {@value StagingConstants#NODE_RELEASES}/
+ *         {@value StagingConstants#CURRENT_RELEASE}/
+ *               {@value StagingConstants#NODE_RELEASE_ROOT}
+ *                   ... copy of the working tree for the release
+ *             {@value StagingConstants#NODE_RELEASE_METADATA}
+ *         otherrelase
+ *             {@value StagingConstants#NODE_RELEASE_ROOT}
+ *                 ... copy of the working tree for the release
+ *             {@value StagingConstants#NODE_RELEASE_METADATA}
  * </pre>
  * <p>We also set a label {@link Release#getReleaseLabel()} on each version contained in the release,
  * for easier referencing versions. </p>
@@ -95,13 +94,13 @@ public interface StagingReleaseManager {
      * <p>
      * We cannot create a release from {@link StagingConstants#CURRENT_RELEASE} since that does not in the release number
      * as tree concept, so an {@link IllegalArgumentException} would be thrown. For that use the
-     * conceptually different {@link #finalizeCurrentRelease(ReleaseNumberCreator)}.
+     * conceptually different {@link #finalizeCurrentRelease(Resource, ReleaseNumberCreator)}.
      * </p>
      *
      * @param copyFromRelease an existing release, whose workspace is copied. Cannot be {@link StagingConstants#CURRENT_RELEASE}.
      * @param releaseType     how to create the release number - major, minor or bugfix release
      * @throws ReleaseExistsException if the release already exists
-     * @deprecated in practice, {@link #finalizeCurrentRelease(ReleaseNumberCreator)} should be used.
+     * @deprecated in practice, {@link #finalizeCurrentRelease(Resource, ReleaseNumberCreator)} should be used.
      */
     @Nonnull
     Release createRelease(@Nonnull Release copyFromRelease, @Nonnull ReleaseNumberCreator releaseType)
@@ -387,6 +386,13 @@ public interface StagingReleaseManager {
      * an UI error.
      */
     class ReleaseNotFoundException extends RuntimeException {
+        public ReleaseNotFoundException() {
+            // empty
+        }
+
+        public ReleaseNotFoundException(String msg) {
+            super(msg);
+        }
     }
 
     /**

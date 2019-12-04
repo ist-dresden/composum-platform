@@ -283,7 +283,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         if (releaseNumber.equals(CURRENT_RELEASE)) {
             ReleaseImpl release = ensureCurrentRelease(root);
             if (release == null) // weird trouble creating it
-            { throw new ReleaseNotFoundException(); }
+            { throw new ReleaseNotFoundException("Unexpected trouble creating or reading release."); }
             return release;
         }
         return findReleaseImpl(root, releaseNumber);
