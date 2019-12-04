@@ -163,6 +163,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         Resource versionable = releaseRootBuilder.resource("a/jcr:content", PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED,
                 PROP_MIXINTYPES, array(TYPE_VERSIONABLE, TYPE_TITLE, TYPE_LAST_MODIFIED), "foo", "bar", PROP_TITLE, "title")
                 .commit().getCurrentParent();
+        String parentPath = versionable.getParent().getPath();
         Version version = versionManager.checkpoint(versionable.getPath());
 
         ReleasedVersionable releasedVersionable = ReleasedVersionable.forBaseVersion(versionable);
@@ -171,7 +172,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ArgumentCaptor<ReleaseChangeEventListener.ReleaseChangeEvent> eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEventListener.ReleaseChangeEvent.class);
         Mockito.verify(releaseChangeEventPublisher, times(2)).publishActivation(eventCaptor.capture());
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
-        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newResources(), contains(versionable.getPath()));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newResources(), contains(parentPath));
         Mockito.reset(releaseChangeEventPublisher);
 
         referenceRefersToVersionableVersion(releaseStorageRoot.getChild("current/root/a/jcr:content"), versionable, version);
@@ -193,7 +194,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEventListener.ReleaseChangeEvent.class);
         Mockito.verify(releaseChangeEventPublisher, times(1)).publishActivation(eventCaptor.capture());
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
-        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().removedOrMovedResources(), contains(versionable.getPath()));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().removedOrMovedResources(), contains(parentPath));
         Mockito.reset(releaseChangeEventPublisher);
 
         // activate it again
@@ -204,7 +205,8 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEventListener.ReleaseChangeEvent.class);
         Mockito.verify(releaseChangeEventPublisher, times(1)).publishActivation(eventCaptor.capture());
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
-        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newOrMovedResources(), contains(versionable.getPath()));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newOrMovedResources(),
+                contains(parentPath));
         Mockito.reset(releaseChangeEventPublisher);
 
         // remove it from the release completely.
@@ -214,7 +216,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
         Mockito.verify(releaseChangeEventPublisher, times(1)).publishActivation(eventCaptor.capture());
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
-        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().removedOrMovedResources(), contains(versionable.getPath()));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().removedOrMovedResources(), contains(parentPath));
 
     }
 

@@ -368,10 +368,13 @@ public interface StagingReleaseManager {
 
         /**
          * Maps the relative path to the absolute path ( {@link #getReleaseRoot()} + '/' + relativePath ) ; if it's
-         * already an absolute path this returns it unmodified.
+         * already an absolute path into the release this returns it unmodified. If it's a path into the interal
+         * release store, it's transformed to the absolute path into the content that corresponds to that path.
+         * If it does not belong to the release at all, an {@link IllegalArgumentException} is thrown. For an empty
+         * path, the release root is returned.
          */
         @Nonnull
-        String absolutePath(@Nonnull String relativePath);
+        String absolutePath(@Nullable String path) throws IllegalArgumentException;
 
         /** Compares the releaseRoot and releaseNode paths. */
         @Override

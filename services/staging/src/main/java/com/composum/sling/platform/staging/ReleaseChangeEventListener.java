@@ -1,5 +1,6 @@
 package com.composum.sling.platform.staging;
 
+import com.composum.sling.core.util.SlingResourceUtil;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -12,6 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static com.composum.sling.core.util.SlingResourceUtil.isSameOrDescendant;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 /**
@@ -146,39 +148,40 @@ public interface ReleaseChangeEventListener {
 
         /**
          * Takes appropriate notice when a resource is updated and during this moved from frompath to topath - these may be
-         * the same or null if it vanishes / appears.
+         * the same or null if it vanishes / appears. {frompath} and {topath} may be absolute paths into the release,
+         * relative paths within the release or absolute paths into the release workspace.
          */
-        public void addMoveOrUpdate(@Nullable String frompath, @Nullable String topath) {
+        public void addMoveOrUpdate(@Nullable String rawFrompath, @Nullable String rawTopath) {
             if (finalized) { throw new IllegalStateException("Already finalized - cannot be changed anymore"); }
-            if (isNotBlank(frompath) && !release.appliesToPath(frompath)) {
-                throw new IllegalArgumentException("Src. path " + frompath + " is not in release " + release);
-            }
-            if (isNotBlank(topath) && !release.appliesToPath(topath)) {
-                throw new IllegalArgumentException("Dest. path " + frompath + " is not in release " + release);
-            }
-            if (StringUtils.startsWith(frompath, StagingConstants.RELEASE_ROOT_PATH)) {
-                throw new IllegalArgumentException("Bug: src. path " + frompath + " is in release copy of " + release);
-            }
-            if (StringUtils.startsWith(topath, StagingConstants.RELEASE_ROOT_PATH)) {
-                throw new IllegalArgumentException("Bug: src. path " + topath + " is in release copy of " + release);
-            }
-
+            String frompath = rawFrompath != null ? release.absolutePath(rawFrompath) : null;
+            String topath = rawTopath != null ? release.absolutePath(rawTopath) : null;
             if (isNotBlank(frompath)) {
                 if (isNotBlank(topath)) {
                     if (StringUtils.equals(frompath, topath)) {
-                        updatedResources.add(topath);
+                        addPath(updatedResources, topath);
                     } else {
                         movedResources.put(frompath, topath);
                     }
                 } else {
-                    removedResources.add(frompath);
+                    addPath(removedResources, frompath);
                 }
             } else { // blank frompath
                 if (isNotBlank(topath)) {
-                    newResources.add(topath);
+                    addPath(newResources, topath);
                 } else {
                     throw new IllegalArgumentException("Bug: moving null to null?");
                 }
+            }
+        }
+
+        /**
+         * Adds a path but minimizes the set in that if some path is in there, no subpath of it is there, too, since
+         * that's subsumed.
+         */
+        protected void addPath(Set<String> pathset, String path) {
+            if (pathset.stream().noneMatch((existing) -> isSameOrDescendant(existing, path))) {
+                pathset.removeIf((existing) -> isSameOrDescendant(path, existing));
+                pathset.add(path);
             }
         }
 
