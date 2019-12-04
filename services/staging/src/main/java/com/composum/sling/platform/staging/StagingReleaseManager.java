@@ -204,11 +204,12 @@ public interface StagingReleaseManager {
      *
      * @param release      the release to change
      * @param pathToRevert the release-relative or absolute path of the versionable in the fromRelease
-     * @param fromRelease  the release to copy it from
+     * @param fromRelease  the release to copy it from - if it's null we remove it from the release
      * @return a map with paths where we changed the order of children in the release.
      */
     @Nonnull
-    Map<String, SiblingOrderUpdateStrategy.Result> revert(@Nonnull Release release, @Nonnull String pathToRevert, @Nonnull Release fromRelease) throws RepositoryException, PersistenceException, ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException;
+    Map<String, SiblingOrderUpdateStrategy.Result> revert(@Nonnull Release release, @Nonnull String pathToRevert, @Nullable Release fromRelease) throws RepositoryException,
+            PersistenceException, ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException;
 
     /**
      * Creates a {@link StagingResourceResolver} that presents the given release.

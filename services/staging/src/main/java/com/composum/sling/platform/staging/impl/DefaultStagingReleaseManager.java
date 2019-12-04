@@ -522,15 +522,24 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Nonnull
     @Override
     public Map<String, Result> revert(@Nonnull Release release, @Nonnull String pathToRevert,
-                                      @Nonnull Release rawFromRelease) throws RepositoryException, PersistenceException
+                                      @Nullable Release rawFromRelease) throws RepositoryException, PersistenceException
             , ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
         Map<String, Result> result;
+        ReleasedVersionable versionableInCurrentRelease = findReleasedVersionable(release, pathToRevert);
+
+        if (rawFromRelease == null) { // special case: remove from release, e.g. if accidentially introduced.
+            if (versionableInCurrentRelease != null) {
+                versionableInCurrentRelease.setVersionUuid(null);
+                return updateRelease(release, Collections.singletonList(versionableInCurrentRelease));
+            } else {
+                return Collections.emptyMap();
+            }
+        }
 
         ReleaseImpl fromRelease = requireNonNull(ReleaseImpl.unwrap(rawFromRelease));
         pathToRevert = fromRelease.absolutePath(pathToRevert);
         ReleaseChangeEventListener.ReleaseChangeEvent event = new ReleaseChangeEventListener.ReleaseChangeEvent(release);
         ReleasedVersionable versionableInPreviousRelease = findReleasedVersionable(fromRelease, pathToRevert);
-        ReleasedVersionable versionableInCurrentRelease = findReleasedVersionable(release, pathToRevert);
         if (versionableInPreviousRelease == null) { // remove whatever is there at that path, if there is anything
             if (versionableInCurrentRelease == null || !versionableInCurrentRelease.isActive()) {
                 return new HashMap<>();
