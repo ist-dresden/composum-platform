@@ -4,11 +4,8 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
-import com.google.common.base.Predicates;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
-import org.apache.commons.collections4.BidiMap;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.ModifiableValueMap;
@@ -19,8 +16,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import javax.jcr.*;
-import java.util.*;
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyIterator;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.ResourceUtil.PROP_MIXINTYPES;
@@ -79,7 +85,8 @@ public class NodeTreeSynchronizer {
      * @see #ignoreAttribute(ResourceHandle, String, boolean)
      * @return true when there were any differences in the attributes
      */
-    public boolean updateAttributes(ResourceHandle from, ResourceHandle to, BiMap<String, String> attributeNameTranslation) throws RepositoryException {
+    public boolean updateAttributes(@Nonnull ResourceHandle from, @Nonnull ResourceHandle to,
+                                    @Nonnull BiMap<String, String> attributeNameTranslation) throws RepositoryException {
         boolean attributesChanged = false;
         ValueMap fromAttributes = ResourceUtil.getValueMap(from);
         ModifiableValueMap toAttributes = to.adaptTo(ModifiableValueMap.class);

@@ -14,8 +14,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * <p>Functionality to manage releases that are accessible via the {@link com.composum.sling.platform.staging.StagingResourceResolver}
- * or via replication.</p>
+ * <p>Functionality to manage releases that are accessible via the {@link StagingResourceResolver} or via replication
+ * .</p>
  * <p>
  * For a folder / site to be releasable its root has to have the mixin {@value StagingConstants#NODE_RELEASES}.
  * The release data is saved below <code></code>/var/composum/{path to release root}/</code> that contains one subnode for each release.
@@ -26,16 +26,15 @@ import java.util.Map;
  * </p>
  * <pre>
  * /var/composum/{path to release root}/
- *     jcr:content[{@value StagingConstants#TYPE_MIX_RELEASE_CONFIG}]/
- *         {@value StagingConstants#NODE_RELEASES}/
- *             {@value StagingConstants#CURRENT_RELEASE}/
- *                 {@value StagingConstants#NODE_RELEASE_ROOT}
- *                     ... copy of the working tree for the release
- *                 {@value StagingConstants#NODE_RELEASE_METADATA}
- *             otherrelase
- *                 {@value StagingConstants#NODE_RELEASE_ROOT}
- *                     ... copy of the working tree for the release
- *                 {@value StagingConstants#NODE_RELEASE_METADATA}
+ *      {@value StagingConstants#NODE_RELEASES}/
+ *         {@value StagingConstants#CURRENT_RELEASE}/
+ *               {@value StagingConstants#NODE_RELEASE_ROOT}
+ *                   ... copy of the working tree for the release
+ *             {@value StagingConstants#NODE_RELEASE_METADATA}
+ *         otherrelase
+ *             {@value StagingConstants#NODE_RELEASE_ROOT}
+ *                 ... copy of the working tree for the release
+ *             {@value StagingConstants#NODE_RELEASE_METADATA}
  * </pre>
  * <p>We also set a label {@link Release#getReleaseLabel()} on each version contained in the release,
  * for easier referencing versions. </p>
@@ -95,15 +94,16 @@ public interface StagingReleaseManager {
      * <p>
      * We cannot create a release from {@link StagingConstants#CURRENT_RELEASE} since that does not in the release number
      * as tree concept, so an {@link IllegalArgumentException} would be thrown. For that use the
-     * conceptually different {@link #finalizeCurrentRelease(ReleaseNumberCreator)}.
+     * conceptually different {@link #finalizeCurrentRelease(Resource, ReleaseNumberCreator)}.
      * </p>
      *
      * @param copyFromRelease an existing release, whose workspace is copied. Cannot be {@link StagingConstants#CURRENT_RELEASE}.
      * @param releaseType     how to create the release number - major, minor or bugfix release
      * @throws ReleaseExistsException if the release already exists
-     * @deprecated in practice, {@link #finalizeCurrentRelease(ReleaseNumberCreator)} should be used.
+     * @deprecated in practice, {@link #finalizeCurrentRelease(Resource, ReleaseNumberCreator)} should be used.
      */
     @Nonnull
+    @Deprecated
     Release createRelease(@Nonnull Release copyFromRelease, @Nonnull ReleaseNumberCreator releaseType)
             throws ReleaseExistsException, PersistenceException, RepositoryException;
 
@@ -205,11 +205,12 @@ public interface StagingReleaseManager {
      *
      * @param release      the release to change
      * @param pathToRevert the release-relative or absolute path of the versionable in the fromRelease
-     * @param fromRelease  the release to copy it from
+     * @param fromRelease  the release to copy it from - if it's null we remove it from the release
      * @return a map with paths where we changed the order of children in the release.
      */
     @Nonnull
-    Map<String, SiblingOrderUpdateStrategy.Result> revert(@Nonnull Release release, @Nonnull String pathToRevert, @Nonnull Release fromRelease) throws RepositoryException, PersistenceException, ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException;
+    Map<String, SiblingOrderUpdateStrategy.Result> revert(@Nonnull Release release, @Nonnull String pathToRevert, @Nullable Release fromRelease) throws RepositoryException,
+            PersistenceException, ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException;
 
     /**
      * Creates a {@link StagingResourceResolver} that presents the given release.
@@ -327,6 +328,10 @@ public interface StagingReleaseManager {
             return StagingConstants.RELEASE_LABEL_PREFIX + getNumber();
         }
 
+        /**
+         * Path to internal release node. This is an unique identifier for the release, but use sparingly since this
+         * is implementation dependent.
+         */
         @Nonnull
         String getPath();
 
@@ -363,10 +368,13 @@ public interface StagingReleaseManager {
 
         /**
          * Maps the relative path to the absolute path ( {@link #getReleaseRoot()} + '/' + relativePath ) ; if it's
-         * already an absolute path this returns it unmodified.
+         * already an absolute path into the release this returns it unmodified. If it's a path into the interal
+         * release store, it's transformed to the absolute path into the content that corresponds to that path.
+         * If it does not belong to the release at all, an {@link IllegalArgumentException} is thrown. For an empty
+         * path, the release root is returned.
          */
         @Nonnull
-        String absolutePath(@Nonnull String relativePath);
+        String absolutePath(@Nullable String path) throws IllegalArgumentException;
 
         /** Compares the releaseRoot and releaseNode paths. */
         @Override
@@ -383,6 +391,13 @@ public interface StagingReleaseManager {
      * an UI error.
      */
     class ReleaseNotFoundException extends RuntimeException {
+        public ReleaseNotFoundException() {
+            // empty
+        }
+
+        public ReleaseNotFoundException(String msg) {
+            super(msg);
+        }
     }
 
     /**

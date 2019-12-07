@@ -7,6 +7,7 @@
         <groupId>com.composum.meta.ist</groupId>
         <artifactId>parent-2-public</artifactId>
         <version>1.2</version>
+        <relativePath/>
     </parent>
 
     <groupId>com.composum.platform</groupId>
@@ -24,7 +25,7 @@
         <package.group>com/composum/platform</package.group>
         <bundle.category>composum,platform</bundle.category>
 
-        <composum.nodes.version>1.11.6</composum.nodes.version>
+        <composum.nodes.version>1.11.7-SNAPSHOT</composum.nodes.version>
 
     </properties>
 

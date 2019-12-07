@@ -53,7 +53,9 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
             return;
         event.finalize();
         ReleaseChangeEventListener.ReplicationFailedException exception = null;
-        for (ReleaseChangeEventListener releaseChangeEventListener : releaseChangeEventListeners) {
+        List<ReleaseChangeEventListener> listeners = new ArrayList<>(this.releaseChangeEventListeners);
+        // copy listeners to avoid concurrent modification problems
+        for (ReleaseChangeEventListener releaseChangeEventListener : listeners) {
             try {
                 releaseChangeEventListener.receive(event);
                 LOG.debug("published to {} : {}", releaseChangeEventListener, event);

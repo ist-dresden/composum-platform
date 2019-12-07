@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 import static com.composum.sling.core.util.ResourceUtil.PROP_PRIMARY_TYPE;
 import static com.composum.sling.core.util.ResourceUtil.PROP_UUID;
@@ -268,6 +269,23 @@ public class QueryConditionDsl {
             append("( ");
             parenthesesNestingLevel++;
             return this;
+        }
+
+        /**
+         * Groups a number of conditions. Alternative syntax to {@link #startGroup()} and
+         * {@link QueryCondition#endGroup()} that automatically has the right number start / closes and can provide
+         * for the right indention of the IDE. For example:
+         * <code><pre>
+         *         condition = q.conditionBuilder().isNotNull(PROP_CREATED).and().group((b) -> b.
+         *             upper().property(PROP_TITLE).eq().val("3 THIRD TITLE").or().contains(PROP_TITLE, "THIRD")
+         *         );
+         * </pre></code>
+         *
+         * @see #startGroup()
+         * @see QueryCondition#endGroup()
+         */
+        public QueryCondition group(Function<QueryConditionBuilder, QueryCondition> group) {
+            return group.apply(this.startGroup()).endGroup();
         }
 
         /**
@@ -590,7 +608,9 @@ public class QueryConditionDsl {
          * Returns the generated SQL2 for use with querying the nodes as they are outside the version storage.
          */
         public String getSQL2() {
-            while (parenthesesNestingLevel > 0) queryCondition.endGroup();
+            if (parenthesesNestingLevel != 0) {
+                throw new IllegalStateException("Not all groups closed: open are " + parenthesesNestingLevel + " for " + unversionedQuery.toString());
+            }
             return unversionedQuery.toString();
         }
 
@@ -598,7 +618,9 @@ public class QueryConditionDsl {
          * Returns the generated SQL2 for use with querying the nodes as they are inside the version storage.
          */
         public String getVersionedSQL2() {
-            while (parenthesesNestingLevel > 0) queryCondition.endGroup();
+            if (parenthesesNestingLevel != 0) {
+                throw new IllegalStateException("Not all groups closed: open are " + parenthesesNestingLevel + " for " + unversionedQuery.toString());
+            }
             return versionedQuery.toString();
         }
 
