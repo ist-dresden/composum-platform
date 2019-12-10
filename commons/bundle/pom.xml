@@ -115,6 +115,12 @@
             <artifactId>commons-io</artifactId>
         </dependency>
 
+        <!-- JSON -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
+
         <!-- OSGi, Felix -->
         <dependency>
             <groupId>org.osgi</groupId>
