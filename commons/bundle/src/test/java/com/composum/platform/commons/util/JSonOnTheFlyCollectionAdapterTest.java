@@ -1,5 +1,6 @@
 package com.composum.platform.commons.util;
 
+import com.composum.platform.commons.json.JSonOnTheFlyCollectionAdapter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.JsonAdapter;
@@ -88,12 +89,12 @@ public class JSonOnTheFlyCollectionAdapterTest {
 
     }
 
-    static class TestDeserialized {
+    public static class TestDeserialized {
         @JsonAdapter(JSonOnTheFlyCollectionAdapter.class)
         TestDeserializationConsumer attribute;
     }
 
-    static class TestDeserializationConsumer implements Consumer<Integer>, Closeable {
+    public static class TestDeserializationConsumer implements Consumer<Integer>, Closeable {
 
         boolean closed;
         List<Integer> received = new ArrayList<>();

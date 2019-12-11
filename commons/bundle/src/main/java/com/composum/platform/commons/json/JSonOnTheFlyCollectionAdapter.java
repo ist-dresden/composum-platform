@@ -1,6 +1,7 @@
-package com.composum.platform.commons.util;
+package com.composum.platform.commons.json;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
@@ -14,23 +15,32 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.function.Consumer;
 
 /**
  * GSON TypeAdapterFactory to read / write collections that are not stored in memory but created on the fly during
- * serialization / are processed during deserialization without needing to store each element; for use with
+ * serialization / are processed during deserialization without needing to store each element; for use (ONLY!) with
  * {@literal @}{@link com.google.gson.annotations.JsonAdapter}.
  * To serialize it requires the serialized object to implement {@link Iterable}, to deserialize it requires the
  * element to implement {@link java.util.function.Consumer}. If the element implements {@link java.io.Closeable} the
  * method {@link Closeable#close()} is called when everything is read - for some additional processing if that's needed.
  * It also works with a {@link java.util.Collection}, though that's not the intended usecase.
+ * <p>CAUTION: this may not be used with {@link GsonBuilder#registerTypeAdapterFactory(TypeAdapterFactory)}
+ * since we have no way to tell whether it's meant for a type or not. We did need, however, need to implement
+ * TypeAdapterFactory since we need access to the Gson object and the JsonWriter / JsonReader.</p>
  */
 public class JSonOnTheFlyCollectionAdapter implements TypeAdapterFactory {
 
     @Override
     @Nonnull
     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
-        return new OnTheFlyAdapter<>(gson, type);
+        if (Iterable.class.isAssignableFrom(type.getRawType()) ||
+                Consumer.class.isAssignableFrom(type.getRawType()) ||
+                Collection.class.isAssignableFrom(type.getRawType())) {
+            return new OnTheFlyAdapter<>(gson, type);
+        }
+        throw new IllegalArgumentException("Not Iterable, Consumer or Collection: " + type);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -56,6 +66,9 @@ public class JSonOnTheFlyCollectionAdapter implements TypeAdapterFactory {
             } else if (value == null) {
                 out.nullValue();
             } else {
+                // thow up, not return null, so that it crashes easily when abused with
+                // GsonBuilder#registerTypeAdapterFactory(TypeAdapterFactory) or is used accidentially with wrong
+                // types.
                 throw new IOException("Must be Iterable to be written with JSonOnTheFlyCollectionAdapter: " + value.getClass().getName());
             }
         }
