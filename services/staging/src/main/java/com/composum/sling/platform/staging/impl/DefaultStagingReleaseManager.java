@@ -19,6 +19,7 @@ import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Resul
 import com.composum.sling.platform.staging.query.Query;
 import com.composum.sling.platform.staging.query.QueryBuilder;
 import com.google.common.collect.ImmutableMap;
+import com.google.gson.annotations.Since;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
@@ -58,6 +59,8 @@ import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -70,6 +73,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Function;
@@ -136,6 +140,12 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     protected ResourceResolverFactory resolverFactory;
 
     protected final List<StagingReleaseManagerPlugin> plugins = Collections.synchronizedList(new ArrayList<>());
+
+    /** Random number generator for creating unique ids etc. */
+    protected final Random random = SecureRandom.getInstanceStrong();
+
+    public DefaultStagingReleaseManager() throws NoSuchAlgorithmException {
+    }
 
     @Reference(
             service = StagingReleaseManagerPlugin.class,
@@ -639,9 +649,11 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 adjustParentsDeletedFlags();
             }
 
-            updateReleaseLabel();
+            bumpReleaseChangeNumber(release);
             release.updateLastModified();
+            updateReleaseLabel();
             updateEvent();
+
             updateParentsAndCreateResult();
             return result;
         }
@@ -654,9 +666,11 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 adjustParentsDeletedFlags();
             }
 
-            updateReleaseLabel();
+            bumpReleaseChangeNumber(release);
             release.updateLastModified();
+            updateReleaseLabel();
             updateEvent();
+
             // do not update parents from workspace - we only update parents we create
             return result;
         }
@@ -1115,6 +1129,19 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         ResourceHandle.use(release.getReleaseNode()).setProperty(PROP_CLOSED, true);
     }
 
+    @Nonnull
+    @Override
+    public String bumpReleaseChangeNumber(@Nonnull Release rawRelease) throws RepositoryException {
+        ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
+        String newChangeNumber = "chg" + random.nextLong() + random.nextLong();
+        // Since this changes randomly, we don't have to be afraid of concurrent modifications.
+        ModifiableValueMap modifiableValueMap = release.workspaceCopyNode.adaptTo(ModifiableValueMap.class);
+        String oldChangeNumber = modifiableValueMap.get(StagingConstants.PROP_CHANGE_NUMBER, String.class);
+        modifiableValueMap.put(StagingConstants.PROP_CHANGE_NUMBER, newChangeNumber);
+        LOG.info("Updating new release change number to {} from originally {}", newChangeNumber, oldChangeNumber);
+        return newChangeNumber;
+    }
+
     /** Ensures the technical resources for a release are there. If the release is created, the root is completely empty. */
     protected ReleaseImpl ensureRelease(@Nonnull Resource theRoot, @Nonnull String releaseLabel) throws RepositoryException, PersistenceException {
         ResourceHandle root = ResourceHandle.use(theRoot);
@@ -1230,6 +1257,18 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         @Nonnull
         public Resource getMetaDataNode() {
             return requireNonNull(releaseNode.getChild(NODE_RELEASE_METADATA), "No metadata node on " + releaseNode.getPath());
+        }
+
+        @Nonnull
+        @Override
+        public String getChangeNumber() {
+            String changeNumber = getWorkspaceCopyNode() != null ?
+                    getWorkspaceCopyNode().getValueMap().get(StagingConstants.PROP_CHANGE_NUMBER, String.class) : null;
+            if (StringUtils.isBlank(changeNumber)) { // only OK during a transition period
+                LOG.warn("No change number set: {}", SlingResourceUtil.getPath(getWorkspaceCopyNode()));
+                changeNumber = "chgunset"; // fake number satisfying @Nonnull; will be updated on next change.
+            }
+            return changeNumber;
         }
 
         @Nonnull

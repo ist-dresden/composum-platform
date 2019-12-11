@@ -112,6 +112,14 @@ public interface StagingConstants {
     String PROP_REPLICATED_VERSION = "cpl:replicatedVersion";
 
     /**
+     * Property on the release root that is unique to a certain state of the release. Each time the release is updated,
+     * this property is updated. Defined in {@link #TYPE_MIX_RELEASE_ROOT}.
+     * This is actually a random UID since currently there is no history of the release states - it's purpose is just
+     * to see whether something changed.
+     */
+    String PROP_CHANGE_NUMBER = "cpl:releaseChangeNumber";
+
+    /**
      * "Releasenumber" or key of the current release : {@value #CURRENT_RELEASE}. This also serves as the "current release" (the release that's in construction and will be used as default preview)
      * below {@link #NODE_RELEASES}.
      */

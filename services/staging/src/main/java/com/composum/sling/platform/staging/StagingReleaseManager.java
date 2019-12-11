@@ -299,6 +299,14 @@ public interface StagingReleaseManager {
     void closeRelease(@Nonnull Release release) throws RepositoryException;
 
     /**
+     * Changes the {@link StagingConstants#PROP_CHANGE_NUMBER} of a release signifying that the release was changed.
+     * This is called internally on each change of the release content. Calling this externally will e.g.
+     * trigger a full synchronization the next time any change is transmitted.
+     */
+    @Nonnull
+    String bumpReleaseChangeNumber(@Nonnull Release release) throws RepositoryException;
+
+    /**
      * Data structure with metadata information about a release. This must only be created within the {@link StagingReleaseManager}.
      */
     interface Release {
@@ -346,6 +354,14 @@ public interface StagingReleaseManager {
          */
         @Nonnull
         Resource getMetaDataNode();
+
+        /**
+         * An UID that changes on each release content change. If it's constant, you can rely on the release content
+         * being the same. (Unless for changes not using the {@link StagingReleaseManager}, which you shouldn't do,
+         * of course. At least not without calling {@link #bumpReleaseChangeNumber(Release)}, too.)
+         */
+        @Nonnull
+        String getChangeNumber();
 
         /** The marks that point to this release. Each mark can only point to exactly one release. */
         @Nonnull

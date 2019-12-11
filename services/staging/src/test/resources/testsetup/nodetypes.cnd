@@ -5,9 +5,11 @@
 <'cpl'='http://sling.composum.com/platform/1.0'>
 
 /* Mixin that makes a node a root of a release. This is currently just a marker mixin.
+   cpl:releaseChangeNumber is a UID for the content contained in a release - each time it's changed this is updated
  */
 [cpl:releaseRoot]
   mixin
+  - cpl:releaseChangeNumber (STRING)
 
 /* References a version within the release tree. Allows other attributes / child nodes as release metadata.
    cpl:versionHistory is the jcr:uuid of the nt:versionHistory - the jcr:versionHistory attribute in mix:versionable ,

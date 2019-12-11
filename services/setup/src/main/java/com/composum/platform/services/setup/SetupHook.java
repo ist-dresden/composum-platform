@@ -17,6 +17,7 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -81,12 +82,9 @@ public class SetupHook implements InstallHook {
         try {
             Session session = ctx.getSession();
             NodeTypeManager nodeTypeManager = session.getWorkspace().getNodeTypeManager();
-            NodeType reseaseType = nodeTypeManager.getNodeType("cpl:releaseRoot");
-            NodeType releaseConfigType;
-            try {
-                nodeTypeManager.getNodeType("cpl:releaseConfig");
-            } catch (NoSuchNodeTypeException e) {
-                LOG.info("OK, obsolete cpl:releaseConfig is not present, but cpl:releaseRoot is");
+            NodeType releaseType = nodeTypeManager.getNodeType("cpl:releaseRoot");
+            if (!updateNeeded(releaseType, session, nodeTypeManager)) {
+                LOG.info("No node type update needed.");
                 return;
             }
             Archive archive = ctx.getPackage().getArchive();
@@ -98,6 +96,8 @@ public class SetupHook implements InstallHook {
             }
             try {
                 nodeTypeManager.unregisterNodeType("cpl:releaseConfig");
+            } catch (NoSuchNodeTypeException e) {
+                // OK.
             } catch (RepositoryException e) { // can happen when it's still used in pages
                 LOG.warn("Could not deregister cpl:releaseConfig, probably since it's still used", e);
             }
@@ -105,5 +105,20 @@ public class SetupHook implements InstallHook {
             LOG.error(rex.getMessage(), rex);
             throw new PackageException(rex);
         }
+    }
+
+    protected boolean updateNeeded(NodeType releaseType, Session session, NodeTypeManager nodeTypeManager) throws RepositoryException {
+        try {
+            nodeTypeManager.getNodeType("cpl:releaseConfig");
+            return true; // should be removed
+        } catch (NoSuchNodeTypeException e) {
+            LOG.info("OK, obsolete cpl:releaseConfig is not present, but cpl:releaseRoot is");
+        }
+        boolean hasReleaseChangeNumber = Arrays.asList(releaseType.getPropertyDefinitions()).stream()
+                .noneMatch((pd) -> "cpl:releaseChangeNumber".equals(pd.getName()));
+        if (!hasReleaseChangeNumber) {
+            LOG.info("Need to update since cpl:releaseChangeNumber is not present on cpl:releaseRoot");
+        }
+        return !hasReleaseChangeNumber;
     }
 }
