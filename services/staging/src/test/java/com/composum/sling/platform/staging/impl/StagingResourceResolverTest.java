@@ -609,9 +609,10 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
         ec.checkThat(r.getPath(), r.getResourceSuperType(), nullValue());
         ec.checkThat(r.getPath(), r.getResourceType(), is("sling:OrderedFolder"));
         ec.checkThat(r.getPath(), r.getValueMap(), allOf(
-                hasMapSize(2),
+                hasMapSize(3),
                 SlingMatchers.hasEntryMatching(is("jcr:mixinTypes"), arrayContaining(is("cpl:releaseRoot"))),
-                SlingMatchers.hasEntryMatching(is("jcr:primaryType"), is("sling:OrderedFolder"))
+                SlingMatchers.hasEntryMatching(is("jcr:primaryType"), is("sling:OrderedFolder")),
+                SlingMatchers.hasEntryMatching(is(StagingConstants.PROP_CHANGE_NUMBER), notNullValue())
         ));
 
 

@@ -591,7 +591,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         @Nonnull
         protected final ResourceResolver resolver;
         protected Resource copiedVersionReferenceResource = null;
-        protected final NodeTreeSynchronizer sync = new NodeTreeSynchronizer();
+        protected final NodeTreeSynchronizer sync =
+                new NodeTreeSynchronizer().addIgnoredAttributes(StagingConstants.PROP_CHANGE_NUMBER);
 
         protected Resource versionReference;
         protected final Resource releaseWorkspaceCopy;

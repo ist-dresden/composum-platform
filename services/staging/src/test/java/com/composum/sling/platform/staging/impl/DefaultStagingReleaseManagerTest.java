@@ -76,6 +76,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -182,6 +183,8 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         Mockito.verify(releaseChangeEventPublisher, times(2)).publishActivation(eventCaptor.capture());
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newResources(), contains(parentPath));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().updatedResources(), Matchers.hasSize(0));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().removedResources(), Matchers.hasSize(0));
         Mockito.reset(releaseChangeEventPublisher);
 
         referenceRefersToVersionableVersion(releaseStorageRoot.getChild("current/root/a/jcr:content"), versionable, version);
@@ -206,7 +209,9 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEventListener.ReleaseChangeEvent.class);
         Mockito.verify(releaseChangeEventPublisher, times(1)).publishActivation(eventCaptor.capture());
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newResources(), Matchers.hasSize(0));
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().removedOrMovedResources(), contains(parentPath));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().updatedResources(), Matchers.hasSize(0));
         Mockito.reset(releaseChangeEventPublisher);
 
         // activate it again
@@ -222,6 +227,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newOrMovedResources(),
                 contains(parentPath));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().updatedResources(), Matchers.hasSize(0));
         Mockito.reset(releaseChangeEventPublisher);
 
         // remove it from the release completely.
@@ -233,7 +239,9 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
 
         Mockito.verify(releaseChangeEventPublisher, times(1)).publishActivation(eventCaptor.capture());
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newResources(), Matchers.hasSize(0));
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().removedOrMovedResources(), contains(parentPath));
+        ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().updatedResources(), Matchers.hasSize(0));
 
     }
 

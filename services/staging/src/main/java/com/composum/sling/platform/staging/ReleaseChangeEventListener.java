@@ -157,7 +157,7 @@ public interface ReleaseChangeEventListener {
             String topath = rawTopath != null ? release.absolutePath(rawTopath) : null;
             if (isNotBlank(frompath)) {
                 if (isNotBlank(topath)) {
-                    if (StringUtils.equals(frompath, topath)) {
+                    if (StringUtils.equals(frompath, topath) && !newResources.contains(topath)) {
                         addPath(updatedResources, topath);
                     } else {
                         movedResources.put(frompath, topath);

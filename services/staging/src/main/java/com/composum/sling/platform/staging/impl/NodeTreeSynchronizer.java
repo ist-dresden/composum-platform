@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.ResourceUtil.PROP_MIXINTYPES;
@@ -80,7 +81,8 @@ public class NodeTreeSynchronizer {
      * @param from the source
      * @param to   the destination which we update
      * @param attributeNameTranslation any attribute contained in this map will be written to the attribute according to the value in the destination.
-     *                                 The primary key of the destination will only be touched if it's not translated or translated from a (different) attribute.
+     *                                 The primary type or mixin types of the destination will only be touched if it's not translated
+     *                                 or translated from a (different) attribute.
      * @throws RepositoryException if we couldn't finish the operation
      * @see #ignoreAttribute(ResourceHandle, String, boolean)
      * @return true when there were any differences in the attributes
@@ -142,6 +144,7 @@ public class NodeTreeSynchronizer {
 
         toRemove.remove(PROP_PRIMARY_TYPE); // would be bad idea
         if (!mixinsRelevant) { toRemove.remove(PROP_MIXINTYPES); }
+        toRemove.removeAll(additionalIgnoredAttributes);
 
         for (PropertyIterator toProperties = toNode.getProperties(); toProperties.hasNext(); ) {
             Property toProp = toProperties.nextProperty();
@@ -169,6 +172,8 @@ public class NodeTreeSynchronizer {
                     "jcr:versionHistory", "jcr:predecessors", "jcr:mergeFailed", "jcr:configuration",
                     JcrConstants.JCR_PRIMARYTYPE, JcrConstants.JCR_MIXINTYPES)));
 
+    protected final Set<String> additionalIgnoredAttributes = new HashSet<>();
+
     /**
      * Specifies if the attribute is ignored in the synchronization process. In the default implementation we exclude
      * some protected attributes from the source.
@@ -179,7 +184,19 @@ public class NodeTreeSynchronizer {
      * @return true iff the attribute should be copied.
      */
     protected boolean ignoreAttribute(ResourceHandle resource, String attributename, boolean source) {
-        return source && protectedMetadataAttributes.contains(attributename);
+        return source && protectedMetadataAttributes.contains(attributename) ||
+                additionalIgnoredAttributes.contains(attributename);
+    }
+
+    /**
+     * Add additional attributes that are not synchronized (modifying this instance).
+     *
+     * @return this for builder style
+     */
+    @Nonnull
+    public NodeTreeSynchronizer addIgnoredAttributes(@Nonnull String... attributes) {
+        additionalIgnoredAttributes.addAll(Arrays.asList(attributes));
+        return this;
     }
 
     /**
