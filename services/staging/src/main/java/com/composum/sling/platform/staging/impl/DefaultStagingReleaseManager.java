@@ -1134,7 +1134,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Override
     public String bumpReleaseChangeNumber(@Nonnull Release rawRelease) throws RepositoryException {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
-        String newChangeNumber = "chg" + random.nextLong() + random.nextLong();
+        String newChangeNumber = "chg" + Math.abs(random.nextLong());
         // Since this changes randomly, we don't have to be afraid of concurrent modifications.
         ModifiableValueMap modifiableValueMap = release.workspaceCopyNode.adaptTo(ModifiableValueMap.class);
         String oldChangeNumber = modifiableValueMap.get(StagingConstants.PROP_CHANGE_NUMBER, String.class);
