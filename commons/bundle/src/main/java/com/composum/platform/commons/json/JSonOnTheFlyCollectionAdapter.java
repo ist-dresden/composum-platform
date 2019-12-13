@@ -1,9 +1,11 @@
 package com.composum.platform.commons.json;
 
+import com.composum.platform.commons.util.ExceptionThrowingConsumer;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
+import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -15,7 +17,6 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.function.Consumer;
 
 /**
@@ -37,12 +38,47 @@ public class JSonOnTheFlyCollectionAdapter implements TypeAdapterFactory {
     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
         if (Iterable.class.isAssignableFrom(type.getRawType()) ||
                 Consumer.class.isAssignableFrom(type.getRawType()) ||
-                Collection.class.isAssignableFrom(type.getRawType())) {
+                Collection.class.isAssignableFrom(type.getRawType()) ||
+                OnTheFlyProducer.class.isAssignableFrom(type.getRawType())
+        ) {
             return new OnTheFlyAdapter<>(gson, type);
         }
-        throw new IllegalArgumentException("Not Iterable, Consumer or Collection: " + type);
+        throw new IllegalArgumentException("Not Iterable, Consumer, Collection of OnTheFlyAdapter: " + type);
     }
 
+    /**
+     * This can be implemented if it's easier to produce the elements on the fly and write them somewhere, instead
+     * of e.g. creating an iterator that returns them. Usage for example as an serializable (but not deserializable!)
+     * attribute:
+     * protected JSonOnTheFlyCollectionAdapter.OnTheFlyProducer<Something> somethingCollection =
+     * JSonOnTheFlyCollectionAdapter.onTheFlyProducer(this::writesomethingToConsumer);
+     */
+    public static <T> OnTheFlyProducer<T> onTheFlyProducer(ExceptionThrowingConsumer<Consumer<T>, IOException> generator) {
+        return new OnTheFlyProducer<T>() {
+            @Override
+            protected void writeDataTo(Consumer<T> arrayConvertedToJson) throws IOException {
+                generator.apply(arrayConvertedToJson);
+            }
+        };
+    }
+
+    /**
+     * This can be implemented if it's easiser to produce the elements on the fly and write them somewhere, instead
+     * of e.g. creating an iterator that returns them.
+     */
+    @JsonAdapter(JSonOnTheFlyCollectionAdapter.class) // when used directly as field type
+    public static class OnTheFlyProducer<T> {
+
+        /**
+         * Generator for the data - is called from the @{@link JSonOnTheFlyCollectionAdapter} with
+         * a consumer this can write the data to, which will be {@link Gson}ed to JSON.
+         */
+        protected void writeDataTo(Consumer<T> arrayConvertedToJson) throws IOException {
+            throw new UnsupportedOperationException("Must be implemented to serialize this.");
+        }
+    }
+
+    /** The actual adapter created by the {@link JSonOnTheFlyCollectionAdapter}. */
     @SuppressWarnings({"rawtypes", "unchecked"})
     protected static class OnTheFlyAdapter<T> extends TypeAdapter<T> {
         private final Gson gson;
@@ -63,13 +99,21 @@ public class JSonOnTheFlyCollectionAdapter implements TypeAdapterFactory {
                     gson.toJson(object, elementType, out);
                 }
                 out.endArray();
+            } else if (value instanceof OnTheFlyProducer) {
+                OnTheFlyProducer<?> onTheFlyProducer = (OnTheFlyProducer) value;
+                out.beginArray();
+                Type elementType = TypeUtils.getTypeArguments(type.getType(), OnTheFlyProducer.class).values().iterator().next();
+                onTheFlyProducer.writeDataTo(
+                        (object) -> gson.toJson(object, elementType, out)
+                );
+                out.endArray();
             } else if (value == null) {
                 out.nullValue();
             } else {
                 // thow up, not return null, so that it crashes easily when abused with
                 // GsonBuilder#registerTypeAdapterFactory(TypeAdapterFactory) or is used accidentially with wrong
                 // types.
-                throw new IOException("Must be Iterable to be written with JSonOnTheFlyCollectionAdapter: " + value.getClass().getName());
+                throw new IOException("Type unsupported for serialization by JSonOnTheFlyCollectionAdapter: " + value.getClass().getName());
             }
         }
 
@@ -101,8 +145,8 @@ public class JSonOnTheFlyCollectionAdapter implements TypeAdapterFactory {
                     collection.add(element);
                 }
             } else {
-                throw new IOException("Must be Consumer to be deserialized with " +
-                        "JSonOnTheFlyCollectionAdapter: " + receiver.getClass().getName());
+                throw new IOException("Serialization with JsonOnTheFlyCollectionAdapter is not supported for: "
+                        + receiver.getClass().getName());
             }
             in.endArray();
             if (receiver instanceof Closeable) {
