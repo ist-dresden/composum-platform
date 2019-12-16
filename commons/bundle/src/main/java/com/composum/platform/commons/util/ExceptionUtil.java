@@ -1,5 +1,7 @@
 package com.composum.platform.commons.util;
 
+import org.slf4j.Logger;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
@@ -7,6 +9,22 @@ import java.util.function.Function;
 
 /** Utilities related to exceptions. */
 public class ExceptionUtil {
+
+    /**
+     * You can use that if you want to log a message and throw an exception with the very same message, to avoid
+     * constructing the message twice.
+     * <code> throw ExceptionUtil.logAndThrow(new XYException("something is wrong with " + argument), LOG);</code>
+     * The throw is not necessary, but informs the compiler about the thrown exception.
+     *
+     * @param <T>       the exception type
+     * @param log       where the exception should be logged
+     * @param exception an exception
+     * @throws T the exception e is thrown.
+     */
+    public static <T extends Exception> T logAndThrow(Logger log, T exception) throws T {
+        log.error(exception.toString(), exception);
+        throw exception;
+    }
 
     /**
      * Throws the given exception even if it's a unchecked exception, without needing to declare this.
@@ -30,8 +48,8 @@ public class ExceptionUtil {
      * That'd look for example like:
      * <code>list.stream().map(ExceptionUtil.sneakExceptions(Node::getPath).collect(Collectors.toList());</code>
      *
-     * @param <ARG> argument type of the function
-     * @param <VALUE> return type of the function
+     * @param <ARG>    argument type of the function
+     * @param <VALUE>  return type of the function
      * @param function the function to call
      * @return the result of calling the callable
      */
