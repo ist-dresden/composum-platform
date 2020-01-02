@@ -143,7 +143,7 @@ public class NodeTreeSynchronizer {
         }
 
         toRemove.remove(PROP_PRIMARY_TYPE); // would be bad idea
-        if (!mixinsRelevant) { toRemove.remove(PROP_MIXINTYPES); }
+        toRemove.remove(PROP_MIXINTYPES); // has been processed already, and is protected
         toRemove.removeAll(additionalIgnoredAttributes);
 
         for (PropertyIterator toProperties = toNode.getProperties(); toProperties.hasNext(); ) {
