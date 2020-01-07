@@ -4,9 +4,11 @@ import com.composum.sling.core.util.SlingResourceUtil;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.sling.api.resource.Resource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -42,13 +44,23 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  */
 public interface ReleaseChangeEventListener {
 
-
     /**
      * This informs the replication service about an activation / deactivation / update. The publisher can decide on his own
      * whether he is responsible. The processing should be synchronous, so that the user can be notified whether it succeeded or not.
      * CAUTION: the changes can also encompass the attributes and node order of parent nodes of the resources transmitted in the event.
      */
     void receive(ReleaseChangeEvent releaseChangeEvent) throws ReplicationFailedException;
+
+    @Nullable
+    default Collection<ReleaseChangeProcess> processesFor(@Nonnull StagingReleaseManager.Release release) {
+        return Collections.emptyList();
+    }
+
+    @Nonnull
+    default Collection<ReleaseChangeProcess> processesFor(@Nullable Resource releaseRoot) {
+        return Collections.emptyList();
+    }
+
 
     /** Information about some activated or deactivated resources in a release, to control replication. */
     public final class ReleaseChangeEvent {
@@ -185,9 +197,8 @@ public interface ReleaseChangeEventListener {
             }
         }
 
-        /** Cannot be changed through {@link #addMoveOrUpdate(String, String)} anymore. */
-        @Override
-        public void finalize() {
+        /** Becomes immutable: cannot be changed through {@link #addMoveOrUpdate(String, String)} anymore. */
+        public void finish() {
             if (release == null) { throw new IllegalStateException("No release? " + toString()); }
             finalized = true;
         }

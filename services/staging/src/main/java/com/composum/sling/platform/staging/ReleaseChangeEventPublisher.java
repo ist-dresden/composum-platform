@@ -1,15 +1,24 @@
 package com.composum.sling.platform.staging;
 
-import javax.annotation.Nullable;
+import com.composum.sling.platform.staging.ReleaseChangeEventListener.ReleaseChangeEvent;
+import com.composum.sling.platform.staging.StagingReleaseManager.Release;
+import org.apache.sling.api.resource.Resource;
 
-/** Service that creates {@link ReleaseChangeEventListener.ReleaseChangeEvent}s and distributes them among the {@link ReleaseChangeEventListener}s. */
+import javax.annotation.Nullable;
+import java.util.Collection;
+
+/** Service that distributes {@link ReleaseChangeEvent}s among the {@link ReleaseChangeEventListener}s. */
 public interface ReleaseChangeEventPublisher {
 
     /**
-     * Creates an {@link ReleaseChangeEventListener.ReleaseChangeEvent} and publishes it among the
+     * Creates an {@link ReleaseChangeEvent} and publishes it among the
      * {@link ReleaseChangeEventListener}s - see the event for documentation of the parameters, null will be transformed to empty lists.
      */
-    public void publishActivation(@Nullable ReleaseChangeEventListener.ReleaseChangeEvent event)
+    void publishActivation(@Nullable ReleaseChangeEvent event)
             throws ReleaseChangeEventListener.ReplicationFailedException;
+
+    Collection<ReleaseChangeProcess> processesFor(Release release);
+
+    Collection<ReleaseChangeProcess> processesFor(Resource releaseRoot);
 
 }
