@@ -24,7 +24,7 @@ public interface ReleaseChangeProcess extends Runnable {
     // FIXME(hps,06.01.20) how should i18n work? Especially wrt. arguments?
     String getDescription();
 
-    enum ReleaseChangeProcessorState {idle, awaiting, processing, success, error}
+    enum ReleaseChangeProcessorState {idle, /** is waiting to be run */ awaiting, processing, success, error}
 
     /**
      * Adds the information about the event into an internal queue. Shouldn't throw any exceptions and not do
