@@ -1,6 +1,5 @@
 package com.composum.sling.platform.staging;
 
-import com.composum.sling.core.util.SlingResourceUtil;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -49,15 +48,24 @@ public interface ReleaseChangeEventListener {
      * whether he is responsible. The processing should be synchronous, so that the user can be notified whether it succeeded or not.
      * CAUTION: the changes can also encompass the attributes and node order of parent nodes of the resources transmitted in the event.
      */
-    void receive(ReleaseChangeEvent releaseChangeEvent) throws ReplicationFailedException;
+    default void receive(ReleaseChangeEvent releaseChangeEvent) throws ReplicationFailedException {
+        // default empty - if processesFor contains the things to do
+    }
 
+    /**
+     * Collection of {@link ReleaseChangeProcess}es that should be run in background upon receiving events for the release.
+     * This is usually an alternative to {@link #receive(ReleaseChangeEvent)} for things that can take more time
+     * than a request should take. If this returns some processes, they are {@link ReleaseChangeProcess#triggerProcessing(ReleaseChangeEvent)}
+     * with the events and then {@link ReleaseChangeProcess#run()}.
+     */
     @Nullable
-    default Collection<ReleaseChangeProcess> processesFor(@Nonnull StagingReleaseManager.Release release) {
+    default Collection<? extends ReleaseChangeProcess> processesFor(@Nonnull StagingReleaseManager.Release release) {
         return Collections.emptyList();
     }
 
+    /** Collection of {@link ReleaseChangeProcess}es for any of the releases at releaseRoot. */
     @Nonnull
-    default Collection<ReleaseChangeProcess> processesFor(@Nullable Resource releaseRoot) {
+    default Collection<? extends ReleaseChangeProcess> processesFor(@Nullable Resource releaseRoot) {
         return Collections.emptyList();
     }
 

@@ -26,6 +26,7 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.concurrent.Future;
 
 @Component(
@@ -45,7 +46,8 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
 
     protected volatile ThreadPool threadPool;
 
-    protected final Map<ReleaseChangeProcess, Future<?>> runningProcesses = new IdentityHashMap<>();
+    /** Keeps the results to keep track which processes are currently running. Synchronize over this! */
+    protected final Map<ReleaseChangeProcess, Future<?>> runningProcesses = new WeakHashMap<>();
 
 
     @Reference(
