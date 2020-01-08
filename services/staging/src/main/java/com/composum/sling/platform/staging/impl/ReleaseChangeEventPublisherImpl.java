@@ -150,6 +150,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                         if (rescheduleNeeded) {
                             Future<?> future = threadPool.submit(new RescheduleWrapper(process));
                             runningProcesses.put(process, future);
+                            queuedProcesses.remove(process);
                         }
                     }
                 } catch (RuntimeException e) {
