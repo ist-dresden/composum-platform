@@ -38,6 +38,9 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
 
     private static final Logger LOG = LoggerFactory.getLogger(ReleaseChangeEventPublisherImpl.class);
 
+    /** A time we wait before executing changes to try to make sure the transaction was already comitted. */
+    protected static final long WAIT_FOR_COMMIT_TIME_MS = 3000;
+
     @Reference
     protected ThreadPoolManager threadPoolManager;
 
@@ -82,6 +85,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
     public void publishActivation(ReleaseChangeEventListener.ReleaseChangeEvent event) throws ReleaseChangeEventListener.ReplicationFailedException {
         if (event == null || event.isEmpty()) { return; }
         event.finish();
+        LOG.info("publishActivation {}", event);
         ReleaseChangeEventListener.ReplicationFailedException exception = null;
         List<ReleaseChangeEventListener> listeners = new ArrayList<>(this.releaseChangeEventListeners);
         // copy listeners to avoid concurrent modification problems
@@ -140,8 +144,9 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         @Override
         public void run() {
             try {
+                Thread.sleep(WAIT_FOR_COMMIT_TIME_MS);
                 process.run();
-            } catch (RuntimeException e) { // forbidden
+            } catch (RuntimeException | InterruptedException e) { // forbidden
                 LOG.error("Process threw exception", e);
             } finally {
                 try {
