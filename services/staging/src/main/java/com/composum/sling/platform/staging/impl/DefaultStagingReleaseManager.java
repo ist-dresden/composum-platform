@@ -415,7 +415,10 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         List<ReleasedVersionable> result = new ArrayList<>();
         Resource releaseWorkspaceCopy = requireNonNull(release.getReleaseNode().getChild(NODE_RELEASE_ROOT));
-        Query query = release.getReleaseRoot().getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
+        Query query = release.getReleaseRoot()
+                .getResourceResolver()
+                .adaptTo(QueryBuilder.class)
+                .createQuery();
         query.path(releaseWorkspaceCopy.getPath()).type(TYPE_VERSIONREFERENCE);
         for (Resource versionReference : query.execute()) {
             result.add(ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference));
@@ -460,7 +463,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     public List<ReleasedVersionable> listWorkspaceContents(@Nonnull Resource resource) {
         ResourceHandle root = findReleaseRoot(resource);
         ensureCurrentRelease(ResourceHandle.use(root));
-        Query query = root.getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
+        Query query = root.getResourceResolver()
+                .adaptTo(QueryBuilder.class)
+                .createQuery();
         query.path(root.getPath()).type(TYPE_VERSIONABLE);
 
         List<ReleasedVersionable> result = new ArrayList<>();
@@ -476,7 +481,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         ReleaseImpl release = requireNonNull(ReleaseImpl.unwrap(rawRelease));
         Resource releaseWorkspaceCopy = release.getWorkspaceCopyNode();
 
-        Query query = releaseWorkspaceCopy.getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
+        Query query = releaseWorkspaceCopy.getResourceResolver()
+                .adaptTo(QueryBuilder.class)
+                .createQuery();
         query.path(releaseWorkspaceCopy.getPath()).type(TYPE_VERSIONREFERENCE).condition(
                 query.conditionBuilder().property(PROP_VERSIONHISTORY).eq().val(versionHistoryUuid)
         );
@@ -631,7 +638,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             previousRV = versionReference != null ? ReleasedVersionable.fromVersionReference(releaseWorkspaceCopy, versionReference) : null;
             if (versionReference == null || !StringUtils.equals(previousRV.getVersionHistory(), releasedVersionable.getVersionHistory())) {
                 // check whether it was moved. Caution: queries work only for comitted content
-                Query query = releaseWorkspaceCopy.getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
+                Query query = releaseWorkspaceCopy.getResourceResolver()
+                        .adaptTo(QueryBuilder.class)
+                        .createQuery();
                 query.path(releaseWorkspaceCopy.getPath()).type(TYPE_VERSIONREFERENCE).condition(
                         query.conditionBuilder().property(PROP_VERSIONABLEUUID).eq().val(releasedVersionable.getVersionableUuid())
                 );
@@ -751,7 +760,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 VersionReferenceImpl oldVersionReference = new VersionReferenceImpl(release, resourceAtPath);
                 ReleasedVersionable releasedVersionable = oldVersionReference.getReleasedVersionable();
                 resolver.delete(resourceAtPath);
-                LOG.warn("Removing VersionReference that is going to be overwritten: " + newPath + " : " + releasedVersionable);
+                LOG.warn("Removing VersionReference that is going to be overwritten: {} : {}", newPath, releasedVersionable);
             }
         }
 
@@ -1098,7 +1107,9 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         Set<String> expectedLabels = getReleasesImpl(root).stream().map(Release::getReleaseLabel).collect(Collectors.toSet());
 
-        Query query = root.getResourceResolver().adaptTo(QueryBuilder.class).createQuery();
+        Query query = root.getResourceResolver()
+                .adaptTo(QueryBuilder.class)
+                .createQuery();
         query.path("/jcr:system/jcr:versionStorage").type("nt:versionHistory").condition(
                 query.conditionBuilder().property("default").like().val(root.getPath() + "/%")
         );

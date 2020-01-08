@@ -71,7 +71,7 @@ public interface ReleaseChangeEventListener {
 
 
     /** Information about some activated or deactivated resources in a release, to control replication. */
-    public final class ReleaseChangeEvent {
+    final class ReleaseChangeEvent {
 
         @Nonnull
         private final StagingReleaseManager.Release release;
