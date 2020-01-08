@@ -22,7 +22,6 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -46,9 +45,20 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
 
     protected volatile ThreadPool threadPool;
 
-    /** Keeps the results to keep track which processes are currently running. Synchronize over this! */
+    /** Object to lock over when changing {@link #runningProcesses} or {@link #queuedProcesses}. */
+    protected final Object lock = new Object();
+
+    /**
+     * Keeps the results to keep track which processes are currently running.
+     * Synchronize {@link #lock} when accessing this!
+     */
     protected final Map<ReleaseChangeProcess, Future<?>> runningProcesses = new WeakHashMap<>();
 
+    /**
+     * Which processes are running but must be called again because there were new events for them in the meantime.
+     * Synchronize {@link #lock} when accessing this!
+     */
+    protected final Map<ReleaseChangeProcess, Boolean> queuedProcesses = new WeakHashMap<>();
 
     @Reference(
             service = ReleaseChangeEventListener.class,
@@ -96,23 +106,55 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
             try {
                 process.triggerProcessing(event);
                 maybeDeployProcess(process);
-            } catch (RuntimeException e) {
+            } catch (RuntimeException | InterruptedException e) {
                 LOG.error("Error when triggering process {} for {}", process, event, e);
             }
         }
     }
 
-    // FIXME(hps,07.01.20) was ist mit retriggern / abbrechen?
-    protected void maybeDeployProcess(@Nonnull ReleaseChangeProcess process) {
-        synchronized (runningProcesses) {
+    protected void maybeDeployProcess(@Nonnull ReleaseChangeProcess process) throws InterruptedException {
+        synchronized (lock) {
             Future<?> future = runningProcesses.get(process);
             if (future != null && future.isDone()) {
                 future = null;
                 runningProcesses.remove(process);
             }
             if (future == null && process.getState() == ReleaseChangeProcess.ReleaseChangeProcessorState.awaiting) {
-                future = threadPool.submit(process);
+                future = threadPool.submit(new RescheduleWrapper(process));
                 runningProcesses.put(process, future);
+            } else { // is scheduled or running - we have to call that again later.
+                queuedProcesses.put(process, Boolean.TRUE);
+            }
+        }
+    }
+
+    /** Organizes that a process is rescheduled after being run if that's needed. */
+    protected class RescheduleWrapper implements Runnable {
+
+        protected final ReleaseChangeProcess process;
+
+        public RescheduleWrapper(ReleaseChangeProcess process) {
+            this.process = process;
+        }
+
+        @Override
+        public void run() {
+            try {
+                process.run();
+            } catch (RuntimeException e) { // forbidden
+                LOG.error("Process threw exception", e);
+            } finally {
+                try {
+                    synchronized (lock) {
+                        boolean rescheduleNeeded = queuedProcesses.getOrDefault(process, false);
+                        if (rescheduleNeeded) {
+                            Future<?> future = threadPool.submit(new RescheduleWrapper(process));
+                            runningProcesses.put(process, future);
+                        }
+                    }
+                } catch (RuntimeException e) {
+                    LOG.error("Could not reschedule call.", e);
+                }
             }
         }
     }

@@ -30,7 +30,7 @@ public interface ReleaseChangeProcess extends Runnable {
      * Adds the information about the event into an internal queue. Shouldn't throw any exceptions and not do
      * anything risky - the actual processing is done when {@link #run()} is called.
      * If there is anything to do and run should be triggered, the {@link #getState()} should be switched to
-     * {@link ReleaseChangeProcessorState#awaiting}.
+     * {@link ReleaseChangeProcessorState#awaiting}. The caller guarantees that {@link #run()} is called soon.
      */
     void triggerProcessing(@Nonnull ReleaseChangeEvent event);
 
@@ -39,7 +39,7 @@ public interface ReleaseChangeProcess extends Runnable {
 
     /** Estimation how much of the currently queued release changes have been processed. */
     default int getCompletionPercentage() {
-        switch (getState()) {
+        switch (getState()) { // just some default implementation that does something somewhat sensible.
             case processing:
                 return 50;
             case success:
@@ -70,7 +70,7 @@ public interface ReleaseChangeProcess extends Runnable {
     /**
      * This method performs the processing.
      * To process the changes, this has to be called externally, e.g. by entering the {@link ReleaseChangeProcess}
-     * into a threadpool. Caution: must not be called twice in parallel. If there is nothing in the queue, this
+     * into a threadpool. Must not be called twice in parallel. If there is nothing in the queue, this
      * should just be a no-op.
      */
     @Override
