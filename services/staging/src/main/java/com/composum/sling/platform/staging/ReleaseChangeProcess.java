@@ -1,5 +1,6 @@
 package com.composum.sling.platform.staging;
 
+import com.composum.platform.commons.logging.MessageContainer;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener.ReleaseChangeEvent;
 
 import javax.annotation.Nonnull;
@@ -59,11 +60,9 @@ public interface ReleaseChangeProcess extends Runnable {
     Date getRunFinished();
 
 
-    /** Optionally, some human readable messages about the last run, e.g. errors. */
+    /** Can contain some human readable messages about the last run, e.g. errors. */
     @Nonnull
-    default List<String> getMessages() {
-        return Collections.emptyList();
-    }
+    MessageContainer getMessages();
 
     /**
      * This method performs the processing.

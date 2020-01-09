@@ -38,8 +38,14 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
 
     private static final Logger LOG = LoggerFactory.getLogger(ReleaseChangeEventPublisherImpl.class);
 
-    /** A time we wait before executing changes to try to make sure the transaction was already comitted. */
-    protected static final long WAIT_FOR_COMMIT_TIME_MS = 3000;
+    /** Name of the threadpool, and thus prefix for the thread names. */
+    public static final String THREADPOOL_NAME = "RCEventPub";
+
+    /**
+     * A time we wait before executing changes to try to make sure the transaction was already comitted.
+     * If this is too low, this can lead to consistency problems!
+     */
+    protected static final long WAIT_FOR_COMMIT_TIME_MS = 5000;
 
     @Reference
     protected ThreadPoolManager threadPoolManager;
@@ -147,7 +153,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                 Thread.sleep(WAIT_FOR_COMMIT_TIME_MS);
                 process.run();
             } catch (RuntimeException | InterruptedException e) { // forbidden
-                LOG.error("Process threw exception", e);
+                LOG.error("Bug: Process threw exception", e);
             } finally {
                 try {
                     synchronized (lock) {
@@ -188,7 +194,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
     protected void activate() {
         if (threadPool != null) { deactivate(); }
         LOG.info("activate");
-        this.threadPool = threadPoolManager.get(ReleaseChangeEventPublisherImpl.class.getName());
+        this.threadPool = threadPoolManager.get(THREADPOOL_NAME);
     }
 
     @Deactivate

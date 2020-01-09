@@ -21,4 +21,9 @@ public interface ReleaseChangeEventPublisher {
 
     Collection<ReleaseChangeProcess> processesFor(Resource releaseRoot);
 
+    // FIXME(hps,09.01.20) implement something like this.
+    // Map<ReleaseChangeProcess, ReplicationStateInfo> replicationState(Resource releaseRoot);
+
+    // ReplicationStateInfo aggregatedReplicationState(Resource releaseRoot);
+
 }
