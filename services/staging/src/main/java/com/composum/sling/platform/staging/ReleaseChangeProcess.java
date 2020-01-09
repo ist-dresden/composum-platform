@@ -18,10 +18,8 @@ import java.util.List;
  */
 public interface ReleaseChangeProcess extends Runnable {
 
-    // FIXME(hps,06.01.20) how should i18n work? Especially wrt. arguments?
     String getName();
 
-    // FIXME(hps,06.01.20) how should i18n work? Especially wrt. arguments?
     String getDescription();
 
     enum ReleaseChangeProcessorState {idle, /** is waiting to be run */ awaiting, processing, success, error}
