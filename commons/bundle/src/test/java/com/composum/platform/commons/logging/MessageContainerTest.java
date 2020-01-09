@@ -25,9 +25,9 @@ public class MessageContainerTest {
     @Test
     public void jsonizeAndBack() {
         MessageContainer container = new MessageContainer(LOG);
-        container.addMessage(new Message(Message.Level.warn, "Some problem with {} number {}", "foo", 17))
-                .addMessage(new Message(null, "Minimal message"))
-                .addMessage(new Message(Message.Level.info, "Message {} with details", 3)
+        container.add(new Message(Message.Level.warn, "Some problem with {} number {}", "foo", 17))
+                .add(new Message(null, "Minimal message"))
+                .add(new Message(Message.Level.info, "Message {} with details", 3)
                         .addDetail(new Message(Message.Level.debug, "Detail {}", 1))
                         .addDetail(new Message(Message.Level.info, "Detail {}", 2))
                 );
@@ -92,7 +92,7 @@ public class MessageContainerTest {
                 "Minimal message\n" +
                 "Message 3 with details\n" +
                 "    Details:\n" +
-                "    Detail 1\n" +
+                "    debug: Detail 1\n" +
                 "    Detail 2"));
     }
 

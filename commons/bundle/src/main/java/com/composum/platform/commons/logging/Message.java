@@ -37,13 +37,68 @@ public class Message {
         // empty
     }
 
-    /** Constructs a message. */
+    /**
+     * Creates a message.
+     *
+     * @param level     the level of the message, default {@link Level#info}
+     * @param message   the message, possibly with placeholders {@quote {}} for arguments
+     * @param arguments optional arguments placed in placeholders. Caution: must be primitive types if this is to be
+     *                  transmitted with JSON!
+     */
     public Message(@Nullable Level level, @Nonnull String message, Object... arguments) {
         this.message = message;
         this.level = level;
         this.category = category;
         this.arguments = arguments != null && arguments.length > 0 ? arguments : null;
         timestamp = System.currentTimeMillis();
+    }
+
+    /**
+     * Convenience-method - constructs with {@link Level#error}.
+     *
+     * @param message   the message, possibly with placeholders {@quote {}} for arguments
+     * @param arguments optional arguments placed in placeholders. Caution: must be primitive types if this is to be
+     *                  transmitted with JSON!
+     */
+    @Nonnull
+    public static Message error(@Nonnull String message, Object... arguments) {
+        return new Message(Level.error, message, arguments);
+    }
+
+    /**
+     * Convenience-method - constructs with {@link Level#warn}.
+     *
+     * @param message   the message, possibly with placeholders {@quote {}} for arguments
+     * @param arguments optional arguments placed in placeholders. Caution: must be primitive types if this is to be
+     *                  transmitted with JSON!
+     */
+    @Nonnull
+    public static Message warn(@Nonnull String message, Object... arguments) {
+        return new Message(Level.warn, message, arguments);
+    }
+
+    /**
+     * Convenience-method - constructs with {@link Level#info}.
+     *
+     * @param message   the message, possibly with placeholders {@quote {}} for arguments
+     * @param arguments optional arguments placed in placeholders. Caution: must be primitive types if this is to be
+     *                  transmitted with JSON!
+     */
+    @Nonnull
+    public static Message info(@Nonnull String message, Object... arguments) {
+        return new Message(Level.info, message, arguments);
+    }
+
+    /**
+     * Convenience-method - constructs with {@link Level#debug}.
+     *
+     * @param message   the message, possibly with placeholders {@quote {}} for arguments
+     * @param arguments optional arguments placed in placeholders. Caution: must be primitive types if this is to be
+     *                  transmitted with JSON!
+     */
+    @Nonnull
+    public static Message debug(@Nonnull String message, Object... arguments) {
+        return new Message(Level.debug, message, arguments);
     }
 
     /**
@@ -180,12 +235,15 @@ public class Message {
      */
     public String toFormattedMessage() {
         StringBuilder buf = new StringBuilder();
-        appendFormattedTo(buf, "");
+        appendFormattedTo(buf, "", level);
         return buf.toString();
     }
 
-    protected void appendFormattedTo(StringBuilder buf, String indent) {
+    protected void appendFormattedTo(StringBuilder buf, String indent, Level baseLevel) {
         buf.append(indent);
+        if (level != null && baseLevel != null && level != baseLevel) {
+            buf.append(level.name()).append(": ");
+        }
         if (arguments != null) {
             FormattingTuple formatted = MessageFormatter.arrayFormat(message, arguments);
             buf.append(formatted.getMessage());
@@ -197,7 +255,7 @@ public class Message {
             buf.append("\n").append(addIndent).append("Details:");
             for (Message detail : details) {
                 buf.append("\n");
-                detail.appendFormattedTo(buf, addIndent);
+                detail.appendFormattedTo(buf, addIndent, baseLevel);
             }
         }
     }
