@@ -115,9 +115,12 @@ public class SetupHook implements InstallHook {
             LOG.info("OK, obsolete cpl:releaseConfig is not present, but cpl:releaseRoot is");
         }
         boolean hasReleaseChangeNumber = Arrays.asList(releaseType.getPropertyDefinitions()).stream()
-                .noneMatch((pd) -> "cpl:releaseChangeNumber".equals(pd.getName()));
-        if (!hasReleaseChangeNumber) {
-            LOG.info("Need to update since cpl:releaseChangeNumber is not present on cpl:releaseRoot");
+                .anyMatch((pd) -> "cpl:releaseChangeNumber".equals(pd.getName()));
+        boolean hasLastReplicationDate = Arrays.asList(releaseType.getPropertyDefinitions()).stream()
+                .anyMatch((pd) -> "cpl:lastReplicationDate".equals(pd.getName()));
+        if (!hasReleaseChangeNumber || !hasLastReplicationDate) {
+            LOG.info("Need to update since cpl:releaseChangeNumber or cpl:lastReplicationDate " +
+                    "is not present on cpl:releaseRoot");
         }
         return !hasReleaseChangeNumber;
     }
