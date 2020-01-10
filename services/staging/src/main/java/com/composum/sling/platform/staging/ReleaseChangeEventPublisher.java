@@ -1,11 +1,15 @@
 package com.composum.sling.platform.staging;
 
+import com.composum.platform.commons.logging.MessageContainer;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener.ReleaseChangeEvent;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
 import org.apache.sling.api.resource.Resource;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.Date;
+import java.util.Map;
 
 /** Service that distributes {@link ReleaseChangeEvent}s among the {@link ReleaseChangeEventListener}s. */
 public interface ReleaseChangeEventPublisher {
@@ -17,13 +21,41 @@ public interface ReleaseChangeEventPublisher {
     void publishActivation(@Nullable ReleaseChangeEvent event)
             throws ReleaseChangeEventListener.ReplicationFailedException;
 
-    Collection<ReleaseChangeProcess> processesFor(Release release);
+    @Nonnull
+    Collection<ReleaseChangeProcess> processesFor(@Nullable Release release);
 
-    Collection<ReleaseChangeProcess> processesFor(Resource releaseRoot);
+    @Nonnull
+    Collection<ReleaseChangeProcess> processesFor(@Nullable Resource releaseRoot);
 
-    // FIXME(hps,09.01.20) implement something like this.
-    // Map<ReleaseChangeProcess, ReplicationStateInfo> replicationState(Resource releaseRoot);
+    @Nonnull
+    Map<ReleaseChangeProcess, ReplicationStateInfo> replicationState(@Nullable Resource releaseRoot);
 
-    // ReplicationStateInfo aggregatedReplicationState(Resource releaseRoot);
+    @Nonnull
+    AggregatedReplicationStateInfo aggregatedReplicationState(@Nullable Resource releaseRoot);
+
+    /** Information about one {@link ReleaseChangeProcess} useable for JSON serialization. */
+    class ReplicationStateInfo {
+        public ReleaseChangeProcess.ReleaseChangeProcessorState state;
+        public String name;
+        public String description;
+        public Date startedAt;
+        public Date finishedAt;
+        public MessageContainer messages;
+        /** Whether the remote release change number is equal to the local one. */
+        public boolean isSynchronized;
+    }
+
+    /**
+     * General information about the {@link ReleaseChangeProcess}es of a release root, useable for JSON
+     * serialization.
+     */
+    class AggregatedReplicationStateInfo {
+        /** True if for all enabled {@link ReleaseChangeProcess} the remote content is equivalent to the local one. */
+        public boolean everythingIsSynchronized;
+        /** True if there are still some replications running. */
+        public boolean replicationsAreRunning;
+        /** True if there are some {@link ReleaseChangeProcess}es in error state. */
+        public boolean haveErrors;
+    }
 
 }

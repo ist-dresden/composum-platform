@@ -19,14 +19,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.Future;
+
+import static com.composum.sling.platform.staging.ReleaseChangeProcess.ReleaseChangeProcessorState.error;
 
 @Component(
         service = {ReleaseChangeEventPublisher.class},
@@ -171,8 +175,9 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         }
     }
 
+    @Nonnull
     @Override
-    public Collection<ReleaseChangeProcess> processesFor(StagingReleaseManager.Release release) {
+    public Collection<ReleaseChangeProcess> processesFor(@Nullable StagingReleaseManager.Release release) {
         List<ReleaseChangeProcess> result = new ArrayList<>();
         for (ReleaseChangeEventListener releaseChangeEventListener : new ArrayList<>(this.releaseChangeEventListeners)) {
             result.addAll(releaseChangeEventListener.processesFor(release));
@@ -180,11 +185,62 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         return result;
     }
 
+    @Nonnull
     @Override
-    public Collection<ReleaseChangeProcess> processesFor(Resource releaseRoot) {
+    public Collection<ReleaseChangeProcess> processesFor(@Nullable Resource releaseRoot) {
         List<ReleaseChangeProcess> result = new ArrayList<>();
         for (ReleaseChangeEventListener releaseChangeEventListener : new ArrayList<>(this.releaseChangeEventListeners)) {
             result.addAll(releaseChangeEventListener.processesFor(releaseRoot));
+        }
+        return result;
+    }
+
+    @Nonnull
+    @Override
+    public Map<ReleaseChangeProcess, ReplicationStateInfo> replicationState(@Nullable Resource releaseRoot) {
+        Map<ReleaseChangeProcess, ReplicationStateInfo> result = new LinkedHashMap<>();
+        for (ReleaseChangeProcess process : processesFor(releaseRoot)) {
+            ReplicationStateInfo info = new ReplicationStateInfo();
+            info.state = process.getState();
+            info.name = process.getName();
+            info.description = process.getDescription();
+            info.startedAt = process.getRunStartedAt();
+            info.finishedAt = process.getRunFinished();
+            info.messages = process.getMessages();
+            info.isSynchronized = process.checkSynchronized(true);
+            result.put(process, info);
+        }
+        return result;
+    }
+
+    @Nonnull
+    @Override
+    public AggregatedReplicationStateInfo aggregatedReplicationState(@Nullable Resource releaseRoot) {
+        AggregatedReplicationStateInfo result = new AggregatedReplicationStateInfo();
+        result.replicationsAreRunning = false;
+        result.haveErrors = false;
+        result.everythingIsSynchronized = true;
+
+        for (ReleaseChangeProcess process : processesFor(releaseRoot)) {
+            if (process.getState() == error) { result.haveErrors = true;}
+            if (result.everythingIsSynchronized && !process.checkSynchronized(false)) {
+                result.everythingIsSynchronized = false;
+            }
+            switch (process.getState()) {
+                case error:
+                    result.haveErrors = true;
+                    result.replicationsAreRunning = true;
+                    break;
+                case awaiting:
+                case processing:
+                    result.replicationsAreRunning = true;
+                    break;
+                case idle:
+                case success:
+                default:
+                    // no action
+                    break;
+            }
         }
         return result;
     }

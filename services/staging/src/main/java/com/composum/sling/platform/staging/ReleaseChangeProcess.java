@@ -5,9 +5,7 @@ import com.composum.sling.platform.staging.ReleaseChangeEventListener.ReleaseCha
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 
 /**
  * A process or workflow that can be triggered by a
@@ -35,6 +33,18 @@ public interface ReleaseChangeProcess extends Runnable {
 
     @Nonnull
     ReleaseChangeProcessorState getState();
+
+    /**
+     * Checks whether the remote replication is currently at the same
+     * {@link StagingReleaseManager.Release#getChangeNumber()} as the local content.
+     * If a remote access is necessary to determine this, the result can be cached for a while since this might be
+     * called on each request of an editor
+     *
+     * @param discardCache do not cache the result, even if a remote query is necessary
+     */
+    default boolean checkSynchronized(boolean discardCache) {
+        return true;
+    }
 
     /** Estimation how much of the currently queued release changes have been processed. */
     default int getCompletionPercentage() {
