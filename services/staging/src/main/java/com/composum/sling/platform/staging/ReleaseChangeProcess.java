@@ -21,7 +21,7 @@ public interface ReleaseChangeProcess extends Runnable {
 
     String getDescription();
 
-    enum ReleaseChangeProcessorState {idle, /** is waiting to be run */ awaiting, processing, success, error}
+    enum ReleaseChangeProcessorState {idle, /** is waiting to be run */ awaiting, processing, success, error, disabled}
 
     /**
      * Adds the information about the event into an internal queue. Shouldn't throw any exceptions and not do
@@ -33,6 +33,9 @@ public interface ReleaseChangeProcess extends Runnable {
 
     @Nonnull
     ReleaseChangeProcessorState getState();
+
+    /** True if the process is enabled; if not it's state is also {@link ReleaseChangeProcessorState#disabled}. */
+    boolean isEnabled();
 
     /**
      * Checks whether the remote replication is currently at the same
@@ -59,15 +62,15 @@ public interface ReleaseChangeProcess extends Runnable {
     }
 
     /**
-     * The time the last processing was started. A {@link #triggerProcessing(ReleaseChangeEvent)} or
+     * The time the last processing was started as {@link System#currentTimeMillis()}. A {@link #triggerProcessing(ReleaseChangeEvent)} or
      * external changes of release content might restart the process completely.
      */
     @Nullable
-    Date getRunStartedAt();
+    Long getRunStartedAt();
 
-    /** The time the last processing was finished. */
+    /** The time the last processing was finished as {@link System#currentTimeMillis()}. */
     @Nullable
-    Date getRunFinished();
+    Long getRunFinished();
 
 
     /** Can contain some human readable messages about the last run, e.g. errors. */

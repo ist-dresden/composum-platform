@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.Future;
 
+import static com.composum.sling.platform.staging.ReleaseChangeProcess.ReleaseChangeProcessorState.disabled;
 import static com.composum.sling.platform.staging.ReleaseChangeProcess.ReleaseChangeProcessorState.error;
 
 @Component(
@@ -117,6 +118,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
 
         Collection<ReleaseChangeProcess> processes = processesFor(event.release());
         for (ReleaseChangeProcess process : processes) {
+            if (!process.isEnabled()) { continue; }
             try {
                 process.triggerProcessing(event);
                 maybeDeployProcess(process);
@@ -207,6 +209,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
             info.startedAt = process.getRunStartedAt();
             info.finishedAt = process.getRunFinished();
             info.messages = process.getMessages();
+            info.enabled = process.isEnabled();
             info.isSynchronized = process.checkSynchronized(true);
             result.put(process, info);
         }
@@ -222,8 +225,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         result.everythingIsSynchronized = true;
 
         for (ReleaseChangeProcess process : processesFor(releaseRoot)) {
-            if (process.getState() == error) { result.haveErrors = true;}
-            if (result.everythingIsSynchronized && !process.checkSynchronized(false)) {
+            if (process.getState() != disabled && result.everythingIsSynchronized && !process.checkSynchronized(false)) {
                 result.everythingIsSynchronized = false;
             }
             switch (process.getState()) {
@@ -237,6 +239,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                     break;
                 case idle:
                 case success:
+                case disabled:
                 default:
                     // no action
                     break;

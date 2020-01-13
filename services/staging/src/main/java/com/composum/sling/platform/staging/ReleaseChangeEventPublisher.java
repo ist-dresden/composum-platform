@@ -38,11 +38,12 @@ public interface ReleaseChangeEventPublisher {
         public ReleaseChangeProcess.ReleaseChangeProcessorState state;
         public String name;
         public String description;
-        public Date startedAt;
-        public Date finishedAt;
+        public Long startedAt;
+        public Long finishedAt;
         public MessageContainer messages;
         /** Whether the remote release change number is equal to the local one. */
         public boolean isSynchronized;
+        public boolean enabled;
     }
 
     /**
