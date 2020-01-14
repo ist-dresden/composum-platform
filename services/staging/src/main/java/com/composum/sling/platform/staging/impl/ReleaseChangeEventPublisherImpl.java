@@ -23,15 +23,11 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.Future;
-
-import static com.composum.sling.platform.staging.ReleaseChangeProcess.ReleaseChangeProcessorState.disabled;
-import static com.composum.sling.platform.staging.ReleaseChangeProcess.ReleaseChangeProcessorState.error;
 
 @Component(
         service = {ReleaseChangeEventPublisher.class},
@@ -81,15 +77,15 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
     )
     protected void addReleaseChangeEventListener(@Nonnull ReleaseChangeEventListener listener) {
         LOG.info("Adding listener {}@{}", listener.getClass().getName(), System.identityHashCode(listener));
-        Iterator<ReleaseChangeEventListener> it = releaseChangeEventListeners.iterator();
-        while (it.hasNext()) { if (it.next() == listener) { it.remove(); } }
+        //noinspection ObjectEquality : equality for services not defined
+        releaseChangeEventListeners.removeIf(releaseChangeEventListener -> releaseChangeEventListener == listener);
         releaseChangeEventListeners.add(listener);
     }
 
     protected void removeReleaseChangeEventListener(@Nonnull ReleaseChangeEventListener listener) {
         LOG.info("Removing listener {}@{}", listener.getClass().getName(), System.identityHashCode(listener));
-        Iterator<ReleaseChangeEventListener> it = releaseChangeEventListeners.iterator();
-        while (it.hasNext()) { if (it.next() == listener) { it.remove(); } }
+        //noinspection ObjectEquality : equality for services not defined
+        releaseChangeEventListeners.removeIf(releaseChangeEventListener -> releaseChangeEventListener == listener);
     }
 
     @Override
@@ -199,10 +195,11 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
 
     @Nonnull
     @Override
-    public Map<ReleaseChangeProcess, ReplicationStateInfo> replicationState(@Nullable Resource releaseRoot) {
-        Map<ReleaseChangeProcess, ReplicationStateInfo> result = new LinkedHashMap<>();
+    public Map<String, ReplicationStateInfo> replicationState(@Nullable Resource releaseRoot) {
+        Map<String, ReplicationStateInfo> result = new LinkedHashMap<>();
         for (ReleaseChangeProcess process : processesFor(releaseRoot)) {
             ReplicationStateInfo info = new ReplicationStateInfo();
+            info.id = process.getId();
             info.state = process.getState();
             info.name = process.getName();
             info.description = process.getDescription();
@@ -210,24 +207,29 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
             info.finishedAt = process.getRunFinished();
             info.messages = process.getMessages();
             info.enabled = process.isEnabled();
-            info.isSynchronized = process.checkSynchronized(true);
-            result.put(process, info);
+            process.updateSynchronized();
+            info.isSynchronized = process.isSynchronized(releaseRoot.getResourceResolver());
+            result.put(process.getId(), info);
         }
         return result;
     }
 
-    @Nonnull
+    @Nullable
     @Override
     public AggregatedReplicationStateInfo aggregatedReplicationState(@Nullable Resource releaseRoot) {
+        if (releaseRoot == null) { return null; }
         AggregatedReplicationStateInfo result = new AggregatedReplicationStateInfo();
         result.replicationsAreRunning = false;
         result.haveErrors = false;
         result.everythingIsSynchronized = true;
+        result.numberEnabledProcesses = 0;
 
         for (ReleaseChangeProcess process : processesFor(releaseRoot)) {
-            if (process.getState() != disabled && result.everythingIsSynchronized && !process.checkSynchronized(false)) {
+            if (process.isEnabled() && result.everythingIsSynchronized
+                    && Boolean.FALSE.equals(process.isSynchronized(releaseRoot.getResourceResolver()))) {
                 result.everythingIsSynchronized = false;
             }
+            if (process.isEnabled()) { result.numberEnabledProcesses++; }
             switch (process.getState()) {
                 case error:
                     result.haveErrors = true;

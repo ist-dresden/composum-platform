@@ -80,13 +80,15 @@ public class ReleaseChangeEventPublisherServlet extends AbstractServiceServlet {
         public void doIt(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
             Status status = new Status(request, response);
             try {
-                Map<ReleaseChangeProcess, ReplicationStateInfo> result = service.replicationState(resource);
+                Map<String, ReplicationStateInfo> result = service.replicationState(resource);
                 Map<String, Object> map = status.data("replicationStates");
-                for (Map.Entry<ReleaseChangeProcess, ReplicationStateInfo> entry : result.entrySet()) {
+                for (Map.Entry<String, ReplicationStateInfo> entry : result.entrySet()) {
+                    entry.getValue().messages.i18n(request);
+                    // FIXME(hps,14.01.20) for testing purposes only
                     entry.getValue().messages.add(Message.error("Some error: {}", "errorarg")
                             .addDetail(Message.info("Detail {}", "detailarg"))
                     );
-                    map.put(entry.getKey().getName(), entry.getValue());
+                    map.put(entry.getKey(), entry.getValue());
                 }
             } catch (Exception e) {
                 LOG.error("Internal error", e);

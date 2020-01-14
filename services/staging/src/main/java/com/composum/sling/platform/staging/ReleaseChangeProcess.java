@@ -6,7 +6,6 @@ import org.apache.sling.api.resource.ResourceResolver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Date;
 
 /**
  * A process or workflow that can be triggered by a
@@ -17,6 +16,12 @@ import java.util.Date;
  * The processes can be shown in the GUI and checked for their state.
  */
 public interface ReleaseChangeProcess extends Runnable {
+
+    /**
+     * A string (such as a configuration resource path) that identifies this process uniquely. Not for human
+     * consumption.
+     */
+    String getId();
 
     String getName();
 
@@ -38,29 +43,8 @@ public interface ReleaseChangeProcess extends Runnable {
     /** True if the process is enabled; if not it's state is also {@link ReleaseChangeProcessorState#disabled}. */
     boolean isEnabled();
 
-    /**
-     * Checks whether the remote replication is currently at the same
-     * {@link StagingReleaseManager.Release#getChangeNumber()} as the local content.
-     * If a remote access is necessary to determine this, the result can be cached for a while since this might be
-     * called on each request of an editor
-     *
-     * @param discardCache do not cache the result, even if a remote query is necessary
-     */
-    default boolean checkSynchronized(boolean discardCache) {
-        return true;
-    }
-
     /** Estimation how much of the currently queued release changes have been processed. */
-    default int getCompletionPercentage() {
-        switch (getState()) { // just some default implementation that does something somewhat sensible.
-            case processing:
-                return 50;
-            case success:
-                return 100;
-            default:
-                return 0;
-        }
-    }
+    int getCompletionPercentage();
 
     /**
      * The time the last processing was started as {@link System#currentTimeMillis()}. A {@link #triggerProcessing(ReleaseChangeEvent)} or
@@ -81,8 +65,14 @@ public interface ReleaseChangeProcess extends Runnable {
     @Nullable
     Long lastReleaseChangeTimestamp();
 
+    /**
+     * Checks whether the remote replication is currently at the same
+     * {@link StagingReleaseManager.Release#getChangeNumber()} as the local content.
+     * If a remote access is necessary to determine this, the result is cached for a while since this might be
+     * called on each request of an editor.
+     */
     @Nullable
-    Boolean isSynchronized(ResourceResolver resolver);
+    Boolean isSynchronized(@Nonnull ResourceResolver resolver);
 
     /** Forces an update of {@link #isSynchronized()} and {@link #lastReleaseChangeTimestamp()}. */
     void updateSynchronized();

@@ -28,21 +28,23 @@ public interface ReleaseChangeEventPublisher {
     Collection<ReleaseChangeProcess> processesFor(@Nullable Resource releaseRoot);
 
     @Nonnull
-    Map<ReleaseChangeProcess, ReplicationStateInfo> replicationState(@Nullable Resource releaseRoot);
+    Map<String, ReplicationStateInfo> replicationState(@Nullable Resource releaseRoot);
 
-    @Nonnull
+    @Nullable
     AggregatedReplicationStateInfo aggregatedReplicationState(@Nullable Resource releaseRoot);
 
     /** Information about one {@link ReleaseChangeProcess} useable for JSON serialization. */
     class ReplicationStateInfo {
-        public ReleaseChangeProcess.ReleaseChangeProcessorState state;
+        /** An unique id for the {@link ReleaseChangeProcess}. */
+        public String id;
         public String name;
         public String description;
+        public ReleaseChangeProcess.ReleaseChangeProcessorState state;
         public Long startedAt;
         public Long finishedAt;
         public MessageContainer messages;
         /** Whether the remote release change number is equal to the local one. */
-        public boolean isSynchronized;
+        public Boolean isSynchronized;
         public boolean enabled;
     }
 
@@ -57,6 +59,8 @@ public interface ReleaseChangeEventPublisher {
         public boolean replicationsAreRunning;
         /** True if there are some {@link ReleaseChangeProcess}es in error state. */
         public boolean haveErrors;
+        /** Number of enabled {@link ReleaseChangeProcess}es. */
+        public int numberEnabledProcesses;
     }
 
 }
