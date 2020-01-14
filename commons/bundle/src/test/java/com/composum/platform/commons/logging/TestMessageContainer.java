@@ -1,10 +1,13 @@
 package com.composum.platform.commons.logging;
 
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
+import com.composum.sling.platform.testing.testutil.MockResourceBundle;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.apache.sling.api.SlingHttpServletRequest;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,14 +16,14 @@ import java.util.stream.Collectors;
 import static org.hamcrest.Matchers.is;
 
 /** Tests for {@link MessageContainer} and {@link Message}. */
-public class MessageContainerTest {
+public class TestMessageContainer {
 
     public static final String TIMESTAMP_REGEX = "157[0-9]{10}";
 
     @Rule
     public ErrorCollectorAlwaysPrintingFailures ec = new ErrorCollectorAlwaysPrintingFailures();
 
-    private static final Logger LOG = LoggerFactory.getLogger(MessageContainerTest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TestMessageContainer.class);
 
     @Test
     public void jsonizeAndBack() {
@@ -94,6 +97,30 @@ public class MessageContainerTest {
                 "    Details:\n" +
                 "    debug: Detail 1\n" +
                 "    Detail 2"));
+    }
+
+    @Test
+    public void i18n() {
+        SlingHttpServletRequest request = Mockito.mock(SlingHttpServletRequest.class);
+        MockResourceBundle.forRequestMock(request)
+                .add("Some problem with {} number {}", "Ein Problem mit {} Nummer {}");
+
+        MessageContainer container = new MessageContainer(LOG);
+        container.add(new Message(Message.Level.warn, "Some problem with {} number {}", "foo", 17));
+        container.i18n(request);
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        String json = gson.toJson(container);
+        System.out.println(json.replaceAll(TIMESTAMP_REGEX, "<timestamp>"));
+        ec.checkThat(json.replaceAll(TIMESTAMP_REGEX, "<timestamp>"), is(
+                "{\n" +
+                        "  \"messages\": [\n" +
+                        "    {\n" +
+                        "      \"message\": \"Ein Problem mit foo Nummer 17\",\n" +
+                        "      \"level\": \"warn\",\n" +
+                        "      \"timestamp\": <timestamp>\n" +
+                        "    }\n" +
+                        "  ]\n" +
+                        "}"));
     }
 
 }

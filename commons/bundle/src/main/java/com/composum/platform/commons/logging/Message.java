@@ -1,6 +1,11 @@
 package com.composum.platform.commons.logging;
 
+import com.composum.sling.core.util.I18N;
+import com.composum.sling.core.util.LoggerFormat;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.sling.api.SlingHttpServletRequest;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.FormattingTuple;
 import org.slf4j.helpers.MessageFormatter;
 
@@ -18,6 +23,8 @@ import java.util.List;
  */
 public class Message {
 
+    private static final Logger LOG = LoggerFactory.getLogger(Message.class);
+
     /** @see #getMessage() */
     protected String message;
     /** @see #getLevel() */
@@ -30,6 +37,8 @@ public class Message {
     protected List<Message> details;
     /** @see #getTimestamp() */
     protected Long timestamp;
+    /** Saves whether the message was already {@link #i18n(SlingHttpServletRequest)}-ized. */
+    protected transient boolean i18lized;
 
     /** @deprecated only for JSON deserialization. */
     @Deprecated
@@ -177,6 +186,33 @@ public class Message {
     @Nonnull
     public List<Message> getDetails() {
         return details != null ? Collections.unmodifiableList(details) : Collections.emptyList();
+    }
+
+    /**
+     * Internationalizes the message according to the requests locale. This modifies the message: the
+     * {@link #getMessage()} is looked up as i18n key, and then the arguments are placed into the placeholders and
+     * then cleared. Recommended only after {@link #logInto(Logger)} or {@link #logInto(Logger, Throwable)}.
+     *
+     * @return this message for builder-style operation-chaining.
+     */
+    @Nonnull
+    public Message i18n(SlingHttpServletRequest request) {
+        if (!i18lized) {
+            if (StringUtils.isNotBlank(message)) {
+                String newMessage = I18N.get(request, message);
+                if (arguments != null && arguments.length > 0) {
+                    newMessage = LoggerFormat.format(newMessage, arguments);
+                }
+                if (StringUtils.isNotBlank(newMessage)) {
+                    message = newMessage;
+                    arguments = null;
+                    i18lized = true;
+                }
+            }
+        } else { // already i18lized - misuse
+            LOG.warn("Second i18n on same message", new Exception("Stacktrace for second i18n, not thrown"));
+        }
+        return this;
     }
 
     /**

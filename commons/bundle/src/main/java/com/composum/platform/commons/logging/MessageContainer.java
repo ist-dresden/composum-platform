@@ -1,5 +1,6 @@
 package com.composum.platform.commons.logging;
 
+import org.apache.sling.api.SlingHttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,8 +16,10 @@ public class MessageContainer {
     private static final Logger LOG = LoggerFactory.getLogger(MessageContainer.class);
 
     /** A logger where {@link #add(Message)} automatically logs to. */
+    @Nullable
     protected transient final Logger log;
     /** @see #getMessages() */
+    @Nullable
     protected List<Message> messages;
 
     /**
@@ -32,7 +35,7 @@ public class MessageContainer {
      *
      * @param log an optional log to which added messages are logged.
      */
-    public MessageContainer(Logger log) {
+    public MessageContainer(@Nullable Logger log) {
         this.log = log;
     }
 
@@ -55,12 +58,11 @@ public class MessageContainer {
             if (messages == null) { messages = new ArrayList<>(); }
             messages.add(message);
             if (log != null) {
-                if (throwable != null && log == null) {
-                    LOG.warn("Received throwable but have no logger: {}", message.toFormattedMessage(), throwable);
-                } else {
-                    message.logInto(log, throwable);
-                }
+                message.logInto(log, throwable);
+            } else if (throwable != null) { // very likely a misuse
+                LOG.warn("Received throwable but have no logger: {}", message.toFormattedMessage(), throwable);
             }
+
         }
         return this;
     }
@@ -73,6 +75,21 @@ public class MessageContainer {
     @Nonnull
     public MessageContainer add(@Nullable Message message) {
         return add(message, null);
+    }
+
+    /**
+     * Internationalizes the message according to the requests locale. This modifies the messages - see
+     * {@link Message#i18n(SlingHttpServletRequest)}.
+     *
+     * @return this container for builder-style operation-chaining.
+     * @see Message#i18n(SlingHttpServletRequest)
+     */
+    @Nonnull
+    public MessageContainer i18n(@Nonnull SlingHttpServletRequest request) {
+        for (Message message : getMessages()) {
+            message.i18n(request);
+        }
+        return this;
     }
 
 }
