@@ -1,5 +1,6 @@
 package com.composum.sling.platform.staging.impl;
 
+import com.composum.platform.commons.logging.Message;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.servlet.AbstractServiceServlet;
 import com.composum.sling.core.servlet.ServletOperation;
@@ -82,6 +83,9 @@ public class ReleaseChangeEventPublisherServlet extends AbstractServiceServlet {
                 Map<ReleaseChangeProcess, ReplicationStateInfo> result = service.replicationState(resource);
                 Map<String, Object> map = status.data("replicationStates");
                 for (Map.Entry<ReleaseChangeProcess, ReplicationStateInfo> entry : result.entrySet()) {
+                    entry.getValue().messages.add(Message.error("Some error: {}", "errorarg")
+                            .addDetail(Message.info("Detail {}", "detailarg"))
+                    );
                     map.put(entry.getKey().getName(), entry.getValue());
                 }
             } catch (Exception e) {

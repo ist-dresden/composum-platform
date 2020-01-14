@@ -2,6 +2,7 @@ package com.composum.sling.platform.staging;
 
 import com.composum.platform.commons.logging.MessageContainer;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener.ReleaseChangeEvent;
+import org.apache.sling.api.resource.ResourceResolver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -76,6 +77,15 @@ public interface ReleaseChangeProcess extends Runnable {
     /** Can contain some human readable messages about the last run, e.g. errors. */
     @Nonnull
     MessageContainer getMessages();
+
+    @Nullable
+    Long lastReleaseChangeTimestamp();
+
+    @Nullable
+    Boolean isSynchronized(ResourceResolver resolver);
+
+    /** Forces an update of {@link #isSynchronized()} and {@link #lastReleaseChangeTimestamp()}. */
+    void updateSynchronized();
 
     /**
      * This method performs the processing.
