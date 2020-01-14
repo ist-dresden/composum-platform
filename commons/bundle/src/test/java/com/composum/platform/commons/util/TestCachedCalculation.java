@@ -17,6 +17,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.nullValue;
 
 /** Tests for {@link CachedCalculation}. */
 public class TestCachedCalculation {
@@ -40,6 +41,9 @@ public class TestCachedCalculation {
 
     @Test
     public void checkCaching() throws InterruptedException {
+        ec.checkThat(cached.getCachedValue(false), nullValue());
+        ec.checkThat(cached.getCachedValue(true), nullValue());
+
         {
             long begin = System.currentTimeMillis();
             Integer val = cached.giveValue();
@@ -47,6 +51,9 @@ public class TestCachedCalculation {
             ec.checkThat(val, is(1));
             ec.checkThat(end - begin, allOf(lessThan(timeoutMillis), greaterThanOrEqualTo(timeoutMillis / 2)));
         }
+
+        ec.checkThat(cached.getCachedValue(false), is(1));
+        ec.checkThat(cached.getCachedValue(true), is(1));
 
         {
             long begin = System.currentTimeMillis();
@@ -57,6 +64,9 @@ public class TestCachedCalculation {
         }
 
         Thread.sleep(timeoutMillis);
+
+        ec.checkThat(cached.getCachedValue(false), nullValue());
+        ec.checkThat(cached.getCachedValue(true), is(1));
 
         {
             long begin = System.currentTimeMillis();
@@ -98,6 +108,15 @@ public class TestCachedCalculation {
         Future<Integer> future2 = executor.submit(() -> cached.giveValue());
         ec.checkThat(future1.get(), is(1));
         ec.checkThat(future2.get(), is(1));
+        Thread.sleep(timeoutMillis);
+        future1 = executor.submit(() -> cached.giveValue());
+        future2 = executor.submit(() -> cached.giveValue());
+        ec.checkThat(future1.get(), is(2));
+        ec.checkThat(future2.get(), is(2));
+        future1 = executor.submit(() -> cached.giveValue(null, true));
+        future2 = executor.submit(() -> cached.giveValue(null, true));
+        ec.checkThat(future1.get(), is(3));
+        ec.checkThat(future2.get(), is(3));
     }
 
     @Test
@@ -111,7 +130,7 @@ public class TestCachedCalculation {
             }, true);
         });
         Future<Integer> futureCached = executor.submit(() -> {
-            queue.take(); // ensure this is run after first calculation is started.
+            queue.take(); // ensure this is run only after first calculation is started.
             long begin = System.currentTimeMillis();
             Integer val = cached.giveValue();
             long end = System.currentTimeMillis();

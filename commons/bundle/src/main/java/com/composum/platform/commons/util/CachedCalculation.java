@@ -43,6 +43,22 @@ public class CachedCalculation<T, EXCEPTION extends Throwable> {
     }
 
     /**
+     * Delivers the cached value if there is one - without calculating it.
+     *
+     * @param ignoreTimeout if true, we also would return a value that is timed out.
+     * @return the cached value if there is one
+     */
+    @Nullable
+    public T getCachedValue(boolean ignoreTimeout) {
+        Pair<T, Long> thecache = cached;
+        T result = null;
+        if (thecache != null && (ignoreTimeout || currentTime() < thecache.getRight())) {
+            result = thecache.getLeft();
+        }
+        return result;
+    }
+
+    /**
      * Returns the cached value, calculating it if it wasn't calculated yet or timed out.
      *
      * @param currentSupplier the supplier with which this is to be calculated - for instance if there cannot be a
@@ -90,7 +106,11 @@ public class CachedCalculation<T, EXCEPTION extends Throwable> {
         return usedSupplier.get();
     }
 
-    /** Invalidates the current value, enforcing a new calculation. */
+    /**
+     * Invalidates the current value, enforcing a new calculation. Use when it is known that the value is wrong. If
+     * requests during the new calculation should still get the cached value, consider
+     * {@link #giveValue(ExceptionThrowingSupplier, boolean)} with force=true.
+     */
     public void invalidate() {
         cached = null;
     }
