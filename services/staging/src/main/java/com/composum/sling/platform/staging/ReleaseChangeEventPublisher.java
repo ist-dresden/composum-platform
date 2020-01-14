@@ -46,6 +46,8 @@ public interface ReleaseChangeEventPublisher {
         /** Whether the remote release change number is equal to the local one. */
         public Boolean isSynchronized;
         public boolean enabled;
+        /** Time of last (successful) replication, as in {@link System#currentTimeMillis()}. */
+        public Long lastReplicationTimestamp;
     }
 
     /**

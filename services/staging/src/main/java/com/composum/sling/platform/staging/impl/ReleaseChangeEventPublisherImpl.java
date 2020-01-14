@@ -209,6 +209,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
             info.enabled = process.isEnabled();
             process.updateSynchronized();
             info.isSynchronized = process.isSynchronized(releaseRoot.getResourceResolver());
+            info.lastReplicationTimestamp = process.getLastReplicationTimestamp();
             result.put(process.getId(), info);
         }
         return result;

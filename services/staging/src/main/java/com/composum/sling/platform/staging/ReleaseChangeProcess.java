@@ -63,7 +63,7 @@ public interface ReleaseChangeProcess extends Runnable {
     MessageContainer getMessages();
 
     @Nullable
-    Long lastReleaseChangeTimestamp();
+    Long getLastReplicationTimestamp();
 
     /**
      * Checks whether the remote replication is currently at the same
@@ -74,7 +74,7 @@ public interface ReleaseChangeProcess extends Runnable {
     @Nullable
     Boolean isSynchronized(@Nonnull ResourceResolver resolver);
 
-    /** Forces an update of {@link #isSynchronized()} and {@link #lastReleaseChangeTimestamp()}. */
+    /** Forces an update of {@link #isSynchronized()} and {@link #getLastReplicationTimestamp()}. */
     void updateSynchronized();
 
     /**
