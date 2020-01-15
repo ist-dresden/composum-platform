@@ -4,12 +4,14 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
 
 /**
  * Wrapper for an often needed expensive calculation that caches the result for a while and only repeats the
  * calculation on when the value is requested and the cache timed out, and performs the neccesary locking to exclude
  * parallel executions.
  */
+@ThreadSafe
 public class CachedCalculation<T, EXCEPTION extends Throwable> {
 
     /** Locked when executing the calculation, to avoid parallel execution. */

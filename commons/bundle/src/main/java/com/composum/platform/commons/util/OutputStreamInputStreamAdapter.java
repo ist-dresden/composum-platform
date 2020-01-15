@@ -29,7 +29,7 @@ public class OutputStreamInputStreamAdapter {
     protected final ExecutorService executor;
 
     protected volatile Exception exception;
-    protected Future<?> execution;
+    protected volatile Future<?> execution;
 
     /**
      * Returns an input stream that passes out the contents that {writeToOutputStream} writes.

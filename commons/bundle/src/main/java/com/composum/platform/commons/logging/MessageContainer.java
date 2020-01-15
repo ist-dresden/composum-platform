@@ -6,11 +6,13 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 /** A collection of {@link Message}s for humans - also meant for transmitting them via JSON. */
+@ThreadSafe
 public class MessageContainer {
 
     private static final Logger LOG = LoggerFactory.getLogger(MessageContainer.class);
@@ -18,6 +20,10 @@ public class MessageContainer {
     /** A logger where {@link #add(Message)} automatically logs to. */
     @Nullable
     protected transient final Logger log;
+
+    /** Synchronizing on this when accessing messages. */
+    protected transient final Object lockObject = new Object();
+
     /** @see #getMessages() */
     @Nullable
     protected List<Message> messages;
@@ -42,7 +48,9 @@ public class MessageContainer {
     /** A (unmodifiable) list of messages. */
     @Nonnull
     public List<Message> getMessages() {
-        return messages != null ? Collections.unmodifiableList(messages) : Collections.emptyList();
+        synchronized (lockObject) {
+            return messages != null ? Collections.unmodifiableList(new ArrayList<>(messages)) : Collections.emptyList();
+        }
     }
 
     /**
@@ -55,8 +63,10 @@ public class MessageContainer {
     @Nonnull
     public MessageContainer add(@Nullable Message message, @Nullable Throwable throwable) {
         if (message != null) {
-            if (messages == null) { messages = new ArrayList<>(); }
-            messages.add(message);
+            synchronized (lockObject) {
+                if (messages == null) { messages = new ArrayList<>(); }
+                messages.add(message);
+            }
             if (log != null) {
                 message.logInto(log, throwable);
             } else if (throwable != null) { // very likely a misuse
@@ -78,6 +88,18 @@ public class MessageContainer {
     }
 
     /**
+     * Removes all messages.
+     *
+     * @return this MessageContainer, for builder-style operation chaining.
+     */
+    public MessageContainer clear() {
+        synchronized (lockObject) {
+            messages = null;
+        }
+        return this;
+    }
+
+    /**
      * Internationalizes the message according to the requests locale. This modifies the messages - see
      * {@link Message#i18n(SlingHttpServletRequest)}.
      *
@@ -86,8 +108,12 @@ public class MessageContainer {
      */
     @Nonnull
     public MessageContainer i18n(@Nonnull SlingHttpServletRequest request) {
-        for (Message message : getMessages()) {
-            message.i18n(request);
+        synchronized (lockObject) {
+            if (messages != null) {
+                for (Message message : getMessages()) {
+                    message.i18n(request);
+                }
+            }
         }
         return this;
     }
