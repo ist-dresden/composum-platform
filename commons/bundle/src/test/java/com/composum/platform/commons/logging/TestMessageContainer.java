@@ -4,6 +4,8 @@ import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrinting
 import com.composum.sling.platform.testing.testutil.MockResourceBundle;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.annotations.JsonAdapter;
+import com.google.gson.reflect.TypeToken;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.junit.Rule;
 import org.junit.Test;
@@ -41,62 +43,64 @@ public class TestMessageContainer {
         String json2 = gson.toJson(readback);
         ec.checkThat(json2.replaceAll("\\.0", ""), is(json)); // 3 becomes 3.0 - difficult to change and we ignore that
 
-        ec.checkThat(json.replaceAll(TIMESTAMP_REGEX, "<timestamp>"), is("{\n" +
-                "  \"messages\": [\n" +
-                "    {\n" +
-                "      \"message\": \"Some problem with {} number {}\",\n" +
-                "      \"level\": \"warn\",\n" +
-                "      \"arguments\": [\n" +
-                "        \"foo\",\n" +
-                "        17\n" +
-                "      ],\n" +
-                "      \"timestamp\": <timestamp>\n" +
-                "    },\n" +
-                "    {\n" +
-                "      \"message\": \"Minimal message\",\n" +
-                "      \"timestamp\": <timestamp>\n" +
-                "    },\n" +
-                "    {\n" +
-                "      \"message\": \"Message {} with details\",\n" +
-                "      \"level\": \"info\",\n" +
-                "      \"arguments\": [\n" +
-                "        3\n" +
-                "      ],\n" +
-                "      \"details\": [\n" +
-                "        {\n" +
-                "          \"message\": \"Detail {}\",\n" +
-                "          \"level\": \"debug\",\n" +
-                "          \"arguments\": [\n" +
-                "            1\n" +
-                "          ],\n" +
-                "          \"timestamp\": <timestamp>\n" +
-                "        },\n" +
-                "        {\n" +
-                "          \"message\": \"Detail {}\",\n" +
-                "          \"level\": \"info\",\n" +
-                "          \"arguments\": [\n" +
-                "            2\n" +
-                "          ],\n" +
-                "          \"timestamp\": <timestamp>\n" +
-                "        }\n" +
-                "      ],\n" +
-                "      \"timestamp\": <timestamp>\n" +
-                "    }\n" +
-                "  ]\n" +
-                "}"));
+        compare(json, "[\n" +
+                "  {\n" +
+                "    \"level\": \"warn\",\n" +
+                "    \"message\": \"Some problem with foo number 17\",\n" +
+                "    \"rawMessage\": \"Some problem with {} number {}\",\n" +
+                "    \"arguments\": [\n" +
+                "      \"foo\",\n" +
+                "      17\n" +
+                "    ],\n" +
+                "    \"timestamp\": <timestamp>\n" +
+                "  },\n" +
+                "  {\n" +
+                "    \"message\": \"Minimal message\",\n" +
+                "    \"rawMessage\": \"Minimal message\",\n" +
+                "    \"timestamp\": <timestamp>\n" +
+                "  },\n" +
+                "  {\n" +
+                "    \"level\": \"info\",\n" +
+                "    \"message\": \"Message 3 with details\",\n" +
+                "    \"rawMessage\": \"Message {} with details\",\n" +
+                "    \"arguments\": [\n" +
+                "      3\n" +
+                "    ],\n" +
+                "    \"details\": [\n" +
+                "      {\n" +
+                "        \"level\": \"debug\",\n" +
+                "        \"message\": \"Detail 1\",\n" +
+                "        \"rawMessage\": \"Detail {}\",\n" +
+                "        \"arguments\": [\n" +
+                "          1\n" +
+                "        ],\n" +
+                "        \"timestamp\": <timestamp>\n" +
+                "      },\n" +
+                "      {\n" +
+                "        \"level\": \"info\",\n" +
+                "        \"message\": \"Detail 2\",\n" +
+                "        \"rawMessage\": \"Detail {}\",\n" +
+                "        \"arguments\": [\n" +
+                "          2\n" +
+                "        ],\n" +
+                "        \"timestamp\": <timestamp>\n" +
+                "      }\n" +
+                "    ],\n" +
+                "    \"timestamp\": <timestamp>\n" +
+                "  }\n" +
+                "]");
 
         System.out.println(json.replaceAll(TIMESTAMP_REGEX, "<timestamp>"));
 
         String textrep = container.getMessages().stream()
                 .map(Message::toFormattedMessage)
                 .collect(Collectors.joining("\n"));
-        System.out.println(textrep);
-        ec.checkThat(textrep.replaceAll(TIMESTAMP_REGEX, "<timestamp>"), is("Some problem with foo number 17\n" +
+        compare(textrep, "Some problem with foo number 17\n" +
                 "Minimal message\n" +
                 "Message 3 with details\n" +
                 "    Details:\n" +
                 "    debug: Detail 1\n" +
-                "    Detail 2"));
+                "    Detail 2");
     }
 
     @Test
@@ -109,18 +113,125 @@ public class TestMessageContainer {
         container.add(new Message(Message.Level.warn, "Some problem with {} number {}", "foo", 17));
         container.i18n(request);
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        String json = gson.toJson(container);
+        compare(gson.toJson(container), "[\n" +
+                "  {\n" +
+                "    \"level\": \"warn\",\n" +
+                "    \"message\": \"Ein Problem mit foo Nummer 17\",\n" +
+                "    \"rawMessage\": \"Some problem with {} number {}\",\n" +
+                "    \"arguments\": [\n" +
+                "      \"foo\",\n" +
+                "      17\n" +
+                "    ],\n" +
+                "    \"timestamp\": <timestamp>\n" +
+                "  }\n" +
+                "]");
+    }
+
+    @Test
+    public void i18nViaTypeAdapterFactory() {
+        SlingHttpServletRequest request = Mockito.mock(SlingHttpServletRequest.class);
+        MockResourceBundle.forRequestMock(request)
+                .add("Some problem with {} number {}", "Ein Problem mit {} Nummer {}");
+
+        MessageContainer container = new MessageContainer(LOG);
+        container.add(new Message(Message.Level.warn, "Some problem with {} number {}", "foo", 17));
+        // not: container.i18n(request);
+
+        Gson gson = new GsonBuilder().setPrettyPrinting()
+                .registerTypeAdapterFactory(new MessageTypeAdapterFactory(request))
+                .create();
+
+        compare(gson.toJson(container), "[\n" +
+                "  {\n" +
+                "    \"level\": \"warn\",\n" +
+                "    \"message\": \"Ein Problem mit foo Nummer 17\",\n" +
+                "    \"rawMessage\": \"Some problem with {} number {}\",\n" +
+                "    \"arguments\": [\n" +
+                "      \"foo\",\n" +
+                "      17\n" +
+                "    ],\n" +
+                "    \"timestamp\": <timestamp>\n" +
+                "  }\n" +
+                "]");
+    }
+
+    protected void compare(String json, String expectedJson) {
         System.out.println(json.replaceAll(TIMESTAMP_REGEX, "<timestamp>"));
-        ec.checkThat(json.replaceAll(TIMESTAMP_REGEX, "<timestamp>"), is(
-                "{\n" +
-                        "  \"messages\": [\n" +
-                        "    {\n" +
-                        "      \"message\": \"Ein Problem mit foo Nummer 17\",\n" +
-                        "      \"level\": \"warn\",\n" +
-                        "      \"timestamp\": <timestamp>\n" +
-                        "    }\n" +
-                        "  ]\n" +
-                        "}"));
+        System.out.println("\n");
+        ec.checkThat(json.replaceAll(TIMESTAMP_REGEX, "<timestamp>"), is(expectedJson));
+    }
+
+    static class WithMessage {
+        MessageContainer messages;
+        String bar = "thebar";
+
+        class Wrapped {
+            String foo = "thefoo";
+        }
+
+        Wrapped asWrapped() {
+            return new Wrapped();
+        }
+    }
+
+    @JsonAdapter(MessageTypeAdapterFactory.class)
+    static class SubclassOfMessage extends Message {
+        String something = "else";
+
+        public SubclassOfMessage(Level level, String message) {
+            super(level, message);
+        }
+    }
+
+    @Test
+    public void derivedClasses() {
+        SlingHttpServletRequest request = Mockito.mock(SlingHttpServletRequest.class);
+        MockResourceBundle.forRequestMock(request).add("derivedclass", "abgeleitete Klasse");
+
+        Gson gson = new GsonBuilder().setPrettyPrinting()
+                .registerTypeAdapterFactory(new MessageTypeAdapterFactory(request))
+                .create();
+
+        WithMessage container = new WithMessage();
+        compare(gson.toJson(container), "{\n" +
+                "  \"bar\": \"thebar\"\n" +
+                "}");
+
+        container.messages = new MessageContainer();
+
+        compare(gson.toJson(container), "{\n" +
+                "  \"messages\": [],\n" +
+                "  \"bar\": \"thebar\"\n" +
+                "}");
+
+        container.messages = new MessageContainer();
+        container.messages.add(Message.info("Information."));
+        container.messages.add(new SubclassOfMessage(Message.Level.error, "derivedclass"));
+        ec.checkThat(Message.class.isAssignableFrom(TypeToken.get(SubclassOfMessage.class).getRawType()), is(true));
+
+        compare(gson.toJson(container), "{\n" +
+                "  \"messages\": [\n" +
+                "    {\n" +
+                "      \"level\": \"info\",\n" +
+                "      \"message\": \"Information.\",\n" +
+                "      \"rawMessage\": \"Information.\",\n" +
+                "      \"timestamp\": <timestamp>\n" +
+                "    },\n" +
+                "    {\n" +
+                "      \"something\": \"else\",\n" +
+                "      \"level\": \"error\",\n" +
+                "      \"message\": \"abgeleitete Klasse\",\n" +
+                "      \"rawMessage\": \"derivedclass\",\n" +
+                "      \"timestamp\": <timestamp>\n" +
+                "    }\n" +
+                "  ],\n" +
+                "  \"bar\": \"thebar\"\n" +
+                "}");
+
+        // For an inner class the outer class is ignored by the default writer.
+        compare(gson.toJson(container.asWrapped()), "{\n" +
+                "  \"foo\": \"thefoo\"\n" +
+                "}");
     }
 
 }

@@ -2,6 +2,8 @@ package com.composum.platform.commons.logging;
 
 import com.composum.sling.core.util.I18N;
 import com.composum.sling.core.util.LoggerFormat;
+import com.google.gson.TypeAdapterFactory;
+import com.google.gson.annotations.JsonAdapter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.slf4j.Logger;
@@ -11,6 +13,7 @@ import org.slf4j.helpers.MessageFormatter;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,16 +23,32 @@ import java.util.List;
 /**
  * A container for a message, e.g. about internal processes, that can be presented to the user. It could be localized,
  * and there might be details which can be suppressed, depending on the user / user settings or choices.
+ * <p>
+ * For proper i18n in JSON serialization you need to register
+ * {@link MessageTypeAdapterFactory#MessageTypeAdapterFactory(SlingHttpServletRequest)} with
+ * {@link com.google.gson.GsonBuilder#registerTypeAdapterFactory(TypeAdapterFactory)}.
+ * The default {@link JsonAdapter} is just a fallback that uses no i18n.
+ * CAUTION: careful when extending this class - the {@link MessageTypeAdapterFactory} might not work for derived classes.
  */
-public class Message {
+@JsonAdapter(MessageTypeAdapterFactory.class)
+public class Message implements Cloneable {
 
     private static final Logger LOG = LoggerFactory.getLogger(Message.class);
 
     /** @see #getLevel() */
     protected Level level;
 
-    /** @see #getMessage() */
+    /**
+     * If set, an i18n-ed version of {@link #rawMessage} with all placeholders replaced. This is modified during
+     * JSON-serialization.
+     */
     protected String message;
+
+    /**
+     * The raw version of the message which can contain {@literal {}}-placeholders and is used as
+     * i18n-key.
+     */
+    protected String rawMessage;
 
     /** @see #getArguments() */
     protected Object[] arguments;
@@ -65,13 +84,13 @@ public class Message {
     /**
      * Creates a message.
      *
-     * @param level     the level of the message, default {@link Level#info}
-     * @param message   the message, possibly with placeholders {@quote {}} for arguments
-     * @param arguments optional arguments placed in placeholders. Caution: must be primitive types if this is to be
-     *                  transmitted with JSON!
+     * @param level      the level of the message, default {@link Level#info}
+     * @param rawMessage the message, possibly with placeholders {@literal {}} for arguments
+     * @param arguments  optional arguments placed in placeholders. Caution: must be primitive types if this is to be
+     *                   transmitted with JSON!
      */
-    public Message(@Nullable Level level, @Nonnull String message, Object... arguments) {
-        this.message = message;
+    public Message(@Nullable Level level, @Nonnull String rawMessage, Object... arguments) {
+        this.rawMessage = rawMessage;
         this.level = level;
         this.category = category;
         this.arguments = arguments != null && arguments.length > 0 ? arguments : null;
@@ -81,7 +100,7 @@ public class Message {
     /**
      * Convenience-method - constructs with {@link Level#error}.
      *
-     * @param message   the message, possibly with placeholders {@quote {}} for arguments
+     * @param message   the message, possibly with placeholders {@literal {}} for arguments
      * @param arguments optional arguments placed in placeholders. Caution: must be primitive types if this is to be
      *                  transmitted with JSON!
      */
@@ -93,7 +112,7 @@ public class Message {
     /**
      * Convenience-method - constructs with {@link Level#warn}.
      *
-     * @param message   the message, possibly with placeholders {@quote {}} for arguments
+     * @param message   the message, possibly with placeholders {@literal {}} for arguments
      * @param arguments optional arguments placed in placeholders. Caution: must be primitive types if this is to be
      *                  transmitted with JSON!
      */
@@ -105,7 +124,7 @@ public class Message {
     /**
      * Convenience-method - constructs with {@link Level#info}.
      *
-     * @param message   the message, possibly with placeholders {@quote {}} for arguments
+     * @param message   the message, possibly with placeholders {@literal {}} for arguments
      * @param arguments optional arguments placed in placeholders. Caution: must be primitive types if this is to be
      *                  transmitted with JSON!
      */
@@ -117,7 +136,7 @@ public class Message {
     /**
      * Convenience-method - constructs with {@link Level#debug}.
      *
-     * @param message   the message, possibly with placeholders {@quote {}} for arguments
+     * @param message   the message, possibly with placeholders {@literal {}} for arguments
      * @param arguments optional arguments placed in placeholders. Caution: must be primitive types if this is to be
      *                  transmitted with JSON!
      */
@@ -157,12 +176,49 @@ public class Message {
     }
 
     /**
-     * The human readable message text, possibly with argument placeholders {@literal {}}. If i18n is wanted, this
-     * is the key for the i18n - all variable parts should be put into the arguments. Mandatory part of a message.
+     * The raw, un-i18n-ed, human readable message text, possibly with argument placeholders {@literal {}}.
+     * If i18n is wanted, this is the key for the i18n - all variable parts should be put into the arguments. Mandatory part of a message.
+     */
+    @Nonnull
+    public String getRawMessage() {
+        return rawMessage;
+    }
+
+    /**
+     * A human readable message text composed from {@link #getRawMessage()}, all argument placeholders {@literal {}}
+     * replaced by the corresponding {@link #getArguments()}. This is lazily created from {@link #getRawMessage()}
+     * and {@link #getArguments()}. In JSON-serializations, the {@link #getRawMessage()} is i18n-ed to the request when
+     * {@link MessageTypeAdapterFactory} is correctly used.
      */
     @Nonnull
     public String getMessage() {
+        if (message != null) { return message; }
+        if (rawMessage == null) { return ""; }
+        message = rawMessage;
+        if (arguments != null && arguments.length > 0) {
+            message = LoggerFormat.format(message, arguments);
+        }
         return message;
+    }
+
+    /** Like {@link #getMessage()}, but returns the message localized for the request and parameters replaced. */
+    public String getMessage(@Nullable SlingHttpServletRequest request) {
+        if (request == null) {
+            return getMessage();
+        }
+        String i18nMessage = rawMessage;
+        if (StringUtils.isNotBlank(i18nMessage)) {
+            String newMessage = I18N.get(request, i18nMessage);
+            if (StringUtils.isNotBlank(newMessage)) {
+                i18nMessage = newMessage;
+            }
+            if (arguments != null && arguments.length > 0) {
+                i18nMessage = LoggerFormat.format(i18nMessage, arguments);
+            }
+        } else {
+            i18nMessage = "";
+        }
+        return i18nMessage;
     }
 
     /**
@@ -253,25 +309,48 @@ public class Message {
      * then cleared. Recommended only after {@link #logInto(Logger)} or {@link #logInto(Logger, Throwable)}.
      *
      * @return this message for builder-style operation-chaining.
+     * @deprecated rather register a {@link MessageTypeAdapterFactory#MessageTypeAdapterFactory(SlingHttpServletRequest)}.
      */
     @Nonnull
+    @Deprecated
     public Message i18n(SlingHttpServletRequest request) {
         if (!i18lized) {
-            if (StringUtils.isNotBlank(message)) {
-                String newMessage = I18N.get(request, message);
-                if (arguments != null && arguments.length > 0) {
-                    newMessage = LoggerFormat.format(newMessage, arguments);
-                }
-                if (StringUtils.isNotBlank(newMessage)) {
-                    message = newMessage;
-                    arguments = null;
-                    i18lized = true;
-                }
-            }
+            message = getMessage(request);
         } else { // already i18lized - misuse
             LOG.warn("Second i18n on same message", new Exception("Stacktrace for second i18n, not thrown"));
         }
         return this;
+    }
+
+    @Override
+    public Message clone() throws CloneNotSupportedException {
+        return (Message) super.clone();
+    }
+
+    /**
+     * Clones the {@link Message} and sets its {@link Message#message} to a properly i18n-ed version,
+     * and also makes Strings out of non-String and non-Numeric arguments to avoid problems with not JSON
+     * serializable arguments.
+     * <p>
+     * Tradeoff: keeping numbers is more efficient but GSON turns numbers into doubles on deserialization
+     * which sometimes creates differences when formatting is repeated on a serialized and deserialized
+     * {@link Message}.
+     */
+    protected Message prepareForJsonSerialization(SlingHttpServletRequest request) throws CloneNotSupportedException {
+        Message i18nMessage = clone();
+        i18nMessage.message = getMessage(request);
+        if (arguments != null) {
+            i18nMessage.arguments = new Object[arguments.length];
+            for (int i = 0; i < arguments.length; ++i) {
+                Object arg = arguments[i];
+                if ((arg instanceof String) || (arg instanceof Number)) {
+                    i18nMessage.arguments[i] = arg;
+                } else {
+                    i18nMessage.arguments[i] = LoggerFormat.format("{}", arg);
+                }
+            }
+        }
+        return i18nMessage;
     }
 
     /**

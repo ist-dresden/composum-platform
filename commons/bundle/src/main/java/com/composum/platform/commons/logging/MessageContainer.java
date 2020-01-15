@@ -1,5 +1,6 @@
 package com.composum.platform.commons.logging;
 
+import com.google.gson.annotations.JsonAdapter;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +14,7 @@ import java.util.List;
 
 /** A collection of {@link Message}s for humans - also meant for transmitting them via JSON. */
 @ThreadSafe
+@JsonAdapter(MessageTypeAdapterFactory.class)
 public class MessageContainer {
 
     private static final Logger LOG = LoggerFactory.getLogger(MessageContainer.class);
@@ -92,11 +94,19 @@ public class MessageContainer {
      *
      * @return this MessageContainer, for builder-style operation chaining.
      */
+    @Nonnull
     public MessageContainer clear() {
         synchronized (lockObject) {
             messages = null;
         }
         return this;
+    }
+
+    /** Whether there are any messages. */
+    public boolean isEmpty() {
+        synchronized (lockObject) {
+            return messages == null || messages.isEmpty();
+        }
     }
 
     /**
@@ -105,12 +115,15 @@ public class MessageContainer {
      *
      * @return this container for builder-style operation-chaining.
      * @see Message#i18n(SlingHttpServletRequest)
+     * @deprecated rather register a {@link MessageTypeAdapterFactory#MessageTypeAdapterFactory(SlingHttpServletRequest)}.
      */
+    // FIXME(hps,15.01.20) remove usages
+    @Deprecated
     @Nonnull
     public MessageContainer i18n(@Nonnull SlingHttpServletRequest request) {
         synchronized (lockObject) {
             if (messages != null) {
-                for (Message message : getMessages()) {
+                for (Message message : messages) {
                     message.i18n(request);
                 }
             }
