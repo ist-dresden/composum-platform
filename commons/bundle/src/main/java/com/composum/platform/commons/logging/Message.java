@@ -25,18 +25,34 @@ public class Message {
 
     private static final Logger LOG = LoggerFactory.getLogger(Message.class);
 
-    /** @see #getMessage() */
-    protected String message;
     /** @see #getLevel() */
     protected Level level;
-    /** @see #getCategory() */
-    protected String category;
+
+    /** @see #getMessage() */
+    protected String message;
+
     /** @see #getArguments() */
     protected Object[] arguments;
+
+    /** @see #getCategory() */
+    @Nullable
+    protected String category;
+
+    /** @see #getContext() */
+    @Nullable
+    protected String context;
+
+    /** @see #getLabel() */
+    @Nullable
+    protected String label;
+
     /** @see #getDetails() */
+    @Nullable
     protected List<Message> details;
+
     /** @see #getTimestamp() */
     protected Long timestamp;
+
     /** Saves whether the message was already {@link #i18n(SlingHttpServletRequest)}-ized. */
     protected transient boolean i18lized;
 
@@ -111,18 +127,6 @@ public class Message {
     }
 
     /**
-     * Adds a category: can optionally be used to categorize messages for filtering / sorting. This is not meant to
-     * be shown directly to the user.
-     *
-     * @return this for builder style operation chaining.
-     */
-    @Nonnull
-    public Message setCategory(@Nullable String category) {
-        this.category = category;
-        return this;
-    }
-
-    /**
      * Adds a detailmessage.
      *
      * @return this for builder style operation chaining.
@@ -146,6 +150,12 @@ public class Message {
         return timestamp != null ? new Date(timestamp) : null;
     }
 
+    /** The kind of message - informational, warning, error. Default is {@link Level#info}. */
+    @Nonnull
+    public Level getLevel() {
+        return level != null ? level : Level.info;
+    }
+
     /**
      * The human readable message text, possibly with argument placeholders {@literal {}}. If i18n is wanted, this
      * is the key for the i18n - all variable parts should be put into the arguments. Mandatory part of a message.
@@ -155,20 +165,6 @@ public class Message {
         return message;
     }
 
-    /** The kind of message - informational, warning, error. Default is {@link Level#info}. */
-    @Nonnull
-    public Level getLevel() {
-        return level != null ? level : Level.info;
-    }
-
-    /**
-     * Can optionally be used to categorize messages for filtering / sorting. This is not meant to be shown directly
-     * to the user.
-     */
-    public String getCategory() {
-        return category;
-    }
-
     /**
      * Optional arguments used in placeholders of the {@link #getMessage()}. If transmission over JSON is needed,
      * these must be serializable with GSON.
@@ -176,6 +172,69 @@ public class Message {
     @Nonnull
     public List<Object> getArguments() {
         return arguments != null ? Arrays.asList(arguments) : Collections.emptyList();
+    }
+
+    /**
+     * Can optionally be used to categorize messages for filtering / sorting. This is not meant to be shown directly
+     * to the user.
+     */
+    @Nullable
+    public String getCategory() {
+        return category;
+    }
+
+    /**
+     * Sets the optional category: can optionally be used to categorize messages for filtering / sorting. This is not
+     * meant to be shown directly to the user.
+     *
+     * @return this for builder style operation chaining.
+     */
+    @Nonnull
+    public Message setCategory(@Nullable String category) {
+        this.category = category;
+        return this;
+    }
+
+    /**
+     * Optional: label of the field which the message is about, primarily in validation messages. (Not the
+     * human-readable but the programmatical id is meant.)
+     */
+    @Nullable
+    public String getLabel() {
+        return label;
+    }
+
+    /**
+     * Sets the optional context: a label of the field which the message is about, primarily in validation messages.
+     * (Not the human-readable but the programmatical id is meant.)
+     *
+     * @return this for builder style operation chaining.
+     */
+    @Nonnull
+    public Message setLabel(@Nullable String label) {
+        this.label = label;
+        return this;
+    }
+
+    /**
+     * Optional: a context of the message, such as the dialog tab in a validation message. (Not the
+     * human-readable but the programmatical id is meant.)
+     */
+    @Nullable
+    public String getContext() {
+        return context;
+    }
+
+    /**
+     * Sets a context: a context of the message, such as the dialog tab in a validation message. (Not the
+     * human-readable but the programmatical id is meant.)
+     *
+     * @return this for builder style operation chaining.
+     */
+    @Nonnull
+    public Message setContext(@Nullable String context) {
+        this.context = context;
+        return this;
     }
 
     /**
