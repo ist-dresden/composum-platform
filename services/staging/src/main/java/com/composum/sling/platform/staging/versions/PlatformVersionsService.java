@@ -224,7 +224,7 @@ public interface PlatformVersionsService {
     /** Can be used to inform the user about the results of an activation. */
     class ActivationResult {
         @Nullable
-        private final StagingReleaseManager.Release release;
+        private transient final StagingReleaseManager.Release release;
         @Nonnull
         private final Map<String, SiblingOrderUpdateStrategy.Result> changedPathsInfo;
         @Nonnull

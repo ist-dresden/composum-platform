@@ -33,7 +33,7 @@ public interface ReleaseChangeEventPublisher {
     @Nullable
     AggregatedReplicationStateInfo aggregatedReplicationState(@Nullable Resource releaseRoot);
 
-    /** Information about one {@link ReleaseChangeProcess} useable for JSON serialization. */
+    /** Information about one {@link ReleaseChangeProcess} used for JSON serialization. */
     class ReplicationStateInfo {
         /** An unique id for the {@link ReleaseChangeProcess}. */
         public String id;
@@ -51,7 +51,7 @@ public interface ReleaseChangeEventPublisher {
     }
 
     /**
-     * General information about the {@link ReleaseChangeProcess}es of a release root, useable for JSON
+     * General information about the {@link ReleaseChangeProcess}es of a release root, used for JSON
      * serialization.
      */
     class AggregatedReplicationStateInfo {

@@ -277,6 +277,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                         PlatformVersionsService.ActivationResult result = versionsService.activate(releaseKey, toActivate);
                         // TODO(hps,2019-05-20) actually use result
                         request.getResourceResolver().commit();
+                        status.data("data").put("activationResult", result);
                     } catch (Exception ex) {
                         LOG.error(ex.getMessage(), ex);
                         status.error(ex.getMessage());
@@ -329,6 +330,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                     PlatformVersionsService.ActivationResult result = versionsService.revert(request.getResourceResolver(), releaseKey, toRevert);
                     // TODO(hps,2019-05-21) do something with result
                     request.getResourceResolver().commit();
+                    status.data("data").put("activationResult", result);
                 } catch (Exception ex) {
                     LOG.error(ex.getMessage(), ex);
                     status.error(ex.getMessage());
