@@ -1,6 +1,6 @@
 package com.composum.sling.platform.staging;
 
-import com.composum.platform.commons.logging.MessageContainer;
+import com.composum.sling.core.logging.MessageContainer;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener.ReleaseChangeEvent;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
 import org.apache.sling.api.resource.Resource;
@@ -8,7 +8,6 @@ import org.apache.sling.api.resource.Resource;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
-import java.util.Date;
 import java.util.Map;
 
 /** Service that distributes {@link ReleaseChangeEvent}s among the {@link ReleaseChangeEventListener}s. */

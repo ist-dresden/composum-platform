@@ -1,6 +1,5 @@
 package com.composum.sling.platform.staging.impl;
 
-import com.composum.platform.commons.logging.Message;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.servlet.AbstractServiceServlet;
 import com.composum.sling.core.servlet.ServletOperation;
@@ -9,7 +8,6 @@ import com.composum.sling.core.servlet.Status;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.AggregatedReplicationStateInfo;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.ReplicationStateInfo;
-import com.composum.sling.platform.staging.ReleaseChangeProcess;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.Resource;
@@ -83,7 +81,6 @@ public class ReleaseChangeEventPublisherServlet extends AbstractServiceServlet {
                 Map<String, ReplicationStateInfo> result = service.replicationState(resource);
                 Map<String, Object> map = status.data("replicationStates");
                 for (Map.Entry<String, ReplicationStateInfo> entry : result.entrySet()) {
-                    entry.getValue().messages.i18n(request);
                     map.put(entry.getKey(), entry.getValue());
                 }
             } catch (Exception e) {

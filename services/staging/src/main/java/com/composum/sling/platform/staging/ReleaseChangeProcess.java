@@ -1,6 +1,6 @@
 package com.composum.sling.platform.staging;
 
-import com.composum.platform.commons.logging.MessageContainer;
+import com.composum.sling.core.logging.MessageContainer;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener.ReleaseChangeEvent;
 import org.apache.sling.api.resource.ResourceResolver;
 
