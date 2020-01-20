@@ -8,7 +8,6 @@ import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
-import org.apache.commons.collections4.SetUtils;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -19,6 +18,7 @@ import javax.jcr.RepositoryException;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,7 +34,7 @@ public interface PlatformVersionsService {
      * A {@link ResourceFilter} that filters things that can be activated (that is, is versionable itself or contains a
      * content node that can be activated).
      */
-    public static final ResourceFilter ACTIVATABLE_FILTER = ResourceFilter.FilterSet.Rule.or.of(
+    ResourceFilter ACTIVATABLE_FILTER = ResourceFilter.FilterSet.Rule.or.of(
             new ResourceFilter.TypeFilter(CoreConstants.MIX_VERSIONABLE),
             new ResourceFilter.ContentNodeFilter(false, ResourceFilter.ALL,
                     new ResourceFilter.TypeFilter(CoreConstants.MIX_VERSIONABLE)
@@ -53,7 +53,7 @@ public interface PlatformVersionsService {
          * wrt. to the last activation, as well as a different version.
          */
         modified,
-        /** Deactivated (originally present but later removed ({@link #deactivate(String, Resource)}) from release. */
+        /** Deactivated (originally present but later removed ({@link #deactivate(String, List)}) from release. */
         deactivated,
         /** When comparing the workspace to a release: deleted from the workspace. */
         deleted
@@ -70,6 +70,7 @@ public interface PlatformVersionsService {
 
         /**
          * The time the versionable was last modified in the workspace.
+         *
          * @return 'last modified' or 'created'
          */
         @Nullable
@@ -97,7 +98,8 @@ public interface PlatformVersionsService {
         ReleasedVersionable getNextVersionable();
 
         /**
-         * The release {@link #getPreviousVersionableInfo()} is about (see there). When comparing workspace to release this is not null,
+         * The release {@link #getPreviousVersionable()} is about (see there). When comparing workspace to
+         * release this is not null,
          * when comparing release to release this might be null (if there was no previous release).
          */
         @Nullable
@@ -129,7 +131,7 @@ public interface PlatformVersionsService {
      * Some non-obvious edge cases:
      *
      * @param versionable the versionable in the workspace
-     * @param releaseKey the key for the release; if null we take the {@link #getDefaultRelease(Resource)}
+     * @param releaseKey  the key for the release; if null we take the {@link #getDefaultRelease(Resource)}
      * @return the status or null if this isn't applicable because there is no release root or the resource is not a versionable.
      */
     @Nullable
@@ -249,18 +251,24 @@ public interface PlatformVersionsService {
             this.removedPaths = removedPaths != null ? removedPaths : new HashSet<>();
         }
 
-        public ActivationResult merge(ActivationResult other) {
-            if (release != null && !release.equals(other.getRelease()))
+        @Nonnull
+        public ActivationResult merge(@Nonnull ActivationResult other) {
+            if (release != null && !release.equals(other.getRelease())) {
                 throw new IllegalArgumentException("Merging results for different releases.");
+            }
             StagingReleaseManager.Release newRelease = release != null ? release : other.getRelease();
             Map<String, String> moved = new HashMap<>();
             moved.putAll(getMovedPaths());
             moved.putAll(other.getMovedPaths());
+            LinkedHashSet<String> combinedNewPaths = new LinkedHashSet<>(getNewPaths());
+            combinedNewPaths.addAll(other.newPaths);
+            LinkedHashSet<String> combinedRemovedPaths = new LinkedHashSet<>(getRemovedPaths());
+            combinedRemovedPaths.addAll(other.getRemovedPaths());
             return new ActivationResult(newRelease,
                     SiblingOrderUpdateStrategy.Result.combine(changedPathsInfo, other.getChangedPathsInfo()),
-                    SetUtils.union(getNewPaths(), other.getNewPaths()),
+                    combinedNewPaths,
                     moved,
-                    SetUtils.union(getRemovedPaths(), other.getRemovedPaths())
+                    combinedRemovedPaths
             );
         }
 
@@ -293,6 +301,7 @@ public interface PlatformVersionsService {
             return removedPaths;
         }
 
+        @Nonnull
         @Override
         public String toString() {
             return "ActivationResult(" + changedPathsInfo + ")";
