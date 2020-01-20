@@ -76,7 +76,7 @@ public class ReleaseChangeEventPublisherServlet extends AbstractServiceServlet {
     protected class ReplicationStateOperation implements ServletOperation {
         @Override
         public void doIt(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
-            Status status = new Status(request, response);
+            Status status = new Status(request, response, LOG);
             try {
                 Map<String, ReplicationStateInfo> result = service.replicationState(resource);
                 Map<String, Object> map = status.data("replicationStates");
@@ -96,7 +96,7 @@ public class ReleaseChangeEventPublisherServlet extends AbstractServiceServlet {
     protected class AggregatedReplicationStateOperation implements ServletOperation {
         @Override
         public void doIt(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
-            Status status = new Status(request, response);
+            Status status = new Status(request, response, LOG);
             try {
                 AggregatedReplicationStateInfo result = service.aggregatedReplicationState(resource);
                 status.data("aggregatedReplicationState").put("result", result);

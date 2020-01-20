@@ -46,7 +46,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
      * A time we wait before executing changes to try to make sure the transaction was already comitted.
      * If this is too low, this can lead to consistency problems!
      */
-    protected static final long WAIT_FOR_COMMIT_TIME_MS = 5000;
+    protected static final long WAIT_FOR_COMMIT_TIME_MS = 10000;
 
     @Reference
     protected ThreadPoolManager threadPoolManager;
