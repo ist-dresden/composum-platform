@@ -1,5 +1,6 @@
 package com.composum.sling.platform.staging;
 
+import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.logging.MessageContainer;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener.ReleaseChangeEvent;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -85,5 +86,16 @@ public interface ReleaseChangeProcess extends Runnable {
      */
     @Override
     void run();
+
+    /**
+     * Compares the the tree below resource with the remote system's content and determines whether there are
+     * differences.
+     *
+     * @param resource      the release root or a subtree in there
+     * @param returnDetails if true, the paths
+     * @return the differences, or null if not enabled
+     */
+    @Nullable
+    ReleaseChangeEventPublisher.CompareResult compareTree(@Nonnull ResourceHandle resource, boolean returnDetails) throws ReleaseChangeEventListener.ReplicationFailedException;
 
 }

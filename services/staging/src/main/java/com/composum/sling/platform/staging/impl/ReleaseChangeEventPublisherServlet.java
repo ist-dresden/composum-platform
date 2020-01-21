@@ -45,7 +45,7 @@ public class ReleaseChangeEventPublisherServlet extends AbstractServiceServlet {
 
     protected ServletOperationSet<Extension, Operation> operations;
 
-    public enum Operation {replicationState, aggregatedReplicationState}
+    public enum Operation {replicationState, aggregatedReplicationState, compareContent}
 
     public enum Extension {json}
 
@@ -70,6 +70,13 @@ public class ReleaseChangeEventPublisherServlet extends AbstractServiceServlet {
                 new ReplicationStateOperation());
         operations.setOperation(ServletOperationSet.Method.GET, Extension.json, Operation.aggregatedReplicationState,
                 new AggregatedReplicationStateOperation());
+
+        // FIXME(hps,21.01.20) this should be only POST since that's an expensive operation, but for now we
+        // let it at GET, too, to be easily able to trigger it from the browser
+        operations.setOperation(ServletOperationSet.Method.GET, Extension.json, Operation.compareContent,
+                new CompareTreeOperation());
+        operations.setOperation(ServletOperationSet.Method.POST, Extension.json, Operation.compareContent,
+                new CompareTreeOperation());
     }
 
     /** Interfaces {@link ReleaseChangeEventPublisher#replicationState(Resource)}. */
@@ -100,6 +107,35 @@ public class ReleaseChangeEventPublisherServlet extends AbstractServiceServlet {
             try {
                 AggregatedReplicationStateInfo result = service.aggregatedReplicationState(resource);
                 status.data("aggregatedReplicationState").put("result", result);
+            } catch (Exception e) {
+                LOG.error("Internal error", e);
+                status.error("Internal error");
+            } finally {
+                status.sendJson();
+            }
+        }
+    }
+
+    /** Interfaces {@link ReleaseChangeEventPublisher#aggregatedReplicationState(Resource)}. */
+    protected class CompareTreeOperation implements ServletOperation {
+
+        /** Name of the parameter to request full details. */
+        public static final String PARAM_DETAILS = "details";
+        /**
+         * Name of the parameter to request only data from specific
+         * {@link com.composum.sling.platform.staging.ReleaseChangeProcess}es.
+         */
+        public static final String PARAM_PROCESS_ID = "processId";
+        /** Name of result parameter. */
+        public static final String RESULT_COMPARETREE = "compareTree";
+
+        @Override
+        public void doIt(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
+            Status status = new Status(request, response, LOG);
+            try {
+                boolean returnDetails = "true".equalsIgnoreCase(request.getParameter(PARAM_DETAILS));
+                String[] processIdParams = request.getParameterValues(PARAM_PROCESS_ID);
+                service.compareTree(resource, returnDetails, processIdParams, status.data(RESULT_COMPARETREE));
             } catch (Exception e) {
                 LOG.error("Internal error", e);
                 status.error("Internal error");

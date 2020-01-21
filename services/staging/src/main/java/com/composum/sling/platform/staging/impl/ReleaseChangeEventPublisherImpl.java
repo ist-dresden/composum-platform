@@ -1,5 +1,6 @@
 package com.composum.sling.platform.staging.impl;
 
+import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeProcess;
@@ -21,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -249,6 +251,15 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
             }
         }
         return result;
+    }
+
+    @Override
+    public void compareTree(@Nonnull ResourceHandle resource, boolean returnDetails, @Nullable String[] processIdParams, @Nonnull Map<String, Object> output) throws ReleaseChangeEventListener.ReplicationFailedException {
+        for (ReleaseChangeProcess process : processesFor(resource)) {
+            if (processIdParams != null && !Arrays.asList(processIdParams).contains(process.getId())) { continue; }
+            CompareResult compareResult = process.compareTree(resource, returnDetails);
+            if (compareResult != null) { output.put(process.getId(), compareResult); }
+        }
     }
 
     @Activate

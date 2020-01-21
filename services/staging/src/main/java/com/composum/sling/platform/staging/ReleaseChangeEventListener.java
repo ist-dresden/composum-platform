@@ -63,9 +63,9 @@ public interface ReleaseChangeEventListener {
         return Collections.emptyList();
     }
 
-    /** Collection of {@link ReleaseChangeProcess}es for any of the releases at releaseRoot. */
+    /** Collection of {@link ReleaseChangeProcess}es for any of the releases at the release root containing resource. */
     @Nonnull
-    default Collection<? extends ReleaseChangeProcess> processesFor(@Nullable Resource releaseRoot) {
+    default Collection<? extends ReleaseChangeProcess> processesFor(@Nullable Resource resource) {
         return Collections.emptyList();
     }
 
