@@ -1150,7 +1150,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         ModifiableValueMap modifiableValueMap = release.workspaceCopyNode.adaptTo(ModifiableValueMap.class);
         String oldChangeNumber = modifiableValueMap.get(StagingConstants.PROP_CHANGE_NUMBER, String.class);
         modifiableValueMap.put(StagingConstants.PROP_CHANGE_NUMBER, newChangeNumber);
-        LOG.info("Updating new release change number to {} from originally {}", newChangeNumber, oldChangeNumber);
+        LOG.info("Updating release change number to {} from originally {}", newChangeNumber, oldChangeNumber);
         return newChangeNumber;
     }
 

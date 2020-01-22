@@ -87,9 +87,8 @@ public interface ReleaseChangeEventPublisher {
         /** Summary: if true, all things are equal. If false - see other attributes for details. */
         public boolean equal;
         public boolean releaseChangeNumbersEqual;
-        public int newVersionableCount;
-        public int updatedVersionableCount;
-        public int removedVersionableCount;
+        /** Summarizes new / updated / removed versionables. */
+        public int differentVersionablesCount;
         /** Number of parent nodes of versionables with different attributes. */
         public int changedParentNodeCount;
         /** Number of children orderings of nodes with ordered children that are different. */
@@ -97,16 +96,12 @@ public interface ReleaseChangeEventPublisher {
 
         /** Checks whether {@link #equal} should be set. {@link #equal} must be set to the result of this. */
         public boolean calculateEqual() {
-            return releaseChangeNumbersEqual && newVersionableCount == 0 && updatedVersionableCount == 0 && removedVersionableCount == 0
-                    && removedVersionableCount == 0 && changedParentNodeCount == 0 && changedChildrenOrderCount == 0;
+            return releaseChangeNumbersEqual && differentVersionablesCount == 0
+                    && changedParentNodeCount == 0 && changedChildrenOrderCount == 0;
         }
 
-        /** Only if details are wanted: the paths of the new versionables not present on the remote system. */
-        public String[] newVersionables;
-        /** Only if details are wanted: the paths of versionables different than on the remote system. */
-        public String[] updatedVersionables;
-        /** Only if details are wanted: the paths of versionables not present on the local system. */
-        public String[] removedVersionables;
+        /** Only if details are wanted: the paths of versionables which are new. */
+        public String[] differentVersionables;
         /** Only if details are wanted: the paths of parent nodes of versionables with different attributes. */
         public String[] changedParentNodes;
         /**
