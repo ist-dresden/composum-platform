@@ -731,7 +731,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         protected void cleanupOrphans(String releaseWorkspaceCopyPath, Resource parent) throws PersistenceException {
             boolean inRelease = false;
             while (parent != null
-                    && (inRelease = StringUtils.startsWith(parent.getPath(), releaseWorkspaceCopy.getPath() + "/"))
+                    && (inRelease = StringUtils.startsWith(parent.getPath(), releaseWorkspaceCopyPath + "/"))
                     && !parent.hasChildren()
             ) {
                 Resource todelete = parent;
