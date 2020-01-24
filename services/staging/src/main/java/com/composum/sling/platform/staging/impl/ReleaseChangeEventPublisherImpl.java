@@ -209,6 +209,8 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
             info.finishedAt = process.getRunFinished();
             info.messages = process.getMessages();
             info.enabled = process.isEnabled();
+            info.active = process.isActive();
+            info.completionPercentage = process.getCompletionPercentage();
             process.updateSynchronized();
             info.isSynchronized = process.isSynchronized(releaseRoot.getResourceResolver());
             info.lastReplicationTimestamp = process.getLastReplicationTimestamp();
@@ -226,12 +228,14 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         result.haveErrors = false;
         result.everythingIsSynchronized = true;
         result.numberEnabledProcesses = 0;
+        result.allAreActive = true;
 
         for (ReleaseChangeProcess process : processesFor(releaseRoot)) {
             if (process.isEnabled() && result.everythingIsSynchronized
                     && Boolean.FALSE.equals(process.isSynchronized(releaseRoot.getResourceResolver()))) {
                 result.everythingIsSynchronized = false;
             }
+            result.allAreActive = result.allAreActive && process.isActive();
             if (process.isEnabled()) { result.numberEnabledProcesses++; }
             switch (process.getState()) {
                 case error:

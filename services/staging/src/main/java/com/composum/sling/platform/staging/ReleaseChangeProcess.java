@@ -44,6 +44,9 @@ public interface ReleaseChangeProcess extends Runnable {
     /** True if the process is enabled; if not it's state is also {@link ReleaseChangeProcessorState#disabled}. */
     boolean isEnabled();
 
+    /** True if the process is enabled and there is a matching release. */
+    boolean isActive();
+
     /** Estimation how much of the currently queued release changes have been processed. */
     int getCompletionPercentage();
 

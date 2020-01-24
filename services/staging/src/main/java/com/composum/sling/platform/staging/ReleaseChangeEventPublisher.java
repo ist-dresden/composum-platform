@@ -54,17 +54,24 @@ public interface ReleaseChangeEventPublisher {
     class ReplicationStateInfo {
         /** An unique id for the {@link ReleaseChangeProcess}. */
         public String id;
+        /** If false, the service is disabled by configuration. */
+        public boolean enabled;
+        /** True if it's enabled and there is a matching release. */
+        public boolean active;
         public String name;
         public String description;
         public ReleaseChangeProcess.ReleaseChangeProcessorState state;
+        /** Rough estimation how much of the currently queued release changes have been processed. */
+        public int completionPercentage;
+        /** Start of last replication run. */
         public Long startedAt;
+        /** End of last replication run. */
         public Long finishedAt;
-        public MessageContainer messages;
         /** Whether the remote release change number is equal to the local one. */
         public Boolean isSynchronized;
-        public boolean enabled;
         /** Time of last (successful) replication, as in {@link System#currentTimeMillis()}. */
         public Long lastReplicationTimestamp;
+        public MessageContainer messages;
     }
 
     /**
@@ -74,6 +81,8 @@ public interface ReleaseChangeEventPublisher {
     class AggregatedReplicationStateInfo {
         /** True if for all enabled {@link ReleaseChangeProcess} the remote content is equivalent to the local one. */
         public boolean everythingIsSynchronized;
+        /** True if all {@link ReleaseChangeProcess}es are active. */
+        public boolean allAreActive;
         /** True if there are still some replications running. */
         public boolean replicationsAreRunning;
         /** True if there are some {@link ReleaseChangeProcess}es in error state. */
