@@ -119,21 +119,26 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
             if (!process.isEnabled()) { continue; }
             try {
                 process.triggerProcessing(event);
-                maybeDeployProcess(process);
+                deployProcess(process);
             } catch (RuntimeException | InterruptedException e) {
                 LOG.error("Error when triggering process {} for {}", process, event, e);
             }
         }
     }
 
-    protected void maybeDeployProcess(@Nonnull ReleaseChangeProcess process) throws InterruptedException {
+    /**
+     * Make sure {@link ReleaseChangeProcess#run()} is called later. If it's currently running, we queue it so that
+     * it'll run after the current run is finished - compare {@link RescheduleWrapper#run()}. We rather call run once
+     * too many - it is contractually obliged to do nothing if it hasn't anything to do.
+     */
+    protected void deployProcess(@Nonnull ReleaseChangeProcess process) throws InterruptedException {
         synchronized (lock) {
             Future<?> future = runningProcesses.get(process);
             if (future != null && future.isDone()) {
                 future = null;
                 runningProcesses.remove(process);
             }
-            if (future == null && process.getState() == ReleaseChangeProcess.ReleaseChangeProcessorState.awaiting) {
+            if (future == null) {
                 future = threadPool.submit(new RescheduleWrapper(process));
                 runningProcesses.put(process, future);
             } else { // is scheduled or running - we have to call that again later.
@@ -161,8 +166,8 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
             } finally {
                 try {
                     synchronized (lock) {
-                        boolean rescheduleNeeded = queuedProcesses.getOrDefault(process, false);
-                        if (rescheduleNeeded) {
+                        boolean queued = queuedProcesses.getOrDefault(process, false);
+                        if (queued || process.needsReschedule()) {
                             Future<?> future = threadPool.submit(new RescheduleWrapper(process));
                             runningProcesses.put(process, future);
                             queuedProcesses.remove(process);

@@ -28,6 +28,11 @@ public interface ReleaseChangeProcess extends Runnable {
 
     String getDescription();
 
+    /** If this returns true, our scheduler should {@link #run()} the process again soon. */
+    default boolean needsReschedule() {
+        return false;
+    }
+
     enum ReleaseChangeProcessorState {idle, /** is waiting to be run */ awaiting, processing, success, error, disabled}
 
     /**
