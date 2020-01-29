@@ -65,7 +65,7 @@ public class ReleaseChangeEventPublisherServlet extends AbstractServiceServlet {
     @Override
     public void init() throws ServletException {
         super.init();
-        operations = new ServletOperationSet(Extension.json);
+        operations = new ServletOperationSet<>(Extension.json);
         operations.setOperation(ServletOperationSet.Method.GET, Extension.json, Operation.replicationState,
                 new ReplicationStateOperation());
         operations.setOperation(ServletOperationSet.Method.GET, Extension.json, Operation.aggregatedReplicationState,
@@ -133,9 +133,14 @@ public class ReleaseChangeEventPublisherServlet extends AbstractServiceServlet {
         public void doIt(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
             Status status = new Status(request, response, LOG);
             try {
-                boolean returnDetails = "true".equalsIgnoreCase(request.getParameter(PARAM_DETAILS));
-                String[] processIdParams = request.getParameterValues(PARAM_PROCESS_ID);
-                service.compareTree(resource, returnDetails, processIdParams, status.data(RESULT_COMPARETREE));
+                if (resource != null) {
+                    boolean returnDetails = "true".equalsIgnoreCase(request.getParameter(PARAM_DETAILS));
+                    String[] processIdParams = request.getParameterValues(PARAM_PROCESS_ID);
+                    service.compareTree(resource, returnDetails, processIdParams, status.data(RESULT_COMPARETREE));
+                } else {
+                    status.error("Resource not found");
+                    status.setStatus(SlingHttpServletResponse.SC_NOT_FOUND);
+                }
             } catch (Exception e) {
                 LOG.error("Internal error", e);
                 status.error("Internal error");

@@ -58,7 +58,7 @@ public interface ReleaseChangeEventListener {
      * than a request should take. If this returns some processes, they are {@link ReleaseChangeProcess#triggerProcessing(ReleaseChangeEvent)}
      * with the events and then {@link ReleaseChangeProcess#run()}.
      */
-    @Nullable
+    @Nonnull
     default Collection<? extends ReleaseChangeProcess> processesFor(@Nonnull StagingReleaseManager.Release release) {
         return Collections.emptyList();
     }

@@ -184,8 +184,10 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
     @Override
     public Collection<ReleaseChangeProcess> processesFor(@Nullable StagingReleaseManager.Release release) {
         List<ReleaseChangeProcess> result = new ArrayList<>();
-        for (ReleaseChangeEventListener releaseChangeEventListener : new ArrayList<>(this.releaseChangeEventListeners)) {
-            result.addAll(releaseChangeEventListener.processesFor(release));
+        if (release != null) {
+            for (ReleaseChangeEventListener releaseChangeEventListener : new ArrayList<>(this.releaseChangeEventListeners)) {
+                result.addAll(releaseChangeEventListener.processesFor(release));
+            }
         }
         return result;
     }
@@ -204,22 +206,24 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
     @Override
     public Map<String, ReplicationStateInfo> replicationState(@Nullable Resource releaseRoot) {
         Map<String, ReplicationStateInfo> result = new LinkedHashMap<>();
-        for (ReleaseChangeProcess process : processesFor(releaseRoot)) {
-            ReplicationStateInfo info = new ReplicationStateInfo();
-            info.id = process.getId();
-            info.state = process.getState();
-            info.name = process.getName();
-            info.description = process.getDescription();
-            info.startedAt = process.getRunStartedAt();
-            info.finishedAt = process.getRunFinished();
-            info.messages = process.getMessages();
-            info.enabled = process.isEnabled();
-            info.active = process.isActive();
-            info.completionPercentage = process.getCompletionPercentage();
-            process.updateSynchronized();
-            info.isSynchronized = process.isSynchronized(releaseRoot.getResourceResolver());
-            info.lastReplicationTimestamp = process.getLastReplicationTimestamp();
-            result.put(process.getId(), info);
+        if (releaseRoot != null) {
+            for (ReleaseChangeProcess process : processesFor(releaseRoot)) {
+                ReplicationStateInfo info = new ReplicationStateInfo();
+                info.id = process.getId();
+                info.state = process.getState();
+                info.name = process.getName();
+                info.description = process.getDescription();
+                info.startedAt = process.getRunStartedAt();
+                info.finishedAt = process.getRunFinished();
+                info.messages = process.getMessages();
+                info.enabled = process.isEnabled();
+                info.active = process.isActive();
+                info.completionPercentage = process.getCompletionPercentage();
+                process.updateSynchronized();
+                info.isSynchronized = process.isSynchronized(releaseRoot.getResourceResolver());
+                info.lastReplicationTimestamp = process.getLastReplicationTimestamp();
+                result.put(process.getId(), info);
+            }
         }
         return result;
     }
