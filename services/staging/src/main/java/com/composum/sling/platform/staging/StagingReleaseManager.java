@@ -264,7 +264,7 @@ public interface StagingReleaseManager {
      * @return the marked release, or null if the mark isn't set.
      */
     @Nullable
-    Release findReleaseByMark(@Nonnull Resource resource, @Nonnull String mark);
+    Release findReleaseByMark(@Nullable Resource resource, @Nonnull String mark);
 
     /**
      * Returns the release to which the {releaseResource} (e.g. the metaData node of the release) belongs.

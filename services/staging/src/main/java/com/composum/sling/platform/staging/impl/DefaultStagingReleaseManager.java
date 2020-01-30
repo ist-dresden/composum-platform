@@ -19,7 +19,6 @@ import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Resul
 import com.composum.sling.platform.staging.query.Query;
 import com.composum.sling.platform.staging.query.QueryBuilder;
 import com.google.common.collect.ImmutableMap;
-import com.google.gson.annotations.Since;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
@@ -1051,7 +1050,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Nullable
     @Override
-    public Release findReleaseByMark(@Nonnull Resource resource, @Nonnull String mark) {
+    public Release findReleaseByMark(@Nullable Resource resource, @Nonnull String mark) {
+        if (resource == null) { return null; }
         ResourceHandle root = findReleaseRoot(resource);
         ResourceHandle releasesNode = getReleasesNode(root);
         if (!releasesNode.isValid()) { return null; }
