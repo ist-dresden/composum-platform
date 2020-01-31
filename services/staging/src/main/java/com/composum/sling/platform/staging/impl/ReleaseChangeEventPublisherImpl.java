@@ -267,10 +267,11 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
     }
 
     @Override
-    public void compareTree(@Nonnull ResourceHandle resource, boolean returnDetails, @Nullable String[] processIdParams, @Nonnull Map<String, Object> output) throws ReleaseChangeEventListener.ReplicationFailedException {
+    public void compareTree(@Nonnull ResourceHandle resource, int details, @Nullable String[] processIdParams,
+                            @Nonnull Map<String, Object> output) throws ReleaseChangeEventListener.ReplicationFailedException {
         for (ReleaseChangeProcess process : processesFor(resource)) {
             if (processIdParams != null && !Arrays.asList(processIdParams).contains(process.getId())) { continue; }
-            CompareResult compareResult = process.compareTree(resource, returnDetails);
+            CompareResult compareResult = process.compareTree(resource, details);
             if (compareResult != null) { output.put(process.getId(), compareResult); }
         }
     }

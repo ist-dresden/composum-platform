@@ -66,7 +66,6 @@ public interface ReleaseChangeProcess extends Runnable {
     @Nullable
     Long getRunFinished();
 
-
     /** Can contain some human readable messages about the last run, e.g. errors. */
     @Nonnull
     MessageContainer getMessages();
@@ -99,11 +98,12 @@ public interface ReleaseChangeProcess extends Runnable {
      * Compares the the tree below resource with the remote system's content and determines whether there are
      * differences.
      *
-     * @param resource      the release root or a subtree in there
-     * @param returnDetails if true, the paths
+     * @param resource the release root or a subtree in there
+     * @param details  If 0, only difference counts are returned. If 1, the different paths are included. For some
+     *                 replication types higher values switch on further checks.
      * @return the differences, or null if not enabled
      */
     @Nullable
-    ReleaseChangeEventPublisher.CompareResult compareTree(@Nonnull ResourceHandle resource, boolean returnDetails) throws ReleaseChangeEventListener.ReplicationFailedException;
+    ReleaseChangeEventPublisher.CompareResult compareTree(@Nonnull ResourceHandle resource, int details) throws ReleaseChangeEventListener.ReplicationFailedException;
 
 }

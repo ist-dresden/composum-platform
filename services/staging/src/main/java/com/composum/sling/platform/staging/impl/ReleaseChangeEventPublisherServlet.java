@@ -8,6 +8,7 @@ import com.composum.sling.core.servlet.Status;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.AggregatedReplicationStateInfo;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.ReplicationStateInfo;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.Resource;
@@ -119,7 +120,7 @@ public class ReleaseChangeEventPublisherServlet extends AbstractServiceServlet {
     /** Interfaces {@link ReleaseChangeEventPublisher#aggregatedReplicationState(Resource)}. */
     protected class CompareTreeOperation implements ServletOperation {
 
-        /** Name of the parameter to request full details. */
+        /** Name of the parameter to request different detail levels. */
         public static final String PARAM_DETAILS = "details";
         /**
          * Name of the parameter to request only data from specific
@@ -134,9 +135,10 @@ public class ReleaseChangeEventPublisherServlet extends AbstractServiceServlet {
             Status status = new Status(request, response, LOG);
             try {
                 if (resource != null) {
-                    boolean returnDetails = "true".equalsIgnoreCase(request.getParameter(PARAM_DETAILS));
+                    String detailsParam = request.getParameter(PARAM_DETAILS);
+                    int details = StringUtils.isNotBlank(detailsParam) ? Integer.parseInt(detailsParam) : 0;
                     String[] processIdParams = request.getParameterValues(PARAM_PROCESS_ID);
-                    service.compareTree(resource, returnDetails, processIdParams, status.data(RESULT_COMPARETREE));
+                    service.compareTree(resource, details, processIdParams, status.data(RESULT_COMPARETREE));
                 } else {
                     status.error("Resource not found");
                     status.setStatus(SlingHttpServletResponse.SC_NOT_FOUND);

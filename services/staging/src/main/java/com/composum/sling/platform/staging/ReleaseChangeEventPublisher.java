@@ -41,13 +41,14 @@ public interface ReleaseChangeEventPublisher {
      * Compares the contents of the whole release root or subtree at {resource}.
      *
      * @param resource        a release root or a subnode of it
-     * @param returnDetails   if true, details about the differences are returned
+     * @param details         If 0, only difference counts are returned. If 1, the different paths are included. For some
+     *                        replication types higher values switch on further checks.
      * @param processIdParams if set, comparisons are only done for the {@link ReleaseChangeProcess} with the given
      *                        {@link ReleaseChangeProcess#getId()}.
      * @param output          the result is added here: the {@link ReleaseChangeProcess#getId()} is mapped to the
      *                        corresponding {@link CompareResult}.
      */
-    void compareTree(@Nonnull ResourceHandle resource, boolean returnDetails, @Nullable String[] processIdParams,
+    void compareTree(@Nonnull ResourceHandle resource, int details, @Nullable String[] processIdParams,
                      @Nonnull Map<String, Object> output) throws ReleaseChangeEventListener.ReplicationFailedException;
 
     /** Information about one {@link ReleaseChangeProcess} used for JSON serialization. */
