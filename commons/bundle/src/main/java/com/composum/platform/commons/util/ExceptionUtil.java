@@ -11,8 +11,8 @@ import java.util.function.Function;
 public class ExceptionUtil {
 
     /**
-     * You can use that if you want to log a message and throw an exception with the very same message, to avoid
-     * constructing the message twice.
+     * You can use that if you want to log a message and throw an exception with the very same message as an error,
+     * to avoid constructing the message twice.
      * <code> throw ExceptionUtil.logAndThrow(new XYException("something is wrong with " + argument), LOG);</code>
      * The throw is not necessary, but informs the compiler about the thrown exception.
      *
