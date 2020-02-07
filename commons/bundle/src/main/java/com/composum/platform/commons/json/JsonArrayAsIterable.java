@@ -1,5 +1,6 @@
 package com.composum.platform.commons.json;
 
+import com.composum.platform.commons.util.AutoCloseableIterator;
 import com.google.gson.Gson;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonParseException;
@@ -71,9 +72,16 @@ public class JsonArrayAsIterable<T> implements Iterable<T>, AutoCloseable {
      */
     @Override
     @Nonnull
-    public JsonArrayAsIterator iterator() throws IllegalStateException, JsonParseException {
+    public AutoCloseableIterator<T> iterator() throws IllegalStateException, JsonParseException {
         open();
         return new JsonArrayAsIterator();
+    }
+
+
+    /** Alternative to {@link #iterator()} that only accesses the JsonReader when the iterator is first called. */
+    public AutoCloseableIterator<T> delayedIterator() {
+        // open is done later when the iterator is first called.
+        return new JsonArrayDelayedIterator();
     }
 
     protected void open() throws JsonParseException, IllegalStateException {
@@ -91,6 +99,12 @@ public class JsonArrayAsIterable<T> implements Iterable<T>, AutoCloseable {
         } catch (IOException e) {
             throw new JsonIOException(e);
         }
+    }
+
+    /** Skips through the data if it wasn't read yet and then close. Makes sure the JSON representation was read. */
+    public void skipAndClose() {
+        if (!wasOpened) { open(); }
+        close();
     }
 
     /**
@@ -129,11 +143,12 @@ public class JsonArrayAsIterable<T> implements Iterable<T>, AutoCloseable {
     }
 
     /** Forwards the iterator methods to the {@link JsonReader} / {@link Gson} methods. */
-    protected class JsonArrayAsIterator implements Iterator<T>, AutoCloseable {
+    protected class JsonArrayAsIterator implements AutoCloseableIterator<T> {
 
         /** Checks whether there is a next, and {@link #close()}s the array if not. */
         @Override
         public boolean hasNext() throws JsonIOException {
+            if (wasClosed) { throw new IllegalStateException("Iterable was already closed."); }
             try {
                 boolean result = jsonReader.hasNext();
                 if (!result) { close();}
@@ -147,6 +162,7 @@ public class JsonArrayAsIterable<T> implements Iterable<T>, AutoCloseable {
         @Override
         @Nonnull
         public T next() {
+            if (wasClosed) { throw new IllegalStateException("Iterable was already closed."); }
             T result = requireNonNull(gson.fromJson(jsonReader, objectClass));
             numberRead += 1;
             return result;
@@ -156,6 +172,34 @@ public class JsonArrayAsIterable<T> implements Iterable<T>, AutoCloseable {
         @Override
         public void close() throws JsonIOException {
             JsonArrayAsIterable.this.close();
+        }
+    }
+
+    /** Only opens the {@link JsonArrayAsIterable} when the iterator is first used. */
+    protected class JsonArrayDelayedIterator implements AutoCloseableIterator<T> {
+
+        private Iterator<T> iterator;
+
+        @Override
+        public void close() throws Exception {
+            JsonArrayAsIterable.this.close();
+        }
+
+        protected Iterator<T> getIterator() {
+            if (iterator == null) {
+                iterator = JsonArrayAsIterable.this.iterator();
+            }
+            return iterator;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return getIterator().hasNext();
+        }
+
+        @Override
+        public T next() {
+            return getIterator().next();
         }
     }
 }

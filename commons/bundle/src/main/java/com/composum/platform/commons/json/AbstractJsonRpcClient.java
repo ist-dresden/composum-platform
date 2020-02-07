@@ -33,6 +33,7 @@ import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
@@ -87,6 +88,7 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
             CloseableHttpClient httpClient = getHttpClient();
             HttpPut put = new HttpPut(makeUri(method.getName()));
             put.setEntity(makeEntity(method, args));
+
             try (CloseableHttpResponse response = httpClient.execute(put, httpClientContext)) {
                 statusLine = response.getStatusLine();
                 if (statusLine.getStatusCode() < 200 || statusLine.getStatusCode() > 299) {
@@ -126,10 +128,8 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
      * parameter names as keys and the actual arguments as values.
      */
     protected HttpEntity makeEntity(@Nonnull Method method, @Nonnull Object[] args) {
-        if (method.getParameterCount() == 1 && HttpEntity.class.isAssignableFrom(method.getParameterTypes()[0])) {
-            return (HttpEntity) args[0]; // FIXME(hps,03.02.20) unclear - does this work on the service side?
-        }
-        if (method.getParameterCount() == 1 && InputStream.class.isAssignableFrom(method.getParameterTypes()[0])) {
+        Parameter[] parameters = method.getParameters();
+        if (Arrays.stream(parameters).map(Parameter::getType).anyMatch(InputStream.class::isAssignableFrom)) {
             return new InputStreamEntity((InputStream) args[0]);
         }
         HttpEntity entity = new JsonHttpEntity(null, null) {
@@ -139,8 +139,7 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
                 try {
                     jsonWriter.beginObject();
 
-                    Parameter[] parameters = method.getParameters();
-                    for (parameterNum = 0; parameterNum < method.getParameterCount(); ++parameterNum) {
+                    for (parameterNum = 0; parameterNum < parameters.length; ++parameterNum) {
                         Parameter parameter = parameters[parameterNum];
                         if (BeanContext.class.isAssignableFrom(parameter.getType())) {
                             // cannot be transmitted - will be recreated on the other side.
@@ -172,10 +171,12 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
         if (arg == null) {
             getGson().toJson(arg, parameter.getType(), jsonWriter);
         }
-        if (arg instanceof Stream) {
-            Stream<?> stream = (Stream<?>) arg;
+        if (arg instanceof Iterator) {
+            Iterator iterator = (Iterator) arg;
             jsonWriter.beginArray();
-            stream.forEachOrdered(value -> writeObject(arg, jsonWriter));
+            while (iterator.hasNext()) {
+                writeObject(iterator.next(), jsonWriter);
+            }
             jsonWriter.endArray();
         } else if (arg instanceof Collection) {
             Collection<?> collection = (Collection<?>) arg;
@@ -183,9 +184,9 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
             collection.iterator().forEachRemaining(value -> writeObject(arg, jsonWriter));
             jsonWriter.endArray();
         } else if (arg instanceof Map) {
-            Map<?, ?> map = (Map<?, ?>) arg;
+            Map<String, ?> map = (Map) arg;
             jsonWriter.beginObject();
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
+            for (Map.Entry<String, ?> entry : map.entrySet()) {
                 jsonWriter.name((String) entry.getKey());
                 writeObject(entry.getValue(), jsonWriter);
             }

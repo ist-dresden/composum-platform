@@ -1,5 +1,6 @@
 package com.composum.platform.commons.json;
 
+import com.composum.platform.commons.util.AutoCloseableIterator;
 import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.servlet.Status;
 import com.google.gson.Gson;
@@ -14,11 +15,12 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Iterator;
 import java.util.function.Supplier;
 
 /**
@@ -57,49 +59,20 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
         try {
             Method method = getOperation(request);
             LOG.debug("Method call : {}", method);
-            status = callMethod(method, request, response);
+            ArgumentProcessor processor = new ArgumentProcessor(method, request, response);
+            status = processor.callMethod();
         } catch (JsonRpcInternalServletException e) {
             status = makeDefaultStatus(request, response);
             status.error(e.getMessage(), e.args);
+        } catch (RuntimeException e) {
+            status = makeDefaultStatus(request, response);
+            status.error(e.getMessage());
         } finally {
             if (status == null) {
                 status = makeDefaultStatus(request, response);
                 status.error("No status created for operation {}", request.getRequestPathInfo().getSelectorString());
             }
             status.sendJson();
-        }
-    }
-
-    /** Reads the arguments from JSON in the request, expecting them in their order in the parameter list. */
-    protected Status callMethod(Method method, SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException, JsonRpcInternalServletException {
-        Gson gson = createGsonBuilder().create();
-        List<Object> args = new ArrayList<>();
-        try (JsonReader jsonReader = new JsonReader(request.getReader())) {
-            jsonReader.beginObject();
-            for (Parameter parameter : method.getParameters()) {
-                LOG.debug("Reading parameter {}", parameter.getName());
-                if (BeanContext.class.isAssignableFrom(parameter.getType())) {
-                    args.add(new BeanContext.Service(request, response));
-                } else {
-                    String nextName = jsonReader.nextName();
-                    if (!nextName.equals(parameter.getName())) {
-                        throw new JsonRpcInternalServletException("Expected parameter {} but got {}", parameter.getName(), nextName);
-                    }
-                    Object arg = gson.fromJson(jsonReader, parameter.getParameterizedType());
-                    args.add(arg);
-                }
-                // FIXME(hps,03.02.20) What about streaming parameters? Possible idea: if the last parameters are
-                // Iterator<whatnot> they are delayed - only read on first use.
-            }
-            jsonReader.endObject();
-        }
-        try {
-            return (Status) method.invoke(null, args.toArray(new Object[0]));
-        } catch (IllegalAccessException e) {
-            LOG.error("On " + method, e);
-            throw new JsonRpcInternalServletException("Illegal access to method", (Object[]) null);
-        } catch (InvocationTargetException e) { // FIXME(hps,03.02.20) possible / sensible to serialize this?
-            throw new JsonRpcInternalServletException("Method threw exception", e);
         }
     }
 
@@ -121,6 +94,99 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
                 request.getRequestPathInfo().getSelectorString());
     }
 
+    protected class ArgumentProcessor {
+
+        protected final Method method;
+        protected final SlingHttpServletRequest request;
+        protected final SlingHttpServletResponse response;
+        protected final Gson gson;
+        protected final ArrayList<Object> args;
+        protected JsonReader jsonReader;
+        protected InputStream inputStream;
+        protected boolean haveOnTheFlyParameters;
+
+        public ArgumentProcessor(Method method, SlingHttpServletRequest request, SlingHttpServletResponse response) {
+            this.method = method;
+            this.request = request;
+            this.response = response;
+            this.gson = createGsonBuilder().create();
+            this.args = new ArrayList<Object>();
+        }
+
+        /** Reads the arguments from JSON in the request, expecting them in their order in the parameter list. */
+        protected Status callMethod() throws IOException, JsonRpcInternalServletException {
+            JsonArrayAsIterable<?> lastOnTheFlyIterable = null;
+            try {
+                for (Parameter parameter : method.getParameters()) {
+                    LOG.debug("Reading parameter {}", parameter.getName());
+                    if (BeanContext.class.equals(parameter.getType())) {
+                        args.add(new BeanContext.Service(request, response));
+                    } else if (InputStream.class.equals(parameter.getType())) {
+                        args.add(getInputStream());
+                    } else if (Iterator.class.equals(parameter.getType())) {
+                        haveOnTheFlyParameters = true;
+                        JsonArrayAsIterable<?> iterable = new JsonArrayAsIterable<>(getJsonReader(),
+                                parameter.getType(), gson, parameter.getName());
+                        args.add(new OnTheFlyParameter(lastOnTheFlyIterable, iterable));
+                        lastOnTheFlyIterable = iterable;
+                    } else {
+                        if (haveOnTheFlyParameters) {
+                            throw new IllegalStateException("Argument sequence wrong: normal " +
+                                    "parameters after on the fly parameters.");
+                        }
+                        expectParameter(parameter);
+                        Object arg = gson.fromJson(jsonReader, parameter.getParameterizedType());
+                        args.add(arg);
+                    }
+                }
+                if (jsonReader != null && !haveOnTheFlyParameters) {
+                    jsonReader.endObject();
+                }
+                return invokeMethod();
+            } finally {
+                if (jsonReader != null) { jsonReader.close(); }
+                if (inputStream != null) { inputStream.close(); }
+            }
+        }
+
+        /** Reads the next field name and checks that it is the wanted parameter. */
+        protected void expectParameter(Parameter parameter) throws IOException, JsonRpcInternalServletException {
+            String nextName = jsonReader.nextName();
+            if (!nextName.equals(parameter.getName())) {
+                throw new JsonRpcInternalServletException("Expected parameter {} but got {}", parameter.getName(), nextName);
+            }
+        }
+
+        protected InputStream getInputStream() throws JsonRpcInternalServletException, IOException {
+            if (null != jsonReader) {
+                throw new JsonRpcInternalServletException("Both an InputStream parameter and Json-Parameter present.");
+            }
+            inputStream = request.getInputStream();
+            return inputStream;
+        }
+
+        protected JsonReader getJsonReader() throws JsonRpcInternalServletException, IOException {
+            if (null != inputStream) {
+                throw new JsonRpcInternalServletException("Both an InputStream parameter and Json-Parameter present.");
+            }
+            jsonReader = new JsonReader(request.getReader());
+            jsonReader.beginObject();
+            return jsonReader;
+        }
+
+        protected Status invokeMethod() throws JsonRpcInternalServletException {
+            try {
+                return (Status) method.invoke(null, args.toArray(new Object[0]));
+            } catch (IllegalAccessException e) {
+                LOG.error("On " + method, e);
+                throw new JsonRpcInternalServletException("Illegal access to method", (Object[]) null);
+            } catch (InvocationTargetException e) { // FIXME(hps,03.02.20) possible / sensible to serialize this?
+                throw new JsonRpcInternalServletException("Method threw exception", e);
+            }
+        }
+
+    }
+
     /** Internal exception that leads to abort. */
     protected static class JsonRpcInternalServletException extends Exception {
 
@@ -130,6 +196,51 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
         public JsonRpcInternalServletException(String message, Object... args) {
             super(message);
             this.args = args != null ? args : new Object[0];
+        }
+    }
+
+    /**
+     * Creates an {@link JsonArrayAsIterable} on first access of the iterator, and makes sure previous iterators are
+     * closed at this point.
+     */
+    protected static class OnTheFlyParameter<T> implements AutoCloseableIterator<T> {
+
+        protected final JsonArrayAsIterable<?> lastOnTheFlyParameter;
+        protected final JsonArrayAsIterable<T> iterable;
+        protected AutoCloseableIterator<T> iterator;
+
+        public OnTheFlyParameter(JsonArrayAsIterable<?> lastOnTheFlyParameter, JsonArrayAsIterable<T> iterable) {
+            this.lastOnTheFlyParameter = lastOnTheFlyParameter;
+            this.iterable = iterable;
+        }
+
+        /** Makes sure the data of the last parameter was read. */
+        protected void closeLastParameter() {
+            if (lastOnTheFlyParameter != null) { lastOnTheFlyParameter.skipAndClose(); }
+        }
+
+        @Override
+        public void close() throws Exception {
+            closeLastParameter();
+            iterable.close();
+        }
+
+        protected AutoCloseableIterator<T> getWrappedIterator() {
+            closeLastParameter();
+            if (iterator == null) {
+                iterator = iterable.iterator();
+            }
+            return iterator;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return getWrappedIterator().hasNext();
+        }
+
+        @Override
+        public T next() {
+            return getWrappedIterator().next();
         }
     }
 }
