@@ -129,7 +129,7 @@ public class StagingQueryImpl extends Query {
         validate();
         if (limit <= 0) return emptyIterator();
 
-        final Session session = resourceResolver.adaptTo(Session.class);
+        final Session session = getSession();
         final QueryManager queryManager = session.getWorkspace().getQueryManager();
         ResourceResolver underlyingResolver = release != null ? release.getReleaseRoot().getResourceResolver() : null;
         boolean withinRelease = release != null && release.appliesToPath(path);
@@ -267,7 +267,7 @@ public class StagingQueryImpl extends Query {
     protected Map<String, String> giveVersionUuidToVersionReferenceUuidMap() throws RepositoryException {
         if (versionUuidToVersionReferencePathMap == null) {
             versionUuidToVersionReferencePathMap = new HashMap<>();
-            final Session session = resourceResolver.adaptTo(Session.class);
+            final Session session = StagingResourceResolver.underlyingSession(resourceResolver);
             final QueryManager queryManager = session.getWorkspace().getQueryManager();
             String statement = "SELECT [cpl:deactivated], [cpl:version], [jcr:path] FROM [cpl:VersionReference] " +
                     "WHERE ISDESCENDANTNODE('" + release.getWorkspaceCopyNode().getPath() + "')";
@@ -361,21 +361,25 @@ public class StagingQueryImpl extends Query {
             if (matchesTypeConstraint(mixin)) return true;
             // since JCR Queries can't return multiple values 8-() we need to query the node in case there are
             // several mixins. Only the first one is returned from the query. OUCH!
-            Node node = resourceResolver.adaptTo(Session.class).getNode(frozenPath);
+            Node node = getSession().getNode(frozenPath);
             Value[] mixins = node.getProperty(JcrConstants.JCR_FROZENMIXINTYPES).getValues();
             for (Value mixinValue : mixins) {
-                if (matchesTypeConstraint(mixinValue.getString())) return true;
+                if (matchesTypeConstraint(mixinValue.getString())) { return true; }
             }
         }
         return false;
     }
 
+    @Nullable
+    protected Session getSession() {
+        return StagingResourceResolver.underlyingSession(resourceResolver);
+    }
+
     protected boolean matchesTypeConstraint(String type) throws RepositoryException {
-        if (StringUtils.isBlank(typeConstraint))
-            return true;
+        if (StringUtils.isBlank(typeConstraint)) { return true; }
         Boolean result = matchesTypeConstraintCache.get(type);
         if (null == result) {
-            NodeTypeManager nodeTypeManager = resourceResolver.adaptTo(Session.class).getWorkspace()
+            NodeTypeManager nodeTypeManager = getSession().getWorkspace()
                     .getNodeTypeManager();
             NodeType nodeType = nodeTypeManager.getNodeType(type);
             result = typeConstraint.equals(nodeType.getName());

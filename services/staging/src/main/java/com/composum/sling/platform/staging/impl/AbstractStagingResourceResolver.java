@@ -19,6 +19,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Common methods for resource resolvers that present data from previous versions stored in the JCR content
@@ -32,7 +33,7 @@ public abstract class AbstractStagingResourceResolver implements ResourceResolve
     protected final boolean closeResolverOnClose;
 
     public AbstractStagingResourceResolver(@Nonnull ResourceResolver underlyingResolver, boolean closeResolverOnClose) {
-        this.underlyingResolver = underlyingResolver;
+        this.underlyingResolver = Objects.requireNonNull(underlyingResolver);
         this.closeResolverOnClose = closeResolverOnClose;
     }
 

@@ -355,7 +355,7 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
     @Nonnull
     protected NodeTypeManager getNodeTypeManager() throws RepositoryException {
         try {
-            Session session = resource.getResourceResolver().adaptTo(Session.class);
+            Session session = this.wrapped.getSession();
             Workspace workspace = session.getWorkspace();
             return Objects.requireNonNull(workspace.getNodeTypeManager());
         } catch (NullPointerException e) {
