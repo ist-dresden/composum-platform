@@ -127,6 +127,7 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
      * Creates the entity - usually a {@link JsonHttpEntity} - for the request. This writes an JSON object with the
      * parameter names as keys and the actual arguments as values.
      */
+    @SuppressWarnings({"rawtypes", "unchecked"})
     protected HttpEntity makeEntity(@Nonnull Method method, @Nonnull Object[] args) {
         Parameter[] parameters = method.getParameters();
         if (Arrays.stream(parameters).map(Parameter::getType).anyMatch(InputStream.class::isAssignableFrom)) {
@@ -141,12 +142,22 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
 
                     for (parameterNum = 0; parameterNum < parameters.length; ++parameterNum) {
                         Parameter parameter = parameters[parameterNum];
-                        if (BeanContext.class.isAssignableFrom(parameter.getType())) {
-                            // cannot be transmitted - will be recreated on the other side.
+                        if (BeanContext.class.equals(parameter.getType())
+                                || Iterator.class.equals(parameter.getType())) {
+                            // BeanContext cannot be transmitted - will be recreated on the other side.
+                            // Iterator is processed later on the fly
                             continue;
                         }
-                        jsonWriter.name(parameter.getName());
-                        writeParameter(args[parameterNum], jsonWriter, method, parameter);
+                        writeParameter(args[parameterNum], jsonWriter, parameter);
+                    }
+
+                    // write iterators last since these are meant to be processed on the fly at the receiver, without
+                    // being read at once into memory.
+                    for (parameterNum = 0; parameterNum < parameters.length; ++parameterNum) {
+                        Parameter parameter = parameters[parameterNum];
+                        if (Iterator.class.equals(parameter.getType())) {
+                            writeParameter(args[parameterNum], jsonWriter, parameter);
+                        }
                     }
 
                     jsonWriter.endObject();
@@ -161,16 +172,13 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
     }
 
     /**
-     * Writes the value of the parameterer to the jsonWriter; hook for special handling of some things. The name
-     * of the field must already have been written ( {@link JsonWriter#name(String)} ).
-     * This implementation handles {@link Stream}, {@link java.util.Collection} and {@link Map}s itself.
+     * Writes the parameterer to the jsonWriter; hook for special handling of some things.
+     * This implementation handles {@link Stream}, {@link java.util.Collection}, {@link Iterator} and {@link Map}s itself.
      */
-    @SuppressWarnings("unused")
-    protected void writeParameter(@Nullable Object arg, @Nonnull JsonWriter jsonWriter,
-                                  @Nonnull Method method, @Nonnull Parameter parameter) throws IOException {
-        if (arg == null) {
-            getGson().toJson(arg, parameter.getType(), jsonWriter);
-        }
+    @SuppressWarnings({"unchecked", "rawtypes", "IfStatementWithTooManyBranches"})
+    protected void writeParameter(@Nullable Object arg, @Nonnull JsonWriter jsonWriter, @Nonnull Parameter parameter) throws IOException {
+        if (arg == null) { return;}
+        jsonWriter.name(parameter.getName());
         if (arg instanceof Iterator) {
             Iterator iterator = (Iterator) arg;
             jsonWriter.beginArray();
@@ -179,7 +187,7 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
             }
             jsonWriter.endArray();
         } else if (arg instanceof Collection) {
-            Collection<?> collection = (Collection<?>) arg;
+            Iterable<?> collection = (Collection<?>) arg;
             jsonWriter.beginArray();
             collection.iterator().forEachRemaining(value -> writeObject(arg, jsonWriter));
             jsonWriter.endArray();
@@ -187,7 +195,7 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
             Map<String, ?> map = (Map) arg;
             jsonWriter.beginObject();
             for (Map.Entry<String, ?> entry : map.entrySet()) {
-                jsonWriter.name((String) entry.getKey());
+                jsonWriter.name(entry.getKey());
                 writeObject(entry.getValue(), jsonWriter);
             }
             jsonWriter.endObject();
@@ -271,6 +279,7 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
      * Creates the httpClient - override this if you need special settings over {@link HttpClients#createDefault()}.
      * For retrieving the client is {@link #getHttpClient()}, not this method.
      */
+    @Nonnull
     protected CloseableHttpClient newHttpClient() {
         return HttpClients.createDefault();
     }

@@ -16,8 +16,11 @@ import java.util.List;
 
 /**
  * Some utility methods for JCR.
- * TODO: move somewhere more appropriate. Test project in platform?
+ * TODO: remove once replacement is updated.
+ *
+ * @deprecated moved to com.composum.sling.test.util.JcrTestUtils in nodes
  */
+@Deprecated
 public class JcrTestUtils {
 
     /**

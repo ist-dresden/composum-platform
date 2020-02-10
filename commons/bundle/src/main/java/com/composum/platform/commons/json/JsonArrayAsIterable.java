@@ -79,6 +79,7 @@ public class JsonArrayAsIterable<T> implements Iterable<T>, AutoCloseable {
 
 
     /** Alternative to {@link #iterator()} that only accesses the JsonReader when the iterator is first called. */
+    @Nonnull
     public AutoCloseableIterator<T> delayedIterator() {
         // open is done later when the iterator is first called.
         return new JsonArrayDelayedIterator();
@@ -181,10 +182,11 @@ public class JsonArrayAsIterable<T> implements Iterable<T>, AutoCloseable {
         private Iterator<T> iterator;
 
         @Override
-        public void close() throws Exception {
+        public void close() {
             JsonArrayAsIterable.this.close();
         }
 
+        @Nonnull
         protected Iterator<T> getIterator() {
             if (iterator == null) {
                 iterator = JsonArrayAsIterable.this.iterator();
@@ -197,6 +199,7 @@ public class JsonArrayAsIterable<T> implements Iterable<T>, AutoCloseable {
             return getIterator().hasNext();
         }
 
+        @Nullable
         @Override
         public T next() {
             return getIterator().next();

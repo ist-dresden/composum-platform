@@ -13,14 +13,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.util.ArrayList;
+import java.lang.reflect.Type;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.function.Supplier;
 
 /**
@@ -52,6 +55,7 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
     }
 
     /** The actual implementation, reading the request and serializing the response. */
+    @SuppressWarnings("RedundantThrows")
     @Override
     protected void doPut(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response)
             throws ServletException, IOException {
@@ -100,43 +104,65 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
         protected final SlingHttpServletRequest request;
         protected final SlingHttpServletResponse response;
         protected final Gson gson;
-        protected final ArrayList<Object> args;
+        protected final Object[] args;
         protected JsonReader jsonReader;
         protected InputStream inputStream;
         protected boolean haveOnTheFlyParameters;
+        protected final Map<String, Integer> parameterNumber = new HashMap<>();
+        protected final Map<String, Type> parameterType = new HashMap<>();
 
         public ArgumentProcessor(Method method, SlingHttpServletRequest request, SlingHttpServletResponse response) {
             this.method = method;
             this.request = request;
             this.response = response;
             this.gson = createGsonBuilder().create();
-            this.args = new ArrayList<Object>();
+            this.args = new Object[method.getParameterCount()];
+            Parameter[] parameters = method.getParameters();
+            for (int i = 0; i < method.getParameterCount(); ++i) {
+                Parameter parameter = parameters[i];
+                parameterNumber.put(parameter.getName(), i);
+                parameterType.put(parameter.getName(), parameter.getParameterizedType());
+            }
         }
 
         /** Reads the arguments from JSON in the request, expecting them in their order in the parameter list. */
+        @Nullable
         protected Status callMethod() throws IOException, JsonRpcInternalServletException {
-            JsonArrayAsIterable<?> lastOnTheFlyIterable = null;
+            OnTheFlyParameter<?> lastOnTheFlyParameter = null;
             try {
+                boolean readMoreArguments = true;
                 for (Parameter parameter : method.getParameters()) {
                     LOG.debug("Reading parameter {}", parameter.getName());
                     if (BeanContext.class.equals(parameter.getType())) {
-                        args.add(new BeanContext.Service(request, response));
+                        args[parameterNumber.get(parameter.getName())] = new BeanContext.Service(request, response);
                     } else if (InputStream.class.equals(parameter.getType())) {
-                        args.add(getInputStream());
-                    } else if (Iterator.class.equals(parameter.getType())) {
-                        haveOnTheFlyParameters = true;
-                        JsonArrayAsIterable<?> iterable = new JsonArrayAsIterable<>(getJsonReader(),
-                                parameter.getType(), gson, parameter.getName());
-                        args.add(new OnTheFlyParameter(lastOnTheFlyIterable, iterable));
-                        lastOnTheFlyIterable = iterable;
-                    } else {
-                        if (haveOnTheFlyParameters) {
-                            throw new IllegalStateException("Argument sequence wrong: normal " +
-                                    "parameters after on the fly parameters.");
+                        args[parameterNumber.get(parameter.getName())] = getInputStream();
+                        readMoreArguments = false;
+                    }
+                }
+                if (readMoreArguments) {
+                    while (readMoreArguments && getJsonReader().hasNext()) {
+                        String parameterName = getJsonReader().nextName();
+                        Type type = parameterType.get(parameterName);
+                        if (type == null) {
+                            throw new IllegalArgumentException("Unknown parameter " + parameterName);
+                        } else if (type instanceof Iterator) {
+                            // all iterators must come last for on the fly parsing, and are read on demand only.
+                            haveOnTheFlyParameters = true;
+                            for (Parameter parameter : method.getParameters()) {
+                                // only read the name if it wasn't parameterName, which has already been read.
+                                String iteratorName = parameterName.equals(parameter.getName()) ? null : parameter.getName();
+                                JsonArrayAsIterable<?> iterable =
+                                        new JsonArrayAsIterable<>(getJsonReader(), parameter.getType(), gson, iteratorName);
+                                //noinspection unchecked,ObjectAllocationInLoop,rawtypes
+                                lastOnTheFlyParameter = new OnTheFlyParameter(lastOnTheFlyParameter, iterable);
+                                args[parameterNumber.get(parameter.getName())] = lastOnTheFlyParameter;
+                                readMoreArguments = false;
+                            }
+                        } else {
+                            Object arg = gson.fromJson(jsonReader, type);
+                            args[parameterNumber.get(parameterName)] = arg;
                         }
-                        expectParameter(parameter);
-                        Object arg = gson.fromJson(jsonReader, parameter.getParameterizedType());
-                        args.add(arg);
                     }
                 }
                 if (jsonReader != null && !haveOnTheFlyParameters) {
@@ -144,19 +170,20 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
                 }
                 return invokeMethod();
             } finally {
-                if (jsonReader != null) { jsonReader.close(); }
+                if (jsonReader != null) {
+                    if (haveOnTheFlyParameters) { // read it until the end to do a syntax check
+                        if (lastOnTheFlyParameter != null) {
+                            lastOnTheFlyParameter.close();
+                        }
+                        jsonReader.endObject();
+                    }
+                    jsonReader.close();
+                }
                 if (inputStream != null) { inputStream.close(); }
             }
         }
 
-        /** Reads the next field name and checks that it is the wanted parameter. */
-        protected void expectParameter(Parameter parameter) throws IOException, JsonRpcInternalServletException {
-            String nextName = jsonReader.nextName();
-            if (!nextName.equals(parameter.getName())) {
-                throw new JsonRpcInternalServletException("Expected parameter {} but got {}", parameter.getName(), nextName);
-            }
-        }
-
+        @Nonnull
         protected InputStream getInputStream() throws JsonRpcInternalServletException, IOException {
             if (null != jsonReader) {
                 throw new JsonRpcInternalServletException("Both an InputStream parameter and Json-Parameter present.");
@@ -165,6 +192,7 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
             return inputStream;
         }
 
+        @Nonnull
         protected JsonReader getJsonReader() throws JsonRpcInternalServletException, IOException {
             if (null != inputStream) {
                 throw new JsonRpcInternalServletException("Both an InputStream parameter and Json-Parameter present.");
@@ -174,9 +202,10 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
             return jsonReader;
         }
 
+        @Nullable
         protected Status invokeMethod() throws JsonRpcInternalServletException {
             try {
-                return (Status) method.invoke(null, args.toArray(new Object[0]));
+                return (Status) method.invoke(null, args);
             } catch (IllegalAccessException e) {
                 LOG.error("On " + method, e);
                 throw new JsonRpcInternalServletException("Illegal access to method", (Object[]) null);
@@ -205,26 +234,27 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
      */
     protected static class OnTheFlyParameter<T> implements AutoCloseableIterator<T> {
 
-        protected final JsonArrayAsIterable<?> lastOnTheFlyParameter;
+        protected final OnTheFlyParameter<?> lastOnTheFlyParameter;
         protected final JsonArrayAsIterable<T> iterable;
         protected AutoCloseableIterator<T> iterator;
 
-        public OnTheFlyParameter(JsonArrayAsIterable<?> lastOnTheFlyParameter, JsonArrayAsIterable<T> iterable) {
+        public OnTheFlyParameter(OnTheFlyParameter<?> lastOnTheFlyParameter, JsonArrayAsIterable<T> iterable) {
             this.lastOnTheFlyParameter = lastOnTheFlyParameter;
             this.iterable = iterable;
         }
 
         /** Makes sure the data of the last parameter was read. */
         protected void closeLastParameter() {
-            if (lastOnTheFlyParameter != null) { lastOnTheFlyParameter.skipAndClose(); }
+            if (lastOnTheFlyParameter != null) { lastOnTheFlyParameter.close(); }
         }
 
         @Override
-        public void close() throws Exception {
+        public void close() {
             closeLastParameter();
-            iterable.close();
+            iterable.skipAndClose();
         }
 
+        @Nonnull
         protected AutoCloseableIterator<T> getWrappedIterator() {
             closeLastParameter();
             if (iterator == null) {
@@ -238,6 +268,7 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
             return getWrappedIterator().hasNext();
         }
 
+        @Nullable
         @Override
         public T next() {
             return getWrappedIterator().next();
