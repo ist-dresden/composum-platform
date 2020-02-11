@@ -17,12 +17,16 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.servlet.Servlet;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
+/**
+ * the proxy servlet delegates proxy requests to the collected proxy service implementations
+ */
 @Component(service = Servlet.class,
         property = {
                 Constants.SERVICE_DESCRIPTION + "=Composum HTTP Proxy Servlet",
@@ -38,7 +42,8 @@ public class ProxyServlet extends SlingSafeMethodsServlet {
 
     protected List<ProxyService> instances = Collections.synchronizedList(new ArrayList<>());
 
-    @Reference(service = ProxyService.class, policy = ReferencePolicy.DYNAMIC, cardinality = ReferenceCardinality.MULTIPLE)
+    @Reference(service = ProxyService.class, policy = ReferencePolicy.DYNAMIC,
+            cardinality = ReferenceCardinality.MULTIPLE)
     protected void addProxyService(@Nonnull final ProxyService service) {
         LOG.info("addProxyService: {}", service.getName());
         instances.add(service);
@@ -56,6 +61,7 @@ public class ProxyServlet extends SlingSafeMethodsServlet {
         RequestPathInfo pathInfo = request.getRequestPathInfo();
         String targetSuffix = pathInfo.getSuffix();
         if (StringUtils.isNotBlank(targetSuffix)) {
+            // proxy traget URL: 'suffix' + '?' + 'query string' of the proxy request
             String targetUrl = EXTERNAL_SUFFIX.matcher(targetSuffix).matches()
                     ? targetSuffix.substring(1) : targetSuffix;
             String queryString = request.getQueryString();
@@ -64,9 +70,11 @@ public class ProxyServlet extends SlingSafeMethodsServlet {
             }
             for (ProxyService service : instances) {
                 if (service.doProxy(request, response, targetUrl)) {
-                    break;
+                    return; // the first service which has handled the request terminates the servlets request handling
                 }
             }
         }
+        // send 404 if no service can handle the request
+        response.sendError(HttpServletResponse.SC_NOT_FOUND);
     }
 }

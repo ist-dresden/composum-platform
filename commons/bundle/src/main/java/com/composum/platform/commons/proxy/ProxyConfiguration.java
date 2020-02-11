@@ -7,7 +7,7 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
  * the general caching service configuration 'object'
  */
 @ObjectClassDefinition(
-        name = "Composum HTTP Proxy Service Configuration"
+        name = "Composum HTTP Proxy Configuration"
 )
 public @interface ProxyConfiguration {
 
@@ -32,14 +32,24 @@ public @interface ProxyConfiguration {
     String targetUrl();
 
     @AttributeDefinition(
+            description = "a comma separated list of tags to change to anther tag name (old:new)"
+    )
+    String[] tags_to_rename() default {"html:div"};
+
+    @AttributeDefinition(
             description = "a comma separated list of tags to strip from the result (this keeps the tags body)"
     )
-    String[] tags_to_strip() default {"html", "body"};
+    String[] tags_to_strip() default {"body"};
 
     @AttributeDefinition(
             description = "a comma separated list of tags to drop from the result (this removes the tags body)"
     )
     String[] tags_to_drop() default {"head", "style", "script"};
+
+    @AttributeDefinition(
+            description = "a XSLT filter chain (set of XSLT file resource paths) to transform the content"
+    )
+    String[] XSLT_chain_paths();
 
     @AttributeDefinition(
             description = "the repository path which repesents this service (for ACL based permission check)"

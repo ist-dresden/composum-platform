@@ -19,7 +19,7 @@ public class TagFilteringReaderTest {
 
     @Test
     public void case_00() throws Exception {
-        assertEquals("body", IOUtils.toString(new TagFilteringReader(
+        assertEquals("<div>body</div>", IOUtils.toString(new TagFilteringReader(
                 new StringReader("<html>body</html>"))));
         assertEquals("<p class=\"class\">paragraph</p>", IOUtils.toString(new TagFilteringReader(
                 new StringReader("<p class=\"class\">paragraph</p>"))));
@@ -29,9 +29,9 @@ public class TagFilteringReaderTest {
                 new StringReader("<input type=\"text\" value=\"\" />"))));
         assertEquals("", IOUtils.toString(new TagFilteringReader(
                 new StringReader("<head>head</head>"))));
-        assertEquals("body", IOUtils.toString(new TagFilteringReader(
-                new StringReader("<html><head>head</head><body>body</body></html>"))));
-        assertEquals("<p>body</p>", IOUtils.toString(new TagFilteringReader(
+        assertEquals("<div data-x=\"x\">body</div>", IOUtils.toString(new TagFilteringReader(
+                new StringReader("<html data-x=\"x\"><head>head</head><body>body</body></html>"))));
+        assertEquals("<div><p>body</p></div>", IOUtils.toString(new TagFilteringReader(
                 new StringReader("<html><head>head<style type=\"test\">style</style></head><body class=\"class\" data-x=\"data\"><p>body</p></body></html>"))));
     }
 
@@ -40,7 +40,7 @@ public class TagFilteringReaderTest {
         TagFilteringReader filterReader = new TagFilteringReader(
                 new InputStreamReader(getClass().getResourceAsStream(
                         TEST_ROOT + "case-01-input.html"), StandardCharsets.UTF_8));
-        String result = IOUtils.toString(filterReader).trim();
+        String result = IOUtils.toString(filterReader);
         assertEquals(IOUtils.toString(new InputStreamReader(getClass().getResourceAsStream(
                 TEST_ROOT + "case-01-result.html"), StandardCharsets.UTF_8)), result);
     }
@@ -50,7 +50,7 @@ public class TagFilteringReaderTest {
         TagFilteringReader filterReader = new TagFilteringReader(
                 new InputStreamReader(getClass().getResourceAsStream(
                         TEST_ROOT + "case-02-input.html"), StandardCharsets.UTF_8));
-        String result = IOUtils.toString(filterReader).trim();
+        String result = IOUtils.toString(filterReader);
         assertEquals(IOUtils.toString(new InputStreamReader(getClass().getResourceAsStream(
                 TEST_ROOT + "case-02-result.html"), StandardCharsets.UTF_8)), result);
     }
