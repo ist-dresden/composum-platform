@@ -52,23 +52,23 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * a configurable proxy service factory usable directly and also as a base for special proxy implementations
+ * a configurable proxy request service factory usable directly and also as a base for special proxy implementations
  */
-@Component(service = ProxyService.class, scope = ServiceScope.PROTOTYPE)
-@Designate(ocd = ProxyConfiguration.class, factory = true)
-public class ConfigurableHttpProxy implements ProxyService {
+@Component(service = ProxyRequestService.class, scope = ServiceScope.PROTOTYPE)
+@Designate(ocd = ProxyRequestConfig.class, factory = true)
+public class GenericProxyRequest implements ProxyRequestService {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ConfigurableHttpProxy.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GenericProxyRequest.class);
 
-    public static final Pattern XML_CONTENT_URL = Pattern.compile("^.*/[^/]+\\.(html|xml)(\\?.*)$");
+    public static final Pattern XML_CONTENT_URL = Pattern.compile("^.*/[^/]+\\.(html|xml)(\\?.*)?$");
 
-    protected ProxyConfiguration config;
+    protected ProxyRequestConfig config;
 
     protected Pattern targetPattern;
 
     @Activate
     @Modified
-    protected void activate(final ProxyConfiguration config) {
+    protected void activate(final ProxyRequestConfig config) {
         this.config = config;
         if (config.enabled()) {
             targetPattern = Pattern.compile(config.targetPattern());

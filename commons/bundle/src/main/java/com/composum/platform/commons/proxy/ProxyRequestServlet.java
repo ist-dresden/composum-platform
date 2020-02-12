@@ -34,22 +34,22 @@ import java.util.regex.Pattern;
                 ServletResolverConstants.SLING_SERVLET_EXTENSIONS + "=fwd",
                 ServletResolverConstants.SLING_SERVLET_METHODS + "=" + HttpConstants.METHOD_GET
         })
-public class ProxyServlet extends SlingSafeMethodsServlet {
+public class ProxyRequestServlet extends SlingSafeMethodsServlet {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ProxyServlet.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ProxyRequestServlet.class);
 
     public static final Pattern EXTERNAL_SUFFIX = Pattern.compile("^/https?://", Pattern.CASE_INSENSITIVE);
 
-    protected List<ProxyService> instances = Collections.synchronizedList(new ArrayList<>());
+    protected List<ProxyRequestService> instances = Collections.synchronizedList(new ArrayList<>());
 
-    @Reference(service = ProxyService.class, policy = ReferencePolicy.DYNAMIC,
+    @Reference(service = ProxyRequestService.class, policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.MULTIPLE)
-    protected void addProxyService(@Nonnull final ProxyService service) {
+    protected void addProxyService(@Nonnull final ProxyRequestService service) {
         LOG.info("addProxyService: {}", service.getName());
         instances.add(service);
     }
 
-    protected void removeProxyService(@Nonnull final ProxyService service) {
+    protected void removeProxyService(@Nonnull final ProxyRequestService service) {
         LOG.info("removeProxyService: {}", service.getName());
         instances.remove(service);
     }
@@ -68,7 +68,7 @@ public class ProxyServlet extends SlingSafeMethodsServlet {
             if (StringUtils.isNotBlank(queryString)) {
                 targetUrl += "?" + queryString;
             }
-            for (ProxyService service : instances) {
+            for (ProxyRequestService service : instances) {
                 if (service.doProxy(request, response, targetUrl)) {
                     return; // the first service which has handled the request terminates the servlets request handling
                 }

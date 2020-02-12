@@ -9,7 +9,7 @@ import java.io.IOException;
 /**
  * the proxy request service interface
  */
-public interface ProxyService {
+public interface ProxyRequestService {
 
     /**
      * return the key of the service

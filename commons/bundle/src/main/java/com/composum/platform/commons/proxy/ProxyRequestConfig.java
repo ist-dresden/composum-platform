@@ -7,9 +7,9 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
  * the general caching service configuration 'object'
  */
 @ObjectClassDefinition(
-        name = "Composum HTTP Proxy Configuration"
+        name = "Composum HTTP Proxy Request"
 )
-public @interface ProxyConfiguration {
+public @interface ProxyRequestConfig {
 
     @AttributeDefinition(
             description = "the general on/off switch for this service"
