@@ -34,7 +34,7 @@ public @interface ProxyConfiguration {
     @AttributeDefinition(
             description = "a comma separated list of tags to change to anther tag name (old:new)"
     )
-    String[] tags_to_rename() default {"html:div"};
+    String[] tags_to_rename() default {"html:div class=\"proxy-html-content\""};
 
     @AttributeDefinition(
             description = "a comma separated list of tags to strip from the result (this keeps the tags body)"

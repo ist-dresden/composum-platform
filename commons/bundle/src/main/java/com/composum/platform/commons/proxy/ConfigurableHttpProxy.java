@@ -60,6 +60,8 @@ public class ConfigurableHttpProxy implements ProxyService {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConfigurableHttpProxy.class);
 
+    public static final Pattern XML_CONTENT_URL = Pattern.compile("^.*/[^/]+\\.(html|xml)(\\?.*)$");
+
     protected ProxyConfiguration config;
 
     protected Pattern targetPattern;
@@ -105,7 +107,7 @@ public class ConfigurableHttpProxy implements ProxyService {
                     }
                     doRequest(request, response, targetUrl, matcher);
                 } catch (Exception ex) {
-                    LOG.error(ex.toString());
+                    LOG.error(ex.getMessage(), ex);
                     response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 }
                 return true; // if this service was the right one signal the proxy handling even if an erros has occured
@@ -135,7 +137,7 @@ public class ConfigurableHttpProxy implements ProxyService {
             try (CloseableHttpResponse targetResponse = client.execute(httpGet)) {
                 final HttpEntity entity = targetResponse.getEntity();
                 if (entity != null) {
-                    doResponse(request, response, entity);
+                    doResponse(request, response, targetUrl, entity);
                 } else {
                     LOG.warn("response is NULL ({})", targetUrl);
                 }
@@ -148,32 +150,53 @@ public class ConfigurableHttpProxy implements ProxyService {
     /**
      * Prepare, filter and deliver the content entity reveived from the target.
      *
-     * @param request  the request to the proxy servlet
-     * @param response the response object to send the answer
-     * @param entity   the content received from the target
+     * @param request   the request to the proxy servlet
+     * @param response  the response object to send the answer
+     * @param targetUrl the URL used to request the entity
+     * @param entity    the content received from the target
      */
     protected void doResponse(@Nonnull final SlingHttpServletRequest request,
                               @Nonnull final SlingHttpServletResponse response,
+                              @Nonnull final String targetUrl,
                               @Nonnull final HttpEntity entity)
             throws IOException {
         try (InputStream inputStream = entity.getContent()) {
-            Reader entityReader = getContentReader(inputStream);
-            SAXTransformerFactory stf = null;
-            XMLFilter xmlFilter = null;
-            String[] xsltChainPaths = config.XSLT_chain_paths();
-            if (xsltChainPaths.length > 0) {
-                // build XML filter for XSLT transformation
-                stf = (SAXTransformerFactory) TransformerFactory.newInstance();
-                xmlFilter = getXsltFilter(stf, request.getResourceResolver(), xsltChainPaths);
-            }
-            if (xmlFilter != null) {
-                // do XSLT transformation (probably pre-filtered by the reader)...
-                Transformer transformer = stf.newTransformer();
-                SAXSource transformSource = new SAXSource(xmlFilter, new InputSource(entityReader));
-                transformer.transform(transformSource, new StreamResult(response.getWriter()));
+            if (isXmlRequest(targetUrl)) {
+                SAXTransformerFactory stf = null;
+                XMLFilter xmlFilter = null;
+                String[] xsltChainPaths = config.XSLT_chain_paths();
+                if (xsltChainPaths.length > 0) {
+                    // build XML filter for XSLT transformation
+                    stf = (SAXTransformerFactory) TransformerFactory.newInstance();
+                    xmlFilter = getXsltFilter(stf, request.getResourceResolver(), xsltChainPaths);
+                }
+                if (xmlFilter != null) {
+                    // do XSLT transformation (probably pre-filtered by the reader)...
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("XSLT transformation ({})...", xmlFilter);
+                    }
+                    try (Reader entityReader = getContentReader(targetUrl, inputStream)) {
+                        Transformer transformer = stf.newTransformer();
+                        SAXSource transformSource = new SAXSource(xmlFilter, new InputSource(entityReader));
+                        transformer.transform(transformSource, new StreamResult(response.getWriter()));
+                    }
+                } else {
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("pumping HTML/XML content...");
+                    }
+                    // stream entity response (probably filtered by the reader)
+                    try (Reader entityReader = getContentReader(targetUrl, inputStream)) {
+                        IOUtils.copy(entityReader, response.getWriter());
+                    }
+                }
             } else {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("pumping non XML content...");
+                }
                 // stream entity response (probably filtered by the reader)
-                IOUtils.copy(entityReader, response.getWriter());
+                try (Reader entityReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+                    IOUtils.copy(entityReader, response.getWriter());
+                }
             }
         } catch (TransformerException ex) {
             LOG.error(ex.getMessage(), ex);
@@ -181,19 +204,32 @@ public class ConfigurableHttpProxy implements ProxyService {
     }
 
     /**
+     * @return 'true' if XHTML/XML content will be expected requesting the given URL
+     */
+    protected boolean isXmlRequest(@Nonnull final String targetUrl) {
+        return XML_CONTENT_URL.matcher(targetUrl).matches();
+    }
+
+    /**
      * the factory method for the reader to prepare and filter the content received from the target
      *
+     * @param targetUrl     the URL used to request the entity
      * @param entityContent the received content as stream
      * @return the reader to use to receive the content
      */
     @Nonnull
-    protected Reader getContentReader(@Nonnull final InputStream entityContent) {
+    protected Reader getContentReader(@Nonnull final String targetUrl,
+                                      @Nonnull final InputStream entityContent) {
         String[] toRename = config.tags_to_rename();
         String[] toStrip = config.tags_to_strip();
         String[] toDrop = config.tags_to_drop();
-        return toStrip.length > 0 || toDrop.length > 0
+        Reader reader = toRename.length > 0 || toStrip.length > 0 || toDrop.length > 0
                 ? new TagFilteringReader(entityContent, toRename, toStrip, toDrop)
                 : new InputStreamReader(entityContent, StandardCharsets.UTF_8);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("using reader '{}' ({})", reader, targetUrl);
+        }
+        return reader;
     }
 
     /**
@@ -235,6 +271,9 @@ public class ConfigurableHttpProxy implements ProxyService {
     // XSLT transformation
     //
 
+    /**
+     * @return a chain of XML filters initialized with the XSLT resources resolved from the given path list
+     */
     @Nullable
     protected XMLFilter getXsltFilter(@Nonnull final SAXTransformerFactory stf,
                                       @Nonnull final ResourceResolver resolver,
@@ -247,6 +286,7 @@ public class ConfigurableHttpProxy implements ProxyService {
                     if (xmlFilter == null) {
                         SAXParserFactory spf = SAXParserFactory.newInstance();
                         spf.setNamespaceAware(true);
+                        spf.setValidating(false);
                         SAXParser parser = spf.newSAXParser();
                         XMLReader reader = parser.getXMLReader();
                         next.setParent(reader);

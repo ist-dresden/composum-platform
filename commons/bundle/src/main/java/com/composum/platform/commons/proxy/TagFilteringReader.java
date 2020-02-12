@@ -20,7 +20,7 @@ import java.util.Stack;
  */
 public class TagFilteringReader extends FilterReader {
 
-    public static final String[] DEFAULT_TO_RENAME = new String[]{"html:div"};
+    public static final String[] DEFAULT_TO_RENAME = new String[]{"html:div class=\"proxy-html-content\""};
     public static final String[] DEFAULT_TO_STRIP = new String[]{"body"};
     public static final String[] DEFAULT_TO_DROP = new String[]{"head", "style", "script"};
 
@@ -237,8 +237,10 @@ public class TagFilteringReader extends FilterReader {
         super(in);
         this.toRename = new HashMap<>();
         for (String rule : toRename) {
-            String[] split = StringUtils.split(rule, ":", 2);
-            this.toRename.put(split[0], split[1]);
+            if (StringUtils.isNotBlank(rule)) {
+                String[] split = StringUtils.split(rule, ":", 2);
+                this.toRename.put(split[0], split[1]);
+            }
         }
         this.toStrip = Arrays.asList(toStrip);
         this.toDrop = Arrays.asList(toDrop);
