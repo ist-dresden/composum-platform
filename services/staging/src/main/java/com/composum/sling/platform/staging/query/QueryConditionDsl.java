@@ -1,7 +1,6 @@
 package com.composum.sling.platform.staging.query;
 
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.platform.staging.impl.StagingResourceResolver;
 import org.apache.commons.lang3.Validate;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -638,7 +637,7 @@ public class QueryConditionDsl {
         public void applyBindingValues(javax.jcr.query.Query jcrQuery, ResourceResolver resolver)
                 throws RepositoryException {
             StringBuilder debugbuf = new StringBuilder();
-            ValueFactory valueFactory = StagingResourceResolver.underlyingSession(resolver).getValueFactory();
+            ValueFactory valueFactory = resolver.adaptTo(Session.class).getValueFactory();
             for (Map.Entry<String, Object> entry : bindingVariables.entrySet()) {
                 String key = entry.getKey();
                 Object value = entry.getValue();

@@ -23,13 +23,8 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.servlet.http.HttpServletRequest;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES;
@@ -235,21 +230,15 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
         ResourceResolver resolver = underlyingResolver.clone(authenticationInfo);
         return new StagingResourceResolver(release, resolver, releaseMapper, configuration, true);
     }
-
-
+    
     /**
      * {@inheritDoc}
-     * CAUTION: We forbid accessing the {@link javax.jcr.Session} since it is not supported - it contains content of the
-     * underlying resolver. If you really really need it, like for accessing the various managers, you can retrieve it
-     * with {@link #underlyingSession(ResourceResolver)}.
+     * CAUTION: we have to support the JCR {@link Session} here, since it's often used to access various
+     * managers, but the session does not support our simulated resources. Use at your own risk.
      */
     @Override
     @Nullable
     public <AdapterType> AdapterType adaptTo(@Nonnull Class<AdapterType> type) {
-        if (Session.class.isAssignableFrom(type)) { return null; } // not supported and would be dangerous.
-        if (UnderlyingSession.class.equals(type)) {
-            return type.cast(new UnderlyingSession());
-        }
         if (QueryBuilder.class.equals(type)) { return type.cast(new QueryBuilderImpl(this)); }
         return super.adaptTo(type);
     }
@@ -259,31 +248,5 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
         return new ToStringBuilder(this)
                 .append(release)
                 .toString();
-    }
-
-    /**
-     * The {@link Session} of the underlying resolver - use with caution since it has a different JCR content
-     * than what the resolver simulates. Use this to access the session if you really have to, instead of
-     * {@link #adaptTo(Class)}, since we forbid it there to prevent accidents.
-     * This methods returns the normal {@link Session} for normal resolvers, and the {@link Session} of the
-     * underlying resolver for a {@link StagingResourceResolver} even if it's wrapped.
-     */
-    @Nullable
-    public static Session underlyingSession(@Nullable ResourceResolver resolver) {
-        if (resolver == null) { return null; }
-        UnderlyingSession wrapper = resolver.adaptTo(UnderlyingSession.class);
-        Session session = wrapper != null ? wrapper.getSession() : null;
-        if (session == null) {
-            session = resolver.adaptTo(Session.class);
-        }
-        return session;
-    }
-
-    /** Used to access the underlying session. */
-    protected class UnderlyingSession {
-        @Nullable
-        public Session getSession() {
-            return StagingResourceResolver.this.underlyingResolver.adaptTo(Session.class);
-        }
     }
 }
