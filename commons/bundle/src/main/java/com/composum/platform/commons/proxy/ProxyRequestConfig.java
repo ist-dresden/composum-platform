@@ -4,7 +4,7 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 /**
- * the general caching service configuration 'object'
+ * a generic proxy request service configuration object
  */
 @ObjectClassDefinition(
         name = "Composum HTTP Proxy Request"
@@ -58,5 +58,5 @@ public @interface ProxyRequestConfig {
 
     @AttributeDefinition()
     String webconsole_configurationFactory_nameHint() default
-            "{name} (enabled: {enabled}, target: {targetPattern}, ref: {referencePath})";
+            "{name} (enabled: {enabled}, target: {targetPattern}, url: {targetUrl}, ref: {referencePath})";
 }

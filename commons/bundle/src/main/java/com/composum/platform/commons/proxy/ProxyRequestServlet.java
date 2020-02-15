@@ -62,7 +62,7 @@ public class ProxyRequestServlet extends SlingSafeMethodsServlet {
         String targetSuffix = pathInfo.getSuffix();
         if (StringUtils.isNotBlank(targetSuffix)) {
             // proxy traget URL: 'suffix' + '?' + 'query string' of the proxy request
-            String targetUrl = EXTERNAL_SUFFIX.matcher(targetSuffix).matches()
+            String targetUrl = EXTERNAL_SUFFIX.matcher(targetSuffix).find()
                     ? targetSuffix.substring(1) : targetSuffix;
             String queryString = request.getQueryString();
             if (StringUtils.isNotBlank(queryString)) {
