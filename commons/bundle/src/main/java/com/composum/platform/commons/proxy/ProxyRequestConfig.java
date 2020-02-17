@@ -32,9 +32,9 @@ public @interface ProxyRequestConfig {
     String targetUrl();
 
     @AttributeDefinition(
-            description = "a comma separated list of tags to change to anther tag name (old:new)"
+            description = "a comma separated list of tags to change to anther tag name (old:new[ static=\"attribute\"])"
     )
-    String[] tags_to_rename() default {"html:div class=\"proxy-html-content\""};
+    String[] tags_to_rename() default {"html:div"};
 
     @AttributeDefinition(
             description = "a comma separated list of tags to strip from the result (this keeps the tags body)"
@@ -44,7 +44,7 @@ public @interface ProxyRequestConfig {
     @AttributeDefinition(
             description = "a comma separated list of tags to drop from the result (this removes the tags body)"
     )
-    String[] tags_to_drop() default {"head", "style", "script"};
+    String[] tags_to_drop() default {"head", "style", "script", "link"};
 
     @AttributeDefinition(
             description = "a XSLT filter chain (set of XSLT file resource paths) to transform the content"
