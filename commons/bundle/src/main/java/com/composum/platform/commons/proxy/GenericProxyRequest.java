@@ -206,6 +206,7 @@ public class GenericProxyRequest implements ProxyRequestService {
                     LOG.debug("pumping non XML content...");
                 }
                 // stream entity response (probably filtered by the reader)
+                response.setContentLength((int) entity.getContentLength());
                 try (Reader entityReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
                     IOUtils.copy(entityReader, response.getWriter());
                 }
