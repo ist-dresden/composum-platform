@@ -3,6 +3,7 @@ package com.composum.platform.commons.proxy;
 import com.composum.sling.core.util.ValueEmbeddingReader;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -34,7 +35,6 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.sax.SAXTransformerFactory;
@@ -61,6 +61,7 @@ public class GenericProxyRequest implements ProxyRequestService {
     private static final Logger LOG = LoggerFactory.getLogger(GenericProxyRequest.class);
 
     public static final Pattern XML_CONTENT_URL = Pattern.compile("^.*/[^/]+\\.(html|xml)(\\?.*)?$");
+    public static final Pattern XML_CONTENT_TYPE = Pattern.compile("^text/(html|xml)(;.*)?$");
 
     protected ProxyRequestConfig config;
 
@@ -71,7 +72,10 @@ public class GenericProxyRequest implements ProxyRequestService {
     protected void activate(final ProxyRequestConfig config) {
         this.config = config;
         if (config.enabled()) {
-            targetPattern = Pattern.compile(config.targetPattern());
+            String rule = config.targetPattern();
+            if (StringUtils.isNotBlank(rule)) {
+                targetPattern = Pattern.compile(rule.startsWith("/") ? ("^" + rule) : rule);
+            }
         }
     }
 
@@ -161,7 +165,11 @@ public class GenericProxyRequest implements ProxyRequestService {
                               @Nonnull final HttpEntity entity)
             throws IOException {
         try (InputStream inputStream = entity.getContent()) {
-            if (isXmlRequest(targetUrl)) {
+            String contentType = getContentType(targetUrl, entity);
+            if (StringUtils.isNotBlank(contentType)) {
+                response.setContentType(contentType);
+            }
+            if (contentType != null && XML_CONTENT_TYPE.matcher(contentType).matches()) {
                 SAXTransformerFactory stf = null;
                 XMLFilter xmlFilter = null;
                 String[] xsltChainPaths = config.XSLT_chain_paths();
@@ -179,6 +187,8 @@ public class GenericProxyRequest implements ProxyRequestService {
                         Transformer transformer = stf.newTransformer();
                         SAXSource transformSource = new SAXSource(xmlFilter, new InputSource(entityReader));
                         transformer.transform(transformSource, new StreamResult(response.getWriter()));
+                    } catch (Exception ex) {
+                        LOG.error(ex.getMessage(), ex);
                     }
                 } else {
                     if (LOG.isDebugEnabled()) {
@@ -187,6 +197,8 @@ public class GenericProxyRequest implements ProxyRequestService {
                     // stream entity response (probably filtered by the reader)
                     try (Reader entityReader = getContentReader(targetUrl, inputStream)) {
                         IOUtils.copy(entityReader, response.getWriter());
+                    } catch (Exception ex) {
+                        LOG.error(ex.getMessage(), ex);
                     }
                 }
             } else {
@@ -198,16 +210,22 @@ public class GenericProxyRequest implements ProxyRequestService {
                     IOUtils.copy(entityReader, response.getWriter());
                 }
             }
-        } catch (TransformerException ex) {
-            LOG.error(ex.getMessage(), ex);
         }
     }
 
     /**
-     * @return 'true' if XHTML/XML content will be expected requesting the given URL
+     * @return the type of the requested content determined from the entity or the requested URL
      */
-    protected boolean isXmlRequest(@Nonnull final String targetUrl) {
-        return XML_CONTENT_URL.matcher(targetUrl).matches();
+    @Nullable
+    protected String getContentType(@Nonnull final String targetUrl, @Nonnull final HttpEntity entity) {
+        Header type = entity.getContentType();
+        if (type != null) {
+            Header encoding = entity.getContentEncoding();
+            return encoding != null ? type.getValue() + ";charset=" + encoding.getValue() : type.getValue();
+        } else {
+            Matcher matcher = XML_CONTENT_URL.matcher(targetUrl);
+            return matcher.matches() ? "text/" + matcher.group(0) + ";charset=utf-8" : null;
+        }
     }
 
     /**
@@ -260,7 +278,7 @@ public class GenericProxyRequest implements ProxyRequestService {
                 targetUrl = null;
             }
         } else {
-            targetUrl = targetUrl.startsWith("/") // complete a path and prepend host and port
+            targetUrl = targetRef.startsWith("/") // complete a path and prepend host and port
                     ? (request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + targetRef)
                     : targetRef;
         }

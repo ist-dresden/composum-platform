@@ -22,7 +22,7 @@ public class TagFilteringReader extends FilterReader {
 
     public static final String[] DEFAULT_TO_RENAME = new String[]{"html:div class=\"proxy-html-content\""};
     public static final String[] DEFAULT_TO_STRIP = new String[]{"body"};
-    public static final String[] DEFAULT_TO_DROP = new String[]{"head", "style", "script"};
+    public static final String[] DEFAULT_TO_DROP = new String[]{"head", "style", "script", "link"};
 
     private enum Debug {none, read, strip, drop} // switch debug on for unit test debugging
 
@@ -111,10 +111,12 @@ public class TagFilteringReader extends FilterReader {
     protected class RenameTagFilter extends StripTagFilter {
 
         protected final String newTagName;
+        protected final String attributes;
 
         protected RenameTagFilter(String tagName, String newTagName) {
             super(tagName);
-            this.newTagName = newTagName;
+            this.newTagName = StringUtils.substringBefore(newTagName, " ");
+            this.attributes = StringUtils.substringAfter(newTagName, " ");
         }
 
         /**
@@ -123,6 +125,9 @@ public class TagFilteringReader extends FilterReader {
         @Override
         public int start(int token) {
             StringBuilder tagName = new StringBuilder(newTagName);
+            if (StringUtils.isNotBlank(attributes)) {
+                tagName.append(" ").append(attributes);
+            }
             tagName.append((char) token);
             return buffer(tagName);
         }
@@ -190,7 +195,7 @@ public class TagFilteringReader extends FilterReader {
         @Override
         public int body() throws IOException {
             int token;
-            while ((token = scan()) >= 0 && openTags.peek() == this) {
+            while ((token = scan()) >= 0 && !openTags.isEmpty() && openTags.peek() == this) {
                 if (debug == Debug.drop) {
                     System.err.println((char) token);
                 }
