@@ -3,13 +3,15 @@ package com.composum.sling.platform.staging.impl;
 import com.composum.sling.core.JcrResource;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.StagingConstants;
-import com.composum.sling.platform.staging.StagingReleaseManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.request.RequestPathInfo;
-import org.apache.sling.api.resource.*;
+import org.apache.sling.api.resource.AbstractResource;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceMetadata;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ValueMap;
 import org.apache.sling.api.wrappers.DeepReadValueMapDecorator;
-import org.apache.sling.jcr.resource.api.JcrResourceConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +47,8 @@ public class StagingResource extends AbstractResource implements JcrResource {
 
     /**
      * Instantiates a new Staging resource.
-     *  @param path               the simulated path
+     *
+     * @param path               the simulated path
      * @param resolver           the {@link StagingResourceResolver} resolver
      * @param underlyingResource the underlying resource
      * @param pathInfo           the path info from the request if the resource wraps a request resource
@@ -75,11 +78,10 @@ public class StagingResource extends AbstractResource implements JcrResource {
             return getParent().getResourceType() + "/" + getName();
         }
         ValueMap vm = getValueMap();
-        String result = vm.get(JcrResourceConstants.SLING_RESOURCE_TYPE_PROPERTY, String.class);
+        String result = vm.get(ResourceUtil.PROP_RESOURCE_TYPE, String.class);
         if (StringUtils.isBlank(result)) {
             result = vm.get(JCR_FROZENPRIMARYTYPE, String.class);
-            if (StringUtils.isBlank(result))
-                result = vm.get(JcrConstants.JCR_PRIMARYTYPE, String.class);
+            if (StringUtils.isBlank(result)) { result = vm.get(JcrConstants.JCR_PRIMARYTYPE, String.class); }
         }
         return StringUtils.defaultIfBlank(result, Resource.RESOURCE_TYPE_NON_EXISTING);
     }
@@ -140,7 +142,7 @@ public class StagingResource extends AbstractResource implements JcrResource {
     @Override
     @Nullable
     public <AdapterType> AdapterType adaptTo(@Nullable Class<AdapterType> type) {
-        if (type == null) return null;
+        if (type == null) { return null; }
         // we currently only have r/o support - even outside the release tree. that can be extended if neccesary.
         if (Node.class.isAssignableFrom(type)) {
             Node node = underlyingResource.adaptTo(Node.class);
@@ -150,8 +152,7 @@ public class StagingResource extends AbstractResource implements JcrResource {
             Property property = underlyingResource.adaptTo(Property.class);
             return type.cast(FrozenPropertyWrapper.wrap(property, this.path));
         }
-        if (ValueMap.class.isAssignableFrom(type))
-            return type.cast(getValueMap());
+        if (ValueMap.class.isAssignableFrom(type)) { return type.cast(getValueMap()); }
         if (InputStream.class.isAssignableFrom(type)) {
             return type.cast(underlyingResource.adaptTo(type));
         }
@@ -167,7 +168,7 @@ public class StagingResource extends AbstractResource implements JcrResource {
         final StringBuilder sb = new StringBuilder("StagingResource{");
         sb.append("path='").append(path).append('\'');
         sb.append(", underlying='").append(underlyingResource.getPath()).append('\'');
-        if (pathInfo != null) sb.append(", pathInfo=").append(pathInfo);
+        if (pathInfo != null) { sb.append(", pathInfo=").append(pathInfo); }
         sb.append('}');
         return sb.toString();
     }

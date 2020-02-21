@@ -94,6 +94,7 @@ public class GenericProxyRequest implements ProxyRequestService {
      * @param targetUrl the url of the request which is addressing the target
      * @return 'true' if the request is supported by the service, allowed for the user and handle by the service
      */
+    @Override
     public boolean doProxy(@Nonnull final SlingHttpServletRequest request,
                            @Nonnull final SlingHttpServletResponse response,
                            @Nonnull final String targetUrl)

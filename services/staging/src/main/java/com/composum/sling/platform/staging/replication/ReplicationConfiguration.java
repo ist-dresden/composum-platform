@@ -3,6 +3,7 @@ package com.composum.sling.platform.staging.replication;
 import javax.annotation.Nullable;
 
 /** The configuration of a replication. */
+@Deprecated
 public interface ReplicationConfiguration {
 
     /**
