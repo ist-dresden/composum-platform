@@ -12,6 +12,7 @@ import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
@@ -21,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
 
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
@@ -45,6 +47,7 @@ public class DefaultProxyService implements ProxyService {
     protected String proxyKey;
 
     @Activate
+    @Modified
     protected void activate(Configuration configuration) {
         proxyKey = configuration.proxyKey();
         this.config = configuration;
@@ -82,7 +85,7 @@ public class DefaultProxyService implements ProxyService {
     }
 
     @Override
-    public void initHttpContext(@Nonnull HttpClientContext context, @Nullable ResourceResolver resolver) {
+    public void initHttpContext(@Nonnull HttpClientContext context, @Nullable ResourceResolver resolver) throws RepositoryException {
         Configuration cfg = config;
         if (cfg == null || !isEnabled()) { return; }
 

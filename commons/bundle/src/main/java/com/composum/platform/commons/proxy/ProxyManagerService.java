@@ -5,6 +5,7 @@ import org.apache.sling.api.resource.ResourceResolver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
 import java.util.List;
 
 /**
@@ -27,9 +28,10 @@ public interface ProxyManagerService {
      * @param proxyKey the systemwide unique key for the proxy
      * @param context  the context to be initialized
      * @param resolver a resolver for authentication purposes, if credentials are needed.
-     * @return true if there actually was a {@link ProxyService} with the given proxyKey, false if there is none - in
-     * that case the operation does nothing.
+     * @throws IllegalArgumentException if there was no proxy with the given proxyKey or there was a problem with it's
+     *                                  credential configuration
      */
-    boolean initHttpContext(@Nonnull String proxyKey, @Nonnull HttpClientContext context, @Nullable ResourceResolver resolver);
+    void initHttpContext(@Nonnull String proxyKey, @Nonnull HttpClientContext context,
+                         @Nullable ResourceResolver resolver) throws IllegalArgumentException, RepositoryException;
 
 }

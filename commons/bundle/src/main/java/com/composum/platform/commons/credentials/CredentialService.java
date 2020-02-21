@@ -6,6 +6,7 @@ import org.apache.sling.api.resource.ResourceResolver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
 
 /**
  * A systemwide credential store where you can retrieve credentials which are stored encrypted in the repository.
@@ -16,6 +17,11 @@ public interface CredentialService {
 
     /** Initializes credentials for use with an {@link org.apache.http.client.HttpClient} for the given {authScope}. */
     void initHttpContextCredentials(@Nonnull HttpClientContext context, @Nonnull AuthScope authScope,
-                                    @Nonnull String proxyCredentialId, @Nullable ResourceResolver resolver);
+                                    @Nonnull String credentialId, @Nullable ResourceResolver resolver) throws RepositoryException;
+
+    /** Encodes a password with the master password. */
+    String encodePassword(@Nonnull String password);
+
+    boolean isEnabled();
 
 }

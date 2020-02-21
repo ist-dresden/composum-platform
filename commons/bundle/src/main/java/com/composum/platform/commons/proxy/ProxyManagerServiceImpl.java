@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,15 +56,11 @@ public class ProxyManagerServiceImpl implements ProxyManagerService {
     }
 
     @Override
-    public boolean initHttpContext(@Nonnull String proxyKey, @Nonnull HttpClientContext context, @Nullable ResourceResolver resolver) {
+    public void initHttpContext(@Nonnull String proxyKey, @Nonnull HttpClientContext context,
+                                @Nullable ResourceResolver resolver) throws IllegalArgumentException, RepositoryException {
         ProxyService proxyService = findProxyService(proxyKey);
-        if (proxyService != null) {
-            proxyService.initHttpContext(context, resolver);
-            return true;
-        } else {
-            LOG.warn("Unknown proxy {} requested", proxyKey);
-            return false;
-        }
+        if (null == proxyService) { throw new IllegalArgumentException("Can't find proxy with the given key."); }
+        proxyService.initHttpContext(context, resolver);
     }
 
     @Reference(

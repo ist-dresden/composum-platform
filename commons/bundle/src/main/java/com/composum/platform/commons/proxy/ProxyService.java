@@ -5,7 +5,7 @@ import org.apache.sling.api.resource.ResourceResolver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.function.Function;
+import javax.jcr.RepositoryException;
 
 /** Encapsulates information about a proxy. */
 public interface ProxyService {
@@ -30,7 +30,8 @@ public interface ProxyService {
      *
      * @param context  the context to be initialized
      * @param resolver a resolver for authentication purposes, if credentials are needed.
+     * @throws IllegalArgumentException if there was a problem with the credentials
      */
-    void initHttpContext(@Nonnull HttpClientContext context, @Nullable ResourceResolver resolver);
+    void initHttpContext(@Nonnull HttpClientContext context, @Nullable ResourceResolver resolver) throws IllegalArgumentException, RepositoryException;
 
 }
