@@ -1,11 +1,12 @@
-<%@page session="false" pageEncoding="utf-8" %>
+<%@page session="false" pageEncoding="utf-8"
+        import="com.composum.sling.core.util.XSS" %>
 <%@taglib prefix="sling" uri="http://sling.apache.org/taglibs/sling/1.2" %>
 <sling:defineObjects/><%
     // redirect to login target if always or meanwhile logged in
     String userId = slingRequest.getResourceResolver().getUserID();
     if (userId != null && (userId = userId.trim()).length() > 0 && !"anonymous".equals(userId)
             && slingRequest.getParameter("login") == null) {
-        String suffix = slingRequest.getRequestPathInfo().getSuffix();
+        String suffix = XSS.filter(slingRequest.getRequestPathInfo().getSuffix());
         if (suffix == null || (suffix = suffix.trim()).length() < 1) {
             suffix = "/";
         }
