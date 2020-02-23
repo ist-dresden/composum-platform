@@ -1,6 +1,7 @@
 package com.composum.platform.cache.component;
 
 import com.composum.platform.commons.response.TextBufferResponseWrapper;
+import com.composum.sling.core.util.XSS;
 import com.google.gson.stream.JsonWriter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -197,7 +198,7 @@ public class IncludeCacheFilter implements Filter {
         if (StringUtils.isNotBlank(value = pathInfo.getSelectorString())) {
             cacheKeyBuilder.append('@').append(value);
         }
-        if (StringUtils.isNotBlank(value = pathInfo.getSuffix())) {
+        if (StringUtils.isNotBlank(value = XSS.filter(pathInfo.getSuffix()))) {
             cacheKeyBuilder.append('#').append(value);
         }
 

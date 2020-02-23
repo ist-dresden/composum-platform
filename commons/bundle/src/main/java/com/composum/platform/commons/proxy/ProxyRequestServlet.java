@@ -1,5 +1,6 @@
 package com.composum.platform.commons.proxy;
 
+import com.composum.sling.core.util.XSS;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -59,7 +60,7 @@ public class ProxyRequestServlet extends SlingSafeMethodsServlet {
                          @Nonnull final SlingHttpServletResponse response)
             throws IOException {
         RequestPathInfo pathInfo = request.getRequestPathInfo();
-        String targetSuffix = pathInfo.getSuffix();
+        String targetSuffix = XSS.filter(pathInfo.getSuffix());
         if (StringUtils.isNotBlank(targetSuffix)) {
             // proxy traget URL: 'suffix' + '?' + 'query string' of the proxy request
             String targetUrl = EXTERNAL_SUFFIX.matcher(targetSuffix).find()
