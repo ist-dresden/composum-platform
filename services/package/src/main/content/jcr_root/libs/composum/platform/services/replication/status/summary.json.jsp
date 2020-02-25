@@ -3,8 +3,6 @@
 <%@taglib prefix="cpn" uri="http://sling.composum.com/cpnl/1.0" %>
 <sling:defineObjects/>
 <cpn:component var="model" type="com.composum.sling.platform.staging.replication.model.ReplicationStatus"
-               scope="request">
-    <div class="composum-platform-replication-status widget">
-        <sling:call script="content.jsp"/>
-    </div>
-</cpn:component>
+               path="${cpn:filter(slingRequest.requestPathInfo.suffix)}"><%
+    model.toJsonSummary();
+%></cpn:component>

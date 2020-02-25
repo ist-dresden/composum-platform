@@ -9,12 +9,18 @@
 <body class="composum-platform-replication-status_page-body">
 <cpn:component var="model" type="com.composum.sling.platform.staging.replication.model.ReplicationStatus"
                path="${cpn:filter(slingRequest.requestPathInfo.suffix)}" scope="request">
-    <sling:call script="status.jsp"/>
+    <sling:include replaceSelectors="badge.public"/>
+    <sling:include replaceSelectors="public"/>
+</cpn:component>
+<cpn:component var="model" type="com.composum.sling.platform.staging.replication.model.ReplicationStatus"
+               path="${cpn:filter(slingRequest.requestPathInfo.suffix)}" scope="request">
+    <sling:include replaceSelectors="badge.preview"/>
+    <sling:include replaceSelectors="preview"/>
 </cpn:component>
 <cpn:clientlib type="js" category="composum.platform.replication"/>
 <script>
     $(document).ready(function () {
-        CPM.core.getWidget(document, '.composum-platform-replication-status', CPM.platform.services.replication.Status);
+        CPM.widgets.setUp();
     });
 </script>
 </body>

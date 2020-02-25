@@ -5,19 +5,20 @@
 <sling:defineObjects/>
 <cpn:component var="model" type="com.composum.sling.platform.staging.replication.model.ReplicationStatus"
                scope="request">
-    <div data-path="${model.path}" data-stage="${model.stage}" data-state="${model.replicationState.json}"
+    <div data-path="${model.path}" data-state="${model.replicationState.jsonSummary}"
          class="composum-platform-replication-status_view panel panel-default">
-        <div class="composum-platform-replication-status_heading panel-heading">
+        <div id="${model.domId}_${model.stage}_toggle"
+             class="composum-platform-replication-status_heading panel-heading">
             <h3 class="composum-platform-replication-status_stage">
-                <div class="composum-platform-replication-status_title">${cpn:i18n(slingRequest,model.stage)}</div>
-                <div class="composum-platform-replication-status_state">
-                    <div class="badge ${model.replicationState.state}">
-                            ${cpn:i18n(slingRequest,model.replicationState.state)}
+                <a role="button" data-toggle="collapse" href="#${model.domId}_${model.stage}_panel"
+                   aria-expanded="true" aria-controls="${model.domId}_${model.stage}_panel"
+                   class="composum-platform-replication-status_toggle">
+                    <div class="composum-platform-replication-status_title">${cpn:i18n(slingRequest,model.stage)}</div>
+                    <div class="composum-platform-replication-status_state"><span
+                            class="badge ${model.replicationState.state}">${cpn:i18n(slingRequest,model.replicationState.state)}</span>
                     </div>
-                </div>
-                <c:if test="${!model.replicationState.synchronized}">
                     <div class="composum-platform-replication-status_progress">
-                        <div class="progress">
+                        <div class="progress ${model.replicationState.synchronized?' hidden':''}">
                             <div class="progress-bar progress-bar-striped" role="progressbar"
                                  aria-valuenow="${model.replicationState.progress}" aria-valuemin="0"
                                  aria-valuemax="100" style="width: ${model.replicationState.progress}%;">
@@ -25,45 +26,55 @@
                             </div>
                         </div>
                     </div>
-                </c:if>
+                    <div class="composum-platform-replication-status_toolbar">
+                        <div class="composum-platform-replication-status_terminate${model.replicationState.running?'':' hidden'}">
+                            <button type="button" class="btn btn-danger">${cpn:i18n(slingRequest,'Terminate')}</button>
+                        </div>
+                        <div class="composum-platform-replication-status_synchronize${model.replicationState.running?' hidden':''}">
+                            <button type="button"
+                                    class="btn btn-primary">${cpn:i18n(slingRequest,'Synchronize')}</button>
+                        </div>
+                    </div>
+                </a>
             </h3>
         </div>
-        <ul class="composum-platform-replication-status_process-list list-group">
-            <c:forEach items="${model.replicationProcessState}" var="process">
-                <li class="composum-platform-replication-status_process list-group-item" data-state="${process.json}">
-                    <h4 class="composum-platform-replication-status_title">
-                        <i class="composum-platform-replication-status_enabled fa fa-toggle-${process.enabled?'on':'off'}"></i>
-                            ${cpn:text(process.title)}
-                    </h4>
-                    <div class="composum-platform-replication-status_general">
-                        <div class="composum-platform-replication-status_state"><span
-                                class="badge ${process.state}">${cpn:i18n(slingRequest,process.state)}</span>
+        <div id="${model.domId}_${model.stage}_panel" aria-labelledby="${model.domId}_${model.stage}_toggle"
+             class="panel-collapse collapse in" aria-expanded="true" role="tabpanel">
+            <ul class="composum-platform-replication-status_process-list list-group">
+                <c:forEach items="${model.replicationProcessState}" var="process">
+                    <li class="composum-platform-replication-status_process list-group-item"
+                        data-state="${process.json}">
+                        <h4 class="composum-platform-replication-status_title">
+                            <i class="composum-platform-replication-status_enabled fa fa-toggle-${process.enabled?'on':'off'}"></i>
+                                ${cpn:text(process.title)}
+                        </h4>
+                        <div class="composum-platform-replication-status_general">
+                            <div class="composum-platform-replication-status_state"><span
+                                    class="badge ${process.state}">${cpn:i18n(slingRequest,process.state)}</span>
+                            </div>
+                            <div class="composum-platform-replication-status_type"><span
+                                    class="value">${cpn:i18n(slingRequest,'In-Place')}</span></div>
+                            <cpn:div test="${process.synchronized}"
+                                     class="composum-platform-replication-status_timestamp"><span
+                                    class="key">${cpn:i18n(slingRequest,'last replication')}</span> : <span
+                                    class="value">${process.lastReplication}</span></cpn:div>
+                            <cpn:div test="${!process.synchronized && process.enabled}"
+                                     class="composum-platform-replication-status_timestamp"><span
+                                    class="key">${cpn:i18n(slingRequest,'started at')}</span> : <span
+                                    class="value">${process.startedAt}</span></cpn:div>
                         </div>
-                        <div class="composum-platform-replication-status_type"><span
-                                class="value">${cpn:i18n(slingRequest,'In-Place')}</span></div>
-                        <c:if test="${process.synchronized}">
-                            <div class="composum-platform-replication-status_last-replication"><span
-                                    class="key">${cpn:i18n(slingRequest,'replication')} :</span><span
-                                    class="value">${process.lastReplication}</span></div>
-                        </c:if>
-                        <c:if test="${!process.synchronized && process.enabled}">
-                            <div class="composum-platform-replication-status_replication-start"><span
-                                    class="key">${cpn:i18n(slingRequest,'started')} :</span><span
-                                    class="value">${process.startedAt}</span></div>
-                        </c:if>
-                    </div>
-                    <c:if test="${!process.synchronized && process.enabled}">
-                        <div class="composum-platform-replication-status_progress">
+                        <cpn:div test="${!process.synchronized && process.enabled}"
+                                 class="composum-platform-replication-status_progress">
                             <div class="progress">
                                 <div class="progress-bar progress-bar-striped" role="progressbar"
                                      aria-valuenow="${process.progress}" aria-valuemin="0" aria-valuemax="100"
                                      style="width: ${process.progress}%;">${process.progress}%
                                 </div>
                             </div>
-                        </div>
-                    </c:if>
-                </li>
-            </c:forEach>
-        </ul>
+                        </cpn:div>
+                    </li>
+                </c:forEach>
+            </ul>
+        </div>
     </div>
 </cpn:component>

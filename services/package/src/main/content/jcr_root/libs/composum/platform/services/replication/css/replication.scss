@@ -2,11 +2,50 @@
 
 @import "variables";
 
+$replication-status-width: 100px;
 $replication-inline-padding: 7px;
 $replication-panel-padding: 10px;
+$replication-switch-indent: 35px;
+$replication-switch-font-size: 20px;
 $replication-horizontal-padding: 15px;
+$replication-process-progress-width: 35%;
+$replication-stage-title-min-with: 120px;
 
 .composum-platform-replication-status {
+
+    &_badge.badge {
+        min-width: 18px;
+        min-height: 18px;
+
+        &:empty {
+            display: inline-block;
+        }
+
+        &.running {
+            color: $bootstrap-bg-info;
+            background-color: $bootstrap-color-info;
+        }
+
+        &.synchron {
+            color: $bootstrap-bg-success;
+            background-color: $bootstrap-color-success;
+        }
+
+        &.undefined {
+            color: $bootstrap-bg-warning;
+            background-color: $bootstrap-color-warning;
+        }
+
+        &.switchedoff {
+            color: $bootstrap-color-muted;
+            background-color: $bootstrap-bg-muted;
+        }
+
+        &.faulty {
+            color: $bootstrap-bg-danger;
+            background-color: $bootstrap-color-danger;
+        }
+    }
 
     &_progress {
 
@@ -18,6 +57,7 @@ $replication-horizontal-padding: 15px;
     &_state {
 
         .badge {
+            min-width: $replication-status-width;
 
             &.running {
                 color: $bootstrap-bg-info;
@@ -34,7 +74,7 @@ $replication-horizontal-padding: 15px;
                 background-color: $bootstrap-color-warning;
             }
 
-            &.disabled {
+            &.switchedoff {
                 color: $bootstrap-color-muted;
                 background-color: $bootstrap-bg-muted;
             }
@@ -46,31 +86,61 @@ $replication-horizontal-padding: 15px;
         }
     }
 
+    &_heading {
+        padding: 0;
+        height: auto !important;
+    }
+
     &_stage {
-        display: flex;
         margin: 0;
 
         .composum-platform-replication-status {
 
+            &_toggle {
+                display: flex;
+                align-items: center;
+                width: 100%;
+                padding: $replication-panel-padding $replication-horizontal-padding;
+
+                &, &:hover, &:active, &:focus, &:visited {
+                    text-decoration: none;
+                }
+            }
+
+            &_title {
+                min-width: $replication-stage-title-min-with;
+            }
+
             &_state {
                 margin: 0 $replication-horizontal-padding;
+                font-size: 12px;
 
                 .badge {
-                    min-width: 80px;
-                    margin: 5px 0;
+                    font-size: inherit;
                 }
             }
 
             &_progress {
                 width: 100%;
-                margin: 4px 0;
+            }
+
+            &_toolbar {
+                margin-left: $replication-horizontal-padding - $replication-inline-padding;
+
+                > div {
+                    margin-left: $replication-inline-padding;
+                }
+
+                button {
+                    padding: 3px $replication-inline-padding;
+                }
             }
         }
     }
 
     &_process {
         position: relative;
-        padding-left: 50px;
+        padding-left: $replication-switch-indent + $replication-horizontal-padding;
 
         .composum-platform-replication-status {
 
@@ -78,7 +148,7 @@ $replication-horizontal-padding: 15px;
                 position: absolute;
                 top: $replication-panel-padding;
                 left: $replication-horizontal-padding;
-                font-size: 20px;
+                font-size: $replication-switch-font-size;
                 color: $bootstrap-color-success;
 
                 &.fa-toggle-off {
@@ -92,21 +162,23 @@ $replication-horizontal-padding: 15px;
 
             &_general {
                 display: flex;
+                align-items: center;
             }
 
             &_state {
-                width: 100px;
+                margin-right: $replication-inline-padding;
+                font-size: 12px;
 
                 .badge {
-                    min-width: 80px;
+                    font-size: inherit;
                 }
             }
 
-            &_type, &_last-replication, &_replication-start {
+            &_type, &_timestamp {
                 margin-left: $replication-inline-padding;
             }
 
-            &_last-replication, &_replication-start {
+            &_timestamp {
 
                 &:before {
                     display: inline-block;
@@ -119,7 +191,30 @@ $replication-horizontal-padding: 15px;
                 position: absolute;
                 top: $replication-panel-padding;
                 right: $replication-horizontal-padding;
-                width: 35%;
+                width: $replication-process-progress-width;
+            }
+        }
+    }
+
+    &_page {
+
+        &-body {
+            margin: $replication-panel-padding;
+        }
+    }
+}
+
+.composum-platform-replication-dialog {
+
+    .composum-platform-replication-status {
+
+        &_stage {
+
+            .composum-platform-replication-status {
+
+                &_toolbar {
+                    display: none;
+                }
             }
         }
     }

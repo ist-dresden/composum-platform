@@ -1,5 +1,6 @@
 package com.composum.sling.platform.staging.replication.model;
 
+import com.composum.platform.commons.util.ExceptionThrowingFunction;
 import com.composum.sling.core.AbstractSlingBean;
 import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.logging.Message;
@@ -34,11 +35,11 @@ public class ReplicationStatus extends AbstractSlingBean {
 
     public static final String TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
-    public enum State {undefined, synchron, running, faulty, disabled}
+    public enum State {undefined, synchron, running, faulty, switchedoff}
 
     private transient ReleaseChangeEventPublisher releasePublisher;
 
-    public class ReplicationProcessState {
+    public class ReplicationProcessState implements Comparable<ReplicationProcessState> {
 
         protected final String key;
         protected final ReplicationStateInfo state;
@@ -64,20 +65,24 @@ public class ReplicationStatus extends AbstractSlingBean {
         }
 
         public State getState() {
-            return isRunning() ? State.running: isSynchronized()
-                    ? State.synchron : isEnabled() ? State.undefined : State.disabled;
+            return isRunning() ? State.running : isSynchronized() ? State.synchron
+                    : isEnabled() ? (isFaulty() ? State.faulty : State.undefined) : State.switchedoff;
         }
 
         public boolean isEnabled() {
             return state.enabled;
         }
 
+        public boolean isSynchronized() {
+            return state.isSynchronized != null && state.isSynchronized;
+        }
+
         public boolean isRunning() {
             return false; // FIXME 'running' state
         }
 
-        public boolean isSynchronized() {
-            return state.isSynchronized != null && state.isSynchronized;
+        public boolean isFaulty() {
+            return false; // FIXME 'faulty' state
         }
 
         public String getStartedAt() {
@@ -121,13 +126,26 @@ public class ReplicationStatus extends AbstractSlingBean {
             writer.beginObject();
             writer.name("id").value(getId());
             writer.name("title").value(getTitle());
+            writer.name("sourcePath").value(getSourcePath());
             writer.name("state").value(getState().name());
             writer.name("enabled").value(isEnabled());
-            writer.name("lastReplication").value(getLastReplication());
             writer.name("synchronized").value(isSynchronized());
+            writer.name("running").value(isRunning());
+            writer.name("faulty").value(isFaulty());
+            writer.name("lastReplication").value(getLastReplication());
+            writer.name("startedAt").value(getStartedAt());
             writer.name("finishedAt").value(getFinishedAt());
             writer.name("progress").value(getProgress());
             writer.endObject();
+        }
+
+        protected String getComparationKey() {
+            return (isEnabled() ? "a_" : "z_") + getTitle();
+        }
+
+        @Override
+        public int compareTo(@Nonnull ReplicationStatus.ReplicationProcessState other) {
+            return getComparationKey().compareTo(other.getComparationKey());
         }
     }
 
@@ -137,8 +155,8 @@ public class ReplicationStatus extends AbstractSlingBean {
 
         private transient Integer progress;
 
-        public ReplicationState() {
-            state = getReleasePublisher().aggregatedReplicationState(resource/*, FIXME stage scope */);
+        public ReplicationState(AggregatedReplicationStateInfo state) {
+            this.state = state;
         }
 
         public State getState() {
@@ -166,6 +184,7 @@ public class ReplicationStatus extends AbstractSlingBean {
                     progress = 0;
                     int count = 0;
                     List<ReplicationProcessState> processes = getReplicationProcessState();
+                    Collections.sort(processes);
                     for (ReplicationProcessState process : processes) {
                         if (process.isEnabled()) {
                             progress += process.getProgress();
@@ -182,17 +201,33 @@ public class ReplicationStatus extends AbstractSlingBean {
 
         @Nonnull
         public String getJson() {
-            StringWriter buffer = new StringWriter();
-            try (JsonWriter writer = new JsonWriter(buffer)) {
-                toJson(writer);
-                writer.flush();
-            } catch (IOException ex) {
-                LOG.error(ex.getMessage(), ex);
-            }
-            return Base64.encodeBase64String(buffer.toString().getBytes(StandardCharsets.UTF_8));
+            return getJson(this::toJson);
         }
 
-        public void toJson(JsonWriter writer) throws IOException {
+        public Void toJson(JsonWriter writer) throws IOException {
+            writer.beginObject();
+            writer.name("summary");
+            summary(writer);
+            writer.name("processes").beginArray();
+            for (ReplicationProcessState process : getReplicationProcessState()) {
+                process.toJson(writer);
+            }
+            writer.endArray();
+            writer.endObject();
+            return null;
+        }
+
+        @Nonnull
+        public String getJsonSummary() {
+            return getJson(this::toJsonSummary);
+        }
+
+        public Void toJsonSummary(JsonWriter writer) throws IOException {
+            summary(writer);
+            return null;
+        }
+
+        protected void summary(JsonWriter writer) throws IOException {
             writer.beginObject();
             writer.name("stage").value(getStage());
             writer.name("state").value(getState().name());
@@ -200,12 +235,18 @@ public class ReplicationStatus extends AbstractSlingBean {
             writer.name("running").value(isRunning());
             writer.name("faulty").value(isFaulty());
             writer.name("progress").value(getProgress());
-            writer.name("processes").beginArray();
-            for (ReplicationProcessState process : getReplicationProcessState()) {
-                process.toJson(writer);
-            }
-            writer.endArray();
             writer.endObject();
+        }
+
+        protected String getJson(ExceptionThrowingFunction<JsonWriter, Void, IOException> toJson) {
+            StringWriter buffer = new StringWriter();
+            try (JsonWriter writer = new JsonWriter(buffer)) {
+                toJson.apply(writer);
+                writer.flush();
+            } catch (IOException ex) {
+                LOG.error(ex.getMessage(), ex);
+            }
+            return Base64.encodeBase64String(buffer.toString().getBytes(StandardCharsets.UTF_8));
         }
     }
 
@@ -228,8 +269,15 @@ public class ReplicationStatus extends AbstractSlingBean {
 
     public void toJson() {
         try {
-            JsonWriter writer = new JsonWriter(getResponse().getWriter());
-            getReplicationState().toJson(writer);
+            getReplicationState().toJson(new JsonWriter(getResponse().getWriter()));
+        } catch (IOException ex) {
+            LOG.error(ex.getMessage(), ex);
+        }
+    }
+
+    public void toJsonSummary() {
+        try {
+            getReplicationState().toJsonSummary(new JsonWriter(getResponse().getWriter()));
         } catch (IOException ex) {
             LOG.error(ex.getMessage(), ex);
         }
@@ -244,7 +292,8 @@ public class ReplicationStatus extends AbstractSlingBean {
 
     public ReplicationState getReplicationState() {
         if (replicationState == null) {
-            replicationState = new ReplicationState();
+            replicationState = new ReplicationState(getReleasePublisher()
+                    .aggregatedReplicationState(resource/*, FIXME stage scope */));
         }
         return replicationState;
     }
