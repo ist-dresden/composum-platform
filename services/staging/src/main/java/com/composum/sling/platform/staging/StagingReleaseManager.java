@@ -119,6 +119,13 @@ public interface StagingReleaseManager {
     Release resetCurrentTo(@Nonnull Release release) throws PersistenceException, RepositoryException, ReleaseExistsException, ReleaseProtectedException;
 
     /**
+     * @param resource the release root or any resource below it to find the release root
+     * @return the set of number build from the number of the last release
+     */
+    @Nonnull
+    Map<String,String> nextRealeaseNumbers(@Nonnull Resource resource);
+
+    /**
      * Renames the current release to a freshly according to the given scheme created release number
      * and recreates the current release based on that (like {@link #resetCurrentTo(Release)}).
      * The release number is chosen according to the {@link Release#getPreviousRelease()} - it is an error if that already exists.
