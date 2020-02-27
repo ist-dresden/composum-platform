@@ -25,6 +25,8 @@
         <started_at jcr:primaryType="sling:MessageEntry" sling:key="started at" sling:message="gestartet um"/>
         <finished_at jcr:primaryType="sling:MessageEntry" sling:key="finished at" sling:message="beendet um"/>
         <last_replication jcr:primaryType="sling:MessageEntry" sling:key="last replication" sling:message="letzte Replikation"/>
+        <to_publish jcr:primaryType="sling:MessageEntry" sling:key="to publish" sling:message="zu publizieren"/>
+        <published_currently jcr:primaryType="sling:MessageEntry" sling:key="published currently" sling:message="aktuell publiziert"/>
 
         <Publish jcr:primaryType="sling:MessageEntry" sling:key="Publish" sling:message="Publizieren"/>
         <Publishing jcr:primaryType="sling:MessageEntry" sling:key="Publishing" sling:message="Publizierung"/>

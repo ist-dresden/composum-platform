@@ -22,7 +22,11 @@
                     </div>
                     <input name="_charset_" type="hidden" value="UTF-8"/>
                     <div class="composum-platform-replication-dialog_content">
-                        <sling:call script="target.jsp"/><%-- extension hook --%>
+                        <div class="composum-platform-replication-dialog_top-headline">${cpn:i18n(slingRequest,'to publish')}</div>
+                        <sling:include path="${model.path}"
+                                       resourceType="${slingRequest.resource.resourceType}"
+                                       replaceSelectors="target"/><%-- extension hook --%>
+                        <div class="composum-platform-replication-dialog_top-headline">${cpn:i18n(slingRequest,'published currently')}</div>
                         <sling:include path="${model.path}"
                                        resourceType="composum/platform/services/replication/status"/>
                     </div>
