@@ -31,11 +31,11 @@ public interface ReleaseChangeEventPublisher {
 
     /** Returns details on the current states of the {@link ReleaseChangeProcess}es for the given release root. */
     @Nonnull
-    Map<String, ReplicationStateInfo> replicationState(@Nullable Resource releaseRoot);
+    Map<String, ReplicationStateInfo> replicationState(@Nullable Resource releaseRoot, @Nullable String stage);
 
     /** Returns an aggregated view of the stati of the {@link ReleaseChangeProcess}es for the given release root. */
     @Nullable
-    AggregatedReplicationStateInfo aggregatedReplicationState(@Nullable Resource releaseRoot);
+    AggregatedReplicationStateInfo aggregatedReplicationState(@Nullable Resource releaseRoot,  @Nullable String stage);
 
     /**
      * Compares the contents of the whole release root or subtree at {resource}.

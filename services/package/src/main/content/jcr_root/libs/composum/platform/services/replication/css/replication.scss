@@ -16,6 +16,7 @@ $replication-stage-title-min-with: 120px;
     &_badge.badge {
         min-width: 18px;
         min-height: 18px;
+        padding: 3px;
 
         &:empty {
             display: inline-block;
@@ -84,6 +85,10 @@ $replication-stage-title-min-with: 120px;
                 background-color: $bootstrap-color-danger;
             }
         }
+    }
+
+    &_view {
+        margin: 0;
     }
 
     &_heading {
@@ -158,6 +163,7 @@ $replication-stage-title-min-with: 120px;
 
             &_title {
                 margin-top: 0;
+                font-size: 16px;
             }
 
             &_general {
@@ -205,6 +211,19 @@ $replication-stage-title-min-with: 120px;
 }
 
 .composum-platform-replication-dialog {
+    z-index: 3000;
+
+    &_stage {
+        font-size: 16px;
+        margin-left: $replication-panel-padding;
+    }
+
+    &_footer {
+
+        button {
+            min-width: 100px;
+        }
+    }
 
     .composum-platform-replication-status {
 

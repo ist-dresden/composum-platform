@@ -1,4 +1,4 @@
-package com.composum.sling.platform.staging.replication.model;
+package com.composum.sling.platform.staging.model;
 
 import com.composum.platform.commons.util.ExceptionThrowingFunction;
 import com.composum.sling.core.AbstractSlingBean;
@@ -293,7 +293,7 @@ public class ReplicationStatus extends AbstractSlingBean {
     public ReplicationState getReplicationState() {
         if (replicationState == null) {
             replicationState = new ReplicationState(getReleasePublisher()
-                    .aggregatedReplicationState(resource/*, FIXME stage scope */));
+                    .aggregatedReplicationState(resource, getStage()));
         }
         return replicationState;
     }
@@ -301,7 +301,7 @@ public class ReplicationStatus extends AbstractSlingBean {
     public List<ReplicationProcessState> getReplicationProcessState() {
         if (replicationProcessStates == null) {
             replicationProcessStates = new ArrayList<>();
-            Map<String, ReplicationStateInfo> infoSet = getReleasePublisher().replicationState(resource/*, FIXME stage scope */);
+            Map<String, ReplicationStateInfo> infoSet = getReleasePublisher().replicationState(resource, getStage());
             for (Map.Entry<String, ReplicationStateInfo> entry : infoSet.entrySet()) {
                 replicationProcessStates.add(new ReplicationProcessState(entry.getKey(), entry.getValue()));
             }

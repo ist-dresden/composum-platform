@@ -26,6 +26,8 @@ public interface ReleaseChangeProcess extends Runnable {
 
     String getName();
 
+    String getStage();
+
     String getDescription();
 
     /** If this returns true, our scheduler should {@link #run()} the process again soon. */

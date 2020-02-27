@@ -7,12 +7,12 @@
     <cpn:clientlib type="css" category="composum.platform.replication"/>
 </head>
 <body class="composum-platform-replication-status_page-body">
-<cpn:component var="model" type="com.composum.sling.platform.staging.replication.model.ReplicationStatus"
+<cpn:component var="model" type="com.composum.sling.platform.staging.model.ReplicationStatus"
                path="${cpn:filter(slingRequest.requestPathInfo.suffix)}" scope="request">
     <sling:include replaceSelectors="badge.public"/>
     <sling:include replaceSelectors="public"/>
 </cpn:component>
-<cpn:component var="model" type="com.composum.sling.platform.staging.replication.model.ReplicationStatus"
+<cpn:component var="model" type="com.composum.sling.platform.staging.model.ReplicationStatus"
                path="${cpn:filter(slingRequest.requestPathInfo.suffix)}" scope="request">
     <sling:include replaceSelectors="badge.preview"/>
     <sling:include replaceSelectors="preview"/>

@@ -17,6 +17,8 @@
         <switchedoff jcr:primaryType="sling:MessageEntry" sling:key="switchedoff" sling:message="ausgeschaltet"/>
         <switched_off jcr:primaryType="sling:MessageEntry" sling:key="switched off" sling:message="ausgeschaltet"/>
         <deactivated jcr:primaryType="sling:MessageEntry" sling:key="deactivated" sling:message="deaktiviert"/>
+        <activated jcr:primaryType="sling:MessageEntry" sling:key="activated" sling:message="aktiviert"/>
+        <active jcr:primaryType="sling:MessageEntry" sling:key="active" sling:message="aktiv"/>
         <not_active jcr:primaryType="sling:MessageEntry" sling:key="not active" sling:message="nicht aktiv"/>
         <notactive jcr:primaryType="sling:MessageEntry" sling:key="notactive" sling:message="nicht aktiv"/>
 
@@ -28,6 +30,7 @@
         <Publishing jcr:primaryType="sling:MessageEntry" sling:key="Publishing" sling:message="Publizierung"/>
         <Synchronize jcr:primaryType="sling:MessageEntry" sling:key="Synchronize" sling:message="Synchronisieren"/>
         <Terminate jcr:primaryType="sling:MessageEntry" sling:key="Terminate" sling:message="Beenden"/>
+        <Abort jcr:primaryType="sling:MessageEntry" sling:key="Abort" sling:message="Abbruch"/>
 
     </replication>
 

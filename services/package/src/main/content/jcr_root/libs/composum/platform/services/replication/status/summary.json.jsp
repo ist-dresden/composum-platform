@@ -2,7 +2,7 @@
 <%@taglib prefix="sling" uri="http://sling.apache.org/taglibs/sling/1.2" %>
 <%@taglib prefix="cpn" uri="http://sling.composum.com/cpnl/1.0" %>
 <sling:defineObjects/>
-<cpn:component var="model" type="com.composum.sling.platform.staging.replication.model.ReplicationStatus"
+<cpn:component var="model" type="com.composum.sling.platform.staging.model.ReplicationStatus"
                path="${cpn:filter(slingRequest.requestPathInfo.suffix)}"><%
     model.toJsonSummary();
 %></cpn:component>

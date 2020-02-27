@@ -204,7 +204,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
 
     @Nonnull
     @Override
-    public Map<String, ReplicationStateInfo> replicationState(@Nullable Resource releaseRoot) {
+    public Map<String, ReplicationStateInfo> replicationState(@Nullable Resource releaseRoot, @Nullable String stage) {
         Map<String, ReplicationStateInfo> result = new LinkedHashMap<>();
         if (releaseRoot != null) {
             for (ReleaseChangeProcess process : processesFor(releaseRoot)) {
@@ -230,7 +230,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
 
     @Nullable
     @Override
-    public AggregatedReplicationStateInfo aggregatedReplicationState(@Nullable Resource releaseRoot) {
+    public AggregatedReplicationStateInfo aggregatedReplicationState(@Nullable Resource releaseRoot, @Nullable String stage) {
         if (releaseRoot == null) { return null; }
         AggregatedReplicationStateInfo result = new AggregatedReplicationStateInfo();
         result.replicationsAreRunning = false;
