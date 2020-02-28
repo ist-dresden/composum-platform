@@ -34,7 +34,8 @@
                 _status: '/status',
                 _reload: '.reload'
             },
-            polling: 5000
+            polling: 5000,
+            dialog: 'normal'
         });
 
         /**
@@ -281,10 +282,16 @@
                 core.ajaxPost(url, {
                         releaseKey: this.data.targetKey
                     }, {}, _.bind(function (result) {
-                        this.$cancel.addClass('hidden');
-                        this.$close.removeClass('hidden');
-                        this.$publish.removeClass('btn-primary').addClass('btn-default');
-                        this.status.reload();
+                        if (replication.const.dialog === 'normal') {
+                            // close like a normal dialog
+                            this.hide();
+                        } else {
+                            // let it open to show replication status changes
+                            this.$cancel.addClass('hidden');
+                            this.$close.removeClass('hidden');
+                            this.$publish.removeClass('btn-primary').addClass('btn-default');
+                            this.status.reload();
+                        }
                     }, this)
                 );
                 return false;

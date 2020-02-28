@@ -5,6 +5,8 @@ import com.composum.sling.core.servlet.AbstractServiceServlet;
 import com.composum.sling.core.servlet.ServletOperation;
 import com.composum.sling.core.servlet.ServletOperationSet;
 import com.composum.sling.core.servlet.Status;
+import com.composum.sling.core.util.RequestUtil;
+import com.composum.sling.core.util.XSS;
 import com.composum.sling.platform.security.AccessMode;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.AggregatedReplicationStateInfo;
@@ -89,10 +91,10 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
                 new StageReleaseOperation());
     }
 
-    protected String getReleaseKey(@Nonnull final SlingHttpServletRequest request,
-                                   @Nullable final Resource resource, @Nonnull final Status status) {
-        String releaseKey = request.getParameter(PARAM_RELEASE_KEY);
-        if (releaseKey == null && resource != null) {
+    public static String getReleaseKey(@Nonnull final SlingHttpServletRequest request,
+                                       @Nullable final Resource resource, @Nonnull final Status status) {
+        String releaseKey = RequestUtil.getParameter(request, PARAM_RELEASE_KEY, "");
+        if (StringUtils.isBlank(releaseKey) && resource != null) {
             final String path = resource.getPath();
             final Matcher pathMatcher = StagingUtils.RELEASE_PATH_PATTERN.matcher(path);
             if (pathMatcher.matches()) {
@@ -140,7 +142,7 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
     }
 
     /**
-     * Interfaces {@link ReleaseChangeEventPublisher#replicationState(Resource,String)}.
+     * Interfaces {@link ReleaseChangeEventPublisher#replicationState(Resource, String)}.
      */
     protected class ReplicationStateOperation implements ServletOperation {
         @Override
@@ -162,14 +164,14 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
     }
 
     /**
-     * Interfaces {@link ReleaseChangeEventPublisher#aggregatedReplicationState(Resource,String)}.
+     * Interfaces {@link ReleaseChangeEventPublisher#aggregatedReplicationState(Resource, String)}.
      */
     protected class AggregatedReplicationStateOperation implements ServletOperation {
         @Override
         public void doIt(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
             Status status = new Status(request, response, LOG);
             try {
-                AggregatedReplicationStateInfo result = service.aggregatedReplicationState(resource,null);
+                AggregatedReplicationStateInfo result = service.aggregatedReplicationState(resource, null);
                 status.data("aggregatedReplicationState").put("result", result);
             } catch (Exception e) {
                 LOG.error("Internal error", e);
@@ -181,7 +183,7 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
     }
 
     /**
-     * Interfaces {@link ReleaseChangeEventPublisher#aggregatedReplicationState(Resource,String)}.
+     * Interfaces {@link ReleaseChangeEventPublisher#aggregatedReplicationState(Resource, String)}.
      */
     protected class CompareTreeOperation implements ServletOperation {
 
@@ -204,9 +206,9 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
             Status status = new Status(request, response, LOG);
             try {
                 if (resource != null) {
-                    String detailsParam = request.getParameter(PARAM_DETAILS);
+                    String detailsParam = RequestUtil.getParameter(request, PARAM_DETAILS, "");
                     int details = StringUtils.isNotBlank(detailsParam) ? Integer.parseInt(detailsParam) : 0;
-                    String[] processIdParams = request.getParameterValues(PARAM_PROCESS_ID);
+                    String[] processIdParams = XSS.filter(request.getParameterValues(PARAM_PROCESS_ID));
                     service.compareTree(resource, details, processIdParams, status.data(RESULT_COMPARETREE));
                 } else {
                     status.error("Resource not found");
