@@ -365,7 +365,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
             Release previousRelease = currentRelease.getPreviousRelease();
             if (previousRelease != null) {
                 String lastNumber = previousRelease.getNumber();
-                return new LinkedHashMap<>() {{
+                return new LinkedHashMap<String, String>() {{
                     put(ReleaseNumberCreator.MAJOR.name(), ReleaseNumberCreator.MAJOR.bumpRelease(lastNumber).substring(1));
                     put(ReleaseNumberCreator.MINOR.name(), ReleaseNumberCreator.MINOR.bumpRelease(lastNumber).substring(1));
                     put(ReleaseNumberCreator.BUGFIX.name(), ReleaseNumberCreator.BUGFIX.bumpRelease(lastNumber).substring(1));
@@ -374,7 +374,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         } catch (RepositoryException ex) {
             LOG.error(ex.getMessage(), ex);
         }
-        return new LinkedHashMap<>() {{ // defaults for the first release
+        return new LinkedHashMap<String, String>() {{ // defaults for the first release
             put(ReleaseNumberCreator.MAJOR.name(), "1");
             put(ReleaseNumberCreator.MINOR.name(), "0.1");
             put(ReleaseNumberCreator.BUGFIX.name(), "0.0.1");

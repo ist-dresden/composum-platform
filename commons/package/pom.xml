@@ -86,6 +86,7 @@
                             <root>/libs/composum/platform/install</root>
                             <includes>
                                 <include>.*/composum-platform-commons-bundle.*\.jar</include>
+                                <include>.*/org.apache.sling.serviceusermapping.impl.ServiceUserMapperImpl.amended-platformcommons.config</include>
                             </includes>
                         </filter>
                     </filters>

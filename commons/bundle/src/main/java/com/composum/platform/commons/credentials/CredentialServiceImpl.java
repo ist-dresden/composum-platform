@@ -43,7 +43,7 @@ public class CredentialServiceImpl implements CredentialService {
     private static final Logger LOG = LoggerFactory.getLogger(CredentialServiceImpl.class);
 
     /** The path in the JCR where the credentials are stored. */
-    protected static final String PATH_CONFIGS = "/conf/composum/platform/security/credentials/";
+    protected static final String PATH_CONFIGS = "/conf/composum/platform/security/credentials";
 
     /** A path the user has to have read-access to in order to use the credentials (for ACL based permission check). */
     public static final String PROP_REFERENCEPATH = "referencePath";
@@ -89,7 +89,7 @@ public class CredentialServiceImpl implements CredentialService {
     /** Internal method to retrieve credential data. */
     protected CredentialConfiguration getCredentials(String proxyCredentialId) {
         try (ResourceResolver resolver = resolverFactory.getServiceResourceResolver(null)) {
-            String path = PATH_CONFIGS + proxyCredentialId;
+            String path = SlingResourceUtil.appendPaths(PATH_CONFIGS, proxyCredentialId);
             if (!SlingResourceUtil.isSameOrDescendant(PATH_CONFIGS, path)) {
                 throw new IllegalArgumentException("No . or .. allowed in credential ID " + proxyCredentialId);
             }
@@ -99,7 +99,7 @@ public class CredentialServiceImpl implements CredentialService {
             }
             return new CredentialConfiguration(resource);
         } catch (LoginException e) { // should be impossible.
-            throw new IllegalStateException("Can't get service resolver.");
+            throw new IllegalStateException("Can't get service resolver.", e);
         }
     }
 
