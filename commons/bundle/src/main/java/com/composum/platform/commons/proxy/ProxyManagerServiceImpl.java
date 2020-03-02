@@ -59,7 +59,9 @@ public class ProxyManagerServiceImpl implements ProxyManagerService {
     public void initHttpContext(@Nonnull String proxyKey, @Nonnull HttpClientContext context,
                                 @Nullable ResourceResolver resolver) throws IllegalArgumentException, RepositoryException {
         ProxyService proxyService = findProxyService(proxyKey);
-        if (null == proxyService) { throw new IllegalArgumentException("Can't find proxy with the given key."); }
+        if (null == proxyService) {
+            throw new IllegalArgumentException("Can't find proxy with the given key.");
+        }
         proxyService.initHttpContext(context, resolver);
     }
 

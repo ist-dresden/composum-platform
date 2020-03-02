@@ -188,7 +188,8 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
     protected class CompareTreeOperation implements ServletOperation {
 
         /**
-         * Name of the parameter to request different detail levels.
+         * Name of the numeric parameter to request different detail levels. 0 just returns detail counts, 1 returns
+         * paths, too. Some replication implementations might define further detail levels.
          */
         public static final String PARAM_DETAILS = "details";
         /**

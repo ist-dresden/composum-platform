@@ -10,7 +10,6 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
@@ -94,6 +93,7 @@ public class DefaultProxyService implements ProxyService {
                     RequestConfig.copy(context.getRequestConfig()) : RequestConfig.custom();
             HttpHost proxy = new HttpHost(cfg.proxyHost(), cfg.proxyPort());
             requestConfigBuilder.setProxy(proxy);
+            context.setRequestConfig(requestConfigBuilder.build());
         }
 
         if (StringUtils.isNotBlank(cfg.proxyCredentialId())) {

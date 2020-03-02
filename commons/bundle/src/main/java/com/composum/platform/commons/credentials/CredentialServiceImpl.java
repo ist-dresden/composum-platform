@@ -70,8 +70,12 @@ public class CredentialServiceImpl implements CredentialService {
     public void initHttpContextCredentials(@Nonnull HttpClientContext context, @Nonnull AuthScope authScope,
                                            @Nonnull String credentialId, @Nullable ResourceResolver resolver) throws RepositoryException {
         CredentialConfiguration credentials = getCredentials(credentialId);
-        if (credentials == null) { throw new IllegalArgumentException("Wrong credential ID " + credentialId); }
-        if (!credentials.enabled) { throw new IllegalArgumentException("Credentials are not enabled: " + credentialId);}
+        if (credentials == null) {
+            throw new IllegalArgumentException("Wrong credential ID " + credentialId);
+        }
+        if (!credentials.enabled) {
+            throw new IllegalArgumentException("Credentials are not enabled: " + credentialId);
+        }
         if (StringUtils.isNotBlank(credentials.referencePath)) {
             Resource aclResource = resolver != null ? resolver.getResource(credentials.referencePath) : null;
             if (aclResource == null) {
