@@ -49,13 +49,13 @@ public class CredentialServiceImpl implements CredentialService {
     public static final String PROP_REFERENCEPATH = "referencePath";
     /** Property that tells whether the configuration is enabled.. */
     public static final String PROP_ENABLED = "enabled";
-    /** The encoded password. */
-    public static final String PROP_ENCODED_PASSWD = "encodedPasswd";
-    /** The encoded username. */
-    public static final String PROP_ENCODED_USER = "encodedUser";
-    /** Alternatively, the unencoded username (for testing purposes only). */
+    /** The encrypted password. */
+    public static final String PROP_ENCRYPTED_PASSWD = "encryptedPasswd";
+    /** The encrypted username. */
+    public static final String PROP_ENCRYPTED_USER = "encryptedUser";
+    /** Alternatively, the unencrypted username (for testing purposes only). */
     public static final String PROP_USER = "user";
-    /** Alternatively, the unencoded password (for testing purposes only). */
+    /** Alternatively, the unencrypted password (for testing purposes only). */
     public static final String PROP_PASSWD = "passwd";
 
     @Reference
@@ -69,6 +69,7 @@ public class CredentialServiceImpl implements CredentialService {
     @Override
     public void initHttpContextCredentials(@Nonnull HttpClientContext context, @Nonnull AuthScope authScope,
                                            @Nonnull String credentialId, @Nullable ResourceResolver resolver) throws RepositoryException {
+        if (!isEnabled()) { throw new IllegalStateException("CredentialService is not enabled."); }
         CredentialConfiguration credentials = getCredentials(credentialId);
         if (credentials == null) {
             throw new IllegalArgumentException("Wrong credential ID " + credentialId);
@@ -158,15 +159,15 @@ public class CredentialServiceImpl implements CredentialService {
             ValueMap vm = resource.getValueMap();
             this.referencePath = vm.get(PROP_REFERENCEPATH, String.class);
             enabled = vm.get(PROP_ENABLED, true);
-            String encodedUser = vm.get(PROP_ENCODED_USER, String.class);
-            String encodedPasswd = vm.get(PROP_ENCODED_PASSWD, String.class);
+            String encryptedUser = vm.get(PROP_ENCRYPTED_USER, String.class);
+            String encryptedPasswd = vm.get(PROP_ENCRYPTED_PASSWD, String.class);
             String user = vm.get(PROP_USER, String.class);
             String passwd = vm.get(PROP_PASSWD, String.class);
-            if (isBlank(user) && isNotBlank(encodedUser)) {
-                user = cryptoService.decrypt(encodedUser, config.masterPassword());
+            if (isBlank(user) && isNotBlank(encryptedUser)) {
+                user = cryptoService.decrypt(encryptedUser, config.masterPassword());
             }
-            if (isBlank(passwd) && isNotBlank(encodedPasswd)) {
-                passwd = cryptoService.decrypt(encodedPasswd, config.masterPassword());
+            if (isBlank(passwd) && isNotBlank(encryptedPasswd)) {
+                passwd = cryptoService.decrypt(encryptedPasswd, config.masterPassword());
             }
             this.user = user;
             this.passwd = passwd;

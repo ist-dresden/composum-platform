@@ -36,7 +36,7 @@ public class CredentialServlet extends AbstractServiceServlet {
 
     public enum Extension {raw}
 
-    public enum Operation {encodePassword}
+    public enum Operation {encryptPassword}
 
     protected final ServletOperationSet<Extension, Operation> operations = new ServletOperationSet<>(Extension.raw);
 
@@ -52,8 +52,8 @@ public class CredentialServlet extends AbstractServiceServlet {
     public void init() throws ServletException {
         super.init();
         // we use PUT since that doesn't store anything - we just read the stream.
-        operations.setOperation(ServletOperationSet.Method.PUT, Extension.raw, Operation.encodePassword,
-                new EncodePasswordOperation());
+        operations.setOperation(ServletOperationSet.Method.PUT, Extension.raw, Operation.encryptPassword,
+                new EncryptPasswordOperation());
     }
 
     @Override
@@ -61,7 +61,7 @@ public class CredentialServlet extends AbstractServiceServlet {
         return operations;
     }
 
-    protected class EncodePasswordOperation implements ServletOperation {
+    protected class EncryptPasswordOperation implements ServletOperation {
         @Override
         public void doIt(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
             String passwd = IOUtils.toString(request.getReader());
