@@ -50,8 +50,10 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
 public class CredentialServiceImpl implements CredentialService {
     private static final Logger LOG = LoggerFactory.getLogger(CredentialServiceImpl.class);
 
-    /** The path in the JCR where the credentials are stored. */
-    protected static final String PATH_CONFIGS = "/conf/composum/platform/security/credentials";
+    /**
+     * The path in the JCR where the credentials are stored.
+     */
+    protected static final String PATH_CONFIGS = "/var/composum/platform/security/credentials";
 
     /** A path the user has to have read-access to in order to use the credentials (for ACL based permission check). */
     public static final String PROP_REFERENCEPATH = "referencePath";
