@@ -1,6 +1,8 @@
 package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.core.logging.Message;
+import com.composum.sling.core.logging.MessageContainer;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeProcess;
@@ -41,7 +43,9 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
 
     private static final Logger LOG = LoggerFactory.getLogger(ReleaseChangeEventPublisherImpl.class);
 
-    /** Name of the threadpool, and thus prefix for the thread names. */
+    /**
+     * Name of the threadpool, and thus prefix for the thread names.
+     */
     public static final String THREADPOOL_NAME = "RCEventPub";
 
     /**
@@ -57,7 +61,9 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
 
     protected volatile ThreadPool threadPool;
 
-    /** Object to lock over when changing {@link #runningProcesses} or {@link #queuedProcesses}. */
+    /**
+     * Object to lock over when changing {@link #runningProcesses} or {@link #queuedProcesses}.
+     */
     protected final Object lock = new Object();
 
     /**
@@ -92,7 +98,9 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
 
     @Override
     public void publishActivation(ReleaseChangeEventListener.ReleaseChangeEvent event) throws ReleaseChangeEventListener.ReplicationFailedException {
-        if (event == null || event.isEmpty()) { return; }
+        if (event == null || event.isEmpty()) {
+            return;
+        }
         event.finish();
         LOG.info("publishActivation {}", event);
         ReleaseChangeEventListener.ReplicationFailedException exception = null;
@@ -104,19 +112,31 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                 LOG.debug("published to {} : {}", releaseChangeEventListener, event);
             } catch (ReleaseChangeEventListener.ReplicationFailedException e) {
                 LOG.error("Error publishing to {} the event {}", releaseChangeEventListener, event, e);
-                if (exception != null) { e.addSuppressed(e); } else { exception = e; }
+                if (exception != null) {
+                    e.addSuppressed(e);
+                } else {
+                    exception = e;
+                }
             } catch (RuntimeException e) {
                 LOG.error("Error publishing to {} the event {}", releaseChangeEventListener, event, e);
                 ReleaseChangeEventListener.ReplicationFailedException newException = new ReleaseChangeEventListener.ReplicationFailedException("Error publishing to " + releaseChangeEventListener, e, event);
-                if (exception != null) { e.addSuppressed(newException); } else { exception = newException; }
+                if (exception != null) {
+                    e.addSuppressed(newException);
+                } else {
+                    exception = newException;
+                }
             }
         }
-        if (exception != null) { throw exception; }
+        if (exception != null) {
+            throw exception;
+        }
         // we trigger the processes only afterwards - throwing an exception here rolls back the changes
 
         Collection<ReleaseChangeProcess> processes = processesFor(event.release());
         for (ReleaseChangeProcess process : processes) {
-            if (!process.isEnabled()) { continue; }
+            if (!process.isEnabled()) {
+                continue;
+            }
             try {
                 process.triggerProcessing(event);
                 deployProcess(process);
@@ -147,7 +167,9 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         }
     }
 
-    /** Organizes that a process is rescheduled after being run if that's needed. */
+    /**
+     * Organizes that a process is rescheduled after being run if that's needed.
+     */
     protected class RescheduleWrapper implements Runnable {
 
         protected final ReleaseChangeProcess process;
@@ -210,18 +232,27 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
             for (ReleaseChangeProcess process : processesFor(releaseRoot)) {
                 ReplicationStateInfo info = new ReplicationStateInfo();
                 info.id = process.getId();
-                info.state = process.getState();
-                info.name = process.getName();
-                info.description = process.getDescription();
-                info.startedAt = process.getRunStartedAt();
-                info.finishedAt = process.getRunFinished();
-                info.messages = process.getMessages();
-                info.enabled = process.isEnabled();
-                info.active = process.isActive();
-                info.completionPercentage = process.getCompletionPercentage();
-                process.updateSynchronized();
-                info.isSynchronized = process.isSynchronized(releaseRoot.getResourceResolver());
-                info.lastReplicationTimestamp = process.getLastReplicationTimestamp();
+                try {
+                    info.state = process.getState();
+                    info.name = process.getName();
+                    info.description = process.getDescription();
+                    info.startedAt = process.getRunStartedAt();
+                    info.finishedAt = process.getRunFinished();
+                    info.messages = process.getMessages();
+                    info.enabled = process.isEnabled();
+                    info.active = process.isActive();
+                    info.completionPercentage = process.getCompletionPercentage();
+                    process.updateSynchronized();
+                    info.isSynchronized = process.isSynchronized(releaseRoot.getResourceResolver());
+                    info.lastReplicationTimestamp = process.getLastReplicationTimestamp();
+                } catch (Exception ex) {
+                    LOG.error(ex.getMessage(), ex);
+                    // there was an IllegalArgumentException in a process (bad configuration)
+                    // but a state retrieval should never throw exceptions - this breaks th UI
+                    info.state = ReleaseChangeProcess.ReleaseChangeProcessorState.error;
+                    info.messages = new MessageContainer();
+                    info.messages.add(new Message(Message.Level.error, ex.getMessage()));
+                }
                 result.put(process.getId(), info);
             }
         }
@@ -231,7 +262,9 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
     @Nullable
     @Override
     public AggregatedReplicationStateInfo aggregatedReplicationState(@Nullable Resource releaseRoot, @Nullable String stage) {
-        if (releaseRoot == null) { return null; }
+        if (releaseRoot == null) {
+            return null;
+        }
         AggregatedReplicationStateInfo result = new AggregatedReplicationStateInfo();
         result.replicationsAreRunning = false;
         result.haveErrors = false;
@@ -240,27 +273,37 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         result.allAreActive = true;
 
         for (ReleaseChangeProcess process : processesFor(releaseRoot)) {
-            if (process.isEnabled() && result.everythingIsSynchronized
-                    && Boolean.FALSE.equals(process.isSynchronized(releaseRoot.getResourceResolver()))) {
-                result.everythingIsSynchronized = false;
-            }
-            result.allAreActive = result.allAreActive && process.isActive();
-            if (process.isEnabled()) { result.numberEnabledProcesses++; }
-            switch (process.getState()) {
-                case error:
-                    result.haveErrors = true;
-                    result.replicationsAreRunning = true;
-                    break;
-                case awaiting:
-                case processing:
-                    result.replicationsAreRunning = true;
-                    break;
-                case idle:
-                case success:
-                case disabled:
-                default:
-                    // no action
-                    break;
+            try {
+                if (process.isEnabled() && result.everythingIsSynchronized
+                        && Boolean.FALSE.equals(process.isSynchronized(releaseRoot.getResourceResolver()))) {
+                    result.everythingIsSynchronized = false;
+                }
+                result.allAreActive = result.allAreActive && process.isActive();
+                if (process.isEnabled()) {
+                    result.numberEnabledProcesses++;
+                }
+                switch (process.getState()) {
+                    case error:
+                        result.haveErrors = true;
+                        result.replicationsAreRunning = true;
+                        break;
+                    case awaiting:
+                    case processing:
+                        result.replicationsAreRunning = true;
+                        break;
+                    case idle:
+                    case success:
+                    case disabled:
+                    default:
+                        // no action
+                        break;
+                }
+            } catch (Exception ex) {
+                LOG.error(ex.getMessage(), ex);
+                // there was an IllegalArgumentException in a process (bad configuration)
+                // but a state retrieval should never throw exceptions - this breaks th UI
+                result.haveErrors = true;
+                result.allAreActive = false;
             }
         }
         return result;
@@ -270,16 +313,22 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
     public void compareTree(@Nonnull ResourceHandle resource, int details, @Nullable String[] processIdParams,
                             @Nonnull Map<String, Object> output) throws ReleaseChangeEventListener.ReplicationFailedException {
         for (ReleaseChangeProcess process : processesFor(resource)) {
-            if (processIdParams != null && !Arrays.asList(processIdParams).contains(process.getId())) { continue; }
+            if (processIdParams != null && !Arrays.asList(processIdParams).contains(process.getId())) {
+                continue;
+            }
             CompareResult compareResult = process.compareTree(resource, details);
-            if (compareResult != null) { output.put(process.getId(), compareResult); }
+            if (compareResult != null) {
+                output.put(process.getId(), compareResult);
+            }
         }
     }
 
     @Activate
     @Modified
     protected void activate() {
-        if (threadPool != null) { deactivate(); }
+        if (threadPool != null) {
+            deactivate();
+        }
         LOG.info("activate");
         this.threadPool = threadPoolManager.get(THREADPOOL_NAME);
     }
@@ -289,7 +338,9 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         LOG.info("deactivate");
         ThreadPool oldThreadPool = this.threadPool;
         this.threadPool = null;
-        if (oldThreadPool != null) { threadPoolManager.release(oldThreadPool); }
+        if (oldThreadPool != null) {
+            threadPoolManager.release(oldThreadPool);
+        }
     }
 
 
