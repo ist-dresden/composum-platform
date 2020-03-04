@@ -2,6 +2,7 @@ package com.composum.platform.commons.credentials;
 
 import com.composum.platform.commons.crypt.CryptoService;
 import com.composum.sling.core.util.SlingResourceUtil;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -28,6 +29,13 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -65,6 +73,7 @@ public class CredentialServiceImpl implements CredentialService {
     protected ResourceResolverFactory resolverFactory;
 
     protected volatile Configuration config;
+    protected volatile String masterPassword;
 
     @Override
     public void initHttpContextCredentials(@Nonnull HttpClientContext context, @Nonnull AuthScope authScope,
@@ -111,7 +120,46 @@ public class CredentialServiceImpl implements CredentialService {
     @Override
     public String encodePassword(@Nonnull String password) {
         checkEnabled();
-        return cryptoService.encrypt(password, config.masterPassword());
+        return cryptoService.encrypt(password, getMasterPassword());
+    }
+
+    @Nonnull
+    protected String getMasterPassword() {
+        if (StringUtils.isNotBlank(masterPassword)) { return masterPassword; }
+        if (StringUtils.isNotBlank(config.masterPasswordFile())) {
+            File passwdFile = new File(config.masterPasswordFile());
+            if ((!passwdFile.exists() || passwdFile.length() == 0) && config.createPasswordFileIfMissing()) {
+                writePasswordFile(passwdFile);
+            }
+            if (passwdFile.exists() && passwdFile.length() > 0) {
+                try (FileInputStream fin = new FileInputStream(passwdFile)) {
+                    masterPassword = new String(fin.readNBytes(10000), StandardCharsets.UTF_8);
+                } catch (IOException e) {
+                    LOG.error("Trouble reading password file " + passwdFile.getAbsolutePath(), e);
+                    throw new IllegalStateException("Trouble reading password file " + passwdFile.getAbsolutePath(), e);
+                }
+            }
+        }
+        if (StringUtils.isBlank(masterPassword)) {
+            masterPassword = config.masterPassword();
+        }
+        return masterPassword;
+    }
+
+    /** Writes a random password to the given password file. */
+    protected void writePasswordFile(File passwdFile) {
+        try {
+            SecureRandom rnd = SecureRandom.getInstanceStrong();
+            String password = RandomStringUtils.random(1024, 32, 126, false, false, null, rnd);
+            try (FileOutputStream fout = new FileOutputStream(passwdFile)) {
+                fout.write(password.getBytes(StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                LOG.error("Problem writing password file " + passwdFile.getAbsolutePath(), e);
+                throw new IllegalStateException(e);
+            }
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e); // extremely unlikely - give up.
+        }
     }
 
     protected void checkEnabled() {
@@ -142,10 +190,22 @@ public class CredentialServiceImpl implements CredentialService {
         @AttributeDefinition(name = "enabled", required = true, description = "The on/off switch")
         boolean enabled() default false;
 
-        // TODO(hps,21.02.20) think of at least an obfuscated way to store this.
-        @AttributeDefinition(name = "Master Password", required = true,
-                description = "The password to decrypt the credentials.")
+        @AttributeDefinition(name = "Master Password", required = false,
+                description = "The password to decrypt the credentials. This is an alternative choice to a password " +
+                        "file. Caution: the password is stored in plaintext in the OSGI config file.")
         String masterPassword();
+
+        @AttributeDefinition(name = "Master Passwordfile path", required = false,
+                description = "A relative or absolute path to a file containing the password to decrypt the " +
+                        "credentials. This is an alternative " +
+                        "choice to setting the password directly. Caution: the password is stored in plaintext in the" +
+                        "file.")
+        String masterPasswordFile();
+
+        @AttributeDefinition(name = "Create Master Passwordfile", required = false,
+                description = "If a path for a master password is set but it is empty or missing, the service tries to" +
+                        "write a random password to this file.")
+        boolean createPasswordFileIfMissing();
     }
 
     /** Captures the data from a resource. */
@@ -164,10 +224,10 @@ public class CredentialServiceImpl implements CredentialService {
             String user = vm.get(PROP_USER, String.class);
             String passwd = vm.get(PROP_PASSWD, String.class);
             if (isBlank(user) && isNotBlank(encryptedUser)) {
-                user = cryptoService.decrypt(encryptedUser, config.masterPassword());
+                user = cryptoService.decrypt(encryptedUser, getMasterPassword());
             }
             if (isBlank(passwd) && isNotBlank(encryptedPasswd)) {
-                passwd = cryptoService.decrypt(encryptedPasswd, config.masterPassword());
+                passwd = cryptoService.decrypt(encryptedPasswd, getMasterPassword());
             }
             this.user = user;
             this.passwd = passwd;

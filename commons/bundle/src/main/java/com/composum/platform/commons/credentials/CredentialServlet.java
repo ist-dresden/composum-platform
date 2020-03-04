@@ -61,10 +61,14 @@ public class CredentialServlet extends AbstractServiceServlet {
         return operations;
     }
 
+    /**
+     * Encrypts a password with the master password.
+     * E.g. curl -X PUT -d 'abcdefg' http://localhost:9090/bin/cpm/platform/security/credentials.encryptPassword.raw
+     */
     protected class EncryptPasswordOperation implements ServletOperation {
         @Override
         public void doIt(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
-            String passwd = IOUtils.toString(request.getReader());
+            String passwd = IOUtils.toString(request.getInputStream(), request.getCharacterEncoding());
             String encoded = credentialService.encodePassword(passwd);
             response.setCharacterEncoding("UTF-8");
             response.setContentType("text/plain");
