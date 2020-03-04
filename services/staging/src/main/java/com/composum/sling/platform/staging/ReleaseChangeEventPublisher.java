@@ -11,7 +11,9 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Map;
 
-/** Service that distributes {@link ReleaseChangeEvent}s among the {@link ReleaseChangeEventListener}s. */
+/**
+ * Service that distributes {@link ReleaseChangeEvent}s among the {@link ReleaseChangeEventListener}s.
+ */
 public interface ReleaseChangeEventPublisher {
 
     /**
@@ -21,21 +23,41 @@ public interface ReleaseChangeEventPublisher {
     void publishActivation(@Nullable ReleaseChangeEvent event)
             throws ReleaseChangeEventListener.ReplicationFailedException;
 
-    /** Returns all {@link ReleaseChangeProcess} that apply to the given release. */
+    /**
+     * Returns all {@link ReleaseChangeProcess} that apply to the given release.
+     *
+     * @param releaseRoot the root of a release - if null we return an empty collection.
+     * @param stage       if set, this filters the result after {@link ReleaseChangeProcess#getStage()}.
+     */
     @Nonnull
-    Collection<ReleaseChangeProcess> processesFor(@Nullable Release release);
+    Collection<ReleaseChangeProcess> processesFor(@Nullable Release release, @Nullable String stage);
 
-    /** Returns all {@link ReleaseChangeProcess} for the given release root. */
+    /**
+     * Returns all {@link ReleaseChangeProcess} for the given release root.
+     *
+     * @param releaseRoot the root of a release - if null we return an empty collection.
+     * @param stage       if set, this filters the result after {@link ReleaseChangeProcess#getStage()}.
+     */
     @Nonnull
-    Collection<ReleaseChangeProcess> processesFor(@Nullable Resource releaseRoot);
+    Collection<ReleaseChangeProcess> processesFor(@Nullable Resource releaseRoot, @Nullable String stage);
 
-    /** Returns details on the current states of the {@link ReleaseChangeProcess}es for the given release root. */
+    /**
+     * Returns details on the current states of the {@link ReleaseChangeProcess}es for the given release root.
+     *
+     * @param releaseRoot the root of a release - if null we return an empty map.
+     * @param stage       if set, this filters the result after {@link ReleaseChangeProcess#getStage()}.
+     */
     @Nonnull
     Map<String, ReplicationStateInfo> replicationState(@Nullable Resource releaseRoot, @Nullable String stage);
 
-    /** Returns an aggregated view of the stati of the {@link ReleaseChangeProcess}es for the given release root. */
+    /**
+     * Returns an aggregated view of the stati of the {@link ReleaseChangeProcess}es for the given release root.
+     *
+     * @param releaseRoot the root of a release - if null we return an empty map.
+     * @param stage       if set, this filters the result after {@link ReleaseChangeProcess#getStage()}.
+     */
     @Nullable
-    AggregatedReplicationStateInfo aggregatedReplicationState(@Nullable Resource releaseRoot,  @Nullable String stage);
+    AggregatedReplicationStateInfo aggregatedReplicationState(@Nullable Resource releaseRoot, @Nullable String stage);
 
     /**
      * Compares the contents of the whole release root or subtree at {resource}.
@@ -51,26 +73,44 @@ public interface ReleaseChangeEventPublisher {
     void compareTree(@Nonnull ResourceHandle resource, int details, @Nullable String[] processIdParams,
                      @Nonnull Map<String, Object> output) throws ReleaseChangeEventListener.ReplicationFailedException;
 
-    /** Information about one {@link ReleaseChangeProcess} used for JSON serialization. */
+    /**
+     * Information about one {@link ReleaseChangeProcess} used for JSON serialization.
+     */
     class ReplicationStateInfo {
-        /** An unique id for the {@link ReleaseChangeProcess}. */
+        /**
+         * An unique id for the {@link ReleaseChangeProcess}.
+         */
         public String id;
-        /** If false, the service is disabled by configuration. */
+        /**
+         * If false, the service is disabled by configuration.
+         */
         public boolean enabled;
-        /** True if it's enabled and there is a matching release. */
+        /**
+         * True if it's enabled and there is a matching release.
+         */
         public boolean active;
         public String name;
         public String description;
         public ReleaseChangeProcess.ReleaseChangeProcessorState state;
-        /** Rough estimation how much of the currently queued release changes have been processed. */
+        /**
+         * Rough estimation how much of the currently queued release changes have been processed.
+         */
         public int completionPercentage;
-        /** Start of last replication run. */
+        /**
+         * Start of last replication run.
+         */
         public Long startedAt;
-        /** End of last replication run. */
+        /**
+         * End of last replication run.
+         */
         public Long finishedAt;
-        /** Whether the remote release change number is equal to the local one. */
+        /**
+         * Whether the remote release change number is equal to the local one.
+         */
         public Boolean isSynchronized;
-        /** Time of last (successful) replication, as in {@link System#currentTimeMillis()}. */
+        /**
+         * Time of last (successful) replication, as in {@link System#currentTimeMillis()}.
+         */
         public Long lastReplicationTimestamp;
         public MessageContainer messages;
     }
@@ -80,39 +120,65 @@ public interface ReleaseChangeEventPublisher {
      * serialization.
      */
     class AggregatedReplicationStateInfo {
-        /** True if for all enabled {@link ReleaseChangeProcess} the remote content is equivalent to the local one. */
+        /**
+         * True if for all enabled {@link ReleaseChangeProcess} the remote content is equivalent to the local one.
+         */
         public boolean everythingIsSynchronized;
-        /** True if all {@link ReleaseChangeProcess}es are active. */
+        /**
+         * True if all {@link ReleaseChangeProcess}es are active.
+         */
         public boolean allAreActive;
-        /** True if there are still some replications running. */
+        /**
+         * True if there are still some replications running.
+         */
         public boolean replicationsAreRunning;
-        /** True if there are some {@link ReleaseChangeProcess}es in error state. */
+        /**
+         * True if there are some {@link ReleaseChangeProcess}es in error state.
+         */
         public boolean haveErrors;
-        /** Number of enabled {@link ReleaseChangeProcess}es. */
+        /**
+         * Number of enabled {@link ReleaseChangeProcess}es.
+         */
         public int numberEnabledProcesses;
     }
 
-    /** Result object for {@link #compareTree(ResourceHandle, boolean, String[], Map)}. */
+    /**
+     * Result object for {@link #compareTree(ResourceHandle, boolean, String[], Map)}.
+     */
     class CompareResult {
-        /** Summary: if true, all things are equal. If false - see other attributes for details. */
+        /**
+         * Summary: if true, all things are equal. If false - see other attributes for details.
+         */
         public boolean equal;
         public boolean releaseChangeNumbersEqual;
-        /** Summarizes new / updated / removed versionables. */
+        /**
+         * Summarizes new / updated / removed versionables.
+         */
         public int differentVersionablesCount;
-        /** Number of parent nodes of versionables with different attributes. */
+        /**
+         * Number of parent nodes of versionables with different attributes.
+         */
         public int changedParentNodeCount;
-        /** Number of children orderings of nodes with ordered children that are different. */
+        /**
+         * Number of children orderings of nodes with ordered children that are different.
+         */
         public int changedChildrenOrderCount;
 
-        /** Checks whether {@link #equal} should be set. {@link #equal} must be set to the result of this. */
+        /**
+         * Checks whether {@link #equal} should be set. {@link #equal} must be set to the result of this.
+         */
         public boolean calculateEqual() {
             return releaseChangeNumbersEqual && differentVersionablesCount == 0
                     && changedParentNodeCount == 0 && changedChildrenOrderCount == 0;
         }
 
-        /** Only if details are wanted: the paths of versionables which are new. */
+        /**
+         * Only if details are wanted: the paths of versionables which are new.
+         */
         public String[] differentVersionables;
-        /** Only if details are wanted: the paths of parent nodes of versionables with different attributes. */
+        /**
+         * Only if details are wanted: the paths of parent nodes of versionables with different attributes.
+         */
         public String[] changedParentNodes;
         /**
          * Only if details are wanted: the paths of parent nodes of versionables with orderable children and a

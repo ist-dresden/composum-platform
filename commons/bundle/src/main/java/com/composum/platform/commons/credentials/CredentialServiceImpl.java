@@ -157,6 +157,7 @@ public class CredentialServiceImpl implements CredentialService {
                 LOG.error("Problem writing password file " + passwdFile.getAbsolutePath(), e);
                 throw new IllegalStateException(e);
             }
+            LOG.info("Initialized master password with random key.");
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e); // extremely unlikely - give up.
         }
@@ -176,11 +177,13 @@ public class CredentialServiceImpl implements CredentialService {
     @Modified
     protected void activate(CredentialServiceImpl.Configuration configuration) {
         this.config = configuration;
+        this.masterPassword = null;
     }
 
     @Deactivate
     protected void deactivate() {
         this.config = null;
+        this.masterPassword = null;
     }
 
     @ObjectClassDefinition(name = "Composum Platform Credential Service",

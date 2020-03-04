@@ -7,6 +7,7 @@ import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeProcess;
 import com.composum.sling.platform.staging.StagingReleaseManager;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.commons.threads.ThreadPool;
 import org.apache.sling.commons.threads.ThreadPoolManager;
@@ -132,7 +133,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         }
         // we trigger the processes only afterwards - throwing an exception here rolls back the changes
 
-        Collection<ReleaseChangeProcess> processes = processesFor(event.release());
+        Collection<ReleaseChangeProcess> processes = processesFor(event.release(), null);
         for (ReleaseChangeProcess process : processes) {
             if (!process.isEnabled()) {
                 continue;
@@ -204,11 +205,15 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
 
     @Nonnull
     @Override
-    public Collection<ReleaseChangeProcess> processesFor(@Nullable StagingReleaseManager.Release release) {
+    public Collection<ReleaseChangeProcess> processesFor(@Nullable StagingReleaseManager.Release release, @Nullable String stage) {
         List<ReleaseChangeProcess> result = new ArrayList<>();
         if (release != null) {
             for (ReleaseChangeEventListener releaseChangeEventListener : new ArrayList<>(this.releaseChangeEventListeners)) {
-                result.addAll(releaseChangeEventListener.processesFor(release));
+                for (ReleaseChangeProcess releaseChangeProcess : releaseChangeEventListener.processesFor(release)) {
+                    if (StringUtils.isBlank(stage) || stage.equals(releaseChangeProcess.getStage())) {
+                        result.add(releaseChangeProcess);
+                    }
+                }
             }
         }
         return result;
@@ -216,10 +221,14 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
 
     @Nonnull
     @Override
-    public Collection<ReleaseChangeProcess> processesFor(@Nullable Resource releaseRoot) {
+    public Collection<ReleaseChangeProcess> processesFor(@Nullable Resource releaseRoot, @Nullable String stage) {
         List<ReleaseChangeProcess> result = new ArrayList<>();
         for (ReleaseChangeEventListener releaseChangeEventListener : new ArrayList<>(this.releaseChangeEventListeners)) {
-            result.addAll(releaseChangeEventListener.processesFor(releaseRoot));
+            for (ReleaseChangeProcess releaseChangeProcess : releaseChangeEventListener.processesFor(releaseRoot)) {
+                if (StringUtils.isBlank(stage) || stage.equals(releaseChangeProcess.getStage())) {
+                    result.add(releaseChangeProcess);
+                }
+            }
         }
         return result;
     }
@@ -229,7 +238,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
     public Map<String, ReplicationStateInfo> replicationState(@Nullable Resource releaseRoot, @Nullable String stage) {
         Map<String, ReplicationStateInfo> result = new LinkedHashMap<>();
         if (releaseRoot != null) {
-            for (ReleaseChangeProcess process : processesFor(releaseRoot)) {
+            for (ReleaseChangeProcess process : processesFor(releaseRoot, stage)) {
                 ReplicationStateInfo info = new ReplicationStateInfo();
                 info.id = process.getId();
                 try {
@@ -272,7 +281,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         result.numberEnabledProcesses = 0;
         result.allAreActive = true;
 
-        for (ReleaseChangeProcess process : processesFor(releaseRoot)) {
+        for (ReleaseChangeProcess process : processesFor(releaseRoot, stage)) {
             try {
                 if (process.isEnabled() && result.everythingIsSynchronized
                         && Boolean.FALSE.equals(process.isSynchronized(releaseRoot.getResourceResolver()))) {
@@ -312,7 +321,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
     @Override
     public void compareTree(@Nonnull ResourceHandle resource, int details, @Nullable String[] processIdParams,
                             @Nonnull Map<String, Object> output) throws ReleaseChangeEventListener.ReplicationFailedException {
-        for (ReleaseChangeProcess process : processesFor(resource)) {
+        for (ReleaseChangeProcess process : processesFor(resource, null)) {
             if (processIdParams != null && !Arrays.asList(processIdParams).contains(process.getId())) {
                 continue;
             }

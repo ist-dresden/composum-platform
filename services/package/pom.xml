@@ -103,7 +103,7 @@
 
                     <filters>
                         <filter>
-                            <root>/conf/composum/platform/security</root>
+                            <root>/conf/composum/platform/security/acl</root>
                         </filter>
                         <filter>
                             <root>/libs/sling/servlet/errorhandler</root>
