@@ -65,8 +65,7 @@ public interface ReleaseChangeEventPublisher {
      * @param releaseRoot the root of a release - if null we return an empty map.
      * @param stage       if set, this filters the result after {@link ReleaseChangeProcess#getStage()}.
      */
-    default void abortReplication(@Nullable Resource releaseRoot, @Nullable String stage) {
-    }
+    void abortReplication(@Nullable Resource releaseRoot, @Nullable String stage);
 
     /**
      * Compares the contents of the whole release root or subtree at {resource}.

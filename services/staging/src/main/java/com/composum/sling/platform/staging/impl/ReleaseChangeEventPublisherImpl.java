@@ -320,6 +320,13 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
     }
 
     @Override
+    public void abortReplication(@Nullable Resource releaseRoot, @Nullable String stage) {
+        for (ReleaseChangeProcess releaseChangeProcess : processesFor(releaseRoot, stage)) {
+            releaseChangeProcess.abort();
+        }
+    }
+
+    @Override
     public void compareTree(@Nonnull ResourceHandle resource, int details, @Nullable String[] processIdParams,
                             @Nonnull Map<String, Object> output) throws ReleaseChangeEventListener.ReplicationFailedException {
         for (ReleaseChangeProcess process : processesFor(resource, null)) {

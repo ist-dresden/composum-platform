@@ -51,6 +51,13 @@ public interface ReleaseChangeProcess extends Runnable {
         return false;
     }
 
+    /**
+     * If the process is currently running, this triggers an abort. Caution: this might take a while
+     * since the currently running operation might have to be finished / resources might need to be cleared up.
+     */
+    default void abort() {
+    }
+
     enum ReleaseChangeProcessorState {
         idle,
         /**
