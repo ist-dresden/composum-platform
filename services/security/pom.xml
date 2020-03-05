@@ -34,6 +34,7 @@
                             {maven-resources}
                         </Include-Resource>
                         <Export-Package>
+                            !com.composum.sling.platform.security.*.impl.*,
                             com.composum.sling.platform.security.*
                         </Export-Package>
                         <Import-Package>

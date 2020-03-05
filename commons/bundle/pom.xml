@@ -34,6 +34,7 @@
                             {maven-resources}
                         </Include-Resource>
                         <Export-Package>
+                            !com.composum.platform.commons.*.impl.*,
                             com.composum.platform.commons.*
                         </Export-Package>
                         <Import-Package>

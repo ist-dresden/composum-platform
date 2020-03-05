@@ -1,6 +1,8 @@
-package com.composum.platform.commons.credentials;
+package com.composum.platform.commons.credentials.impl;
 
+import com.composum.platform.commons.credentials.CredentialService;
 import com.composum.platform.commons.crypt.CryptoService;
+import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -239,4 +241,103 @@ public class CredentialServiceImpl implements CredentialService {
         }
     }
 
+    //-------- ideas / scribble
+
+    /**
+     * a Vault is a set of credentials with its own 'master' password - the vault password
+     * the vault password itself is encrypted with the master password of the CredentialService
+     * a Vault stores credentials as child nodes in the repository encrypted with the vaults password
+     * such a Vault can be created and removed easyly (e.g. for each tenant on tenant creation / removal)
+     */
+    private class Vault {
+
+        protected final String id;
+        protected final String path;
+        protected final String title;
+        protected final String referencePath;
+        private final String vaultPassword;
+
+        public Vault(Resource resource) {
+            ValueMap values = resource.getValueMap();
+            this.id = resource.getName();
+            this.path = resource.getPath();
+            this.title = values.get(ResourceUtil.JCR_TITLE, String.class);
+            this.referencePath = values.get(PROP_REFERENCEPATH, String.class);
+            this.vaultPassword = cryptoService.decrypt(values.get(PROP_ENCRYPTED_PASSWD, String.class), getMasterPassword());
+        }
+
+        /**
+         * @return the repository path to use for ACL driven access rules check
+         */
+        @Nonnull
+        public String getReferencePath() {
+            return referencePath;
+        }
+
+        @Nullable
+        protected CredentialConfiguration getCredentials(@Nonnull final ResourceResolver resolver,
+                                                         @Nonnull final String credentialsId) {
+            Resource resource = resolver.getResource(this.path);
+            if (resource != null) {
+                resource = resource.getChild(credentialsId);
+            }
+            return resource != null ? new CredentialConfiguration(resource) : null;
+        }
+
+        /**
+         * Stores or removes a credentials object.
+         *
+         * @param resolver      the current user session (for access rule check)
+         * @param credentialsId the tídentifier - the name of the credentials node
+         * @param values        the values to store - each 'encrypted...' has to be stored as encrypted property
+         */
+        protected void setCredentials(@Nonnull final ResourceResolver resolver,
+                                      @Nonnull final String credentialsId, @Nullable final ValueMap values) {
+        }
+
+        /**
+         * @param resolver the current user session (for access rule check)
+         * @return the master password of the vault
+         */
+        protected String getVaultPassword(@Nonnull final ResourceResolver resolver) {
+            return vaultPassword;
+        }
+
+        protected void setVaultPassword(@Nonnull final ResourceResolver resolver,
+                                        @Nonnull final String oldVaultOrMasterPassword,
+                                        @Nonnull final String newPassword) {
+        }
+    }
+
+    /**
+     * @param resolver the current user session (for access rule check)
+     * @param vaultId  the internal name of the vault
+     */
+    protected Vault getVault(@Nonnull final ResourceResolver resolver,
+                             @Nonnull final String vaultId) {
+        Resource resource = resolver.getResource("/var/composum/platform/security/vault");
+        if (resource != null) {
+            resource = resource.getChild(vaultId);
+        }
+        return resource != null ? new Vault(resource) : null;
+    }
+
+    /**
+     * @param resolver the current user session (for access rule check)
+     * @param vaultId  the internal name of the vault - used also as repository node name
+     * @param title    an optional - more readable - title of the vault
+     */
+    public void createVault(@Nonnull final ResourceResolver resolver,
+                            @Nonnull final String vaultId, @Nullable final String title,
+                            @Nonnull final String referencePath) {
+    }
+
+    /**
+     * @param resolver the current user session (for access rule check)
+     * @param vaultId  the internal name of the vault
+     */
+    public void deleteVault(@Nonnull final ResourceResolver resolver,
+                            @Nonnull final String vaultId,
+                            @Nonnull final String vaultOrMasterPassword) {
+    }
 }
