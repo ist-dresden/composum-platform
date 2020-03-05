@@ -60,6 +60,15 @@ public interface ReleaseChangeEventPublisher {
     AggregatedReplicationStateInfo aggregatedReplicationState(@Nullable Resource releaseRoot, @Nullable String stage);
 
     /**
+     * Stops each running or faulty replication process - reset and clear for a new synchronization.
+     *
+     * @param releaseRoot the root of a release - if null we return an empty map.
+     * @param stage       if set, this filters the result after {@link ReleaseChangeProcess#getStage()}.
+     */
+    default void abortReplication(@Nullable Resource releaseRoot, @Nullable String stage) {
+    }
+
+    /**
      * Compares the contents of the whole release root or subtree at {resource}.
      *
      * @param resource        a release root or a subnode of it
