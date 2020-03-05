@@ -103,6 +103,21 @@
     ]
   },
   {
+    "path": "/var/composum/platform/security/credentials",
+    "jcr:primaryType": "sling:Folder",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "path": "/tmp",
     "jcr:primaryType": "sling:Folder",
     "acl": [
