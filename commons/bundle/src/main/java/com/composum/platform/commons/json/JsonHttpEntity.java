@@ -27,8 +27,7 @@ public class JsonHttpEntity<T> extends AbstractHttpEntity implements HttpEntity 
 
     /** @param object the object to serialize */
     public JsonHttpEntity(@Nullable T object, @Nullable Gson gson) {
-        setContentEncoding(StandardCharsets.UTF_8.name());
-        setContentType("application/json");
+        setContentType("application/json; charset=UTF-8");
         this.object = object;
         this.gson = gson != null ? gson : new GsonBuilder().create();
     }
