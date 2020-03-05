@@ -60,6 +60,10 @@ public class ReplicationStatus extends AbstractSlingBean {
                     ? value : getId();
         }
 
+        public String getType() {
+            return state.type;
+        }
+
         public String getSourcePath() {
             return null; // FIXME 'sourcePath' attribute
         }

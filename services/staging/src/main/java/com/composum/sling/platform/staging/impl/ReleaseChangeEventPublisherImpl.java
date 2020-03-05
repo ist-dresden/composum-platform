@@ -245,6 +245,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                     info.state = process.getState();
                     info.name = process.getName();
                     info.description = process.getDescription();
+                    info.type = process.getType();
                     info.startedAt = process.getRunStartedAt();
                     info.finishedAt = process.getRunFinished();
                     info.messages = process.getMessages();

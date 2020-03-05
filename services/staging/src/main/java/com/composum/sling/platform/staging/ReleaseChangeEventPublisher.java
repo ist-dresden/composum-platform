@@ -89,8 +89,21 @@ public interface ReleaseChangeEventPublisher {
          * True if it's enabled and there is a matching release.
          */
         public boolean active;
+        /**
+         * Human readable name / title.
+         */
         public String name;
+        /**
+         * Human readable description of the process.
+         */
         public String description;
+        /**
+         * An identifier for the type of the process - e.g. "Remote" or "In-Place".
+         */
+        public String type;
+        /**
+         * The current state the process is in.
+         */
         public ReleaseChangeProcess.ReleaseChangeProcessorState state;
         /**
          * Rough estimation how much of the currently queued release changes have been processed.

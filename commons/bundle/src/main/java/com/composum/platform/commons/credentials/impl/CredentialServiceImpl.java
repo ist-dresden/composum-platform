@@ -23,6 +23,7 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.AttributeType;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
@@ -202,7 +203,7 @@ public class CredentialServiceImpl implements CredentialService {
                         "file. Caution: the password is stored in plaintext in the OSGI config file.")
         String masterPassword();
 
-        @AttributeDefinition(name = "Master Passwordfile path", required = false,
+        @AttributeDefinition(name = "Master Passwordfile path", required = false, type = AttributeType.STRING,
                 description = "A relative or absolute path to a file containing the password to decrypt the " +
                         "credentials. This is an alternative " +
                         "choice to setting the password directly. Caution: the password is stored in plaintext in the" +

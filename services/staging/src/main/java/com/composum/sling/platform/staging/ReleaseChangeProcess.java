@@ -24,18 +24,40 @@ public interface ReleaseChangeProcess extends Runnable {
      */
     String getId();
 
+    /**
+     * Human-readable name / title for the process.
+     */
     String getName();
 
+    /**
+     * The stage - normally "public" or "preview", lowercase - the process applies to.
+     */
     String getStage();
 
+    /**
+     * Human-readable description for the process.
+     */
     String getDescription();
 
-    /** If this returns true, our scheduler should {@link #run()} the process again soon. */
+    /**
+     * An identifier for the type of the process - e.g. "Remote" or "In-Place".
+     */
+    String getType();
+
+    /**
+     * If this returns true, our scheduler should {@link #run()} the process again soon.
+     */
     default boolean needsReschedule() {
         return false;
     }
 
-    enum ReleaseChangeProcessorState {idle, /** is waiting to be run */ awaiting, processing, success, error, disabled}
+    enum ReleaseChangeProcessorState {
+        idle,
+        /**
+         * is waiting to be run
+         */
+        awaiting, processing, success, error, disabled
+    }
 
     /**
      * Adds the information about the event into an internal queue. Shouldn't throw any exceptions and not do
@@ -48,13 +70,19 @@ public interface ReleaseChangeProcess extends Runnable {
     @Nonnull
     ReleaseChangeProcessorState getState();
 
-    /** True if the process is enabled; if not it's state is also {@link ReleaseChangeProcessorState#disabled}. */
+    /**
+     * True if the process is enabled; if not it's state is also {@link ReleaseChangeProcessorState#disabled}.
+     */
     boolean isEnabled();
 
-    /** True if the process is enabled and there is a matching release. */
+    /**
+     * True if the process is enabled and there is a matching release.
+     */
     boolean isActive();
 
-    /** Estimation how much of the currently queued release changes have been processed. */
+    /**
+     * Estimation how much of the currently queued release changes have been processed.
+     */
     int getCompletionPercentage();
 
     /**
@@ -64,11 +92,15 @@ public interface ReleaseChangeProcess extends Runnable {
     @Nullable
     Long getRunStartedAt();
 
-    /** The time the last processing was finished as {@link System#currentTimeMillis()}. */
+    /**
+     * The time the last processing was finished as {@link System#currentTimeMillis()}.
+     */
     @Nullable
     Long getRunFinished();
 
-    /** Can contain some human readable messages about the last run, e.g. errors. */
+    /**
+     * Can contain some human readable messages about the last run, e.g. errors.
+     */
     @Nonnull
     MessageContainer getMessages();
 
@@ -84,7 +116,9 @@ public interface ReleaseChangeProcess extends Runnable {
     @Nullable
     Boolean isSynchronized(@Nonnull ResourceResolver resolver);
 
-    /** Forces an update of {@link #isSynchronized()} and {@link #getLastReplicationTimestamp()}. */
+    /**
+     * Forces an update of {@link #isSynchronized()} and {@link #getLastReplicationTimestamp()}.
+     */
     void updateSynchronized();
 
     /**

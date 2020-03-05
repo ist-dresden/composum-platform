@@ -11,6 +11,7 @@ import com.composum.sling.platform.security.AccessMode;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.AggregatedReplicationStateInfo;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.ReplicationStateInfo;
+import com.composum.sling.platform.staging.ReleaseChangeProcess;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -145,11 +146,18 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
      * Interfaces {@link ReleaseChangeEventPublisher#replicationState(Resource, String)}.
      */
     protected class ReplicationStateOperation implements ServletOperation {
+
+        /**
+         * Name of optional parameter to restrict the result to a certain {@link ReleaseChangeProcess#getStage()}.
+         */
+        public static final String PARAM_STAGE = "stage";
+
         @Override
         public void doIt(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
             Status status = new Status(request, response, LOG);
             try {
-                Map<String, ReplicationStateInfo> result = service.replicationState(resource, null);
+                String stageParam = RequestUtil.getParameter(request, PARAM_STAGE, (String) null);
+                Map<String, ReplicationStateInfo> result = service.replicationState(resource, stageParam);
                 Map<String, Object> map = status.data("replicationStates");
                 for (Map.Entry<String, ReplicationStateInfo> entry : result.entrySet()) {
                     map.put(entry.getKey(), entry.getValue());
@@ -167,11 +175,18 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
      * Interfaces {@link ReleaseChangeEventPublisher#aggregatedReplicationState(Resource, String)}.
      */
     protected class AggregatedReplicationStateOperation implements ServletOperation {
+
+        /**
+         * Name of optional parameter to restrict the result to a certain {@link ReleaseChangeProcess#getStage()}.
+         */
+        public static final String PARAM_STAGE = "stage";
+
         @Override
         public void doIt(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
             Status status = new Status(request, response, LOG);
             try {
-                AggregatedReplicationStateInfo result = service.aggregatedReplicationState(resource, null);
+                String stageParam = RequestUtil.getParameter(request, PARAM_STAGE, (String) null);
+                AggregatedReplicationStateInfo result = service.aggregatedReplicationState(resource, stageParam);
                 status.data("aggregatedReplicationState").put("result", result);
             } catch (Exception e) {
                 LOG.error("Internal error", e);

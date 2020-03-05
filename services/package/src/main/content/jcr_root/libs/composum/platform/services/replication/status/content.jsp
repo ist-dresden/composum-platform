@@ -53,7 +53,7 @@
                                     class="badge badge-pill ${process.state}">${cpn:i18n(slingRequest,process.state)}</span>
                             </div>
                             <div class="composum-platform-replication-status_type"><span
-                                    class="value">${cpn:i18n(slingRequest,'In-Place')}</span></div>
+                                    class="value">${cpn:i18n(slingRequest,process.type)}</span></div>
                             <cpn:div test="${process.synchronized}"
                                      class="composum-platform-replication-status_timestamp"><span
                                     class="key">${cpn:i18n(slingRequest,'last replication')}</span> : <span
