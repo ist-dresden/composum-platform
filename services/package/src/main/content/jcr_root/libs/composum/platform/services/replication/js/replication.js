@@ -28,6 +28,7 @@
                 servlet: '/bin/cpm/platform/staging',
                 _publish: '.stageRelease',
                 _release: 'releaseKey=',
+                _abort: '.abortReplication',
                 base: '/libs/composum/platform/services/replication',
                 _dialog: '/dialog',
                 _summary: '/status.summary',
@@ -272,6 +273,14 @@
 
             abort: function (event) {
                 event.preventDefault();
+                var u = replication.const.url;
+                var url = u.servlet + u._abort + '.' + this.data.stage + '.json' + this.data.path;
+                core.ajaxPost(url, {
+                        releaseKey: this.data.targetKey
+                    }, {}, _.bind(function (result) {
+                        this.status.refresh();
+                    }, this)
+                );
                 return false;
             },
 

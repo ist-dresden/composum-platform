@@ -53,7 +53,10 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
 
     protected ServletOperationSet<Extension, Operation> operations;
 
-    public enum Operation {stageRelease, replicationState, aggregatedReplicationState, compareContent}
+    public enum Operation {
+        stageRelease, abortReplication,
+        replicationState, aggregatedReplicationState,
+        compareContent}
 
     public enum Extension {json}
 
@@ -61,7 +64,7 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
     private StagingReleaseManager releaseManager;
 
     @Reference
-    ReleaseChangeEventPublisher service;
+    ReleaseChangeEventPublisher releasePublisher;
 
     @Override
     protected boolean isEnabled() {
@@ -90,6 +93,8 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
                 new CompareTreeOperation());
         operations.setOperation(ServletOperationSet.Method.POST, Extension.json, Operation.stageRelease,
                 new StageReleaseOperation());
+        operations.setOperation(ServletOperationSet.Method.POST, Extension.json, Operation.abortReplication,
+                new AbortReplicationOperation());
     }
 
     public static String getReleaseKey(@Nonnull final SlingHttpServletRequest request,
@@ -157,7 +162,7 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
             Status status = new Status(request, response, LOG);
             try {
                 String stageParam = RequestUtil.getParameter(request, PARAM_STAGE, (String) null);
-                Map<String, ReplicationStateInfo> result = service.replicationState(resource, stageParam);
+                Map<String, ReplicationStateInfo> result = releasePublisher.replicationState(resource, stageParam);
                 Map<String, Object> map = status.data("replicationStates");
                 for (Map.Entry<String, ReplicationStateInfo> entry : result.entrySet()) {
                     map.put(entry.getKey(), entry.getValue());
@@ -186,8 +191,33 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
             Status status = new Status(request, response, LOG);
             try {
                 String stageParam = RequestUtil.getParameter(request, PARAM_STAGE, (String) null);
-                AggregatedReplicationStateInfo result = service.aggregatedReplicationState(resource, stageParam);
+                AggregatedReplicationStateInfo result = releasePublisher.aggregatedReplicationState(resource, stageParam);
                 status.data("aggregatedReplicationState").put("result", result);
+            } catch (Exception e) {
+                LOG.error("Internal error", e);
+                status.error("Internal error");
+            } finally {
+                status.sendJson();
+            }
+        }
+    }
+
+    /**
+     * Interfaces {@link ReleaseChangeEventPublisher#aggregatedReplicationState(Resource, String)}.
+     */
+    protected class AbortReplicationOperation implements ServletOperation {
+
+        /**
+         * Name of optional parameter to restrict the result to a certain {@link ReleaseChangeProcess#getStage()}.
+         */
+        public static final String PARAM_STAGE = "stage";
+
+        @Override
+        public void doIt(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
+            Status status = new Status(request, response, LOG);
+            try {
+                String stageParam = RequestUtil.getParameter(request, PARAM_STAGE, (String) null);
+                releasePublisher.abortReplication(resource, stageParam);
             } catch (Exception e) {
                 LOG.error("Internal error", e);
                 status.error("Internal error");
@@ -225,7 +255,7 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
                     String detailsParam = RequestUtil.getParameter(request, PARAM_DETAILS, "");
                     int details = StringUtils.isNotBlank(detailsParam) ? Integer.parseInt(detailsParam) : 0;
                     String[] processIdParams = XSS.filter(request.getParameterValues(PARAM_PROCESS_ID));
-                    service.compareTree(resource, details, processIdParams, status.data(RESULT_COMPARETREE));
+                    releasePublisher.compareTree(resource, details, processIdParams, status.data(RESULT_COMPARETREE));
                 } else {
                     status.error("Resource not found");
                     status.setStatus(SlingHttpServletResponse.SC_NOT_FOUND);
