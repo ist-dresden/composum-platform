@@ -1,7 +1,8 @@
-package com.composum.sling.platform.staging.replication;
+package com.composum.sling.platform.staging.replication.postprocess;
 
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.platform.staging.replication.MovePostprocessor.MovePropertyReplacer;
+import com.composum.sling.platform.staging.replication.postprocess.MovePostprocessor;
+import com.composum.sling.platform.staging.replication.postprocess.MovePostprocessor.MovePropertyReplacer;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.SlingMatchers;
 import com.composum.sling.platform.testing.testutil.codegen.SlingAssertionCodeGenerator;

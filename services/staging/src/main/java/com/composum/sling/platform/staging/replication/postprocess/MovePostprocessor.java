@@ -1,4 +1,4 @@
-package com.composum.sling.platform.staging.replication;
+package com.composum.sling.platform.staging.replication.postprocess;
 
 
 import org.apache.commons.lang3.StringUtils;
