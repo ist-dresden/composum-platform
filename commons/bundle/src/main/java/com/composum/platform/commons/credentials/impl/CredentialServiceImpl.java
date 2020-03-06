@@ -4,6 +4,8 @@ import com.composum.platform.commons.credentials.CredentialService;
 import com.composum.platform.commons.crypt.CryptoService;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.auth.AuthScope;
@@ -138,7 +140,7 @@ public class CredentialServiceImpl implements CredentialService {
             }
             if (passwdFile.exists() && passwdFile.length() > 0) {
                 try (FileInputStream fin = new FileInputStream(passwdFile)) {
-                    masterPassword = new String(fin.readNBytes(10000), StandardCharsets.UTF_8);
+                    masterPassword = IOUtils.toString(fin, StandardCharsets.UTF_8);
                 } catch (IOException e) {
                     LOG.error("Trouble reading password file " + passwdFile.getAbsolutePath(), e);
                     throw new IllegalStateException("Trouble reading password file " + passwdFile.getAbsolutePath(), e);

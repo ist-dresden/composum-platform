@@ -54,6 +54,8 @@ public interface ReleaseChangeProcess extends Runnable {
     /**
      * If the process is currently running, this triggers an abort. Caution: this might take a while
      * since the currently running operation might have to be finished / resources might need to be cleared up.
+     * If the process is stopped, it resets the state to {@link ReleaseChangeProcessorState#idle} to allow
+     * "acknowledging" an error.
      */
     default void abort() {
     }
