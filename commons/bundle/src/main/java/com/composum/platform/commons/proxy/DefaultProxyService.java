@@ -133,5 +133,9 @@ public class DefaultProxyService implements ProxyService {
         @AttributeDefinition(name = "Proxy Credential ID", required = false, description =
                 "Optional, an ID for the credentialsserviced to access the proxy's credentials.")
         String proxyCredentialId();
+
+        @AttributeDefinition()
+        String webconsole_configurationFactory_nameHint() default
+                "{proxyKey} (enabled: {enabled}, host: {proxyHost}, port: {proxyPort})";
     }
 }
