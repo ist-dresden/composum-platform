@@ -8,7 +8,7 @@ import java.util.Date;
 public class UpdateInfo {
 
     /**
-     * The update id for the pending operation.
+     * The update id for the pending operation. Has to comply with {@link ReplicationConstants#PATTERN_UPDATEID}.
      */
     public String updateId;
 
