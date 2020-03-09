@@ -18,17 +18,16 @@ import java.util.regex.Pattern;
  * original site's path to the moved location, and if it doesn't start with / we check whether it is a richtext that
  * contains anchors with references to /content/some/site and exchange those to /public/some/site, too.
  */
-public class MovePostprocessor implements VersionablePostProcessor {
+public class MovePostprocessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(MovePostprocessor.class);
 
-    /** Scans the resource and its children for properties that contain the site's path and replaces them. */
-    @Override
-    public void postprocess(@Nonnull Resource resource, @Nonnull ReplicationConfiguration configuration) {
-        String moveSrc = configuration.getMoveSource();
-        String moveDst = configuration.getMoveDestination();
-        if (StringUtils.isNotBlank(moveSrc) && StringUtils.isNotBlank(moveDst)) {
-            new MovePropertyReplacer(moveSrc, moveDst).processResource(resource);
+    /**
+     * Scans the resource and its children for properties that contain the site's path and replaces them.
+     */
+    public void postprocess(@Nonnull Resource resource, @Nonnull String srcPath, @Nonnull String targetPath) {
+        if (StringUtils.isNotBlank(srcPath) && StringUtils.isNotBlank(targetPath)) {
+            new MovePropertyReplacer(srcPath, targetPath).processResource(resource);
         }
     }
 
@@ -40,10 +39,10 @@ public class MovePostprocessor implements VersionablePostProcessor {
         protected final String dstDir;
         protected final Pattern linkPattern;
 
-        public MovePropertyReplacer(String moveSrc, String moveDst) {
-            this.src = StringUtils.removeEnd(moveSrc, "/");
+        public MovePropertyReplacer(String srcPath, String targetPath) {
+            this.src = StringUtils.removeEnd(srcPath, "/");
             this.srcDir = src + "/";
-            this.dst = StringUtils.removeEnd(moveDst, "/");
+            this.dst = StringUtils.removeEnd(targetPath, "/");
             this.dstDir = dst + "/";
             this.linkPattern = Pattern.compile(
                     "(?<beforepath>(<|&lt;)(a|img)[^>]*\\s(href|src)=(?<quot>['\"]|&quot;))" +

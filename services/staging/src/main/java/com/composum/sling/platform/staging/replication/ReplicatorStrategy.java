@@ -93,7 +93,8 @@ public class ReplicatorStrategy {
             requireNonNull(commonParent);
             progress = 0;
 
-            UpdateInfo updateInfo = publisher.startUpdate(release.getReleaseRoot().getPath(), commonParent).updateInfo;
+            UpdateInfo updateInfo = publisher.startUpdate(release.getReleaseRoot().getPath(), commonParent,
+                    replicationConfig.getSourcePath(), replicationConfig.getTargetPath()).updateInfo;
             cleanupUpdateInfo = updateInfo;
             LOG.info("Received UpdateInfo {}", updateInfo);
 

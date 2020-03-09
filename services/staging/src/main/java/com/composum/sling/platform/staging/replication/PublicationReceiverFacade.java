@@ -41,10 +41,14 @@ public interface PublicationReceiverFacade {
      * @param releaseRoot the root of the release containing {path} (may be equal to {path})
      * @param path        the root content path that should be considered. Might be the root of a release, or any
      *                    subdirectory.
+     * @param srcPath     the path of the content affected by this configuration, default: releaseRoot
+     * @param targetPath  the optional path at the target (for reference transformation), default: srcPath
      * @return the basic information about the update which must be used for all related calls on this update.
      */
     @Nonnull
-    StatusWithReleaseData startUpdate(@NotNull String releaseRoot, @Nonnull String path) throws PublicationReceiverFacadeException, RepositoryException;
+    StatusWithReleaseData startUpdate(@NotNull String releaseRoot, @Nonnull String path,
+                                      @Nullable String srcPath, @Nullable String targetPath)
+            throws PublicationReceiverFacadeException, RepositoryException;
 
     /**
      * Starts an update process on the remote side. To clean up resources, either
@@ -109,6 +113,8 @@ public interface PublicationReceiverFacade {
 
     /**
      * Compares children order and attributes of the parents.
+     * Returns in .data(PARAM_CHILDORDERINGS).get(PARAM_PATH) a list of paths that have different children ordering and in
+     * .data(PARAM_ATTRIBUTEINFOS).get(PARAM_PATH) a list of paths that have different attributes.
      */
     Status compareParents(String releaseRoot, ResourceResolver resolver, Stream<ChildrenOrderInfo> relevantOrderings,
                           Stream<NodeAttributeComparisonInfo> attributeInfos) throws PublicationReceiverFacadeException, RepositoryException;
