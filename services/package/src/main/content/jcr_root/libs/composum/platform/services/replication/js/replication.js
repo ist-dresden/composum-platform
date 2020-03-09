@@ -35,7 +35,9 @@
                 _status: '/status',
                 _reload: '.reload'
             },
-            polling: 5000,
+            polling: {
+                running: 2000, idle: 10000
+            },
             dialog: 'normal'
         });
 
@@ -52,8 +54,9 @@
             },
 
             resumeRefresh: function () {
-                if (!this.tmRefresh && this.data.state.state === 'running') {
-                    this.tmRefresh = window.setTimeout(_.bind(this.refresh, this), replication.const.polling);
+                if (!this.tmRefresh) {
+                    this.tmRefresh = window.setTimeout(_.bind(this.refresh, this),
+                        replication.const.polling[this.data.state.state === 'running' ? 'running' : 'idle']);
                 }
             }
         });
@@ -131,6 +134,8 @@
                     path: this.$view.data('path'),
                     stage: this.$view.data('stage'),
                     release: this.$view.data('release'),
+                    releaseKey: this.$view.data('key'),
+                    releaseLabel: this.$view.data('label'),
                     state: JSON.parse(atob(this.$view.data('state')))
                 };
                 this.$stage = this.$('.' + c.base + c._stage);
@@ -183,8 +188,15 @@
 
             openPublishDialog: function (releasePath, callback) {
                 var u = replication.const.url;
-                var url = u.base + u._dialog + '.html' + releasePath;
-                core.openFormDialog(url, replication.PublishDialog, {}, undefined,
+                var url = u.base + u._dialog + '.' + this.data.stage + '.html' + releasePath;
+                core.openFormDialog(url, replication.PublishDialog, {
+                        path: this.data.release,
+                        stage: this.data.stage,
+                        currentKey: this.data.releaseKey,
+                        currentLabel: this.data.releaseLabel,
+                        targetKey: this.data.releaseKey,
+                        tagretLabel: this.data.releaseLabel
+                    }, undefined,
                     _.bind(function () {
                         if (_.isFunction(callback)) {
                             callback();

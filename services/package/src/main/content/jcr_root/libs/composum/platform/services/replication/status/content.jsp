@@ -5,7 +5,8 @@
 <sling:defineObjects/>
 <cpn:component var="model" type="com.composum.sling.platform.staging.model.ReplicationStatus"
                scope="request">
-    <div data-path="${model.path}" data-stage="${model.stage}" data-release="${model.release.path}"
+    <div data-path="${model.path}" data-stage="${model.stage}"
+         data-release="${model.release.path}" data-key="${model.release.key}" data-label="${model.release.title}"
          data-state="${model.replicationState.jsonSummary}"
          class="composum-platform-replication-status_view panel panel-default">
         <div id="${model.domId}_${model.stage}_toggle"

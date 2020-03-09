@@ -282,6 +282,10 @@ public class ReplicationStatus extends AbstractSlingBean {
             return release != null ? release.getNumber() : "";
         }
 
+        public String getTitle() {
+            return getMetaValue(ResourceUtil.JCR_TITLE, getKey());
+        }
+
         public String getTitleString() {
             String title = getMetaValue(ResourceUtil.JCR_TITLE, "");
             return StringUtils.isNotBlank(title) ? title :
