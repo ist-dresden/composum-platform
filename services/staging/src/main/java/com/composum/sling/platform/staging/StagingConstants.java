@@ -140,6 +140,8 @@ public interface StagingConstants {
      */
     String NODE_RELEASE_METADATA = "metaData";
 
+    String TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss";
+
     /** Maps the frozen property types to their normal names. */
     ImmutableBiMap<String, String> FROZEN_PROP_NAMES_TO_REAL_NAMES = ImmutableBiMap.of(
             JCR_FROZENPRIMARYTYPE, JCR_PRIMARYTYPE,

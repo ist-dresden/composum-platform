@@ -4,7 +4,7 @@
 <sling:defineObjects/>
 <cpn:component var="model" type="com.composum.sling.platform.staging.model.ReplicationStatus"
                scope="request">
-    <div class="composum-platform-replication-status widget">
+    <div class="composum-platform-replication-status composum-platform-replication-status_stage-${model.stage}">
         <sling:call script="content.jsp"/>
     </div>
 </cpn:component>

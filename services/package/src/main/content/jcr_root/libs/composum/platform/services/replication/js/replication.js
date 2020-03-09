@@ -52,7 +52,7 @@
             },
 
             resumeRefresh: function () {
-                if (!this.tmRefresh && this.state.state === 'running') {
+                if (!this.tmRefresh && this.data.state.state === 'running') {
                     this.tmRefresh = window.setTimeout(_.bind(this.refresh, this), replication.const.polling);
                 }
             }
@@ -61,21 +61,23 @@
         replication.Badge = replication.StateMonitor.extend({
 
             initialize: function (options) {
-                this.state = JSON.parse(atob(this.$el.data('state')));
+                this.data = {
+                    state: JSON.parse(atob(this.$el.data('state')))
+                };
                 this.resumeRefresh();
             },
 
             refresh: function () {
                 this.tmRefresh = undefined;
                 var u = replication.const.url;
-                core.getJson(u.base + u._summary + '.' + this.state.stage + '.json' + this.$el.data('path'),
+                core.getJson(u.base + u._summary + '.' + this.data.state.stage + '.json' + this.$el.data('path'),
                     _.bind(function (state) {
                         var c = replication.const.css;
                         this.$el.removeClass().addClass(c.base + c._badge + ' widget badge badge-pill ' + state.state);
                         core.i18n.get([state.stage, state.state], _.bind(function (value) {
                             this.$el.attr('title', value[0] + ': ' + value[1]);
                         }, this));
-                        this.state = state;
+                        this.data.state = state;
                         this.resumeRefresh();
                     }, this));
             }
@@ -87,7 +89,9 @@
 
             initialize: function (options) {
                 var c = replication.const.css;
-                this.state = JSON.parse(atob(this.$el.data('state')));
+                this.data = {
+                    state: JSON.parse(atob(this.$el.data('state')))
+                };
                 this.$state = this.$('.' + c.base + c._state);
                 this.$progress = this.$('.' + c.base + c._progress);
                 this.$timestamp = this.$('.' + c.base + c._timestamp);
@@ -102,13 +106,13 @@
                     .css('width', state.progress + '%')
                     .attr('aria-valuenow', state.progress)
                     .text(state.progress + '%');
-                if (state.state === 'synchron' && this.state.state !== 'synchron') {
+                if (state.state === 'synchron' && this.data.state.state !== 'synchron') {
                     core.i18n.get('finished at', _.bind(function (value) {
                         this.$timestamp.find('.key').text(value);
                     }, this));
                     this.$timestamp.find('.value').text(state.finishedAt);
                 }
-                this.state = state;
+                this.data.state = state;
             }
         });
 
@@ -123,7 +127,12 @@
                 this.stopRefresh();
                 var c = replication.const.css;
                 this.$view = this.$('.' + c.base + c._view);
-                this.state = JSON.parse(atob(this.$view.data('state')));
+                this.data = {
+                    path: this.$view.data('path'),
+                    stage: this.$view.data('stage'),
+                    release: this.$view.data('release'),
+                    state: JSON.parse(atob(this.$view.data('state')))
+                };
                 this.$stage = this.$('.' + c.base + c._stage);
                 this.$state = this.$stage.find('.' + c.base + c._state);
                 this.$title = this.$stage.find('.' + c.base + c._title);
@@ -134,7 +143,7 @@
                 var processes = this.processes = {};
                 this.$('.' + c.base + c._process).each(function () {
                     var process = core.getView($(this), replication.Process);
-                    processes[process.state.id] = process;
+                    processes[process.data.state.id] = process;
                 });
                 this.$abort.find('button').click(_.bind(this.abort, this));
                 this.$synchronize.find('button').click(_.bind(this.synchronize, this));
@@ -162,20 +171,31 @@
 
             abort: function (event) {
                 event.preventDefault();
-                this.reload();
+                this.openPublishDialog(this.data.release, _.bind(this.reload, this));
                 return false;
             },
 
             synchronize: function (event) {
                 event.preventDefault();
-                this.reload();
+                this.openPublishDialog(this.data.release, _.bind(this.reload, this));
                 return false;
+            },
+
+            openPublishDialog: function (releasePath, callback) {
+                var u = replication.const.url;
+                var url = u.base + u._dialog + '.html' + releasePath;
+                core.openFormDialog(url, replication.PublishDialog, {}, undefined,
+                    _.bind(function () {
+                        if (_.isFunction(callback)) {
+                            callback();
+                        }
+                    }, this));
             },
 
             refresh: function () {
                 this.tmRefresh = undefined;
                 var u = replication.const.url;
-                core.getJson(u.base + u._status + '.' + this.state.stage + '.json' + this.$view.data('path'),
+                core.getJson(u.base + u._status + '.' + this.data.state.stage + '.json' + this.data.path,
                     _.bind(function (data) {
                         var state = data.summary;
                         this.$state.removeClass().addClass('badge badge-pill ' + state.state);
@@ -202,7 +222,7 @@
                                 return;
                             }
                         }
-                        this.state = state;
+                        this.data.state = state;
                         this.propagateRefresh();
                         this.resumeRefresh();
                     }, this));
@@ -210,8 +230,7 @@
 
             reload: function () {
                 var u = replication.const.url;
-                core.getHtml(u.base + u._status + u._reload + '.' + this.state.stage + '.html'
-                    + this.$view.data('path'),
+                core.getHtml(u.base + u._status + u._reload + '.' + this.data.state.stage + '.html' + this.data.path,
                     _.bind(function (content) {
                         this.$el.html(content);
                         this.initContent();
@@ -262,7 +281,7 @@
                 if (this.data.currentLabel) {
                     this.status.setLabel(this.data.currentLabel);
                 }
-                if (this.status.state.state === 'running') {
+                if (this.status.data.state.state === 'running') {
                     this.$abort.removeClass('hidden');
                     this.$publish.attr('disabled', 'disabled');
                 } else {

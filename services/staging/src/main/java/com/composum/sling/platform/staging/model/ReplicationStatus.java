@@ -4,13 +4,17 @@ import com.composum.platform.commons.util.ExceptionThrowingFunction;
 import com.composum.sling.core.AbstractSlingBean;
 import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.logging.Message;
+import com.composum.sling.core.util.I18N;
 import com.composum.sling.core.util.RequestUtil;
+import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.AggregatedReplicationStateInfo;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.ReplicationStateInfo;
+import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.google.gson.stream.JsonWriter;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,22 +26,21 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static com.composum.sling.platform.staging.StagingConstants.CURRENT_RELEASE;
+import static com.composum.sling.platform.staging.StagingConstants.TIMESTAMP_FORMAT;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
 
 public class ReplicationStatus extends AbstractSlingBean {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReplicationStatus.class);
 
-    public static final String TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss";
-
     public enum State {undefined, synchron, running, faulty, switchedoff}
-
-    private transient ReleaseChangeEventPublisher releasePublisher;
 
     public class ReplicationProcessState implements Comparable<ReplicationProcessState> {
 
@@ -254,9 +257,67 @@ public class ReplicationStatus extends AbstractSlingBean {
         }
     }
 
+    public class ReleaseModel {
+
+        @Nullable
+        protected final StagingReleaseManager.Release release;
+
+        public ReleaseModel(@Nullable final StagingReleaseManager.Release release) {
+            this.release = release;
+        }
+
+        public boolean isValid() {
+            return release != null;
+        }
+
+        public boolean isCurrent() {
+            return CURRENT_RELEASE.equals(getKey());
+        }
+
+        public String getPath() {
+            return release != null ? release.getPath() : "";
+        }
+
+        public String getKey() {
+            return release != null ? release.getNumber() : "";
+        }
+
+        public String getTitleString() {
+            String title = getMetaValue(ResourceUtil.JCR_TITLE, "");
+            return StringUtils.isNotBlank(title) ? title :
+                    isCurrent() ? I18N.get(context.getRequest(), "the open next release") : "-- --";
+        }
+
+        public String getDescription() {
+            return getMetaValue(ResourceUtil.JCR_DESCRIPTION, "");
+        }
+
+        public Calendar getCreationDate() {
+            return getMetaValue(JcrConstants.JCR_CREATED, null);
+        }
+
+        public String getCreationDateString() {
+            Calendar timestamp = getCreationDate();
+            if (timestamp != null) {
+                return new SimpleDateFormat(TIMESTAMP_FORMAT).format(timestamp.getTime());
+            } else {
+                return "";
+            }
+        }
+
+        protected <T> T getMetaValue(String name, T defaultValue) {
+            Resource metaData = release != null ? release.getMetaDataNode() : null;
+            return metaData != null ? metaData.getValueMap().get(name, defaultValue) : null;
+        }
+    }
+
     private transient String stage;
+    private transient ReleaseModel release;
     private transient ReplicationState replicationState;
     private transient List<ReplicationProcessState> replicationProcessStates;
+
+    private transient StagingReleaseManager releaseManager;
+    private transient ReleaseChangeEventPublisher releasePublisher;
 
     @Override
     public void initialize(@Nonnull BeanContext context, @Nonnull Resource resource) {
@@ -311,6 +372,21 @@ public class ReplicationStatus extends AbstractSlingBean {
             }
         }
         return replicationProcessStates;
+    }
+
+    @Nullable
+    public ReleaseModel getRelease() {
+        if (release == null) {
+            release = new ReleaseModel(getReleaseManager().findReleaseByMark(getResource(), getStage()));
+        }
+        return release;
+    }
+
+    protected StagingReleaseManager getReleaseManager() {
+        if (releaseManager == null) {
+            releaseManager = Objects.requireNonNull(context.getService(StagingReleaseManager.class));
+        }
+        return releaseManager;
     }
 
     protected ReleaseChangeEventPublisher getReleasePublisher() {

@@ -2,8 +2,8 @@
 <%@taglib prefix="sling" uri="http://sling.apache.org/taglibs/sling/1.2" %>
 <%@taglib prefix="cpn" uri="http://sling.composum.com/cpnl/1.0" %>
 <sling:defineObjects/>
-<cpn:component var="model" type="com.composum.sling.platform.staging.model.ReplicationStatus"
-               path="${cpn:filter(slingRequest.requestPathInfo.suffix)}" scope="request">
+<cpn:component var="model" type="com.composum.sling.platform.staging.model.ReplicationStatus" scope="request"
+               path="${cpn:filter(slingRequest.requestPathInfo.suffix)}">
     <div class="composum-platform-replication-dialog dialog modal fade" role="dialog" aria-hidden="true"
          data-path="${model.path}" data-stage="${model.stage}">
         <div class="modal-dialog modal-lg">
