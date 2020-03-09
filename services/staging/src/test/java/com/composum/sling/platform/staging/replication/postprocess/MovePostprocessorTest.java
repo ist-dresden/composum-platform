@@ -1,8 +1,7 @@
 package com.composum.sling.platform.staging.replication.postprocess;
 
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.platform.staging.replication.postprocess.MovePostprocessor;
-import com.composum.sling.platform.staging.replication.postprocess.MovePostprocessor.MovePropertyReplacer;
+import com.composum.sling.platform.staging.replication.ReplicationPaths;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.SlingMatchers;
 import com.composum.sling.platform.testing.testutil.codegen.SlingAssertionCodeGenerator;
@@ -15,10 +14,11 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import static com.composum.sling.platform.testing.testutil.SlingMatchers.hasMapSize;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
-/** Test for {@link MovePostprocessor}. */
+/**
+ * Test for {@link MovePostprocessor}.
+ */
 public class MovePostprocessorTest {
 
     @Rule
@@ -31,6 +31,7 @@ public class MovePostprocessorTest {
     public void checkMove() throws PersistenceException {
         String src = "/the/src";
         String dst = "/our/dst";
+        MovePostprocessor processor = new MovePostprocessor(src, dst);
 
         ResourceBuilder top = context.build().resource("/whatever",
                 ResourceUtil.PROP_PRIMARY_TYPE, ResourceUtil.TYPE_UNSTRUCTURED,
@@ -44,9 +45,8 @@ public class MovePostprocessorTest {
                         "href=\"/the/src\">videos</a> can be <a href=\"/something/else\">JCR</a>-versioned.</p>"
         ).commit().getCurrentParent();
 
-        MovePropertyReplacer processor = new MovePropertyReplacer(src, dst);
         Resource r = top.getCurrentParent();
-        processor.processResource(r);
+        processor.postprocess(r);
         context.resourceResolver().commit();
 
         new SlingAssertionCodeGenerator("r", r).useErrorCollector()
@@ -72,6 +72,18 @@ public class MovePostprocessorTest {
                                 " that picures and <a href=\"/our/dst\">videos</a> can be <a " +
                                 "href=\"/something/else\">JCR</a>-versioned.</p>"))
         ));
+    }
+
+    @Test
+    public void checkTranslate() {
+        String src = "/the/src";
+        String dst = "/our/dst";
+        ReplicationPaths replicationPaths = new ReplicationPaths(src, src, dst, null);
+        ec.checkThat(replicationPaths.translate((String) null), nullValue());
+        ec.checkThat(replicationPaths.translate(src), is(dst));
+        ec.checkThat(replicationPaths.translate("/whatever"), is("/whatever"));
+        ec.checkThat(replicationPaths.translate("/the/src/a/b"), is("/our/dst/a/b"));
+        ec.checkThat(replicationPaths.translate("/the/src/a/../b"), is("/our/dst/b"));
     }
 
 }

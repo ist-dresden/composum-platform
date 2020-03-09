@@ -16,7 +16,7 @@ import javax.annotation.Nullable;
  * {@link ReleaseChangeEventListener#receive(ReleaseChangeEvent)}.
  * The processes can be shown in the GUI and checked for their state.
  */
-public interface ReleaseChangeProcess extends Runnable {
+public interface ReleaseChangeProcess {
 
     /**
      * A string (such as a configuration resource path) that identifies this process uniquely. Not for human
@@ -131,12 +131,16 @@ public interface ReleaseChangeProcess extends Runnable {
     void updateSynchronized();
 
     /**
-     * This method performs the processing.
-     * To process the changes, this has to be called externally, e.g. by entering the {@link ReleaseChangeProcess}
+     * This method performs the actual replication processing. This is meant to be automatically called from
+     * the internal release change publishing mechanism (specifically {@link com.composum.sling.platform.staging.impl.ReleaseChangeEventPublisherImpl},
+     * not a part of the GUI.
+     * <p>
+     * The contract with the {@link com.composum.sling.platform.staging.impl.ReleaseChangeEventPublisherImpl} is:
+     * it calls this method after changes to the release have been received, e.g. by entering the {@link ReleaseChangeProcess}
      * into a threadpool. Must not be called twice in parallel. If there is nothing in the queue, this
      * should just be a no-op.
      */
-    @Override
+    // FIXME(hps,10.03.20) rename this e.g. to runReplication to make calls more searchable.
     void run();
 
     /**

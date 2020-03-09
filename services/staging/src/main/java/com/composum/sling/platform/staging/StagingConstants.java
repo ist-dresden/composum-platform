@@ -120,6 +120,7 @@ public interface StagingConstants {
     String PROP_CHANGE_NUMBER = "cpl:releaseChangeNumber";
 
     /** Property on the release root that is set when it is replicated from somewhere else at the end of each replication. */
+    // FIXME(hps,10.03.20) this is no longer set at the release root
     String PROP_LAST_REPLICATION_DATE = "cpl:lastReplicationDate";
 
     /**

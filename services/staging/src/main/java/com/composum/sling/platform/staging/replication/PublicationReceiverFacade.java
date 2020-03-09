@@ -1,11 +1,10 @@
 package com.composum.sling.platform.staging.replication;
 
 import com.composum.platform.commons.util.ExceptionThrowingRunnable;
-import com.composum.sling.platform.staging.replication.UpdateInfo;
+import com.composum.sling.core.servlet.Status;
 import com.composum.sling.platform.staging.replication.json.ChildrenOrderInfo;
 import com.composum.sling.platform.staging.replication.json.NodeAttributeComparisonInfo;
 import com.composum.sling.platform.staging.replication.json.VersionableTree;
-import com.composum.sling.core.servlet.Status;
 import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonWriter;
 import org.apache.http.StatusLine;
@@ -13,7 +12,6 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,33 +33,28 @@ public interface PublicationReceiverFacade {
 
     /**
      * Starts an update process on the remote side. To clean up resources, either
-     * {@link #commitUpdate(UpdateInfo, Set, Stream, ExceptionThrowingRunnable)} or
+     * {@link #commitUpdate(UpdateInfo, String, Set, Stream, ExceptionThrowingRunnable)} or
      * {@link #abortUpdate(UpdateInfo)} must be called afterwards.
      *
-     * @param releaseRoot the root of the release containing {path} (may be equal to {path})
-     * @param path        the root content path that should be considered. Might be the root of a release, or any
-     *                    subdirectory.
-     * @param srcPath     the path of the content affected by this configuration, default: releaseRoot
-     * @param targetPath  the optional path at the target (for reference transformation), default: srcPath
+     * @param replicationPaths information about the release root, source and target paths during replication.
+     *                         The {@link ReplicationPaths#getContentPath()} can contain the root content path that should be considered,
+     *                         if it is only a subpath of the {@link ReplicationPaths#getOrigin()}.
      * @return the basic information about the update which must be used for all related calls on this update.
      */
     @Nonnull
-    StatusWithReleaseData startUpdate(@NotNull String releaseRoot, @Nonnull String path,
-                                      @Nullable String srcPath, @Nullable String targetPath)
+    StatusWithReleaseData startUpdate(@Nonnull ReplicationPaths replicationPaths)
             throws PublicationReceiverFacadeException, RepositoryException;
 
     /**
      * Starts an update process on the remote side. To clean up resources, either
-     * {@link #commitUpdate(UpdateInfo, Set, Stream, ExceptionThrowingRunnable)} or
+     * {@link #commitUpdate(UpdateInfo, String, Set, Stream, ExceptionThrowingRunnable)} or
      * {@link #abortUpdate(UpdateInfo)} must be called afterwards.
      *
-     * @param path            the root content path that should be considered. Might be the root of a release, or any
-     *                        subdirectory.
-     * @param releaseRootPath the root of the release containing {path} (may be equal to {path})
+     * @param replicationPaths information about the release root, source and target paths during replication.
      * @return the basic information about the update which must be used for all related calls on this update.
      */
     @Nonnull
-    StatusWithReleaseData releaseInfo(@NotNull String releaseRootPath) throws PublicationReceiverFacadeException, RepositoryException;
+    StatusWithReleaseData releaseInfo(@Nonnull ReplicationPaths replicationPaths) throws PublicationReceiverFacadeException, RepositoryException;
 
     /**
      * Queries the versions of versionables below {paths} on the remote side and returns in the status which
@@ -116,8 +109,10 @@ public interface PublicationReceiverFacade {
      * Returns in .data(PARAM_CHILDORDERINGS).get(PARAM_PATH) a list of paths that have different children ordering and in
      * .data(PARAM_ATTRIBUTEINFOS).get(PARAM_PATH) a list of paths that have different attributes.
      */
-    Status compareParents(String releaseRoot, ResourceResolver resolver, Stream<ChildrenOrderInfo> relevantOrderings,
-                          Stream<NodeAttributeComparisonInfo> attributeInfos) throws PublicationReceiverFacadeException, RepositoryException;
+    Status compareParents(@Nonnull ReplicationPaths replicationPaths, @Nonnull ResourceResolver resolver,
+                          @Nonnull Stream<ChildrenOrderInfo> relevantOrderings,
+                          @Nonnull Stream<NodeAttributeComparisonInfo> attributeInfos)
+            throws PublicationReceiverFacadeException, RepositoryException;
 
     /**
      * Exception that signifies a problem with the replication.

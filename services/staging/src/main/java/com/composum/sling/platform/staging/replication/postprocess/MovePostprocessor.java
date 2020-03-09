@@ -1,6 +1,7 @@
 package com.composum.sling.platform.staging.replication.postprocess;
 
 
+import com.composum.sling.core.util.SlingResourceUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.ModifiableValueMap;
 import org.apache.sling.api.resource.Resource;
@@ -8,9 +9,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 /**
  * Postprocessor that adapts the properties of a replicated versionable as if the release is replicated in another
@@ -22,11 +30,24 @@ public class MovePostprocessor {
 
     private static final Logger LOG = LoggerFactory.getLogger(MovePostprocessor.class);
 
+    protected final String srcPath;
+    protected final String targetPath;
+
+    public MovePostprocessor(@Nullable String srcPath, @Nullable String targetPath) {
+        if (StringUtils.isNoneBlank(srcPath, targetPath)) {
+            this.srcPath = srcPath;
+            this.targetPath = targetPath;
+        } else {
+            this.srcPath = null;
+            this.targetPath = null;
+        }
+    }
+
     /**
      * Scans the resource and its children for properties that contain the site's path and replaces them.
      */
-    public void postprocess(@Nonnull Resource resource, @Nonnull String srcPath, @Nonnull String targetPath) {
-        if (StringUtils.isNotBlank(srcPath) && StringUtils.isNotBlank(targetPath)) {
+    public void postprocess(@Nonnull Resource resource) {
+        if (isNotBlank(srcPath) && isNotBlank(targetPath) && !StringUtils.equals(srcPath, targetPath)) {
             new MovePropertyReplacer(srcPath, targetPath).processResource(resource);
         }
     }

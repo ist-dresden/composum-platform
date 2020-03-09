@@ -85,6 +85,11 @@ public class ReplicatorStrategy {
         abortAtNextPossibility = true;
     }
 
+    @Nonnull
+    ReplicationPaths replicationPaths(@Nullable String contentPath) {
+        return new ReplicationPaths(release.getReleaseRoot().getPath(), replicationConfig.getSourcePath(), replicationConfig.getTargetPath(), contentPath);
+    }
+
     public void replicate() throws ReleaseChangeEventListener.ReplicationFailedException {
         cleanupUpdateInfo = null;
         try {
@@ -93,8 +98,7 @@ public class ReplicatorStrategy {
             requireNonNull(commonParent);
             progress = 0;
 
-            UpdateInfo updateInfo = publisher.startUpdate(release.getReleaseRoot().getPath(), commonParent,
-                    replicationConfig.getSourcePath(), replicationConfig.getTargetPath()).updateInfo;
+            UpdateInfo updateInfo = publisher.startUpdate(replicationPaths(commonParent)).updateInfo;
             cleanupUpdateInfo = updateInfo;
             LOG.info("Received UpdateInfo {}", updateInfo);
 
@@ -290,7 +294,7 @@ public class ReplicatorStrategy {
     public UpdateInfo remoteReleaseInfo() throws PublicationReceiverFacade.PublicationReceiverFacadeException {
         PublicationReceiverFacade.StatusWithReleaseData status = null;
         try {
-            status = publisher.releaseInfo(release.getReleaseRoot().getPath());
+            status = publisher.releaseInfo(replicationPaths(null));
         } catch (RepositoryException e) {
             throw new PublicationReceiverFacade.PublicationReceiverFacadeException("Error calling " +
                     "releaseInfo", e, status, null);
@@ -318,7 +322,7 @@ public class ReplicatorStrategy {
     public ReleaseChangeEventPublisher.CompareResult compareTree(int details) throws PublicationReceiverFacade.PublicationReceiverFacadeException, ReleaseChangeEventListener.ReplicationFailedException {
         try {
             ReleaseChangeEventPublisher.CompareResult result = new ReleaseChangeEventPublisher.CompareResult();
-            PublicationReceiverFacade.StatusWithReleaseData releaseInfoStatus = publisher.releaseInfo(release.getReleaseRoot().getPath());
+            PublicationReceiverFacade.StatusWithReleaseData releaseInfoStatus = publisher.releaseInfo(replicationPaths(null));
             UpdateInfo updateInfo = releaseInfoStatus.updateInfo;
             if (!releaseInfoStatus.isValid() || updateInfo == null) {
                 LOG.error("Retrieve remote releaseinfo failed for {}", this.replicationConfig);
@@ -358,7 +362,7 @@ public class ReplicatorStrategy {
             // compare the children orderings and parent attributes
             Stream<ChildrenOrderInfo> relevantOrderings = relevantOrderings(changedPaths);
             Stream<NodeAttributeComparisonInfo> attributeInfos = parentAttributeInfos(changedPaths);
-            Status compareParentState = publisher.compareParents(release.getReleaseRoot().getPath(), resolver,
+            Status compareParentState = publisher.compareParents(replicationPaths(null), resolver,
                     relevantOrderings, attributeInfos);
             if (!compareParentState.isValid()) {
                 throw new ReleaseChangeEventListener.ReplicationFailedException("Comparing parents failed for " + replicationConfig, null,
@@ -374,7 +378,7 @@ public class ReplicatorStrategy {
             }
 
             // repeat releaseInfo since this might have taken a while and there might have been a change
-            releaseInfoStatus = publisher.releaseInfo(release.getReleaseRoot().getPath());
+            releaseInfoStatus = publisher.releaseInfo(replicationPaths(null));
             if (!releaseInfoStatus.isValid() || updateInfo == null) {
                 LOG.error("Retrieve remote releaseinfo failed for {}", this.replicationConfig);
                 return null;
