@@ -14,7 +14,8 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import static com.composum.sling.platform.testing.testutil.SlingMatchers.hasMapSize;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Test for {@link MovePostprocessor}.
@@ -79,11 +80,17 @@ public class MovePostprocessorTest {
         String src = "/the/src";
         String dst = "/our/dst";
         ReplicationPaths replicationPaths = new ReplicationPaths(src, src, dst, null);
-        ec.checkThat(replicationPaths.translate((String) null), nullValue());
+        // ec.checkThat(replicationPaths.translate((String) null), nullValue());
         ec.checkThat(replicationPaths.translate(src), is(dst));
-        ec.checkThat(replicationPaths.translate("/whatever"), is("/whatever"));
+        // ec.checkThat(replicationPaths.translate("/whatever"), is("/whatever"));
         ec.checkThat(replicationPaths.translate("/the/src/a/b"), is("/our/dst/a/b"));
         ec.checkThat(replicationPaths.translate("/the/src/a/../b"), is("/our/dst/b"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void checkTranslateException() {
+        ReplicationPaths replicationPaths = new ReplicationPaths("/the/src", "/the/src", "/our/dst", null);
+        ec.checkThat(replicationPaths.translate("/whatever"), is("/whatever"));
     }
 
 }

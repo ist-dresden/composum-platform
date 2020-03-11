@@ -35,15 +35,14 @@ public class ReplicationPaths {
     private transient MovePostprocessor movePostprocessor;
 
     public ReplicationPaths(@Nonnull String releaseRoot, @Nullable String sourcePath, @Nullable String targetPath, @Nullable String contentPath) {
-        this.releaseRoot = StringUtils.isNotBlank(releaseRoot) ? releaseRoot : null;
-        Objects.requireNonNull(releaseRoot);
-        this.sourcePath = StringUtils.isNotBlank(sourcePath) ? sourcePath : null;
-        this.targetPath = StringUtils.isNotBlank(targetPath) ? targetPath : null;
-        this.contentPath = contentPath;
-        if (sourcePath != null && !SlingResourceUtil.isSameOrDescendant(releaseRoot, sourcePath)) {
+        this.releaseRoot = Objects.requireNonNull(StringUtils.trimToNull(releaseRoot));
+        this.sourcePath = StringUtils.trimToNull(sourcePath);
+        this.targetPath = StringUtils.trimToNull(targetPath);
+        this.contentPath = StringUtils.trimToNull(contentPath);
+        if (this.sourcePath != null && !SlingResourceUtil.isSameOrDescendant(this.releaseRoot, this.sourcePath)) {
             throw new IllegalArgumentException("Source path must be descendant of release root.");
         }
-        if (contentPath != null && !SlingResourceUtil.isSameOrDescendant(getOrigin(), contentPath)) {
+        if (this.contentPath != null && !SlingResourceUtil.isSameOrDescendant(getOrigin(), this.contentPath)) {
             throw new IllegalArgumentException("Content path is outside of source range: " + contentPath);
         }
     }
@@ -58,6 +57,17 @@ public class ReplicationPaths {
                 XSS.filter(request.getParameter(PARAM_SOURCEPATH)),
                 XSS.filter(request.getParameter(PARAM_TARGETPATH)),
                 XSS.filter(request.getRequestPathInfo().getSuffix()));
+    }
+
+    /**
+     * Only creates ReplicationPaths if the mandatory releaseRoot is set.
+     */
+    @Nullable
+    public static ReplicationPaths optional(@Nonnull SlingHttpServletRequest request) {
+        if (StringUtils.isNotBlank(request.getParameter(PARAM_RELEASEROOT))) {
+            return new ReplicationPaths(request);
+        }
+        return null;
     }
 
     /**

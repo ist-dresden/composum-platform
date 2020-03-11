@@ -32,7 +32,7 @@ public interface ReplicationConstants {
     /**
      * A parameter for a content path that is replicated - exact meaning depends on the context.
      */
-    String PARAM_CONTENTPATH = "targetPath";
+    String PARAM_CONTENTPATH = "contentPath";
 
 
     /**
