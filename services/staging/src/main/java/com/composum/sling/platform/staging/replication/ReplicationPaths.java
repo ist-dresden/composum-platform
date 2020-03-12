@@ -5,6 +5,7 @@ import com.composum.sling.core.util.XSS;
 import com.composum.sling.platform.staging.replication.postprocess.MovePostprocessor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.sling.api.SlingHttpServletRequest;
 
@@ -218,6 +219,21 @@ public class ReplicationPaths {
         if (getTargetPath() != null) {
             form.add(new BasicNameValuePair(ReplicationConstants.PARAM_TARGETPATH, getTargetPath()));
         }
+    }
+
+    /**
+     * Adds our values (except {@link #getContentPath()} which is usually transmitted as suffix) as parameter to an URI.
+     */
+    @Nonnull
+    public URIBuilder addToUriBuilder(@Nonnull URIBuilder uriBuilder) {
+        uriBuilder.addParameter(ReplicationConstants.PARAM_RELEASEROOT, getReleaseRoot());
+        if (getSourcePath() != null) {
+            uriBuilder.addParameter(ReplicationConstants.PARAM_SOURCEPATH, getSourcePath());
+        }
+        if (getTargetPath() != null) {
+            uriBuilder.addParameter(ReplicationConstants.PARAM_TARGETPATH, getTargetPath());
+        }
+        return uriBuilder;
     }
 
     @Override

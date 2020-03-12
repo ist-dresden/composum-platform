@@ -60,13 +60,15 @@ public interface PublicationReceiverFacade {
      * Queries the versions of versionables below {paths} on the remote side and returns in the status which
      * resources of the remote side have a different version and which do not exist.
      *
-     * @param paths       the paths to query
-     * @param contentPath a path that is a common parent to all paths - just a safety feature that a broken / faked
-     *                    response cannot compare unwanted areas of the content.
+     * @param paths            the paths to query
+     * @param replicationPaths information about the replicated paths;
+     *                         the {@link ReplicationPaths#getContentPath()} is a path that is a common parent to all paths
+     *                         - just a safety feature that a broken / faked
      */
     @Nonnull
     ContentStateStatus contentState(
-            @Nonnull UpdateInfo updateInfo, @Nonnull Collection<String> paths, ResourceResolver resolver, String contentPath)
+            @Nonnull UpdateInfo updateInfo, @Nonnull Collection<String> paths, @Nonnull ResourceResolver resolver,
+            @Nonnull ReplicationPaths replicationPaths)
             throws PublicationReceiverFacadeException, RepositoryException;
 
     /**
@@ -76,7 +78,7 @@ public interface PublicationReceiverFacade {
      */
     @Nonnull
     Status compareContent(@Nonnull UpdateInfo updateInfo, @Nonnull Collection<String> paths,
-                          ResourceResolver resolver, String contentPath)
+                          @Nonnull ResourceResolver resolver, @Nonnull ReplicationPaths replicationPaths)
             throws URISyntaxException, PublicationReceiverFacadeException, RepositoryException;
 
     /**

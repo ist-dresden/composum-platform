@@ -181,7 +181,7 @@ public class VersionableTree {
                         if (resource == null) {
                             result.deleted.add(info);
                         } else {
-                            VersionableInfo currentInfo = VersionableInfo.of(resource, pathMapping);
+                            VersionableInfo currentInfo = VersionableInfo.of(resource, null);
                             if (currentInfo == null || !currentInfo.getVersion().equals(info.getVersion())) {
                                 result.changed.add(info);
                             }

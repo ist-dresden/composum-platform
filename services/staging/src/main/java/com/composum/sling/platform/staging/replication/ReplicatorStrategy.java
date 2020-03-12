@@ -109,7 +109,7 @@ public class ReplicatorStrategy {
             messages.add(Message.info("Update {} started", updateInfo.updateId));
 
             PublicationReceiverFacade.ContentStateStatus contentState = publisher.contentState(updateInfo,
-                    changedPaths, resolver, release.getReleaseRoot().getPath());
+                    changedPaths, resolver, replicationPaths(release.getReleaseRoot().getPath()));
             if (!contentState.isValid()) {
                 messages.add(Message.error("Received invalid status on contentState for {}", updateInfo.updateId));
                 throw new ReleaseChangeEventListener.ReplicationFailedException("Querying content state failed for " + replicationConfig,
@@ -119,7 +119,7 @@ public class ReplicatorStrategy {
                     contentState.getVersionables().getChangedPaths(), contentState.getVersionables().getDeletedPaths()));
             abortIfNecessary(updateInfo);
 
-            Status compareContentState = publisher.compareContent(updateInfo, changedPaths, resolver, commonParent);
+            Status compareContentState = publisher.compareContent(updateInfo, changedPaths, resolver, replicationPaths(commonParent));
             if (!compareContentState.isValid()) {
                 messages.add(Message.error("Received invalid status on compare content for {}",
                         updateInfo.updateId));
@@ -334,7 +334,7 @@ public class ReplicatorStrategy {
             // get info on the remote versionables and check which are changed / not present here
             String commonParent = SlingResourceUtil.commonParent(changedPaths);
             PublicationReceiverFacade.ContentStateStatus contentState =
-                    publisher.contentState(updateInfo, changedPaths, resolver, commonParent);
+                    publisher.contentState(updateInfo, changedPaths, resolver, replicationPaths(commonParent));
             if (!contentState.isValid() || contentState.getVersionables() == null) {
                 throw new ReleaseChangeEventListener.ReplicationFailedException("Querying content state failed for " + replicationConfig + " " +
                         "path " + commonParent, null, null);
@@ -342,7 +342,7 @@ public class ReplicatorStrategy {
             VersionableTree contentStateComparison = contentState.getVersionables();
 
             // check which of our versionables are changed / not present on the remote
-            Status compareContentState = publisher.compareContent(updateInfo, changedPaths, resolver, commonParent);
+            Status compareContentState = publisher.compareContent(updateInfo, changedPaths, resolver, replicationPaths(commonParent));
             if (!compareContentState.isValid()) {
                 throw new ReleaseChangeEventListener.ReplicationFailedException("Comparing content failed for " + replicationConfig, null,
                         null);
