@@ -1,7 +1,6 @@
 package com.composum.sling.platform.staging.replication.postprocess;
 
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.platform.staging.replication.ReplicationPaths;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.SlingMatchers;
 import com.composum.sling.platform.testing.testutil.codegen.SlingAssertionCodeGenerator;
@@ -52,6 +51,7 @@ public class MovePostprocessorTest {
 
         new SlingAssertionCodeGenerator("r", r).useErrorCollector()
                 .ignoreProperties("getResourceMetadata", "toString").printAssertions();
+        // prints this:
         ec.checkThat(r.getValueMap(), allOf(
                 hasMapSize(6),
                 SlingMatchers.hasEntryMatching(is("sometext"), is("blabla")),
@@ -65,6 +65,7 @@ public class MovePostprocessorTest {
         new SlingAssertionCodeGenerator("c", c).useErrorCollector()
                 .ignoreProperties("getResourceMetadata", "toString")
                 .printAssertions();
+        // prints this:
         ec.checkThat(c.getValueMap(), allOf(
                 hasMapSize(2),
                 SlingMatchers.hasEntryMatching(is("jcr:primaryType"), is("nt:unstructured")),
@@ -73,24 +74,6 @@ public class MovePostprocessorTest {
                                 " that picures and <a href=\"/our/dst\">videos</a> can be <a " +
                                 "href=\"/something/else\">JCR</a>-versioned.</p>"))
         ));
-    }
-
-    @Test
-    public void checkTranslate() {
-        String src = "/the/src";
-        String dst = "/our/dst";
-        ReplicationPaths replicationPaths = new ReplicationPaths(src, src, dst, null);
-        // ec.checkThat(replicationPaths.translate((String) null), nullValue());
-        ec.checkThat(replicationPaths.translate(src), is(dst));
-        // ec.checkThat(replicationPaths.translate("/whatever"), is("/whatever"));
-        ec.checkThat(replicationPaths.translate("/the/src/a/b"), is("/our/dst/a/b"));
-        ec.checkThat(replicationPaths.translate("/the/src/a/../b"), is("/our/dst/b"));
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkTranslateException() {
-        ReplicationPaths replicationPaths = new ReplicationPaths("/the/src", "/the/src", "/our/dst", null);
-        ec.checkThat(replicationPaths.translate("/whatever"), is("/whatever"));
     }
 
 }

@@ -1,9 +1,10 @@
 package com.composum.sling.platform.staging.replication.json;
 
-import com.composum.sling.platform.staging.replication.json.VersionableTree;
+import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
@@ -53,7 +54,9 @@ public class VersionableTreeTest {
         VersionableTree tree = new VersionableTree();
         tree.setSearchtreeRoots(Arrays.asList(resourceResolver.getResource("/local/content/site")));
         Gson gsonSer = new GsonBuilder().registerTypeAdapterFactory(
-                new VersionableTree.VersionableTreeSerializer("/local")
+                new VersionableTree.VersionableTreeSerializer(
+                        (p) -> StringUtils.removeStart(p, "/local")
+                )
         ).create();
         String json = gsonSer.toJson(tree);
         ec.checkThat(json, is("[{\"path\":\"/content/site/a/jcr:content\",\"version\":\"a\"}," +
@@ -62,7 +65,9 @@ public class VersionableTreeTest {
                 "{\"path\":\"/content/site/b/c2/jcr:content\",\"version\":\"bc2\"}]"));
 
         Gson gsonDeser = new GsonBuilder().registerTypeAdapterFactory(
-                new VersionableTree.VersionableTreeDeserializer("/remote", resourceResolver, "/content/site")
+                new VersionableTree.VersionableTreeDeserializer(
+                        (p) -> SlingResourceUtil.appendPaths("/remote", p),
+                        resourceResolver, "/content/site")
         ).create();
         VersionableTree readback = gsonDeser.fromJson(json, VersionableTree.class);
         ec.checkThat(readback, notNullValue());
@@ -70,6 +75,5 @@ public class VersionableTreeTest {
                 "VersionableInfo[path=/content/site/b/c1/jcr:content,version=bc1]]"));
         ec.checkThat(readback.getDeleted().toString(), is("[VersionableInfo[path=/content/site/b/c2/jcr:content,version=bc2]]"));
     }
-
 
 }

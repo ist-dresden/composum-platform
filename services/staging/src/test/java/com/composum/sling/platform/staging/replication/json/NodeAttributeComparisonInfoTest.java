@@ -1,10 +1,10 @@
 package com.composum.sling.platform.staging.replication.json;
 
-import com.composum.sling.platform.staging.replication.json.NodeAttributeComparisonInfo;
+import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
-import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.ModifiableValueMap;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.testing.mock.sling.ResourceResolverType;
@@ -20,11 +20,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Function;
 
-import static com.composum.sling.core.util.CoreConstants.MIX_CREATED;
-import static com.composum.sling.core.util.CoreConstants.PROP_MIXINTYPES;
-import static com.composum.sling.core.util.CoreConstants.PROP_PRIMARY_TYPE;
-import static com.composum.sling.core.util.CoreConstants.TYPE_UNSTRUCTURED;
+import static com.composum.sling.core.util.CoreConstants.*;
 import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -69,14 +67,15 @@ public class NodeAttributeComparisonInfoTest {
         ec.checkThat(gson.toJson(deserialized), is(gson.toJson(attcinfo)));
 
         Resource node2 = context.build().resource("/prefix/some/node", makeProperties(calendar)).commit().getCurrentParent();
-        NodeAttributeComparisonInfo attcinfo2 = NodeAttributeComparisonInfo.of(node2, "/prefix");
+        Function<String, String> pathMapping = (p) -> StringUtils.removeStart(p, "/prefix");
+        NodeAttributeComparisonInfo attcinfo2 = NodeAttributeComparisonInfo.of(node2, pathMapping);
         ec.checkThat(attcinfo2, is(attcinfo));
 
         ec.checkThat(NodeAttributeComparisonInfo.of(node2, null), not(attcinfo));
 
-        ec.checkThat(NodeAttributeComparisonInfo.of(node2, "/prefix"), is(attcinfo2));
+        ec.checkThat(NodeAttributeComparisonInfo.of(node2, pathMapping), is(attcinfo2));
         node2.adaptTo(ModifiableValueMap.class).put("stream", new ByteArrayInputStream("othercontent".getBytes(StandardCharsets.UTF_8)));
-        ec.checkThat(NodeAttributeComparisonInfo.of(node2, "/prefix"), not(attcinfo2));
+        ec.checkThat(NodeAttributeComparisonInfo.of(node2, pathMapping), not(attcinfo2));
 
     }
 

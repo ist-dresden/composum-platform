@@ -10,8 +10,10 @@ import org.apache.sling.api.SlingHttpServletRequest;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
 
 import static com.composum.sling.platform.staging.replication.ReplicationConstants.*;
 
@@ -109,7 +111,7 @@ public class ReplicationPaths {
         if (movePostprocessor == null) {
             movePostprocessor = new MovePostprocessor(getOrigin(), getTargetPath());
         }
-        return getMovePostprocessor();
+        return movePostprocessor;
     }
 
     /**
@@ -128,12 +130,64 @@ public class ReplicationPaths {
             String relpath = SlingResourceUtil.relativePath(origin, path);
             res = SlingResourceUtil.appendPaths(targetPath, relpath);
         }
-        return res;
+        return Objects.requireNonNull(res);
+    }
+
+    /**
+     * Translates a path on the target side to the source side.
+     *
+     * @throws IllegalArgumentException if the path is not within {@link #getSourcePath()} / {@link #getReleaseRoot()}
+     */
+    @Nonnull
+    public String inverseTranslate(@Nonnull String path) {
+        String res = Objects.requireNonNull(path);
+        String origin = getOrigin();
+        if (getTargetPath() != null) {
+            if (!SlingResourceUtil.isSameOrDescendant(getTargetPath(), path)) {
+                throw new IllegalArgumentException("Path is outside of target range: " + path);
+            }
+            String relpath = SlingResourceUtil.relativePath(getTargetPath(), path);
+            res = SlingResourceUtil.appendPaths(origin, relpath);
+        }
+        return Objects.requireNonNull(res);
+    }
+
+    /**
+     * Function that calls {@link #translate(String)} and adds an additional {offset} at the start, if that's given.
+     */
+    @Nonnull
+    public Function<String, String> translateMapping(@Nullable String offset) {
+        return (path) -> {
+            String translated = translate(path);
+            if (StringUtils.isNotBlank(offset)) {
+                translated = SlingResourceUtil.appendPaths(offset, translated);
+            }
+            return translated;
+        };
+    }
+
+    /**
+     * Function that removes an additional {offset} from the start, if that's given, and calls {@link #inverseTranslate(String)}.
+     */
+    @Nonnull
+    public Function<String, String> inverseTranslateMapping(@Nullable String offset) {
+        return (path) -> {
+            String offsetRemoved = path;
+            if (offset != null) {
+                if (!SlingResourceUtil.isSameOrDescendant(offset, path)) {
+                    throw new IllegalArgumentException("Path is outside of target range: " + path);
+                }
+                offsetRemoved = StringUtils.prependIfMissing(SlingResourceUtil.relativePath(offset, offsetRemoved), "/");
+            }
+            String res = inverseTranslate(offsetRemoved);
+            return res;
+        };
     }
 
     /**
      * The origin: {@link #getSourcePath()} if not null, else {@link #getReleaseRoot()}.
      */
+    @Nonnull
     public String getOrigin() {
         return getSourcePath() != null ? getSourcePath() : getReleaseRoot();
     }
@@ -141,6 +195,7 @@ public class ReplicationPaths {
     /**
      * The destination: {@link #getTargetPath()} if not null, else the {@link #getOrigin()}.
      */
+    @Nonnull
     public String getDestination() {
         return getTargetPath() != null ? getTargetPath() : getReleaseRoot();
     }
@@ -164,23 +219,6 @@ public class ReplicationPaths {
             form.add(new BasicNameValuePair(ReplicationConstants.PARAM_TARGETPATH, getTargetPath()));
         }
     }
-
-    /**
-     * {@link #translate(String)}s a collection of paths.
-     */
-    @Nonnull
-    public List<String> translate(Collection<String> paths) {
-        return paths != null ? paths.stream().map(this::translate).collect(Collectors.toList()) : Collections.emptyList();
-    }
-
-    /**
-     * {@link #translate(String)}s an array of paths.
-     */
-    @Nonnull
-    public String[] translate(String[] paths) {
-        return paths != null ? translate(Arrays.asList(paths)).toArray(new String[0]) : new String[0];
-    }
-
 
     @Override
     public String toString() {

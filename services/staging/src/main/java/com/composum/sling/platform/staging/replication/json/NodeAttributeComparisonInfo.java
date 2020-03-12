@@ -47,6 +47,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.WeakHashMap;
+import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 import static javax.jcr.PropertyType.BINARY;
@@ -120,24 +121,17 @@ public class NodeAttributeComparisonInfo {
      * Creates the information about one node. This uses JCR since that's the easiest way to exclude protected
      * attributes without having to enumerate all protected attribute names.
      *
-     * @param resource   the resource for which we have to compute the attribute info
-     * @param pathOffset if given, we "subtract" this from the beginning of the path
+     * @param resource    the resource for which we have to compute the attribute info
+     * @param pathMapping if given, we pass the path through this mapping
      * @throws IllegalArgumentException if the path of the resource does not start with the given pathOffset
      */
     @Nonnull
-    public static NodeAttributeComparisonInfo of(@Nonnull Resource resource, @Nullable String pathOffset) {
+    public static NodeAttributeComparisonInfo of(@Nonnull Resource resource, @Nullable Function<String, String> pathMapping) {
         try {
             HashFunction hash = Hashing.sipHash24();
             NodeAttributeComparisonInfo result = new NodeAttributeComparisonInfo();
             Set<String> protectedProperties = protectedProperties(resource);
-            if (StringUtils.isBlank(pathOffset)) {
-                result.path = resource.getPath();
-            } else {
-                if (!SlingResourceUtil.isSameOrDescendant(pathOffset, resource.getPath()) || !pathOffset.startsWith("/")) {
-                    throw new IllegalArgumentException("Not a subpath of " + pathOffset + " : " + resource.getPath());
-                }
-                result.path = "/" + SlingResourceUtil.relativePath(pathOffset, resource.getPath());
-            }
+            result.path = pathMapping != null ? pathMapping.apply(resource.getPath()) : resource.getPath();
             result.propertyHashes = new TreeMap<>();
             Node node = requireNonNull(resource.adaptTo(Node.class));
             for (PropertyIterator it = node.getProperties(); it.hasNext(); ) {
@@ -150,11 +144,11 @@ public class NodeAttributeComparisonInfo {
             }
             return result;
         } catch (RepositoryException | IOException e) {
-            LOG.error("For {} , {}", SlingResourceUtil.getPath(resource), pathOffset, e);
+            LOG.error("For {}", SlingResourceUtil.getPath(resource), e);
             throw new SlingException("Strange trouble reading attributes of " + SlingResourceUtil.getPath(resource), e);
         } catch (RuntimeException e) {
-            LOG.error("Strange trouble reading attributes of {}, {}",
-                    SlingResourceUtil.getPath(resource), pathOffset, e);
+            LOG.error("Strange trouble reading attributes of {}",
+                    SlingResourceUtil.getPath(resource), e);
             throw e;
         }
     }

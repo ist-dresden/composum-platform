@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.platform.staging.StagingConstants.PROP_REPLICATED_VERSION;
@@ -102,11 +103,11 @@ public class VersionableTree {
     public static class VersionableTreeSerializer extends AbstractJsonTypeAdapterFactory<VersionableTree> {
 
         @Nullable
-        private final String relativeTo;
+        private final Function<String, String> pathMapping;
 
-        public VersionableTreeSerializer(@Nullable String relativeTo) {
+        public VersionableTreeSerializer(@Nullable Function<String, String> pathMapping) {
             super(TypeToken.get(VersionableTree.class));
-            this.relativeTo = relativeTo;
+            this.pathMapping = pathMapping;
         }
 
         @Override
@@ -123,7 +124,7 @@ public class VersionableTree {
                 return;
             }
             if (ResourceUtil.isNodeType(resource, ResourceUtil.TYPE_VERSIONABLE)) {
-                VersionableInfo info = VersionableInfo.of(resource, relativeTo);
+                VersionableInfo info = VersionableInfo.of(resource, pathMapping);
                 if (info != null) {
                     gson.toJson(info, VersionableInfo.class, out);
                 }
@@ -141,7 +142,7 @@ public class VersionableTree {
 
     public static class VersionableTreeDeserializer extends AbstractJsonTypeAdapterFactory<VersionableTree> {
         @Nullable
-        protected final String relativeTo;
+        protected final Function<String, String> pathMapping;
         @Nonnull
         protected final ResourceResolver resolver;
         @Nullable
@@ -153,11 +154,12 @@ public class VersionableTree {
          *
          * @param checkSubpath Safety measure: if that's set, the serializer throws up if the given paths are not at
          *                     this path or a subpath.
+         * @param pathMapping  if given, the path is passed through this mapping
          */
-        public VersionableTreeDeserializer(@Nullable String relativeTo, @Nonnull ResourceResolver resolver,
+        public VersionableTreeDeserializer(@Nullable Function<String, String> pathMapping, @Nonnull ResourceResolver resolver,
                                            @Nullable String checkSubpath) {
             super(TypeToken.get(VersionableTree.class));
-            this.relativeTo = relativeTo;
+            this.pathMapping = pathMapping;
             this.resolver = resolver;
             this.checkSubpath = checkSubpath;
         }
@@ -174,12 +176,12 @@ public class VersionableTree {
                 VersionableInfo info = gson.fromJson(in, VersionableInfo.class);
                 if (info != null) {
                     if (checkSubpath == null || SlingResourceUtil.isSameOrDescendant(checkSubpath, info.getPath())) {
-                        String path = relativeTo != null ? SlingResourceUtil.appendPaths(relativeTo, info.getPath()) : info.getPath();
+                        String path = pathMapping != null ? pathMapping.apply(info.getPath()) : info.getPath();
                         Resource resource = path != null ? resolver.getResource(path) : null;
                         if (resource == null) {
                             result.deleted.add(info);
                         } else {
-                            VersionableInfo currentInfo = VersionableInfo.of(resource, relativeTo);
+                            VersionableInfo currentInfo = VersionableInfo.of(resource, pathMapping);
                             if (currentInfo == null || !currentInfo.getVersion().equals(info.getVersion())) {
                                 result.changed.add(info);
                             }
