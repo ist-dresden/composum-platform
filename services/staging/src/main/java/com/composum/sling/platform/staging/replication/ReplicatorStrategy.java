@@ -24,6 +24,7 @@ import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -95,10 +96,19 @@ public class ReplicatorStrategy {
         try {
             String commonParent = SlingResourceUtil.commonParent(changedPaths);
             LOG.info("Changed paths below {}: {}", commonParent, changedPaths);
-            requireNonNull(commonParent);
+            ReplicationPaths replicationPaths = replicationPaths(commonParent);
+            commonParent = replicationPaths.getContentPath(); // trimmed now
+            if (commonParent == null) {
+                LOG.info("Ignored changes: do not apply to {}", replicationPaths.getOrigin());
+                return;
+            }
             progress = 0;
+            Set trimmedPaths = this.changedPaths.stream()
+                    .map(replicationPaths::trimToOrigin)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
 
-            UpdateInfo updateInfo = publisher.startUpdate(replicationPaths(commonParent)).updateInfo;
+            UpdateInfo updateInfo = publisher.startUpdate(replicationPaths).updateInfo;
             cleanupUpdateInfo = updateInfo;
             LOG.info("Received UpdateInfo {}", updateInfo);
 
@@ -109,7 +119,7 @@ public class ReplicatorStrategy {
             messages.add(Message.info("Update {} started", updateInfo.updateId));
 
             PublicationReceiverFacade.ContentStateStatus contentState = publisher.contentState(updateInfo,
-                    changedPaths, resolver, replicationPaths(release.getReleaseRoot().getPath()));
+                    trimmedPaths, resolver, replicationPaths);
             if (!contentState.isValid()) {
                 messages.add(Message.error("Received invalid status on contentState for {}", updateInfo.updateId));
                 throw new ReleaseChangeEventListener.ReplicationFailedException("Querying content state failed for " + replicationConfig,
@@ -119,7 +129,7 @@ public class ReplicatorStrategy {
                     contentState.getVersionables().getChangedPaths(), contentState.getVersionables().getDeletedPaths()));
             abortIfNecessary(updateInfo);
 
-            Status compareContentState = publisher.compareContent(updateInfo, changedPaths, resolver, replicationPaths(commonParent));
+            Status compareContentState = publisher.compareContent(updateInfo, trimmedPaths, resolver, replicationPaths);
             if (!compareContentState.isValid()) {
                 messages.add(Message.error("Received invalid status on compare content for {}",
                         updateInfo.updateId));
@@ -159,7 +169,7 @@ public class ReplicatorStrategy {
             abortIfNecessary(updateInfo);
             progress = 90;
 
-            Stream<ChildrenOrderInfo> relevantOrderings = relevantOrderings(changedPaths);
+            Stream<ChildrenOrderInfo> relevantOrderings = relevantOrderings(trimmedPaths, replicationPaths);
 
             Status status = publisher.commitUpdate(updateInfo, originalSourceReleaseChangeNumber, deletedPaths,
                     relevantOrderings, () -> abortIfNecessary(updateInfo));
@@ -198,8 +208,8 @@ public class ReplicatorStrategy {
      * we hesitate to do for efficiency.)
      */
     @Nonnull
-    protected Stream<ChildrenOrderInfo> relevantOrderings(@Nonnull Collection<String> pathsToTransmit) {
-        Stream<Resource> relevantNodes = relevantParentNodesOfVersionables(pathsToTransmit);
+    protected Stream<ChildrenOrderInfo> relevantOrderings(@Nonnull Collection<String> pathsToTransmit, @Nonnull ReplicationPaths replicationPaths) {
+        Stream<Resource> relevantNodes = relevantParentNodesOfVersionables(pathsToTransmit, replicationPaths);
         return relevantNodes
                 .map(ChildrenOrderInfo::of)
                 .filter(Objects::nonNull);
@@ -209,8 +219,8 @@ public class ReplicatorStrategy {
      * The attribute infos for all parent nodes of versionables within pathsToTransmit within the release root.
      */
     @Nonnull
-    protected Stream<NodeAttributeComparisonInfo> parentAttributeInfos(@Nonnull Collection<String> pathsToTransmit) {
-        return relevantParentNodesOfVersionables(pathsToTransmit)
+    protected Stream<NodeAttributeComparisonInfo> parentAttributeInfos(@Nonnull Collection<String> pathsToTransmit, @Nonnull ReplicationPaths replicationPaths) {
+        return relevantParentNodesOfVersionables(pathsToTransmit, replicationPaths)
                 .map(resource -> NodeAttributeComparisonInfo.of(resource, null))
                 .filter(Objects::nonNull);
     }
@@ -221,13 +231,17 @@ public class ReplicatorStrategy {
      * themselves) up to (and excluding) the versionables.
      */
     @Nonnull
-    protected Stream<Resource> relevantParentNodesOfVersionables(@Nonnull Collection<String> pathsToTransmit) {
+    protected Stream<Resource> relevantParentNodesOfVersionables(@Nonnull Collection<String> pathsToTransmit, @Nonnull ReplicationPaths replicationPaths) {
         Stream<Resource> parentsStream = pathsToTransmit.stream()
-                .flatMap(this::parentsUpToRelease)
+                .map(replicationPaths::trimToOrigin)
+                .filter(Objects::nonNull)
+                .flatMap((p) -> parentsUpToOrigin(p, replicationPaths))
                 .distinct()
                 .map(resolver::getResource)
                 .filter(Objects::nonNull);
         Stream<Resource> childrenStream = pathsToTransmit.stream()
+                .map(replicationPaths::trimToOrigin)
+                .filter(Objects::nonNull)
                 .distinct()
                 .map(resolver::getResource)
                 .filter(Objects::nonNull)
@@ -236,10 +250,10 @@ public class ReplicatorStrategy {
     }
 
     @Nonnull
-    protected Stream<String> parentsUpToRelease(String path) {
+    protected Stream<String> parentsUpToOrigin(String path, @Nonnull ReplicationPaths replicationPaths) {
         List<String> result = new ArrayList<>();
         String parent = ResourceUtil.getParent(path);
-        while (parent != null && isSameOrDescendant(release.getReleaseRoot().getPath(), parent)) {
+        while (parent != null && isSameOrDescendant(replicationPaths.getOrigin(), parent)) {
             result.add(parent);
             parent = ResourceUtil.getParent(parent);
         }
@@ -330,6 +344,7 @@ public class ReplicatorStrategy {
             }
             result.releaseChangeNumbersEqual = StringUtils.equals(release.getChangeNumber(),
                     updateInfo.originalPublisherReleaseChangeId);
+            ReplicationPaths replicationPaths = replicationPaths(null);
 
             // get info on the remote versionables and check which are changed / not present here
             String commonParent = SlingResourceUtil.commonParent(changedPaths);
@@ -360,8 +375,8 @@ public class ReplicatorStrategy {
             }
 
             // compare the children orderings and parent attributes
-            Stream<ChildrenOrderInfo> relevantOrderings = relevantOrderings(changedPaths);
-            Stream<NodeAttributeComparisonInfo> attributeInfos = parentAttributeInfos(changedPaths);
+            Stream<ChildrenOrderInfo> relevantOrderings = relevantOrderings(changedPaths, replicationPaths);
+            Stream<NodeAttributeComparisonInfo> attributeInfos = parentAttributeInfos(changedPaths, replicationPaths);
             Status compareParentState = publisher.compareParents(replicationPaths(null), resolver,
                     relevantOrderings, attributeInfos);
             if (!compareParentState.isValid()) {

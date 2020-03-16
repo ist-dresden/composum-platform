@@ -33,7 +33,7 @@ public class ReplicationPaths {
     private final String targetPath;
 
     @Nullable
-    private final String contentPath;
+    private String contentPath;
 
     private transient MovePostprocessor movePostprocessor;
 
@@ -41,13 +41,29 @@ public class ReplicationPaths {
         this.releaseRoot = Objects.requireNonNull(StringUtils.trimToNull(releaseRoot));
         this.sourcePath = StringUtils.trimToNull(sourcePath);
         this.targetPath = StringUtils.trimToNull(targetPath);
-        this.contentPath = StringUtils.trimToNull(contentPath);
+        this.contentPath = trimToOrigin(contentPath);
         if (this.sourcePath != null && !SlingResourceUtil.isSameOrDescendant(this.releaseRoot, this.sourcePath)) {
             throw new IllegalArgumentException("Source path must be descendant of release root.");
         }
-        if (this.contentPath != null && !SlingResourceUtil.isSameOrDescendant(getOrigin(), this.contentPath)) {
-            throw new IllegalArgumentException("Content path is outside of source range: " + contentPath);
+    }
+
+    /**
+     * Returns the intersection of path and {@link #getOrigin()}.
+     * If path is contained in {@link #getOrigin()}, it is returned unchanged. If it contains {@link #getOrigin()}, {@link #getOrigin()} is returned.
+     * Otherwise we return null.
+     */
+    @Nullable
+    public String trimToOrigin(@Nullable String path) {
+        if (StringUtils.isBlank(path)) {
+            return null;
         }
+        if (SlingResourceUtil.isSameOrDescendant(getOrigin(), path)) {
+            return path;
+        }
+        if (SlingResourceUtil.isSameOrDescendant(path, getOrigin())) {
+            return getOrigin();
+        }
+        return null; // no common subpaths
     }
 
     public ReplicationPaths(Map<String, ?> params) {
@@ -100,11 +116,18 @@ public class ReplicationPaths {
 
     /**
      * A path within the {@link #getSourcePath()} / {@link #getReleaseRoot()} that is replicated / compared / whatever.
-     * The meaning of this path depends on the context.
+     * The meaning of this path depends on the context. If was outside {@link #getOrigin()}, it is trimmed to the origin
      */
     @Nullable
     public String getContentPath() {
         return contentPath;
+    }
+
+    /**
+     * Sets the {@link #getContentPath()}.
+     */
+    public void setContentPath(@Nullable String contentPath) {
+        this.contentPath = trimToOrigin(contentPath);
     }
 
     @Nonnull
