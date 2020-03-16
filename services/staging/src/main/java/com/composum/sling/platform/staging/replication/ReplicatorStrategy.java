@@ -344,12 +344,20 @@ public class ReplicatorStrategy {
             }
             result.releaseChangeNumbersEqual = StringUtils.equals(release.getChangeNumber(),
                     updateInfo.originalPublisherReleaseChangeId);
-            ReplicationPaths replicationPaths = replicationPaths(null);
+            ReplicationPaths replicationPaths = replicationPaths(SlingResourceUtil.commonParent(changedPaths));
 
             // get info on the remote versionables and check which are changed / not present here
-            String commonParent = SlingResourceUtil.commonParent(changedPaths);
+            String commonParent = replicationPaths.getContentPath();
+            if (commonParent == null) {
+                return result;
+            }
+            Set trimmedPaths = this.changedPaths.stream()
+                    .map(replicationPaths::trimToOrigin)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
             PublicationReceiverFacade.ContentStateStatus contentState =
-                    publisher.contentState(updateInfo, changedPaths, resolver, replicationPaths(commonParent));
+                    publisher.contentState(updateInfo, trimmedPaths, resolver, replicationPaths(commonParent));
             if (!contentState.isValid() || contentState.getVersionables() == null) {
                 throw new ReleaseChangeEventListener.ReplicationFailedException("Querying content state failed for " + replicationConfig + " " +
                         "path " + commonParent, null, null);
@@ -357,7 +365,7 @@ public class ReplicatorStrategy {
             VersionableTree contentStateComparison = contentState.getVersionables();
 
             // check which of our versionables are changed / not present on the remote
-            Status compareContentState = publisher.compareContent(updateInfo, changedPaths, resolver, replicationPaths(commonParent));
+            Status compareContentState = publisher.compareContent(updateInfo, trimmedPaths, resolver, replicationPaths(commonParent));
             if (!compareContentState.isValid()) {
                 throw new ReleaseChangeEventListener.ReplicationFailedException("Comparing content failed for " + replicationConfig, null,
                         null);
@@ -375,8 +383,8 @@ public class ReplicatorStrategy {
             }
 
             // compare the children orderings and parent attributes
-            Stream<ChildrenOrderInfo> relevantOrderings = relevantOrderings(changedPaths, replicationPaths);
-            Stream<NodeAttributeComparisonInfo> attributeInfos = parentAttributeInfos(changedPaths, replicationPaths);
+            Stream<ChildrenOrderInfo> relevantOrderings = relevantOrderings(trimmedPaths, replicationPaths);
+            Stream<NodeAttributeComparisonInfo> attributeInfos = parentAttributeInfos(trimmedPaths, replicationPaths);
             Status compareParentState = publisher.compareParents(replicationPaths(null), resolver,
                     relevantOrderings, attributeInfos);
             if (!compareParentState.isValid()) {
