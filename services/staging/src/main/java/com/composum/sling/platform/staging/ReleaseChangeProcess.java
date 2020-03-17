@@ -140,8 +140,7 @@ public interface ReleaseChangeProcess {
      * into a threadpool. Must not be called twice in parallel. If there is nothing in the queue, this
      * should just be a no-op.
      */
-    // FIXME(hps,10.03.20) rename this e.g. to runReplication to make calls more searchable.
-    void run();
+    void runReplication();
 
     /**
      * Compares the the tree below resource with the remote system's content and determines whether there are

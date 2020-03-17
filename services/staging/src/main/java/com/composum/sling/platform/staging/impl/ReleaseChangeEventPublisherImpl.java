@@ -183,7 +183,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         public void run() {
             try {
                 Thread.sleep(WAIT_FOR_COMMIT_TIME_MS);
-                process.run();
+                process.runReplication();
             } catch (RuntimeException | InterruptedException e) { // forbidden
                 LOG.error("Bug: Process threw exception", e);
             } finally {

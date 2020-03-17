@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import static com.composum.sling.core.util.SlingResourceUtil.isSameOrDescendant;
 import static com.composum.sling.platform.staging.ReleaseChangeProcess.ReleaseChangeProcessorState.*;
+import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 /**
@@ -105,7 +106,7 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
         // we deliberately save nothing that refers to resolvers, since this is an object that lives long
         @Nonnull
         protected volatile String configPath;
-        protected volatile String name;
+        protected volatile String title;
         protected volatile String description;
         protected volatile String mark;
         protected volatile Long finished;
@@ -173,7 +174,7 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
 
         @Override
         public String getName() {
-            return name;
+            return title;
         }
 
         @Override
@@ -279,6 +280,18 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
             return Boolean.TRUE.equals(active);
         }
 
+        /**
+         * Called as often as possible to adapt to config changes.
+         */
+        public void readConfig(@Nonnull ReplicationConfig replicationConfig) {
+            configPath = requireNonNull(replicationConfig.getPath());
+            title = replicationConfig.getTitle();
+            description = replicationConfig.getDescription();
+            enabled = replicationConfig.isEnabled();
+            mark = replicationConfig.getStage();
+            active = null;
+        }
+
         public abstract boolean appliesTo(StagingReleaseManager.Release release);
 
         @Override
@@ -321,7 +334,7 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
         }
 
         @Override
-        public void run() {
+        public void runReplication() {
             if (getState() != ReleaseChangeProcessorState.awaiting || changedPaths.isEmpty() || !isEnabled()) {
                 LOG.info("Nothing to do in replication {} state {}", getId(), getState());
                 return;
@@ -417,7 +430,7 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
         public String toString() {
             return new ToStringBuilder(this)
                     .append("id", getId())
-                    .append("name", name)
+                    .append("title", title)
                     .append("state", state)
                     .toString();
         }
