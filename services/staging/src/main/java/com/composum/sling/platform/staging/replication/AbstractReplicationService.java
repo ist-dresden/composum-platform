@@ -1,5 +1,6 @@
 package com.composum.sling.platform.staging.replication;
 
+import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.logging.Message;
 import com.composum.sling.core.logging.MessageContainer;
@@ -35,8 +36,8 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * This applies to both in-place replication on the current server, as well as to remote replication.
  */
 @Component()
-public abstract class AbstractReplicationService<PROCESS extends AbstractReplicationService.AbstractReplicationProcess>
-        implements ReleaseChangeEventListener {
+public abstract class AbstractReplicationService<PROCESS extends AbstractReplicationService.AbstractReplicationProcess,
+        CONFIG extends AbstractReplicationConfig> implements ReleaseChangeEventListener {
 
     public static final String PATH_CONFIGROOT = "/conf";
     public static final String DIR_REPLICATION = "/replication";
@@ -61,6 +62,74 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
                         .collect(Collectors.toList());
         return result;
     }
+
+    /**
+     * Gives the replication configurations for our configuration type for the release at releaseRoot.
+     */
+    @Nonnull
+    protected List<CONFIG> getReplicationConfigs(@Nonnull Resource releaseRoot,
+                                                 @Nonnull BeanContext context) {
+        String releasePath = releaseRoot.getPath();
+        String configparent = PATH_CONFIGROOT + releasePath + DIR_REPLICATION;
+
+        List<CONFIG> configs = new ArrayList<>();
+        Resource configroot = releaseRoot.getResourceResolver().getResource(configparent);
+        if (configroot != null) {
+            for (Resource child : configroot.getChildren()) {
+                if (getReplicationType().getServiceId().equals(child.getValueMap().get(ReplicationConfig.PN_REPLICATIN_TYPE))) {
+                    CONFIG replicationConfig =
+                            context.withResource(child).adaptTo(getReplicationConfigClass());
+                    if (replicationConfig != null) {
+                        configs.add(replicationConfig);
+                    }
+                }
+            }
+        }
+        return configs;
+    }
+
+    @Nonnull
+    @Override
+    public Collection<PROCESS> processesFor(@Nullable Resource resource) {
+        if (resource == null || !isEnabled()) {
+            return Collections.emptyList();
+        }
+
+        ResourceResolver resolver = resource.getResourceResolver();
+        Resource releaseRoot;
+        try {
+            releaseRoot = getReleaseManager().findReleaseRoot(resource);
+        } catch (StagingReleaseManager.ReleaseRootNotFoundException e) {
+            return Collections.emptyList();
+        }
+        BeanContext context = new BeanContext.Service(resolver);
+
+        List<CONFIG> replicationConfigs = getReplicationConfigs(releaseRoot, context);
+        Collection<PROCESS> processes = new ArrayList<>();
+        for (CONFIG replicationConfig : replicationConfigs) {
+            PROCESS process = processesCache.computeIfAbsent(replicationConfig.getPath(),
+                    (k) -> makePublishingProcess(releaseRoot, replicationConfig)
+            );
+            process.readConfig(replicationConfig);
+            processes.add(process);
+        }
+        return processes;
+    }
+
+    @Nonnull
+    protected abstract PROCESS makePublishingProcess(Resource releaseRoot, CONFIG replicationConfig);
+
+    /**
+     * Returns CONFIG.class .
+     */
+    @Nonnull
+    protected abstract Class<CONFIG> getReplicationConfigClass();
+
+    /**
+     * The replication type this service works on.
+     */
+    @Nonnull
+    protected abstract ReplicationType getReplicationType();
 
     /**
      * Creates the service resolver used to update the content.
@@ -93,8 +162,6 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
 
     protected abstract boolean isEnabled();
 
-    protected abstract ThreadPoolManager getThreadPoolManager();
-
     protected abstract StagingReleaseManager getReleaseManager();
 
     protected abstract ResourceResolverFactory getResolverFactory();
@@ -122,8 +189,9 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
         protected volatile Boolean active;
         protected volatile String releaseUuid;
 
-        protected AbstractReplicationProcess(@Nonnull Resource releaseRoot) {
+        protected AbstractReplicationProcess(@Nonnull Resource releaseRoot, @Nonnull CONFIG config) {
             releaseRootPath = releaseRoot.getPath();
+            readConfig(config);
         }
 
         protected void abortAlreadyRunningStrategy() throws InterruptedException {
@@ -283,7 +351,7 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
         /**
          * Called as often as possible to adapt to config changes.
          */
-        public void readConfig(@Nonnull ReplicationConfig replicationConfig) {
+        protected void readConfig(@Nonnull CONFIG replicationConfig) {
             configPath = requireNonNull(replicationConfig.getPath());
             title = replicationConfig.getTitle();
             description = replicationConfig.getDescription();
@@ -292,7 +360,14 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
             active = null;
         }
 
-        public abstract boolean appliesTo(StagingReleaseManager.Release release);
+        public boolean appliesTo(StagingReleaseManager.Release release) {
+            ResourceResolver resolver = release.getReleaseRoot().getResourceResolver();
+            CONFIG publicationConfig = new BeanContext.Service(resolver).adaptTo(getReplicationConfigClass());
+            List<String> marks = release.getMarks();
+            return publicationConfig != null && publicationConfig.isEnabled() && (
+                    marks.contains(publicationConfig.getStage().toLowerCase())
+                            || marks.contains(publicationConfig.getStage().toUpperCase()));
+        }
 
         @Override
         public void triggerProcessing(@Nonnull ReleaseChangeEvent event) {
@@ -409,7 +484,39 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
         }
 
         @Nullable
-        protected abstract ReplicatorStrategy makeReplicatorStrategy(ResourceResolver serviceResolver, Set<String> processedChangedPaths);
+        protected ReplicatorStrategy makeReplicatorStrategy(ResourceResolver serviceResolver, Set<String> processedChangedPaths) {
+            Resource configResource = serviceResolver.getResource(configPath);
+            CONFIG replicationConfig = configResource != null ?
+                    new BeanContext.Service(serviceResolver).withResource(configResource)
+                            .adaptTo(getReplicationConfigClass()) : null;
+            if (replicationConfig == null || !replicationConfig.isEnabled()) {
+                LOG.warn("Disabled / unreadable config, not run: {}", getId());
+                return null; // warning - should normally have been caught before
+            }
+
+            Resource releaseRoot = requireNonNull(serviceResolver.getResource(releaseRootPath), releaseRootPath);
+            StagingReleaseManager.Release release = null;
+            if (StringUtils.isNotBlank(releaseUuid)) {
+                release = getReleaseManager().findReleaseByUuid(releaseRoot, releaseUuid);
+            } else if (StringUtils.isNotBlank(mark)) {
+                release = getReleaseManager().findReleaseByMark(releaseRoot, mark);
+            }
+            if (release == null) {
+                LOG.warn("No applicable release found for {}", getId());
+                return null;
+            }
+            ResourceResolver releaseResolver = getReleaseManager().getResolverForRelease(release, null, false);
+            BeanContext.Service context = new BeanContext.Service(releaseResolver);
+
+            PublicationReceiverFacade publisher = createTargetFacade(replicationConfig, context);
+            return new ReplicatorStrategy(processedChangedPaths, release, context, replicationConfig, messages, publisher);
+        }
+
+        /**
+         * Create the facade for the publisher / the backend where the release is replicated to.
+         */
+        @Nonnull
+        protected abstract PublicationReceiverFacade createTargetFacade(@Nonnull CONFIG replicationConfig, @Nonnull BeanContext.Service context);
 
         @Override
         public abstract String getType();
@@ -472,7 +579,38 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
             return result;
         }
 
-        protected abstract UpdateInfo getTargetReleaseInfo();
+        /**
+         * Internal method - use {@link #getTargetReleaseInfo()} since this might be cached by it.
+         */
+        protected UpdateInfo remoteReleaseInfo() throws PublicationReceiverFacade.PublicationReceiverFacadeException {
+            if (!isEnabled()) {
+                return null;
+            }
+            UpdateInfo result = null;
+            try (ResourceResolver serviceResolver = makeResolver()) {
+                LOG.info("Querying target release info of {}", getId());
+                ReplicatorStrategy strategy = makeReplicatorStrategy(serviceResolver, null);
+                if (strategy != null) {
+                    result = strategy.remoteReleaseInfo();
+                }
+            } catch (LoginException e) { // serious misconfiguration
+                LOG.error("Can't get service resolver: " + e, e);
+                // ignore - that'll reappear when publishing and treated there
+            }
+            return result;
+        }
+
+        /**
+         * The information about the state of the replication on the target system.
+         */
+        protected UpdateInfo getTargetReleaseInfo() {
+            try {
+                return remoteReleaseInfo();
+            } catch (PublicationReceiverFacade.PublicationReceiverFacadeException e) {
+                LOG.error("" + e, e);
+                return null;
+            }
+        }
 
         @Override
         public void updateSynchronized() {
