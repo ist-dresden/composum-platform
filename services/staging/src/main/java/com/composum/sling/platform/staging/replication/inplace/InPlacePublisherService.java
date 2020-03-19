@@ -4,24 +4,22 @@ import com.composum.sling.core.BeanContext;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeProcess;
 import com.composum.sling.platform.staging.StagingReleaseManager;
-import com.composum.sling.platform.staging.replication.*;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
+import com.composum.sling.platform.staging.replication.AbstractReplicationConfig;
+import com.composum.sling.platform.staging.replication.AbstractReplicationService;
+import com.composum.sling.platform.staging.replication.PublicationReceiverFacade;
+import com.composum.sling.platform.staging.replication.ReplicationType;
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
-import org.apache.sling.commons.threads.ThreadPoolManager;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.*;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.composum.sling.platform.staging.replication.inplace.InPlacePublisherService.InPlaceReleasePublishingProcess;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Set;
 
 /**
  * Replicates a release by copying it from the staging resolver to another path on the same host.
@@ -33,7 +31,7 @@ import java.util.Set;
         immediate = true
 )
 public class InPlacePublisherService
-        extends AbstractReplicationService<InPlacePublisherService.InPlaceReleasePublishingProcess, InPlaceReplicationConfig> {
+        extends AbstractReplicationService<InPlaceReplicationConfig, InPlaceReleasePublishingProcess> {
 
     private static final Logger LOG = LoggerFactory.getLogger(InPlacePublisherService.class);
 
@@ -103,21 +101,17 @@ public class InPlacePublisherService
         return resolverFactory;
     }
 
-    protected class InPlaceReleasePublishingProcess extends AbstractReplicationService.AbstractReplicationProcess implements ReleaseChangeProcess {
+    protected class InPlaceReleasePublishingProcess extends AbstractReplicationProcess
+            implements ReleaseChangeProcess {
 
-        protected InPlaceReleasePublishingProcess(@Nonnull Resource releaseRoot, AbstractReplicationConfig replicationConfig) {
+        protected InPlaceReleasePublishingProcess(@Nonnull Resource releaseRoot, InPlaceReplicationConfig replicationConfig) {
             super(releaseRoot, replicationConfig);
         }
 
         @Nonnull
         @Override
-        protected PublicationReceiverFacade createTargetFacade(@Nonnull AbstractReplicationConfig replicationConfig, @Nonnull BeanContext.Service context) {
-            LOG.error("InPlaceReleasePublishingProcess.createTargetFacade");
-            if (0 == 0)
-                throw new UnsupportedOperationException("Not implemented yet: InPlaceReleasePublishingProcess.createTargetFacade");
-            // FIXME hps 18.03.20 implement InPlaceReleasePublishingProcess.createTargetFacade
-            PublicationReceiverFacade result = null;
-            return result;
+        protected PublicationReceiverFacade createTargetFacade(@Nonnull AbstractReplicationConfig replicationConfig, @Nonnull BeanContext context) {
+            return new InPlacePublicationReceiverFacade((InPlaceReplicationConfig) replicationConfig, context, () -> config);
         }
 
         @Override

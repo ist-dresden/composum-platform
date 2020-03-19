@@ -14,7 +14,6 @@ import org.apache.sling.api.resource.LoginException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
-import org.apache.sling.commons.threads.ThreadPoolManager;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.slf4j.Logger;
@@ -36,8 +35,8 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * This applies to both in-place replication on the current server, as well as to remote replication.
  */
 @Component()
-public abstract class AbstractReplicationService<PROCESS extends AbstractReplicationService.AbstractReplicationProcess,
-        CONFIG extends AbstractReplicationConfig> implements ReleaseChangeEventListener {
+public abstract class AbstractReplicationService<CONFIG extends AbstractReplicationConfig,
+        PROCESS extends AbstractReplicationService.ReplicationProcess> implements ReleaseChangeEventListener {
 
     public static final String PATH_CONFIGROOT = "/conf";
     public static final String DIR_REPLICATION = "/replication";
@@ -166,7 +165,24 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
 
     protected abstract ResourceResolverFactory getResolverFactory();
 
-    protected abstract class AbstractReplicationProcess implements ReleaseChangeProcess {
+
+    /**
+     * Internal interface for use with {@link AbstractReplicationService} and descendants.
+     */
+    protected static interface ReplicationProcess extends ReleaseChangeProcess {
+
+        boolean abort(boolean hard);
+
+        /**
+         * Reads the configuration from this. The actual type of {replicationConfig} is CONFIG, but we cannot
+         * do that because the type parameters would be getting out of hand.
+         */
+        void readConfig(@Nonnull AbstractReplicationConfig replicationConfig);
+
+        boolean appliesTo(StagingReleaseManager.Release release);
+    }
+
+    public abstract class AbstractReplicationProcess implements ReplicationProcess {
 
         protected final Object changedPathsChangeLock = new Object();
         protected volatile MessageContainer messages = new MessageContainer(LoggerFactory.getLogger(getClass()));
@@ -206,7 +222,8 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
             }
         }
 
-        protected boolean abort(boolean hard) {
+        @Override
+        public boolean abort(boolean hard) {
             boolean isNotRunning = true;
             synchronized (changedPathsChangeLock) {
                 ReplicatorStrategy runningStrategyCopy = runningStrategy;
@@ -351,7 +368,8 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
         /**
          * Called as often as possible to adapt to config changes.
          */
-        protected void readConfig(@Nonnull CONFIG replicationConfig) {
+        @Override
+        public void readConfig(@Nonnull AbstractReplicationConfig replicationConfig) {
             configPath = requireNonNull(replicationConfig.getPath());
             title = replicationConfig.getTitle();
             description = replicationConfig.getDescription();
@@ -360,12 +378,15 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
             active = null;
         }
 
+        @Override
         public boolean appliesTo(StagingReleaseManager.Release release) {
             ResourceResolver resolver = release.getReleaseRoot().getResourceResolver();
-            CONFIG publicationConfig = new BeanContext.Service(resolver).adaptTo(getReplicationConfigClass());
+            Resource configResource = resolver.getResource(configPath);
+            CONFIG publicationConfig = new BeanContext.Service(resolver).withResource(configResource)
+                    .adaptTo(getReplicationConfigClass());
             List<String> marks = release.getMarks();
-            return publicationConfig != null && publicationConfig.isEnabled() && (
-                    marks.contains(publicationConfig.getStage().toLowerCase())
+            return publicationConfig != null && publicationConfig.isEnabled() && publicationConfig.getStage() != null &&
+                    (marks.contains(publicationConfig.getStage().toLowerCase())
                             || marks.contains(publicationConfig.getStage().toUpperCase()));
         }
 
@@ -506,7 +527,7 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
                 return null;
             }
             ResourceResolver releaseResolver = getReleaseManager().getResolverForRelease(release, null, false);
-            BeanContext.Service context = new BeanContext.Service(releaseResolver);
+            BeanContext context = new BeanContext.Service(releaseResolver);
 
             PublicationReceiverFacade publisher = createTargetFacade(replicationConfig, context);
             return new ReplicatorStrategy(processedChangedPaths, release, context, replicationConfig, messages, publisher);
@@ -514,9 +535,11 @@ public abstract class AbstractReplicationService<PROCESS extends AbstractReplica
 
         /**
          * Create the facade for the publisher / the backend where the release is replicated to.
+         * The {replicationConfig} is actually of type CONFIG, but strangely this leads into trouble with the compiler if
+         * we use this type.
          */
         @Nonnull
-        protected abstract PublicationReceiverFacade createTargetFacade(@Nonnull CONFIG replicationConfig, @Nonnull BeanContext.Service context);
+        protected abstract PublicationReceiverFacade createTargetFacade(@Nonnull AbstractReplicationConfig replicationConfig, @Nonnull BeanContext context);
 
         @Override
         public abstract String getType();

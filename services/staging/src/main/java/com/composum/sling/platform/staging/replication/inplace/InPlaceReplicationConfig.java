@@ -13,7 +13,7 @@ import javax.annotation.Nonnull;
 public class InPlaceReplicationConfig extends AbstractReplicationConfig {
     private static final Logger LOG = LoggerFactory.getLogger(InPlaceReplicationConfig.class);
 
-    protected static final ReplicationType INPLACE_REPLICATION_TYPE = new InplaceReplicationType();
+    public static final ReplicationType INPLACE_REPLICATION_TYPE = new InplaceReplicationType();
 
     @Nonnull
     @Override
