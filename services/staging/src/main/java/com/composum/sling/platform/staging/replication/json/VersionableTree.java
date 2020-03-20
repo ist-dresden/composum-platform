@@ -1,6 +1,7 @@
 package com.composum.sling.platform.staging.replication.json;
 
 import com.composum.platform.commons.json.AbstractJsonTypeAdapterFactory;
+import com.composum.platform.commons.json.JsonArrayAsIterable;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
 import com.google.gson.Gson;
@@ -19,8 +20,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.composum.sling.platform.staging.StagingConstants.PROP_REPLICATED_VERSION;
 
@@ -100,6 +103,31 @@ public class VersionableTree {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Collects the {@link VersionableInfo#of(Resource, Function)} of the search tree roots set with {@link #setSearchtreeRoots(Collection)}.
+     */
+    @Nonnull
+    public Stream<VersionableInfo> versionableInfos(@Nullable Function<String, String> pathMapping) {
+        return searchTreeRoots.stream().filter(Objects::nonNull)
+                .flatMap((root) -> SlingResourceUtil.descendantsStream(root, VersionableTree::isVersionableLeaf))
+                .map((r) -> VersionableInfo.of(r, pathMapping))
+                .filter(Objects::nonNull);
+    }
+
+    protected static boolean isVersionableLeaf(Resource resource) {
+        if (ResourceUtil.isNodeType(resource, ResourceUtil.TYPE_VERSIONABLE)) {
+            if (resource.getValueMap().get(PROP_REPLICATED_VERSION) == null) {
+                LOG.warn("Something's wrong here: {} has no {}", resource.getPath(), PROP_REPLICATED_VERSION);
+            }
+            return true;
+        } else if (ResourceUtil.CONTENT_NODE.equals(resource.getName())) {
+            LOG.warn("Something's wrong here: {} is not {}", resource.getPath(), ResourceUtil.TYPE_VERSIONABLE);
+            return true; // that's not versionable, but we have to return true to avoid descending into it
+            // it'll be filtered out later.
+        }
+        return false;
+    }
+
     public static class VersionableTreeSerializer extends AbstractJsonTypeAdapterFactory<VersionableTree> {
 
         @Nullable
@@ -113,29 +141,9 @@ public class VersionableTree {
         @Override
         protected <TR> void write(@Nonnull JsonWriter out, @Nonnull VersionableTree value, @Nonnull Gson gson, @Nonnull TypeToken<TR> requestedType) throws IOException {
             out.beginArray();
-            for (Resource resource : value.searchTreeRoots) { // null not allowed
-                traverseTree(resource, out, gson);
-            }
+            value.versionableInfos(pathMapping)
+                    .forEach((info) -> gson.toJson(info, VersionableInfo.class, out));
             out.endArray();
-        }
-
-        protected void traverseTree(Resource resource, JsonWriter out, Gson gson) {
-            if (resource == null) {
-                return;
-            }
-            if (ResourceUtil.isNodeType(resource, ResourceUtil.TYPE_VERSIONABLE)) {
-                VersionableInfo info = VersionableInfo.of(resource, pathMapping);
-                if (info != null) {
-                    gson.toJson(info, VersionableInfo.class, out);
-                }
-            } else if (ResourceUtil.CONTENT_NODE.equals(resource.getName())) {
-                // that shouldn't happen in the intended usecase: non-versionable jcr:content
-                LOG.warn("Something's wrong here: {} has no {}", resource.getPath(), PROP_REPLICATED_VERSION);
-            } else { // traverse tree
-                for (Resource child : resource.getChildren()) {
-                    traverseTree(child, out, gson);
-                }
-            }
         }
 
     }
@@ -171,30 +179,43 @@ public class VersionableTree {
             VersionableTree result = makeInstance(requestedType);
             result.deleted = new ArrayList<>();
             result.changed = new ArrayList<>();
-            in.beginArray();
-            while (in.hasNext()) {
-                VersionableInfo info = gson.fromJson(in, VersionableInfo.class);
-                if (info != null) {
-                    if (checkSubpath == null || SlingResourceUtil.isSameOrDescendant(checkSubpath, info.getPath())) {
-                        String path = pathMapping != null ? pathMapping.apply(info.getPath()) : info.getPath();
-                        Resource resource = path != null ? resolver.getResource(path) : null;
-                        if (resource == null) {
-                            result.deleted.add(info);
-                        } else {
-                            VersionableInfo currentInfo = VersionableInfo.of(resource, null);
-                            if (currentInfo == null || !currentInfo.getVersion().equals(info.getVersion())) {
-                                result.changed.add(info);
-                            }
-                        }
-                    } else {
-                        throw new IllegalArgumentException("Not subpath of " + checkSubpath + " : " + info);
-                    }
-                }
+            try (
+                    JsonArrayAsIterable<VersionableInfo> iterable =
+                            new JsonArrayAsIterable<>(in, VersionableInfo.class, gson, null)
+            ) {
+                result.process(iterable.stream(), checkSubpath, pathMapping, resolver);
             }
-            in.endArray();
             return result;
         }
 
     }
+
+    /**
+     * Compares the {versionableInfoStream} to the resource tree of {resolver} and updates {@link #getDeleted()} and {@link #getChanged()} accordingly.
+     */
+    public void process(Stream<VersionableInfo> versionableInfoStream, String checkSubpath, Function<String, String> pathMapping, ResourceResolver resolver) {
+        versionableInfoStream.forEach((info) -> process(info, checkSubpath, pathMapping, resolver));
+    }
+
+    /**
+     * Compares {info} to the resource tree of {resolver} and updates {@link #getDeleted()} and {@link #getChanged()} accordingly.
+     */
+    public void process(VersionableInfo info, String checkSubpath, Function<String, String> pathMapping, ResourceResolver resolver) {
+        if (checkSubpath == null || SlingResourceUtil.isSameOrDescendant(checkSubpath, info.getPath())) {
+            String path = pathMapping != null ? pathMapping.apply(info.getPath()) : info.getPath();
+            Resource resource = path != null ? resolver.getResource(path) : null;
+            if (resource == null) {
+                deleted.add(info);
+            } else {
+                VersionableInfo currentInfo = VersionableInfo.of(resource, null);
+                if (currentInfo == null || !currentInfo.getVersion().equals(info.getVersion())) {
+                    changed.add(info);
+                }
+            }
+        } else {
+            throw new IllegalArgumentException("Not subpath of " + checkSubpath + " : " + info);
+        }
+    }
+
 
 }
