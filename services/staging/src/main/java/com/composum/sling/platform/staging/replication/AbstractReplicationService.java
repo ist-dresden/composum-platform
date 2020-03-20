@@ -14,7 +14,6 @@ import org.apache.sling.api.resource.LoginException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
-import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +33,6 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  * Base class for services that use the {@link ReplicatorStrategy} to replicate staged content.
  * This applies to both in-place replication on the current server, as well as to remote replication.
  */
-@Component()
 public abstract class AbstractReplicationService<CONFIG extends AbstractReplicationConfig,
         PROCESS extends AbstractReplicationService.ReplicationProcess> implements ReleaseChangeEventListener {
 

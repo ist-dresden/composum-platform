@@ -6,8 +6,12 @@ import com.composum.sling.core.servlet.Status;
 import com.composum.sling.platform.staging.replication.PublicationReceiverFacade;
 import com.composum.sling.platform.staging.replication.ReplicationPaths;
 import com.composum.sling.platform.staging.replication.UpdateInfo;
+import com.composum.sling.platform.staging.replication.impl.PublicationReceiverBackend;
+import com.composum.sling.platform.staging.replication.impl.PublicationReceiverBackend.RemotePublicationReceiverException;
 import com.composum.sling.platform.staging.replication.json.ChildrenOrderInfo;
 import com.composum.sling.platform.staging.replication.json.NodeAttributeComparisonInfo;
+import org.apache.sling.api.resource.LoginException;
+import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.slf4j.Logger;
@@ -17,36 +21,49 @@ import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import java.net.URISyntaxException;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import static com.composum.sling.platform.staging.replication.ReplicationConstants.*;
+
 public class InPlacePublicationReceiverFacade implements PublicationReceiverFacade {
     private static final Logger LOG = LoggerFactory.getLogger(InPlacePublicationReceiverFacade.class);
+    private final InPlaceReplicationConfig config;
+    private final BeanContext context;
+    private final Supplier<InPlacePublisherService.Configuration> generalConfig;
+    private final PublicationReceiverBackend backend;
 
-    public InPlacePublicationReceiverFacade(InPlaceReplicationConfig replicationConfig, BeanContext context, Supplier<InPlacePublisherService.Configuration> generalConfig) {
+    public InPlacePublicationReceiverFacade(InPlaceReplicationConfig replicationConfig, BeanContext context, Supplier<InPlacePublisherService.Configuration> generalConfig, PublicationReceiverBackend backend) {
+        this.config = replicationConfig;
+        this.context = context;
+        this.generalConfig = generalConfig;
+        this.backend = backend;
     }
 
     @Nonnull
     @Override
     public StatusWithReleaseData startUpdate(@Nonnull ReplicationPaths replicationPaths) throws PublicationReceiverFacadeException, RepositoryException {
-        LOG.error("InPlacePublicationReceiverFacade.startUpdate");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: InPlacePublicationReceiverFacade.startUpdate");
-        // FIXME hps 19.03.20 implement InPlacePublicationReceiverFacade.startUpdate
-        StatusWithReleaseData result = null;
-        return result;
+        StatusWithReleaseData status = new StatusWithReleaseData(null, null, LOG);
+        try {
+            status.updateInfo = backend.startUpdate(replicationPaths);
+        } catch (PersistenceException | LoginException | RemotePublicationReceiverException | RuntimeException e) {
+            status.error("Internal error", e);
+        }
+        return status;
     }
 
     @Nonnull
     @Override
     public StatusWithReleaseData releaseInfo(@Nonnull ReplicationPaths replicationPaths) throws PublicationReceiverFacadeException, RepositoryException {
-        LOG.error("InPlacePublicationReceiverFacade.releaseInfo");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: InPlacePublicationReceiverFacade.releaseInfo");
-        // FIXME hps 19.03.20 implement InPlacePublicationReceiverFacade.releaseInfo
-        StatusWithReleaseData result = null;
-        return result;
+        StatusWithReleaseData status = new StatusWithReleaseData(null, null, LOG);
+        try {
+            status.updateInfo = backend.releaseInfo(replicationPaths);
+        } catch (LoginException | RuntimeException e) {
+            status.error("Internal error", e);
+        }
+        return status;
     }
 
     @Nonnull
@@ -85,32 +102,39 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
     @Nonnull
     @Override
     public Status commitUpdate(@Nonnull UpdateInfo updateInfo, @Nonnull String newReleaseChangeNumber, @Nonnull Set<String> deletedPaths, @Nonnull Stream<ChildrenOrderInfo> relevantOrderings, @Nonnull ExceptionThrowingRunnable<? extends Exception> checkForParallelModifications) throws PublicationReceiverFacadeException, RepositoryException {
-        LOG.error("InPlacePublicationReceiverFacade.commitUpdate");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: InPlacePublicationReceiverFacade.commitUpdate");
-        // FIXME hps 19.03.20 implement InPlacePublicationReceiverFacade.commitUpdate
-        Status result = null;
-        return result;
+        Status status = new Status(null, null, LOG);
+        try {
+            backend.commit(updateInfo.updateId, deletedPaths, () -> relevantOrderings.iterator(), newReleaseChangeNumber);
+        } catch (PersistenceException | LoginException | RemotePublicationReceiverException | RuntimeException e) {
+            status.error("Internal error", e);
+        }
+        return status;
     }
 
     @Nonnull
     @Override
     public Status abortUpdate(@Nonnull UpdateInfo updateInfo) throws PublicationReceiverFacadeException, RepositoryException {
-        LOG.error("InPlacePublicationReceiverFacade.abortUpdate");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: InPlacePublicationReceiverFacade.abortUpdate");
-        // FIXME hps 19.03.20 implement InPlacePublicationReceiverFacade.abortUpdate
-        Status result = null;
-        return result;
+        Status status = new Status(null, null, LOG);
+        try {
+            backend.abort(updateInfo.updateId);
+        } catch (LoginException | RemotePublicationReceiverException | PersistenceException | RuntimeException e) {
+            status.error("Internal error", e);
+        }
+        return status;
     }
 
     @Override
     public Status compareParents(@Nonnull ReplicationPaths replicationPaths, @Nonnull ResourceResolver resolver, @Nonnull Stream<ChildrenOrderInfo> relevantOrderings, @Nonnull Stream<NodeAttributeComparisonInfo> attributeInfos) throws PublicationReceiverFacadeException, RepositoryException {
-        LOG.error("InPlacePublicationReceiverFacade.compareParents");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: InPlacePublicationReceiverFacade.compareParents");
-        // FIXME hps 19.03.20 implement InPlacePublicationReceiverFacade.compareParents
-        Status result = null;
-        return result;
+        Status status = new Status(null, null, LOG);
+        try {
+            List<String> differentChildorderings = backend.compareChildorderings(replicationPaths, () -> relevantOrderings.iterator());
+            status.data(PARAM_CHILDORDERINGS).put(PARAM_PATH, differentChildorderings);
+
+            List<String> differentParentAttributes = backend.compareAttributes(replicationPaths, () -> attributeInfos.iterator());
+            status.data(PARAM_ATTRIBUTEINFOS).put(PARAM_PATH, differentParentAttributes);
+        } catch (LoginException | RemotePublicationReceiverException | RuntimeException e) {
+            status.error("Internal error", e);
+        }
+        return status;
     }
 }

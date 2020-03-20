@@ -58,7 +58,7 @@ import static java.util.Objects.requireNonNull;
  */
 @Component(
         service = PublicationReceiverBackend.class,
-        property = {Constants.SERVICE_DESCRIPTION + "=Composum Platform Remote Receiver Service"},
+        property = {Constants.SERVICE_DESCRIPTION + "=Composum Platform Publication Receiver Backend Service"},
         configurationPolicy = ConfigurationPolicy.REQUIRE
 )
 @Designate(ocd = PublicationReceiverBackendService.Configuration.class)
@@ -266,7 +266,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
 
     @Override
     public void commit(@Nonnull String updateId, @Nonnull Set<String> deletedPaths,
-                       @Nonnull JsonArrayAsIterable<ChildrenOrderInfo> childOrderings, String newReleaseChangeId)
+                       @Nonnull Iterable<ChildrenOrderInfo> childOrderings, String newReleaseChangeId)
             throws LoginException, RemotePublicationReceiverException, RepositoryException, PersistenceException {
         LOG.info("Commit called for {} : {}", updateId, deletedPaths);
         try (ResourceResolver resolver = makeResolver()) {
@@ -305,7 +305,9 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
                 removeOrphans(resolver, chRoot, replicationPaths.translate(deletedPath), targetRootPath);
             }
 
+            int numorderings = 0;
             for (ChildrenOrderInfo childrenOrderInfo : childOrderings) {
+                numorderings++;
                 if (!SlingResourceUtil.isSameOrDescendant(replicationPaths.getOrigin(), childrenOrderInfo.getPath())) { // safety check - Bug!
                     throw new IllegalArgumentException("Not subpath of " + replicationPaths.getOrigin() + " : " + childrenOrderInfo);
                 }
@@ -317,7 +319,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
                     LOG.error("Resource for childorder doesn't exist: {}", path);
                 }
             }
-            LOG.debug("Number of child orderings read for {} was {}", topContentPath, childOrderings.getNumberRead());
+            LOG.debug("Number of child orderings read for {} was {}", topContentPath, numorderings);
 
             ModifiableValueMap releaseRootVm = metaResource.adaptTo(ModifiableValueMap.class);
             releaseRootVm.put(StagingConstants.PROP_LAST_REPLICATION_DATE, Calendar.getInstance());
@@ -629,8 +631,8 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     }
 
     @ObjectClassDefinition(
-            name = "Composum Platform Remote Publication Receiver Configuration",
-            description = "Configures a service that receives release changes from remote system"
+            name = "Composum Platform Publication Receiver Backend Service",
+            description = "Configures a service that receives release changes from the local or a remote system"
     )
     public @interface Configuration {
 

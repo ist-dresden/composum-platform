@@ -8,11 +8,13 @@ import com.composum.sling.platform.staging.replication.AbstractReplicationConfig
 import com.composum.sling.platform.staging.replication.AbstractReplicationService;
 import com.composum.sling.platform.staging.replication.PublicationReceiverFacade;
 import com.composum.sling.platform.staging.replication.ReplicationType;
+import com.composum.sling.platform.staging.replication.impl.PublicationReceiverBackend;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.*;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +32,7 @@ import java.io.IOException;
         configurationPolicy = ConfigurationPolicy.REQUIRE,
         immediate = true
 )
+@Designate(ocd = InPlacePublisherService.Configuration.class)
 public class InPlacePublisherService
         extends AbstractReplicationService<InPlaceReplicationConfig, InPlaceReleasePublishingProcess> {
 
@@ -47,6 +50,9 @@ public class InPlacePublisherService
 
     @Reference
     private ResourceResolverFactory resolverFactory;
+
+    @Reference
+    private PublicationReceiverBackend backend;
 
     @Activate
     @Modified
@@ -111,7 +117,7 @@ public class InPlacePublisherService
         @Nonnull
         @Override
         protected PublicationReceiverFacade createTargetFacade(@Nonnull AbstractReplicationConfig replicationConfig, @Nonnull BeanContext context) {
-            return new InPlacePublicationReceiverFacade((InPlaceReplicationConfig) replicationConfig, context, () -> config);
+            return new InPlacePublicationReceiverFacade((InPlaceReplicationConfig) replicationConfig, context, () -> config, backend);
         }
 
         @Override

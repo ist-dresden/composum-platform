@@ -49,7 +49,7 @@ public interface PublicationReceiverBackend {
      * temporary directory is then deleted.
      */
     void commit(@Nonnull String updateId, @Nonnull Set<String> deletedPaths,
-                @Nonnull JsonArrayAsIterable<ChildrenOrderInfo> childOrderings, String newReleaseChangeId)
+                @Nonnull Iterable<ChildrenOrderInfo> childOrderings, String newReleaseChangeId)
             throws LoginException, RemotePublicationReceiverException, RepositoryException, PersistenceException;
 
     /**
