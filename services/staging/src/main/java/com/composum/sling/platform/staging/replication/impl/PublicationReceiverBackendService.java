@@ -1,6 +1,5 @@
 package com.composum.sling.platform.staging.replication.impl;
 
-import com.composum.platform.commons.json.JsonArrayAsIterable;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
@@ -11,6 +10,7 @@ import com.composum.sling.platform.staging.replication.ReplicationPaths;
 import com.composum.sling.platform.staging.replication.UpdateInfo;
 import com.composum.sling.platform.staging.replication.json.ChildrenOrderInfo;
 import com.composum.sling.platform.staging.replication.json.NodeAttributeComparisonInfo;
+import com.composum.sling.platform.staging.replication.json.VersionableInfo;
 import com.composum.sling.platform.staging.replication.json.VersionableTree;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.gson.Gson;
@@ -37,7 +37,6 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -46,6 +45,7 @@ import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static com.composum.sling.core.util.SlingResourceUtil.appendPaths;
@@ -190,10 +190,11 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
 
     @Nonnull
     @Override
-    public List<String> compareContent(@Nullable ReplicationPaths replicationPaths, @Nullable String updateId, @Nonnull BufferedReader json)
+    public List<String> compareContent(@Nullable ReplicationPaths replicationPaths, @Nullable String updateId,
+                                       @Nonnull Stream<VersionableInfo> versionableInfos)
             throws LoginException, RemotePublicationReceiverException, RepositoryException, IOException {
         LOG.info("Compare content {} - {}", updateId, replicationPaths);
-        try (ResourceResolver resolver = makeResolver(); Reader ignored = json) {
+        try (ResourceResolver resolver = makeResolver()) {
             ReplicationPaths usedReplicationPaths = replicationPaths;
             if (StringUtils.isNotBlank(updateId)) {
                 Resource tmpLocation = getTmpLocation(resolver, updateId, false);
@@ -201,12 +202,9 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
                 usedReplicationPaths = new ReplicationPaths(vm);
             }
 
-            VersionableTree.VersionableTreeDeserializer factory =
-                    new VersionableTree.VersionableTreeDeserializer(
-                            usedReplicationPaths.translateMapping(config.changeRoot()), resolver,
-                            usedReplicationPaths.getContentPath());
-            Gson gson = new GsonBuilder().registerTypeAdapterFactory(factory).create();
-            VersionableTree versionableTree = gson.fromJson(json, VersionableTree.class);
+            VersionableTree versionableTree = new VersionableTree();
+            versionableTree.process(versionableInfos, usedReplicationPaths.getContentPath(),
+                    usedReplicationPaths.translateMapping(config.changeRoot()), resolver);
             List<String> result = new ArrayList<>();
             result.addAll(versionableTree.getChangedPaths());
             result.addAll(versionableTree.getDeletedPaths());

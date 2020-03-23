@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * Interface for service that implements the functions behind the {@link RemotePublicationReceiverServlet}.
@@ -61,7 +62,7 @@ public interface PublicationReceiverBackend {
      */
     @Nonnull
     List<String> compareContent(@Nullable ReplicationPaths replicationPaths, @Nullable String updateId,
-                                @Nonnull BufferedReader jsonInputReader)
+                                @Nonnull Stream<VersionableInfo> versionableInfos)
             throws LoginException, RemotePublicationReceiverException, RepositoryException, IOException;
 
     /**

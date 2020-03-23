@@ -17,11 +17,14 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.composum.sling.platform.staging.replication.ReplicationConstants.*;
@@ -93,12 +96,22 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
     @Nonnull
     @Override
     public Status compareContent(@Nonnull UpdateInfo updateInfo, @Nonnull Collection<String> paths, @Nonnull ResourceResolver resolver, @Nonnull ReplicationPaths replicationPaths) throws URISyntaxException, PublicationReceiverFacadeException, RepositoryException {
-        LOG.error("InPlacePublicationReceiverFacade.compareContent");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: InPlacePublicationReceiverFacade.compareContent");
-        // FIXME hps 19.03.20 implement InPlacePublicationReceiverFacade.compareContent
-        Status result = null;
-        return result;
+        Status status = new Status(null, null, LOG);
+
+        VersionableTree versionableTree = new VersionableTree();
+        Collection<Resource> resources = paths.stream()
+                .map(resolver::getResource)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        versionableTree.setSearchtreeRoots(resources);
+
+        try {
+            List<String> diffpaths = backend.compareContent(replicationPaths, updateInfo.updateId, versionableTree.versionableInfos(null));
+            status.data(Status.DATA).put(PARAM_PATH, diffpaths);
+        } catch (LoginException | RemotePublicationReceiverException | IOException e) {
+            status.error("Internal error", e);
+        }
+        return status;
     }
 
     @Nonnull

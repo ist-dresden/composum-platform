@@ -107,6 +107,13 @@ public class VersionableTree {
      * Compares the {versionableInfoStream} to the resource tree of {resolver} and updates {@link #getDeleted()} and {@link #getChanged()} accordingly.
      */
     public void process(Stream<VersionableInfo> versionableInfoStream, String checkSubpath, Function<String, String> pathMapping, ResourceResolver resolver) {
+        if (deleted == null) {
+            deleted = new ArrayList<>();
+        }
+        if (changed == null) {
+            changed = new ArrayList<>();
+        }
+
         versionableInfoStream.forEach((info) -> process(info, checkSubpath, pathMapping, resolver));
     }
 
