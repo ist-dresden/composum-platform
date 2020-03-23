@@ -104,14 +104,52 @@ public class VersionableTree {
     }
 
     /**
+     * Compares the {versionableInfoStream} to the resource tree of {resolver} and updates {@link #getDeleted()} and {@link #getChanged()} accordingly.
+     */
+    public void process(Stream<VersionableInfo> versionableInfoStream, String checkSubpath, Function<String, String> pathMapping, ResourceResolver resolver) {
+        versionableInfoStream.forEach((info) -> process(info, checkSubpath, pathMapping, resolver));
+    }
+
+    /**
+     * Compares {info} to the resource tree of {resolver} and updates {@link #getDeleted()} and {@link #getChanged()} accordingly.
+     */
+    public void process(VersionableInfo info, String checkSubpath, Function<String, String> pathMapping, ResourceResolver resolver) {
+        if (deleted == null) {
+            deleted = new ArrayList<>();
+        }
+        if (changed == null) {
+            changed = new ArrayList<>();
+        }
+
+        if (checkSubpath == null || SlingResourceUtil.isSameOrDescendant(checkSubpath, info.getPath())) {
+            String path = pathMapping != null ? pathMapping.apply(info.getPath()) : info.getPath();
+            Resource resource = path != null ? resolver.getResource(path) : null;
+            if (resource == null) {
+                deleted.add(info);
+            } else {
+                VersionableInfo currentInfo = VersionableInfo.of(resource, null);
+                if (currentInfo == null || !currentInfo.getVersion().equals(info.getVersion())) {
+                    changed.add(info);
+                }
+            }
+        } else {
+            throw new IllegalArgumentException("Not subpath of " + checkSubpath + " : " + info);
+        }
+    }
+
+    /**
      * Collects the {@link VersionableInfo#of(Resource, Function)} of the search tree roots set with {@link #setSearchtreeRoots(Collection)}.
      */
     @Nonnull
     public Stream<VersionableInfo> versionableInfos(@Nullable Function<String, String> pathMapping) {
-        return searchTreeRoots.stream().filter(Objects::nonNull)
+        Stream<VersionableInfo> versionableInfoStream = searchTreeRoots.stream().filter(Objects::nonNull)
                 .flatMap((root) -> SlingResourceUtil.descendantsStream(root, VersionableTree::isVersionableLeaf))
                 .map((r) -> VersionableInfo.of(r, pathMapping))
                 .filter(Objects::nonNull);
+        // FIXME(hps,23.03.20) for debugging - remove this step
+        List<VersionableInfo> list = versionableInfoStream.collect(Collectors.toList());
+        versionableInfoStream = list.stream();
+        return versionableInfoStream;
     }
 
     protected static boolean isVersionableLeaf(Resource resource) {
@@ -177,8 +215,6 @@ public class VersionableTree {
         protected <TR extends VersionableTree> VersionableTree read(@Nonnull JsonReader in, @Nonnull Gson gson,
                                                                     @Nonnull TypeToken<TR> requestedType) throws IOException {
             VersionableTree result = makeInstance(requestedType);
-            result.deleted = new ArrayList<>();
-            result.changed = new ArrayList<>();
             try (
                     JsonArrayAsIterable<VersionableInfo> iterable =
                             new JsonArrayAsIterable<>(in, VersionableInfo.class, gson, null)
@@ -189,33 +225,5 @@ public class VersionableTree {
         }
 
     }
-
-    /**
-     * Compares the {versionableInfoStream} to the resource tree of {resolver} and updates {@link #getDeleted()} and {@link #getChanged()} accordingly.
-     */
-    public void process(Stream<VersionableInfo> versionableInfoStream, String checkSubpath, Function<String, String> pathMapping, ResourceResolver resolver) {
-        versionableInfoStream.forEach((info) -> process(info, checkSubpath, pathMapping, resolver));
-    }
-
-    /**
-     * Compares {info} to the resource tree of {resolver} and updates {@link #getDeleted()} and {@link #getChanged()} accordingly.
-     */
-    public void process(VersionableInfo info, String checkSubpath, Function<String, String> pathMapping, ResourceResolver resolver) {
-        if (checkSubpath == null || SlingResourceUtil.isSameOrDescendant(checkSubpath, info.getPath())) {
-            String path = pathMapping != null ? pathMapping.apply(info.getPath()) : info.getPath();
-            Resource resource = path != null ? resolver.getResource(path) : null;
-            if (resource == null) {
-                deleted.add(info);
-            } else {
-                VersionableInfo currentInfo = VersionableInfo.of(resource, null);
-                if (currentInfo == null || !currentInfo.getVersion().equals(info.getVersion())) {
-                    changed.add(info);
-                }
-            }
-        } else {
-            throw new IllegalArgumentException("Not subpath of " + checkSubpath + " : " + info);
-        }
-    }
-
 
 }

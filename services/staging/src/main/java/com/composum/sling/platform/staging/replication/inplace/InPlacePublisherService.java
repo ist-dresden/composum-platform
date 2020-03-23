@@ -117,7 +117,8 @@ public class InPlacePublisherService
         @Nonnull
         @Override
         protected PublicationReceiverFacade createTargetFacade(@Nonnull AbstractReplicationConfig replicationConfig, @Nonnull BeanContext context) {
-            return new InPlacePublicationReceiverFacade((InPlaceReplicationConfig) replicationConfig, context, () -> config, backend);
+            return new InPlacePublicationReceiverFacade((InPlaceReplicationConfig) replicationConfig, context,
+                    () -> config, backend, resolverFactory);
         }
 
         @Override

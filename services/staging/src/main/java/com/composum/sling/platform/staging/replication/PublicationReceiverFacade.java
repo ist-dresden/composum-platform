@@ -181,6 +181,11 @@ public interface PublicationReceiverFacade {
             super(gsonBuilder, request, response, logger);
         }
 
+        public ContentStateStatus(@Nonnull Logger logger) {
+            super(null, null, logger);
+        }
+
+
         /**
          * @deprecated for instantiation by GSon only
          */

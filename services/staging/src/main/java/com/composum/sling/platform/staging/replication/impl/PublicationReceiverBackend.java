@@ -6,9 +6,11 @@ import com.composum.sling.platform.staging.replication.UpdateInfo;
 import com.composum.sling.platform.staging.replication.json.ChildrenOrderInfo;
 import com.composum.sling.platform.staging.replication.json.NodeAttributeComparisonInfo;
 import com.composum.sling.platform.staging.replication.json.VersionableInfo;
+import com.composum.sling.platform.staging.replication.json.VersionableTree;
 import org.apache.jackrabbit.vault.fs.config.ConfigurationException;
 import org.apache.sling.api.resource.LoginException;
 import org.apache.sling.api.resource.PersistenceException;
+import org.apache.sling.api.resource.ResourceResolver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -16,6 +18,7 @@ import javax.jcr.RepositoryException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -89,6 +92,14 @@ public interface PublicationReceiverBackend {
     @Nonnull
     List<String> compareAttributes(@Nonnull ReplicationPaths replicationPaths,
                                    @Nonnull Iterable<NodeAttributeComparisonInfo> attributeInfos) throws LoginException, RemotePublicationReceiverException;
+
+    /**
+     * Generates a {@link VersionableTree} from which one can retrieve the {@link VersionableInfo}s below a set of paths.
+     *
+     * @param resolver the resolver used; it's necessary to route that in since it canot be closed within the method since
+     *                 VersionableTree contains resources from this resolver
+     */
+    VersionableTree contentStatus(@Nonnull ReplicationPaths replicationPaths, @Nonnull Collection<String> paths, @Nonnull ResourceResolver resolver);
 
     public class RemotePublicationReceiverException extends Exception {
 

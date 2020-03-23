@@ -616,6 +616,20 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
 
     }
 
+    @Override
+    public VersionableTree contentStatus(@Nonnull ReplicationPaths replicationPaths,
+                                         @Nonnull Collection<String> paths, @Nonnull ResourceResolver resolver) {
+        List<Resource> resources = paths.stream()
+                .map(replicationPaths::trimToOrigin)
+                .filter(Objects::nonNull)
+                .map(replicationPaths.translateMapping(getChangeRoot()))
+                .map(resolver::getResource)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        VersionableTree versionableTree = new VersionableTree();
+        versionableTree.setSearchtreeRoots(resources);
+        return versionableTree;
+    }
 
     /**
      * Creates the service resolver used to update the content.

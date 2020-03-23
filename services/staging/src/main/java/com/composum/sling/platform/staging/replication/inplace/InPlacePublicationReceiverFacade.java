@@ -10,10 +10,8 @@ import com.composum.sling.platform.staging.replication.impl.PublicationReceiverB
 import com.composum.sling.platform.staging.replication.impl.PublicationReceiverBackend.RemotePublicationReceiverException;
 import com.composum.sling.platform.staging.replication.json.ChildrenOrderInfo;
 import com.composum.sling.platform.staging.replication.json.NodeAttributeComparisonInfo;
-import org.apache.sling.api.resource.LoginException;
-import org.apache.sling.api.resource.PersistenceException;
-import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceResolver;
+import com.composum.sling.platform.staging.replication.json.VersionableTree;
+import org.apache.sling.api.resource.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,16 +28,25 @@ import static com.composum.sling.platform.staging.replication.ReplicationConstan
 
 public class InPlacePublicationReceiverFacade implements PublicationReceiverFacade {
     private static final Logger LOG = LoggerFactory.getLogger(InPlacePublicationReceiverFacade.class);
-    private final InPlaceReplicationConfig config;
-    private final BeanContext context;
-    private final Supplier<InPlacePublisherService.Configuration> generalConfig;
-    private final PublicationReceiverBackend backend;
+    protected final InPlaceReplicationConfig config;
+    protected final BeanContext context;
+    protected final Supplier<InPlacePublisherService.Configuration> generalConfig;
+    protected final PublicationReceiverBackend backend;
+    protected final ResourceResolverFactory resolverFactory;
 
-    public InPlacePublicationReceiverFacade(InPlaceReplicationConfig replicationConfig, BeanContext context, Supplier<InPlacePublisherService.Configuration> generalConfig, PublicationReceiverBackend backend) {
+    public InPlacePublicationReceiverFacade(InPlaceReplicationConfig replicationConfig, BeanContext context, Supplier<InPlacePublisherService.Configuration> generalConfig, PublicationReceiverBackend backend, ResourceResolverFactory resolverFactory) {
         this.config = replicationConfig;
         this.context = context;
         this.generalConfig = generalConfig;
         this.backend = backend;
+        this.resolverFactory = resolverFactory;
+    }
+
+    /**
+     * Creates the service resolver used to read / update the content.
+     */
+    protected ResourceResolver makeResolver() throws LoginException {
+        return resolverFactory.getServiceResourceResolver(null);
     }
 
     @Nonnull
@@ -68,12 +75,18 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
 
     @Nonnull
     @Override
-    public ContentStateStatus contentState(@Nonnull UpdateInfo updateInfo, @Nonnull Collection<String> paths, @Nonnull ResourceResolver resolver, @Nonnull ReplicationPaths replicationPaths) throws PublicationReceiverFacadeException, RepositoryException {
-        LOG.error("InPlacePublicationReceiverFacade.contentState");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: InPlacePublicationReceiverFacade.contentState");
-        // FIXME hps 19.03.20 implement InPlacePublicationReceiverFacade.contentState
-        ContentStateStatus result = null;
+    public ContentStateStatus contentState(@Nonnull UpdateInfo updateInfo, @Nonnull Collection<String> paths, @Nonnull ResourceResolver stagedResolver,
+                                           @Nonnull ReplicationPaths replicationPaths) throws PublicationReceiverFacadeException, RepositoryException {
+        ContentStateStatus result = new ContentStateStatus(LOG);
+        VersionableTree backendResult = null;
+        try (ResourceResolver resolver = makeResolver()) {
+            backendResult = backend.contentStatus(replicationPaths, paths, resolver);
+            result.versionables = new VersionableTree();
+            result.versionables.process(backendResult.versionableInfos(replicationPaths.inverseTranslateMapping(backend.getChangeRoot())),
+                    replicationPaths.getOrigin(), null, stagedResolver);
+        } catch (LoginException | RuntimeException e) {
+            result.error("Internal error", e);
+        }
         return result;
     }
 
