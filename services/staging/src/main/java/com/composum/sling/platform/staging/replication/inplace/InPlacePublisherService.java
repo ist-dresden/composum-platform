@@ -1,6 +1,7 @@
 package com.composum.sling.platform.staging.replication.inplace;
 
 import com.composum.sling.core.BeanContext;
+import com.composum.sling.nodes.NodesConfiguration;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeProcess;
 import com.composum.sling.platform.staging.StagingReleaseManager;
@@ -11,6 +12,8 @@ import com.composum.sling.platform.staging.replication.ReplicationType;
 import com.composum.sling.platform.staging.replication.impl.PublicationReceiverBackend;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.commons.threads.ThreadPool;
+import org.apache.sling.commons.threads.ThreadPoolManager;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.*;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
@@ -39,6 +42,11 @@ public class InPlacePublisherService
     private static final Logger LOG = LoggerFactory.getLogger(InPlacePublisherService.class);
 
     /**
+     * Name of the threadpool, and thus prefix for the thread names.
+     */
+    public static final String THREADPOOL_NAME = "RCInplRepl";
+
+    /**
      * {@link ReleaseChangeProcess#getType()} for this kind of replication.
      */
     public static final String TYPE_INPLACE = "inplace";
@@ -54,11 +62,36 @@ public class InPlacePublisherService
     @Reference
     private PublicationReceiverBackend backend;
 
+    @Reference
+    protected NodesConfiguration nodesConfig;
+
+    @Reference
+    protected ThreadPoolManager threadPoolManager;
+
+    protected volatile ThreadPool threadPool;
+
     @Activate
     @Modified
     protected void activate(final Configuration theConfig) {
         LOG.info("activated");
         this.config = theConfig;
+        this.threadPool = threadPoolManager.get(THREADPOOL_NAME);
+    }
+
+    @Override
+    @Deactivate
+    protected void deactivate() throws IOException {
+        LOG.info("deactivated");
+        this.config = null;
+        try {
+            super.deactivate();
+        } finally {
+            ThreadPool oldThreadPool = this.threadPool;
+            this.threadPool = null;
+            if (oldThreadPool != null) {
+                threadPoolManager.release(oldThreadPool);
+            }
+        }
     }
 
     @Nonnull
@@ -77,14 +110,6 @@ public class InPlacePublisherService
     @Override
     protected ReplicationType getReplicationType() {
         return InPlaceReplicationConfig.INPLACE_REPLICATION_TYPE;
-    }
-
-    @Override
-    @Deactivate
-    protected void deactivate() throws IOException {
-        LOG.info("deactivated");
-        this.config = null;
-        super.deactivate();
     }
 
     @Override
@@ -118,7 +143,7 @@ public class InPlacePublisherService
         @Override
         protected PublicationReceiverFacade createTargetFacade(@Nonnull AbstractReplicationConfig replicationConfig, @Nonnull BeanContext context) {
             return new InPlacePublicationReceiverFacade((InPlaceReplicationConfig) replicationConfig, context,
-                    () -> config, backend, resolverFactory);
+                    () -> config, backend, resolverFactory, nodesConfig, threadPool);
         }
 
         @Override

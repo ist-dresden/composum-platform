@@ -1,8 +1,13 @@
 package com.composum.sling.platform.staging.replication.inplace;
 
+import com.composum.platform.commons.util.ExceptionThrowingConsumer;
 import com.composum.platform.commons.util.ExceptionThrowingRunnable;
+import com.composum.platform.commons.util.OutputStreamInputStreamAdapter;
 import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.servlet.Status;
+import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.nodes.NodesConfiguration;
+import com.composum.sling.nodes.servlet.SourceModel;
 import com.composum.sling.platform.staging.replication.PublicationReceiverFacade;
 import com.composum.sling.platform.staging.replication.ReplicationPaths;
 import com.composum.sling.platform.staging.replication.UpdateInfo;
@@ -11,13 +16,17 @@ import com.composum.sling.platform.staging.replication.impl.PublicationReceiverB
 import com.composum.sling.platform.staging.replication.json.ChildrenOrderInfo;
 import com.composum.sling.platform.staging.replication.json.NodeAttributeComparisonInfo;
 import com.composum.sling.platform.staging.replication.json.VersionableTree;
+import org.apache.jackrabbit.vault.fs.config.ConfigurationException;
 import org.apache.sling.api.resource.*;
+import org.apache.sling.commons.threads.ThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.List;
@@ -36,13 +45,20 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
     protected final Supplier<InPlacePublisherService.Configuration> generalConfig;
     protected final PublicationReceiverBackend backend;
     protected final ResourceResolverFactory resolverFactory;
+    protected final NodesConfiguration nodesConfiguration;
+    protected final ThreadPool threadPool;
 
-    public InPlacePublicationReceiverFacade(InPlaceReplicationConfig replicationConfig, BeanContext context, Supplier<InPlacePublisherService.Configuration> generalConfig, PublicationReceiverBackend backend, ResourceResolverFactory resolverFactory) {
+    public InPlacePublicationReceiverFacade(InPlaceReplicationConfig replicationConfig, BeanContext context,
+                                            Supplier<InPlacePublisherService.Configuration> generalConfig,
+                                            PublicationReceiverBackend backend, ResourceResolverFactory resolverFactory,
+                                            NodesConfiguration nodesConfiguration, ThreadPool threadPool) {
         this.config = replicationConfig;
         this.context = context;
         this.generalConfig = generalConfig;
         this.backend = backend;
         this.resolverFactory = resolverFactory;
+        this.nodesConfiguration = nodesConfiguration;
+        this.threadPool = threadPool;
     }
 
     /**
@@ -114,15 +130,37 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
         return status;
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * For the implementation we create a package and unpack that, since this is easily compatible to the remote
+     * replication process and an easy way to copy with existing means.
+     */
     @Nonnull
     @Override
     public Status pathupload(@Nonnull UpdateInfo updateInfo, @Nonnull Resource resource) throws PublicationReceiverFacadeException, URISyntaxException, RepositoryException {
-        LOG.error("InPlacePublicationReceiverFacade.pathupload");
-        if (0 == 0)
-            throw new UnsupportedOperationException("Not implemented yet: InPlacePublicationReceiverFacade.pathupload");
-        // FIXME hps 19.03.20 implement InPlacePublicationReceiverFacade.pathupload
-        Status result = null;
-        return result;
+        Status status = new Status(null, null, LOG);
+        Resource writeResource = resource;
+        if (com.composum.sling.core.util.ResourceUtil.isFile(resource) && ResourceUtil.CONTENT_NODE.equals(resource.getName())) {
+            // you need the parent node to form a correct package for this, since the file format is special.
+            writeResource = resource.getParent();
+        }
+        SourceModel model = new SourceModel(nodesConfiguration, context, writeResource);
+        ExceptionThrowingConsumer<OutputStream, IOException> writer = (outstream) -> {
+            try {
+                model.writePackage(outstream, "inplacepublisher", resource.getPath(), "1");
+            } catch (RepositoryException e) {
+                throw new IOException(e);
+            }
+        };
+
+        InputStream inputStream = OutputStreamInputStreamAdapter.of(writer, threadPool);
+        try {
+            backend.pathUpload(updateInfo.updateId, resource.getPath(), inputStream);
+        } catch (LoginException | RemotePublicationReceiverException | IOException | ConfigurationException | RuntimeException e) {
+            status.error("Internal error", e);
+        }
+        return status;
     }
 
     @Nonnull

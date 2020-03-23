@@ -334,6 +334,7 @@ public class ReplicatorStrategy {
 
     @Nullable
     public ReleaseChangeEventPublisher.CompareResult compareTree(int details) throws PublicationReceiverFacade.PublicationReceiverFacadeException, ReleaseChangeEventListener.ReplicationFailedException {
+        // FIXME(hps,24.03.20) not checked after replication - probably yet broken for inplace
         try {
             ReleaseChangeEventPublisher.CompareResult result = new ReleaseChangeEventPublisher.CompareResult();
             PublicationReceiverFacade.StatusWithReleaseData releaseInfoStatus = publisher.releaseInfo(replicationPaths(null));
