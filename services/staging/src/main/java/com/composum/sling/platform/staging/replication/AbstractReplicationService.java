@@ -609,7 +609,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             }
             UpdateInfo result = null;
             try (ResourceResolver serviceResolver = makeResolver()) {
-                LOG.info("Querying target release info of {}", getId());
+                LOG.debug("Querying target release info of {}", getId());
                 ReplicatorStrategy strategy = makeReplicatorStrategy(serviceResolver, null);
                 if (strategy != null) {
                     result = strategy.remoteReleaseInfo();

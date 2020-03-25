@@ -25,7 +25,7 @@
         <package.group>com/composum/platform</package.group>
         <bundle.category>composum,platform</bundle.category>
 
-        <composum.nodes.version>1.12.1</composum.nodes.version>
+        <composum.nodes.version>1.12.2-SNAPSHOT</composum.nodes.version>
 
     </properties>
 

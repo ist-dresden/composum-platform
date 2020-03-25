@@ -1,6 +1,7 @@
 package com.composum.sling.platform.staging.replication.impl;
 
 import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.core.util.PropertyUtil;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.StagingConstants;
@@ -13,8 +14,6 @@ import com.composum.sling.platform.staging.replication.json.NodeAttributeCompari
 import com.composum.sling.platform.staging.replication.json.VersionableInfo;
 import com.composum.sling.platform.staging.replication.json.VersionableTree;
 import com.google.common.collect.ImmutableBiMap;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.vault.fs.config.ConfigurationException;
@@ -39,7 +38,6 @@ import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Reader;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.*;
@@ -124,10 +122,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             throws PersistenceException, LoginException, RemotePublicationReceiverException, RepositoryException {
         LOG.info("Start update called for {}", replicationPaths);
         try (ResourceResolver resolver = makeResolver()) {
-            // make sure the meta resource and target can be created
-            getMetaResource(resolver, replicationPaths, true);
-            ResourceUtil.getOrCreateResource(resolver,
-                    SlingResourceUtil.appendPaths(config.changeRoot(), replicationPaths.getDestination()), ResourceUtil.TYPE_SLING_FOLDER);
+            ensureMetaResourceAndPath(replicationPaths, resolver);
 
             UpdateInfo updateInfo = new UpdateInfo();
             updateInfo.updateId = "upd-" + RandomStringUtils.random(12, 0, 0, true, true, null, random);
@@ -150,6 +145,19 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             }
             resolver.commit();
             return updateInfo;
+        }
+    }
+
+    protected void ensureMetaResourceAndPath(@Nonnull ReplicationPaths replicationPaths, ResourceResolver resolver) throws RepositoryException {
+        // make sure the meta resource and target can be created
+        Resource meta = Objects.requireNonNull(getMetaResource(resolver, replicationPaths, true));
+        String destinationPath = appendPaths(config.changeRoot(), replicationPaths.getDestination());
+        Resource destinationResource = resolver.getResource(destinationPath);
+        if (destinationResource == null) {
+            destinationResource = ResourceUtil.getOrCreateResource(resolver, destinationPath, ResourceUtil.TYPE_SLING_FOLDER);
+            if (destinationResource != null) { // it wasn't just unreadable - reset change number since that was deleted
+                meta.adaptTo(ModifiableValueMap.class).remove(StagingConstants.PROP_CHANGE_NUMBER);
+            }
         }
     }
 
@@ -386,6 +394,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         NodeTreeSynchronizer synchronizer = new NodeTreeSynchronizer();
         Resource source = tmpLocation.getChild(SlingResourceUtil.relativePath("/", replicationPaths.getOrigin()));
         Resource destination = requireNonNull(resolver.getResource(SlingResourceUtil.appendPaths(chRoot, replicationPaths.getDestination())));
+        synchronizer.updateAttributes(ResourceHandle.use(source), ResourceHandle.use(destination), ImmutableBiMap.of());
         String relPath = ResourceUtil.getParent(SlingResourceUtil.relativePath(replicationPaths.getOrigin(), updatedPath));
         if (relPath != null) {
             for (String pathsegment : relPath.split("/")) {

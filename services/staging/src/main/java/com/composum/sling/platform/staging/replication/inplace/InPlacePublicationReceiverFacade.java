@@ -149,13 +149,17 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
         ExceptionThrowingConsumer<OutputStream, IOException> writer = (outstream) -> {
             try {
                 model.writePackage(outstream, "inplacepublisher", resource.getPath(), "1");
+            } catch (SourceModel.IOErrorOnCloseException e) {
+                LOG.debug("Error on zip close", e);
+                // ignore - the reader doesn't read the central directory of the zip that is written on close.
             } catch (RepositoryException e) {
                 throw new IOException(e);
+            } catch (IOException e) {
+                throw e;
             }
         };
 
-        InputStream inputStream = OutputStreamInputStreamAdapter.of(writer, threadPool);
-        try {
+        try (InputStream inputStream = OutputStreamInputStreamAdapter.of(writer, threadPool)) {
             backend.pathUpload(updateInfo.updateId, resource.getPath(), inputStream);
         } catch (LoginException | RemotePublicationReceiverException | IOException | ConfigurationException | RuntimeException e) {
             status.error("Internal error", e);

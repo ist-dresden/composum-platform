@@ -70,7 +70,8 @@ public class ChildrenOrderInfo {
             return true; // Shouldn't happen.
         }
         try {
-            return node.getPrimaryNodeType().hasOrderableChildNodes();
+            boolean hasOrderableChildNodes = node.getPrimaryNodeType().hasOrderableChildNodes();
+            return hasOrderableChildNodes;
         } catch (RepositoryException e) {
             LOG.error("Trouble determining child orderability for {}", SlingResourceUtil.getPath(resource), e);
             return true; // play safe.

@@ -10,6 +10,7 @@ import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.AggregatedReplicationStateInfo;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.ReplicationStateInfo;
+import com.composum.sling.platform.staging.ReleaseChangeProcess;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.google.gson.stream.JsonWriter;
 import org.apache.commons.codec.binary.Base64;
@@ -81,15 +82,16 @@ public class ReplicationStatus extends AbstractSlingBean {
         }
 
         public boolean isSynchronized() {
-            return state.isSynchronized != null && state.isSynchronized;
+            return Boolean.TRUE.equals(state.isSynchronized);
         }
 
         public boolean isRunning() {
-            return false; // FIXME 'running' state
+            return state.state == ReleaseChangeProcess.ReleaseChangeProcessorState.processing
+                    || state.state == ReleaseChangeProcess.ReleaseChangeProcessorState.awaiting;
         }
 
         public boolean isFaulty() {
-            return false; // FIXME 'faulty' state
+            return state.state == ReleaseChangeProcess.ReleaseChangeProcessorState.error;
         }
 
         public String getStartedAt() {

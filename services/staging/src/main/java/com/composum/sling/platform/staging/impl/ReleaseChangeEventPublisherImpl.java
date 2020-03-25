@@ -285,7 +285,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         for (ReleaseChangeProcess process : processesFor(releaseRoot, stage)) {
             try {
                 if (process.isEnabled() && result.everythingIsSynchronized
-                        && Boolean.FALSE.equals(process.isSynchronized(releaseRoot.getResourceResolver()))) {
+                        && !Boolean.TRUE.equals(process.isSynchronized(releaseRoot.getResourceResolver()))) {
                     result.everythingIsSynchronized = false;
                 }
                 result.allAreActive = result.allAreActive && process.isActive();
