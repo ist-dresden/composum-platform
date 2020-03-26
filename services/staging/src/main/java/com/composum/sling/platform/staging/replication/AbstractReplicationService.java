@@ -202,6 +202,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         protected volatile String releaseRootPath;
         protected volatile Boolean active;
         protected volatile String releaseUuid;
+        protected volatile ReplicationConfig cachedConfig;
 
         protected AbstractReplicationProcess(@Nonnull Resource releaseRoot, @Nonnull CONFIG config) {
             releaseRootPath = releaseRoot.getPath();
@@ -297,6 +298,12 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             return enabled;
         }
 
+        @Override
+        @Nonnull
+        public String getReleaseRootPath() {
+            return releaseRootPath;
+        }
+
         /**
          * Removes paths that are contained in other paths.
          */
@@ -374,6 +381,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             enabled = replicationConfig.isEnabled();
             mark = replicationConfig.getStage();
             active = null;
+            cachedConfig = replicationConfig;
         }
 
         @Override
@@ -636,6 +644,11 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         @Override
         public void updateSynchronized() {
             // empty
+        }
+
+        @Override
+        public ReplicationConfig getReplicationConfig() {
+            return this.cachedConfig;
         }
     }
 }

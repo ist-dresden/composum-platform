@@ -3,6 +3,7 @@ package com.composum.sling.platform.staging;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.logging.MessageContainer;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener.ReleaseChangeEvent;
+import com.composum.sling.platform.staging.replication.ReplicationConfig;
 import org.apache.sling.api.resource.ResourceResolver;
 
 import javax.annotation.Nonnull;
@@ -22,27 +23,44 @@ public interface ReleaseChangeProcess {
      * A string (such as a configuration resource path) that identifies this process uniquely. Not for human
      * consumption.
      */
+    @Nonnull
     String getId();
 
     /**
      * Human-readable name / title for the process.
      */
+    @Nonnull
     String getName();
 
     /**
      * The stage - normally "public" or "preview", lowercase - the process applies to.
      */
+    @Nullable
     String getStage();
 
     /**
      * Human-readable description for the process.
      */
+    @Nullable
     String getDescription();
 
     /**
      * An identifier for the type of the process - e.g. "Remote" or "In-Place".
      */
+    @Nonnull
     String getType();
+
+    /**
+     * The release root this applies to.
+     */
+    @Nonnull
+    String getReleaseRootPath();
+
+    /**
+     * Details of the replication configuration.
+     */
+    @Nullable
+    ReplicationConfig getReplicationConfig();
 
     /**
      * If this returns true, our scheduler should {@link #run()} the process again soon.

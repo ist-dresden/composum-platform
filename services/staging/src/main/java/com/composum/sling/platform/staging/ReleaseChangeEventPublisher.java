@@ -61,6 +61,13 @@ public interface ReleaseChangeEventPublisher {
     AggregatedReplicationStateInfo aggregatedReplicationState(@Nullable Resource releaseRoot, @Nullable String stage);
 
     /**
+     * Determines the path at which a release is replicated. This is the target path for the replication configuration
+     * which contains the site root and replicates the given stage. If this doesn't give an unique result, null is returned.
+     */
+    @Nullable
+    String getStagePath(@Nullable Resource releaseRoot, @Nullable String stage);
+
+    /**
      * Stops each running or faulty replication process - reset and clear for a new synchronization.
      *
      * @param releaseRoot the root of a release - if null we return an empty map.

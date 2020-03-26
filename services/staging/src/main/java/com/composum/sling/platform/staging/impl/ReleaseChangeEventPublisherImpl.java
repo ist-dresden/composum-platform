@@ -7,6 +7,7 @@ import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeProcess;
 import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.composum.sling.platform.staging.replication.ReplicationConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.commons.threads.ThreadPool;
@@ -24,14 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.*;
 import java.util.concurrent.Future;
 
 @Component(
@@ -339,6 +333,21 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                 output.put(process.getId(), compareResult);
             }
         }
+    }
+
+    @Nullable
+    @Override
+    public String getStagePath(@Nullable Resource releaseRoot, @Nullable String stage) {
+        Set<String> results = new HashSet<>();
+        for (ReleaseChangeProcess process : processesFor(releaseRoot, stage)) {
+            ReplicationConfig config = process.getReplicationConfig();
+            if (config != null) {
+                if (StringUtils.isBlank(config.getSourcePath()) || process.getReleaseRootPath().equals(config.getSourcePath())) {
+                    results.add(StringUtils.defaultIfBlank(config.getTargetPath(), process.getReleaseRootPath()));
+                }
+            }
+        }
+        return results.size() == 1 ? results.iterator().next() : null; // only return if unique
     }
 
     @Activate
