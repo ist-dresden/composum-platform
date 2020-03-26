@@ -49,12 +49,8 @@ public class ErrorPage extends AbstractSlingBean {
     @Nonnull
     public String getLoginUrl() {
         if (loginUrl == null) {
-            // FIXME(hps,16.09.19) replace this by {@link com.composum.sling.core.CoreConfiguration#getLoginUrl()}
-            // once it is old enough.
-            Dictionary properties = getCoreConfiguration() != null ? getCoreConfiguration().getProperties() :
-                    new Properties();
-            loginUrl = StringUtils.defaultIfBlank(StringUtils.trim((String) properties.get("loginurl")),
-                    "/system/sling/form/login.html");
+            loginUrl = getCoreConfiguration() != null ? getCoreConfiguration().getLoginUrl() : null;
+            loginUrl = StringUtils.defaultIfBlank(loginUrl, "/system/sling/form/login.html");
         }
         return loginUrl;
     }

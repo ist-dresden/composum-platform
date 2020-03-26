@@ -314,6 +314,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                 // but a state retrieval should never throw exceptions - this breaks th UI
                 result.haveErrors = true;
                 result.allAreActive = false;
+                result.everythingIsSynchronized = false;
             }
         }
         return result;

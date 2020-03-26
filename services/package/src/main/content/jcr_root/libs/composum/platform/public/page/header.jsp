@@ -7,8 +7,7 @@
 <sling:defineObjects/>
 <cpn:component id="model" type="com.composum.platform.models.simple.SimpleModel">
     <c:set var="logouturl" value="<%=
-        /** FIXME(hps,16.09.19) replace this by {@link com.composum.sling.core.CoreConfiguration#getLogoutUrl()} once it is old enough.  */
-        StringUtils.defaultIfBlank((String) model.getService(CoreConfiguration.class).getProperties().get("logouturl"), "/system/sling/logout.html?logout=true&GLO=true")
+        StringUtils.defaultIfBlank((String) model.getService(CoreConfiguration.class).getLogoutUrl(), "/system/sling/logout.html?logout=true&GLO=true")
     %>"/>
     <div class="composum-platform-public_header">
         <div class="composum-platform-public_titles">

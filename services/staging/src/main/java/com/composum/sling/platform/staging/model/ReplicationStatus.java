@@ -26,22 +26,30 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
-import static com.composum.sling.platform.staging.StagingConstants.CURRENT_RELEASE;
-import static com.composum.sling.platform.staging.StagingConstants.TIMESTAMP_FORMAT;
-import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
+import static com.composum.sling.platform.staging.StagingConstants.*;
 
 public class ReplicationStatus extends AbstractSlingBean {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReplicationStatus.class);
 
-    public enum State {undefined, synchron, running, faulty, switchedoff}
+    public enum State {
+        /**
+         * Needs synchronization.
+         */
+        undefined,
+        synchron,
+        /**
+         * In the queue or actually running.
+         */
+        running,
+        /**
+         * Internal error or no connection possible.
+         */
+        faulty,
+        switchedoff
+    }
 
     public class ReplicationProcessState implements Comparable<ReplicationProcessState> {
 
