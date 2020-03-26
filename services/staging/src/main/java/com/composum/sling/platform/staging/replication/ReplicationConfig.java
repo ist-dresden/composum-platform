@@ -60,8 +60,4 @@ public interface ReplicationConfig {
      */
     boolean isEnabled();
 
-    /**
-     * @return 'true' if the configuration can be changed by the user
-     */
-    boolean isEditable();
 }

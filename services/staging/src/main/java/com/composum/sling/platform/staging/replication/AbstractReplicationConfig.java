@@ -1,8 +1,10 @@
 package com.composum.sling.platform.staging.replication;
 
 import com.composum.sling.core.AbstractSlingBean;
+import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.security.AccessMode;
+import org.apache.sling.api.resource.Resource;
 
 import javax.annotation.Nonnull;
 
@@ -19,12 +21,31 @@ public abstract class AbstractReplicationConfig extends AbstractSlingBean implem
      */
     public static final String PROP_PROXY_KEY = "proxyKey";
 
+    protected String description;
+    protected String stage;
+    protected Boolean enabled;
+    protected String sourcePath;
+    protected String targetPath;
+    protected String configResourceType;
+
+    @Override
+    public void initialize(BeanContext context, Resource resource) {
+        // we initialize everything right now since this object might live longer than the resolver.
+        super.initialize(context, resource);
+        this.description = getProperty(ResourceUtil.PROP_DESCRIPTION, String.class);
+        this.stage = getProperty(PN_STAGE, String.class);
+        this.enabled = getProperty(PN_IS_ENABLED, Boolean.TRUE);
+        this.sourcePath = getProperty(PN_SOURCE_PATH, String.class);
+        this.targetPath = getProperty(PN_TARGET_PATH, String.class);
+        this.configResourceType = getProperty(ResourceUtil.PROP_RESOURCE_TYPE, String.class);
+    }
+
     /**
      * Optional human-readable description.
      */
     @Override
     public String getDescription() {
-        return getProperty(ResourceUtil.PROP_DESCRIPTION, String.class);
+        return description;
     }
 
     /**
@@ -35,7 +56,7 @@ public abstract class AbstractReplicationConfig extends AbstractSlingBean implem
     @Nonnull
     @Override
     public String getStage() {
-        return getProperty(PN_STAGE, String.class);
+        return stage;
     }
 
     /**
@@ -43,12 +64,7 @@ public abstract class AbstractReplicationConfig extends AbstractSlingBean implem
      */
     @Override
     public boolean isEnabled() {
-        return getProperty(PN_IS_ENABLED, Boolean.TRUE);
-    }
-
-    @Override
-    public boolean isEditable() {
-        return getProperty(PN_IS_EDITABLE, true);
+        return enabled;
     }
 
     /**
@@ -57,7 +73,7 @@ public abstract class AbstractReplicationConfig extends AbstractSlingBean implem
     @Nonnull
     @Override
     public String getSourcePath() {
-        return getProperty(PN_SOURCE_PATH, String.class);
+        return sourcePath;
     }
 
     /**
@@ -65,12 +81,12 @@ public abstract class AbstractReplicationConfig extends AbstractSlingBean implem
      */
     @Override
     public String getTargetPath() {
-        return getProperty(PN_TARGET_PATH, String.class);
+        return targetPath;
     }
 
     @Nonnull
     @Override
     public String getConfigResourceType() {
-        return getProperty(ResourceUtil.PROP_RESOURCE_TYPE, String.class);
+        return configResourceType;
     }
 }

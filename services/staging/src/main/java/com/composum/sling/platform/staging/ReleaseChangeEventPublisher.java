@@ -13,6 +13,7 @@ import java.util.Map;
 
 /**
  * Service that distributes {@link ReleaseChangeEvent}s among the {@link ReleaseChangeEventListener}s.
+ * It basically aggregates all {@link ReleaseChangeEventListener}s.
  */
 public interface ReleaseChangeEventPublisher {
 
