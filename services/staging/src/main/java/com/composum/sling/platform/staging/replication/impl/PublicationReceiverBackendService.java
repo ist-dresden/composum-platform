@@ -330,6 +330,8 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             ModifiableValueMap releaseRootVm = metaResource.adaptTo(ModifiableValueMap.class);
             releaseRootVm.put(StagingConstants.PROP_LAST_REPLICATION_DATE, Calendar.getInstance());
             releaseRootVm.put(StagingConstants.PROP_CHANGE_NUMBER, newReleaseChangeId);
+            releaseRootVm.put(ReplicationConstants.PARAM_SOURCEPATH, replicationPaths.getOrigin());
+            releaseRootVm.put(ReplicationConstants.PARAM_RELEASEROOT, replicationPaths.getReleaseRoot());
             if (!nodelete) {
                 resolver.delete(tmpLocation);
             }
