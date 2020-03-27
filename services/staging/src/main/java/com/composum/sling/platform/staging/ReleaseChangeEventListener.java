@@ -7,12 +7,7 @@ import org.apache.sling.api.resource.Resource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static com.composum.sling.core.util.SlingResourceUtil.isSameOrDescendant;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -63,14 +58,18 @@ public interface ReleaseChangeEventListener {
         return Collections.emptyList();
     }
 
-    /** Collection of {@link ReleaseChangeProcess}es for any of the releases at the release root containing resource. */
+    /**
+     * Collection of {@link ReleaseChangeProcess}es for any of the releases at the release root containing resource.
+     */
     @Nonnull
     default Collection<? extends ReleaseChangeProcess> processesFor(@Nullable Resource resource) {
         return Collections.emptyList();
     }
 
 
-    /** Information about some activated or deactivated resources in a release, to control replication. */
+    /**
+     * Information about some activated or deactivated resources in a release, to control replication.
+     */
     final class ReleaseChangeEvent {
 
         @Nonnull
@@ -79,6 +78,10 @@ public interface ReleaseChangeEventListener {
         private final Set<String> updatedResources = new LinkedHashSet<>();
         private final Map<String, String> movedResources = new LinkedHashMap<>();
         private final Set<String> removedResources = new LinkedHashSet<>();
+        /**
+         * If true, the receiver should ignore the release change numbers and do a full check.
+         */
+        private boolean forceCheck;
         private boolean finalized;
 
         public ReleaseChangeEvent(@Nonnull StagingReleaseManager.Release release) {
@@ -89,14 +92,18 @@ public interface ReleaseChangeEventListener {
             return newResources.isEmpty() && updatedResources.isEmpty() && movedResources.isEmpty() && removedResources.isEmpty();
         }
 
-        /** Gives an activation event that says "update to release root" - that is, everything has to be checked. */
+        /**
+         * Gives an activation event that says "update to release root" - that is, everything has to be checked.
+         */
         public static ReleaseChangeEvent fullUpdate(@Nonnull StagingReleaseManager.Release release) {
             ReleaseChangeEvent res = new ReleaseChangeEvent(release);
             res.updatedResources.add(release.getReleaseRoot().getPath());
             return res;
         }
 
-        /** The release in which the items have been activated or deactivated. */
+        /**
+         * The release in which the items have been activated or deactivated.
+         */
         @Nonnull
         public StagingReleaseManager.Release release() {
             return release;
@@ -151,18 +158,46 @@ public interface ReleaseChangeEventListener {
             return Collections.unmodifiableSet(SetUtils.union(removedResources, movedResources.keySet()));
         }
 
-        /** Maps absolute paths of resources moved from one place to the place they are moved to. */
+        /**
+         * Maps absolute paths of resources moved from one place to the place they are moved to.
+         */
         public Map<String, String> movedResources() {
             return Collections.unmodifiableMap(movedResources);
+        }
+
+        /**
+         * If set to true, the receiver should ignore the release change numbers and do a full check.
+         *
+         * @return this for builder style chaining.
+         */
+        public ReleaseChangeEvent setForceCheck(boolean forceCheck) {
+            if (finalized) {
+                throw new IllegalStateException("Already finalized - cannot be changed anymore");
+            }
+            this.forceCheck = forceCheck;
+            return this;
+        }
+
+        /**
+         * If true, the receiver should ignore the release change numbers and do a full check.
+         */
+        public boolean getForceCheck() {
+            return forceCheck;
         }
 
         @Override
         public String toString() {
             ToStringBuilder builder = new ToStringBuilder(this);
             builder.append("release", release);
-            if (!newResources.isEmpty()) { builder.append("new", newResources); }
-            if (!updatedResources.isEmpty()) { builder.append("updated", updatedResources); }
-            if (!removedResources.isEmpty()) { builder.append("removed", removedResources); }
+            if (!newResources.isEmpty()) {
+                builder.append("new", newResources);
+            }
+            if (!updatedResources.isEmpty()) {
+                builder.append("updated", updatedResources);
+            }
+            if (!removedResources.isEmpty()) {
+                builder.append("removed", removedResources);
+            }
             return builder.toString();
         }
 
@@ -172,7 +207,9 @@ public interface ReleaseChangeEventListener {
          * relative paths within the release or absolute paths into the release workspace.
          */
         public void addMoveOrUpdate(@Nullable String rawFrompath, @Nullable String rawTopath) {
-            if (finalized) { throw new IllegalStateException("Already finalized - cannot be changed anymore"); }
+            if (finalized) {
+                throw new IllegalStateException("Already finalized - cannot be changed anymore");
+            }
             String frompath = rawFrompath != null ? release.absolutePath(rawFrompath) : null;
             String topath = rawTopath != null ? release.absolutePath(rawTopath) : null;
             if (isNotBlank(frompath)) {
@@ -205,9 +242,13 @@ public interface ReleaseChangeEventListener {
             }
         }
 
-        /** Becomes immutable: cannot be changed through {@link #addMoveOrUpdate(String, String)} anymore. */
+        /**
+         * Becomes immutable: cannot be changed through {@link #addMoveOrUpdate(String, String)} anymore.
+         */
         public void finish() {
-            if (release == null) { throw new IllegalStateException("No release? " + toString()); }
+            if (release == null) {
+                throw new IllegalStateException("No release? " + toString());
+            }
             finalized = true;
         }
 

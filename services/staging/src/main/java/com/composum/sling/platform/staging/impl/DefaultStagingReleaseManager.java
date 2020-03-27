@@ -1095,7 +1095,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         ResourceHandle releasesnode = ResourceHandle.use(release.getReleaseNode().getParent()); // the cpl:releases node
         // property type REFERENCE prevents deleting it accidentially
         releasesnode.setProperty(mark, release.getUuid(), PropertyType.REFERENCE);
-        publisher.publishActivation(ReleaseChangeEvent.fullUpdate(release));
+        // FIXME(hps,27.03.20) we force a full comparison here for testing purposes - that should be an option.
+        publisher.publishActivation(ReleaseChangeEvent.fullUpdate(release).setForceCheck(true));
     }
 
     @Override

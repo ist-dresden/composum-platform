@@ -196,6 +196,10 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         protected volatile ReplicatorStrategy runningStrategy;
         protected volatile Thread runningThread;
         protected volatile boolean enabled;
+        /**
+         * Forces content comparison instead of quick check.
+         */
+        protected volatile boolean forceCheck;
         @Nonnull
         protected volatile Set<String> changedPaths = new LinkedHashSet<>();
         @Nonnull
@@ -322,22 +326,26 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
 
         /**
          * Returns the current paths in {@link #changedPaths} resetting {@link #changedPaths}.
+         *
+         * @param forceCheckSwapped
          */
         @Nonnull
-        protected Set<String> swapOutChangedPaths() {
+        protected Set<String> swapOutChangedPaths(boolean[] forceCheckSwapped) {
             Set<String> processedChangedPaths;
             synchronized (changedPathsChangeLock) {
                 processedChangedPaths = changedPaths;
                 changedPaths = new LinkedHashSet<>();
+                forceCheckSwapped[0] = forceCheck;
+                forceCheck = false;
             }
             return processedChangedPaths;
         }
 
         /**
-         * Adds unprocessed paths which were taken out of {@link #changedPaths} by {@link #swapOutChangedPaths()}
+         * Adds unprocessed paths which were taken out of {@link #changedPaths} by {@link #swapOutChangedPaths(boolean[])}
          * back into the {@link #changedPaths}.
          */
-        protected void addBackChangedPaths(Set<String> unProcessedChangedPaths) {
+        protected void addBackChangedPaths(Set<String> unProcessedChangedPaths, boolean[] forceCheckSwapped) {
             if (!unProcessedChangedPaths.isEmpty()) { // add them back
                 synchronized (changedPathsChangeLock) {
                     if (changedPaths.isEmpty()) {
@@ -349,6 +357,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
                             state = awaiting;
                         }
                     }
+                    forceCheck = forceCheck || forceCheckSwapped[0];
                 }
             }
         }
@@ -420,6 +429,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
                     restart = true;
                     changedPaths = newChangedPaths;
                 }
+                forceCheck = forceCheck || event.getForceCheck();
             }
 
             restart = restart || (!changedPaths.isEmpty() && runningStrategy == null);
@@ -449,9 +459,10 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
 
                 LOG.info("Starting run of replication {}", getId());
 
-                Set<String> processedChangedPaths = swapOutChangedPaths();
+                boolean[] forceCheckSwapped = new boolean[1];
+                Set<String> processedChangedPaths = swapOutChangedPaths(forceCheckSwapped);
                 try {
-                    strategy = makeReplicatorStrategy(serviceResolver, processedChangedPaths);
+                    strategy = makeReplicatorStrategy(serviceResolver, processedChangedPaths, forceCheckSwapped[0]);
                     if (strategy == null) {
                         messages.add(Message.error("Cannot create strategy - probably disabled"));
                         return;
@@ -468,8 +479,9 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
                     }
                     state = success;
                     processedChangedPaths.clear();
+                    forceCheckSwapped[0] = false;
                 } finally {
-                    addBackChangedPaths(processedChangedPaths);
+                    addBackChangedPaths(processedChangedPaths, forceCheckSwapped);
                 }
 
             } catch (LoginException e) { // misconfiguration
@@ -499,7 +511,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             if (!isEnabled()) {
                 return null;
             }
-            ReplicatorStrategy strategy = makeReplicatorStrategy(resource.getResourceResolver(), Collections.singleton(resource.getPath()));
+            ReplicatorStrategy strategy = makeReplicatorStrategy(resource.getResourceResolver(), Collections.singleton(resource.getPath()), true);
             if (strategy == null) {
                 return null;
             }
@@ -511,7 +523,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         }
 
         @Nullable
-        protected ReplicatorStrategy makeReplicatorStrategy(ResourceResolver serviceResolver, Set<String> processedChangedPaths) {
+        protected ReplicatorStrategy makeReplicatorStrategy(ResourceResolver serviceResolver, Set<String> processedChangedPaths, boolean forceCheck) {
             Resource configResource = serviceResolver.getResource(configPath);
             CONFIG replicationConfig = configResource != null ?
                     new BeanContext.Service(serviceResolver).withResource(configResource)
@@ -536,7 +548,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             BeanContext context = new BeanContext.Service(releaseResolver);
 
             PublicationReceiverFacade publisher = createTargetFacade(replicationConfig, context);
-            return new ReplicatorStrategy(processedChangedPaths, release, context, replicationConfig, messages, publisher);
+            return new ReplicatorStrategy(processedChangedPaths, release, context, replicationConfig, messages, publisher, forceCheck);
         }
 
         /**
@@ -618,7 +630,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             UpdateInfo result = null;
             try (ResourceResolver serviceResolver = makeResolver()) {
                 LOG.debug("Querying target release info of {}", getId());
-                ReplicatorStrategy strategy = makeReplicatorStrategy(serviceResolver, null);
+                ReplicatorStrategy strategy = makeReplicatorStrategy(serviceResolver, null, false);
                 if (strategy != null) {
                     result = strategy.remoteReleaseInfo();
                 }

@@ -55,6 +55,10 @@ public class ReplicatorStrategy {
     protected final PublicationReceiverFacade publisher;
     @Nonnull
     protected final MessageContainer messages;
+    /**
+     * If true, ignore the releaseChangeNumber on the other side and always do compare contents.
+     */
+    protected final boolean forceCheck;
 
     protected volatile int progress;
 
@@ -66,7 +70,7 @@ public class ReplicatorStrategy {
 
     public ReplicatorStrategy(@Nonnull Set<String> changedPaths, @Nonnull StagingReleaseManager.Release release,
                               @Nonnull BeanContext context, @Nonnull ReplicationConfig replicationConfig,
-                              @Nonnull MessageContainer messages, @Nonnull PublicationReceiverFacade publisher) {
+                              @Nonnull MessageContainer messages, @Nonnull PublicationReceiverFacade publisher, boolean forceCheck) {
         this.changedPaths = changedPaths;
         this.release = release;
         this.originalSourceReleaseChangeNumber = release.getChangeNumber();
@@ -75,6 +79,7 @@ public class ReplicatorStrategy {
         this.replicationConfig = replicationConfig;
         this.messages = messages;
         this.publisher = publisher;
+        this.forceCheck = forceCheck;
     }
 
     /**
@@ -112,8 +117,8 @@ public class ReplicatorStrategy {
             cleanupUpdateInfo = updateInfo;
             LOG.info("Received UpdateInfo {}", updateInfo);
 
-            if (originalSourceReleaseChangeNumber.equals(updateInfo.originalPublisherReleaseChangeId)) {
-                messages.add(Message.info("Abort publishing since content on remote system is up to date."));
+            if (!forceCheck && originalSourceReleaseChangeNumber.equals(updateInfo.originalPublisherReleaseChangeId)) {
+                messages.add(Message.info("Abort publishing since content on remote system is up to date according to quick check."));
                 return; // abort is called in finally
             }
             messages.add(Message.info("Update {} started", updateInfo.updateId));
