@@ -62,7 +62,8 @@ public interface ReplicationConfig {
 
     /**
      * If true, this is a "second class" configuration: it is implicitly present if there is no explicit configuration
-     * done. It will only be used if there is no explicit configuration of any type - an explicit configuration overrides it.
+     * done. Those will only be used if there is no explicit configuration of any type - an explicit configuration overrides any
+     * implicit configuration.
      */
     default boolean isImplicit() {
         return false;

@@ -33,16 +33,26 @@ public class InPlaceReplicationConfig extends AbstractReplicationConfig {
         return false;
     }
 
-    public static class ImplicitInPlaceReplicationConfig implements ReplicationConfig {
+    /**
+     * Special class for implicitly configured in-place replications.
+     */
+    public static class ImplicitInPlaceReplicationConfig extends InPlaceReplicationConfig {
 
+        protected final String path;
         protected final String releaseRoot;
         protected final String stage;
         protected final String targetPath;
 
-        public ImplicitInPlaceReplicationConfig(@Nonnull String releaseRoot, @Nonnull String stage, @Nonnull String targetPath) {
+        public ImplicitInPlaceReplicationConfig(@Nonnull String path, @Nonnull String releaseRoot, @Nonnull String stage, @Nonnull String targetPath) {
             this.releaseRoot = releaseRoot;
             this.stage = stage;
             this.targetPath = targetPath;
+            this.path = path;
+        }
+
+        @Override
+        public void initialize(BeanContext context, Resource resource) {
+            // not initialized from a resource
         }
 
         @Nonnull
@@ -65,7 +75,7 @@ public class InPlaceReplicationConfig extends AbstractReplicationConfig {
 
         @Override
         public String getPath() {
-            return null;
+            return path;
         }
 
         @Nonnull
@@ -80,12 +90,6 @@ public class InPlaceReplicationConfig extends AbstractReplicationConfig {
             return targetPath;
         }
 
-        @Nonnull
-        @Override
-        public ReplicationType getReplicationType() {
-            return INPLACE_REPLICATION_TYPE;
-        }
-
         @Override
         public boolean isEnabled() {
             return true;
@@ -96,10 +100,27 @@ public class InPlaceReplicationConfig extends AbstractReplicationConfig {
             return false;
         }
 
+        @Override
+        public boolean isImplicit() {
+            return true;
+        }
+
         @Nonnull
         @Override
         public String getConfigResourceType() {
             return null;
+        }
+
+
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder("ImplicitInPlaceReplicationConfig{");
+            sb.append("path='").append(path).append('\'');
+            sb.append(", releaseRoot='").append(releaseRoot).append('\'');
+            sb.append(", stage='").append(stage).append('\'');
+            sb.append(", targetPath='").append(targetPath).append('\'');
+            sb.append('}');
+            return sb.toString();
         }
     }
 

@@ -1,7 +1,10 @@
 package com.composum.sling.platform.staging.replication.inplace;
 
 import com.composum.sling.core.BeanContext;
+import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.nodes.NodesConfiguration;
+import com.composum.sling.platform.security.AccessMode;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeProcess;
 import com.composum.sling.platform.staging.StagingReleaseManager;
@@ -10,6 +13,8 @@ import com.composum.sling.platform.staging.replication.AbstractReplicationServic
 import com.composum.sling.platform.staging.replication.PublicationReceiverFacade;
 import com.composum.sling.platform.staging.replication.ReplicationType;
 import com.composum.sling.platform.staging.replication.impl.PublicationReceiverBackend;
+import com.composum.sling.platform.staging.replication.inplace.InPlacePublisherService.InPlaceReleasePublishingProcess;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.commons.threads.ThreadPool;
@@ -21,11 +26,14 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.composum.sling.platform.staging.replication.inplace.InPlacePublisherService.InPlaceReleasePublishingProcess;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+
+import static com.composum.sling.platform.staging.replication.ReplicationConstants.*;
 
 /**
  * Replicates a release by copying it from the staging resolver to another path on the same host.
@@ -104,8 +112,35 @@ public class InPlacePublisherService
     @Nonnull
     @Override
     protected List<InPlaceReplicationConfig> getReplicationConfigs(@Nonnull Resource releaseRoot, @Nonnull BeanContext context) {
+        Configuration theConfig = config;
+        if (theConfig == null || !theConfig.enabled()) {
+            return Collections.emptyList();
+        }
         List<InPlaceReplicationConfig> configs = super.getReplicationConfigs(releaseRoot, context);
-        // FIXME(hps,30.03.20) continue with implicit configuration...
+        if (configs.isEmpty() && !StringUtils.isAllBlank(theConfig.inPlacePreviewPath(), theConfig.inPlacePublicPath()) &&
+                PUBLIC_MODE_IN_PLACE.equals(ResourceHandle.use(releaseRoot).getContentProperty(PROP_PUBLIC_MODE, DEFAULT_PUBLIC_MODE))) {
+            configs = new ArrayList<>();
+            if (!SlingResourceUtil.isSameOrDescendant(config.contentPath(), releaseRoot.getPath())) {
+                throw new IllegalArgumentException("Releaseroot is not in content path");
+            }
+            String relativeContentPath = SlingResourceUtil.relativePath(config.contentPath(), releaseRoot.getPath());
+            if (StringUtils.isNotBlank(config.inPlacePreviewPath())) {
+                String stage = AccessMode.ACCESS_MODE_PREVIEW.toLowerCase();
+                configs.add(new InPlaceReplicationConfig.ImplicitInPlaceReplicationConfig(
+                        SlingResourceUtil.appendPaths(getConfigParent(releaseRoot.getPath()), "/cpl:implicit/" + stage),
+                        releaseRoot.getPath(), stage,
+                        SlingResourceUtil.appendPaths(config.inPlacePreviewPath(), relativeContentPath)
+                ));
+            }
+            if (StringUtils.isNotBlank(config.inPlacePublicPath())) {
+                String stage = AccessMode.ACCESS_MODE_PUBLIC.toLowerCase();
+                configs.add(new InPlaceReplicationConfig.ImplicitInPlaceReplicationConfig(
+                        SlingResourceUtil.appendPaths(getConfigParent(releaseRoot.getPath()), "/cpl:implicit/" + stage),
+                        releaseRoot.getPath(), stage,
+                        SlingResourceUtil.appendPaths(config.inPlacePublicPath(), relativeContentPath)
+                ));
+            }
+        }
         return configs;
     }
 

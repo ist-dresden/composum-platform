@@ -105,5 +105,10 @@ public interface ReplicationConstants {
      * and whose content needs to be moved into the main content.
      */
     String ATTR_UPDATEDPATHS = "updatedPaths";
-    
+
+    // FIXME(hps,26.03.20) synchronize with pages site constants
+    String PROP_PUBLIC_MODE = "publicMode";
+    String PUBLIC_MODE_IN_PLACE = "inPlace";
+    String DEFAULT_PUBLIC_MODE = PUBLIC_MODE_IN_PLACE;
+
 }

@@ -397,6 +397,9 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         Resource source = tmpLocation.getChild(SlingResourceUtil.relativePath("/", replicationPaths.getOrigin()));
         Resource destination = requireNonNull(resolver.getResource(SlingResourceUtil.appendPaths(chRoot, replicationPaths.getDestination())));
         synchronizer.updateAttributes(ResourceHandle.use(source), ResourceHandle.use(destination), ImmutableBiMap.of());
+        if (!SlingResourceUtil.isSameOrDescendant(replicationPaths.getOrigin(), updatedPath)) {
+            throw new IllegalArgumentException("updatedPath should be child of origin.");
+        }
         String relPath = ResourceUtil.getParent(SlingResourceUtil.relativePath(replicationPaths.getOrigin(), updatedPath));
         if (relPath != null) {
             for (String pathsegment : relPath.split("/")) {
@@ -442,6 +445,9 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         NodeTreeSynchronizer synchronizer = new NodeTreeSynchronizer();
         Resource source = tmpLocation.getChild(SlingResourceUtil.relativePath("/", replicationPaths.getOrigin()));
         Resource destination = requireNonNull(resolver.getResource(SlingResourceUtil.appendPaths(chRoot, replicationPaths.getDestination())));
+        if (!SlingResourceUtil.isSameOrDescendant(replicationPaths.getOrigin(), deletedPath)) {
+            throw new IllegalArgumentException("deletedPath should be child of origin.");
+        }
         String relPath = ResourceUtil.getParent(SlingResourceUtil.relativePath(replicationPaths.getOrigin(), deletedPath));
         if (relPath != null) {
             for (String pathsegment : relPath.split("/")) {

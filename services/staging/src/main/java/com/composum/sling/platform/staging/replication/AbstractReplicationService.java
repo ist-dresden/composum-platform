@@ -67,7 +67,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
     protected List<CONFIG> getReplicationConfigs(@Nonnull Resource releaseRoot,
                                                  @Nonnull BeanContext context) {
         String releasePath = releaseRoot.getPath();
-        String configparent = PATH_CONFIGROOT + releasePath + DIR_REPLICATION;
+        String configparent = getConfigParent(releasePath);
 
         List<CONFIG> configs = new ArrayList<>();
         Resource configroot = releaseRoot.getResourceResolver().getResource(configparent);
@@ -83,6 +83,14 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             }
         }
         return configs;
+    }
+
+    /**
+     * Returns the directory where replication configurations are stored.
+     */
+    @Nonnull
+    protected String getConfigParent(String releasePath) {
+        return PATH_CONFIGROOT + releasePath + DIR_REPLICATION;
     }
 
     @Nonnull
@@ -396,13 +404,20 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         @Override
         public boolean appliesTo(StagingReleaseManager.Release release) {
             ResourceResolver resolver = release.getReleaseRoot().getResourceResolver();
-            Resource configResource = resolver.getResource(configPath);
-            CONFIG publicationConfig = new BeanContext.Service(resolver).withResource(configResource)
-                    .adaptTo(getReplicationConfigClass());
+            CONFIG publicationConfig = getRefreshedConfig(resolver);
             List<String> marks = release.getMarks();
             return publicationConfig != null && publicationConfig.isEnabled() && publicationConfig.getStage() != null &&
                     (marks.contains(publicationConfig.getStage().toLowerCase())
                             || marks.contains(publicationConfig.getStage().toUpperCase()));
+        }
+
+        protected CONFIG getRefreshedConfig(ResourceResolver resolver) {
+            if (cachedConfig != null && cachedConfig.isImplicit()) {
+                return (CONFIG) cachedConfig;
+            }
+            Resource configResource = resolver.getResource(configPath);
+            return new BeanContext.Service(resolver).withResource(configResource)
+                    .adaptTo(getReplicationConfigClass());
         }
 
         @Override
@@ -524,10 +539,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
 
         @Nullable
         protected ReplicatorStrategy makeReplicatorStrategy(ResourceResolver serviceResolver, Set<String> processedChangedPaths, boolean forceCheck) {
-            Resource configResource = serviceResolver.getResource(configPath);
-            CONFIG replicationConfig = configResource != null ?
-                    new BeanContext.Service(serviceResolver).withResource(configResource)
-                            .adaptTo(getReplicationConfigClass()) : null;
+            CONFIG replicationConfig = getRefreshedConfig(serviceResolver);
             if (replicationConfig == null || !replicationConfig.isEnabled()) {
                 LOG.warn("Disabled / unreadable config, not run: {}", getId());
                 return null; // warning - should normally have been caught before
