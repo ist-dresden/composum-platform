@@ -28,6 +28,7 @@ public class InPlaceReplicationConfig extends AbstractReplicationConfig {
     /**
      * Whether this is an implicit configuration that is used in the absence of any explicitly configured replications.
      */
+    @Override
     public boolean isImplicit() {
         return false;
     }
@@ -88,6 +89,17 @@ public class InPlaceReplicationConfig extends AbstractReplicationConfig {
         @Override
         public boolean isEnabled() {
             return true;
+        }
+
+        @Override
+        public boolean isEditable() {
+            return false;
+        }
+
+        @Nonnull
+        @Override
+        public String getConfigResourceType() {
+            return null;
         }
     }
 

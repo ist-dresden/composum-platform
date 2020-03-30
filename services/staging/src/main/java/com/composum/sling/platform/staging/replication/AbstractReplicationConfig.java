@@ -27,6 +27,7 @@ public abstract class AbstractReplicationConfig extends AbstractSlingBean implem
     protected String sourcePath;
     protected String targetPath;
     protected String configResourceType;
+    protected Boolean editable;
 
     @Override
     public void initialize(BeanContext context, Resource resource) {
@@ -35,6 +36,7 @@ public abstract class AbstractReplicationConfig extends AbstractSlingBean implem
         this.description = getProperty(ResourceUtil.PROP_DESCRIPTION, String.class);
         this.stage = getProperty(PN_STAGE, String.class);
         this.enabled = getProperty(PN_IS_ENABLED, Boolean.TRUE);
+        this.editable = getProperty(PN_IS_EDITABLE, true);
         this.sourcePath = getProperty(PN_SOURCE_PATH, String.class);
         this.targetPath = getProperty(PN_TARGET_PATH, String.class);
         this.configResourceType = getProperty(ResourceUtil.PROP_RESOURCE_TYPE, String.class);
@@ -67,6 +69,11 @@ public abstract class AbstractReplicationConfig extends AbstractSlingBean implem
         return enabled;
     }
 
+    @Override
+    public boolean isEditable() {
+        return editable;
+    }
+
     /**
      * Optional, the path we replicate - must be the site or a subpath of the site.
      */
@@ -84,4 +91,9 @@ public abstract class AbstractReplicationConfig extends AbstractSlingBean implem
         return targetPath;
     }
 
+    @Nonnull
+    @Override
+    public String getConfigResourceType() {
+        return configResourceType;
+    }
 }

@@ -50,6 +50,12 @@ public interface ReplicationConfig {
     ReplicationType getReplicationType();
 
     /**
+     * @return the resource type of the component to view / edit the configuration
+     */
+    @Nonnull
+    String getConfigResourceType();
+
+    /**
      * @return 'true' if the replication declared by this configuration is enabled
      */
     boolean isEnabled();
@@ -62,4 +68,8 @@ public interface ReplicationConfig {
         return false;
     }
 
+    /**
+     * @return 'true' if the configuration can be changed by the user
+     */
+    boolean isEditable();
 }
