@@ -13,7 +13,7 @@ public interface ReplicationConfig {
     String PN_STAGE = "stage";
     String PN_SOURCE_PATH = "sourcePath";
     String PN_TARGET_PATH = "targetPath";
-    String PN_REPLICATIN_TYPE = "replicationType";
+    String PN_REPLICATION_TYPE = "replicationType";
     String PN_IS_ENABLED = "enabled";
     String PN_IS_EDITABLE = "editable";
 
@@ -50,14 +50,16 @@ public interface ReplicationConfig {
     ReplicationType getReplicationType();
 
     /**
-     * @return the resource type of the component to view / edit the configuration
-     */
-    @Nonnull
-    String getConfigResourceType();
-
-    /**
      * @return 'true' if the replication declared by this configuration is enabled
      */
     boolean isEnabled();
+
+    /**
+     * If true, this is a "second class" configuration: it is implicitly present if there is no explicit configuration
+     * done. It will only be used if there is no explicit configuration of any type - an explicit configuration overrides it.
+     */
+    default boolean isImplicit() {
+        return false;
+    }
 
 }

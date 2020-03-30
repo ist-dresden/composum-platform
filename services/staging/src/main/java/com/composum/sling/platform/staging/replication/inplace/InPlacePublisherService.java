@@ -25,6 +25,7 @@ import com.composum.sling.platform.staging.replication.inplace.InPlacePublisherS
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Replicates a release by copying it from the staging resolver to another path on the same host.
@@ -102,6 +103,14 @@ public class InPlacePublisherService
 
     @Nonnull
     @Override
+    protected List<InPlaceReplicationConfig> getReplicationConfigs(@Nonnull Resource releaseRoot, @Nonnull BeanContext context) {
+        List<InPlaceReplicationConfig> configs = super.getReplicationConfigs(releaseRoot, context);
+        // FIXME(hps,30.03.20) continue with implicit configuration...
+        return configs;
+    }
+
+    @Nonnull
+    @Override
     protected Class<InPlaceReplicationConfig> getReplicationConfigClass() {
         return InPlaceReplicationConfig.class;
     }
@@ -151,6 +160,11 @@ public class InPlacePublisherService
             return TYPE_INPLACE;
         }
 
+        @Override
+        public boolean isImplicit() {
+            return cachedConfig.isImplicit();
+        }
+
     }
 
     @ObjectClassDefinition(
@@ -160,9 +174,27 @@ public class InPlacePublisherService
     public @interface Configuration {
 
         @AttributeDefinition(
-                description = "the general on/off switch for this service"
+                description = "the general on/off switch for this service: whether in-place replication is allowed"
         )
         boolean enabled() default false;
+
+        @AttributeDefinition(
+                name = "InPlace Preview path",
+                description = "the repository root of the 'preview' replication content; default '/preview'"
+        )
+        String inPlacePreviewPath() default "/preview";
+
+        @AttributeDefinition(
+                name = "InPlace Public path",
+                description = "the repository root of the 'public' replication content; default '/public'"
+        )
+        String inPlacePublicPath() default "/public";
+
+        @AttributeDefinition(
+                name = "Content path",
+                description = "the repository root of the authoring content to replicate; default '/content'"
+        )
+        String contentPath() default "/content";
 
     }
 

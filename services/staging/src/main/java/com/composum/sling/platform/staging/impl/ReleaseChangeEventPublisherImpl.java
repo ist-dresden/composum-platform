@@ -13,13 +13,7 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.commons.threads.ThreadPool;
 import org.apache.sling.commons.threads.ThreadPoolManager;
 import org.osgi.framework.Constants;
-import org.osgi.service.component.annotations.Activate;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Deactivate;
-import org.osgi.service.component.annotations.Modified;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferenceCardinality;
-import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +21,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 @Component(
         service = {ReleaseChangeEventPublisher.class},
@@ -210,6 +205,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                 }
             }
         }
+        result = filterImplicits(result);
         return result;
     }
 
@@ -224,7 +220,22 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                 }
             }
         }
+        result = filterImplicits(result);
         return result;
+    }
+
+    /**
+     * If there is at least an explicit (i.e., not {@link ReleaseChangeProcess#isImplicit()} configuration, any implicit configurations are removed;
+     * if there are no explicit configurations the implicit configurations are returned.
+     */
+    @Nonnull
+    protected List<ReleaseChangeProcess> filterImplicits(@Nonnull List<ReleaseChangeProcess> result) {
+        boolean haveExplicit = result.stream().anyMatch((p) -> !p.isImplicit());
+        if (haveExplicit) { // remove implicit configurations
+            return result.stream().filter((p) -> !p.isImplicit()).collect(Collectors.toList());
+        } else { // only implicit configurations present, if at all.
+            return result;
+        }
     }
 
     @Nonnull

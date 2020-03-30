@@ -63,6 +63,12 @@ public interface ReleaseChangeProcess {
     ReplicationConfig getReplicationConfig();
 
     /**
+     * If true, this is a "second class" configuration: it is implicitly present if there is no explicit configuration
+     * done. It will only be used if there is no explicit configuration of any type - an explicit configuration overrides it.
+     */
+    boolean isImplicit();
+
+    /**
      * If this returns true, our scheduler should {@link #run()} the process again soon.
      */
     default boolean needsReschedule() {

@@ -73,7 +73,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         Resource configroot = releaseRoot.getResourceResolver().getResource(configparent);
         if (configroot != null) {
             for (Resource child : configroot.getChildren()) {
-                if (getReplicationType().getServiceId().equals(child.getValueMap().get(ReplicationConfig.PN_REPLICATIN_TYPE))) {
+                if (getReplicationType().getServiceId().equals(child.getValueMap().get(ReplicationConfig.PN_REPLICATION_TYPE))) {
                     CONFIG replicationConfig =
                             context.withResource(child).adaptTo(getReplicationConfigClass());
                     if (replicationConfig != null) {

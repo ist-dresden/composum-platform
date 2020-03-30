@@ -84,9 +84,4 @@ public abstract class AbstractReplicationConfig extends AbstractSlingBean implem
         return targetPath;
     }
 
-    @Nonnull
-    @Override
-    public String getConfigResourceType() {
-        return configResourceType;
-    }
 }
