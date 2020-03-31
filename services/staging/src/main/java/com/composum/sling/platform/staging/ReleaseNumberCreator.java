@@ -131,8 +131,7 @@ public interface ReleaseNumberCreator {
         @Nonnull
         @Override
         public String bumpRelease(@Nonnull String oldname) {
-            if (StringUtils.isBlank(oldname) || CURRENT_RELEASE.equals(oldname)) return "r1";
-            String[] numbers = oldname.split("\\D+");
+            String[] numbers = StringUtils.defaultIfBlank(oldname, "r0").split("\\D+");
             List<Integer> rnum = Arrays.asList(numbers).stream()
                     .filter(StringUtils::isNotBlank)
                     .map(Integer::valueOf)
