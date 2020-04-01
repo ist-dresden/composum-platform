@@ -55,8 +55,7 @@ import static java.util.Objects.requireNonNull;
  */
 @Component(
         service = PublicationReceiverBackend.class,
-        property = {Constants.SERVICE_DESCRIPTION + "=Composum Platform Publication Receiver Backend Service"},
-        configurationPolicy = ConfigurationPolicy.REQUIRE
+        property = {Constants.SERVICE_DESCRIPTION + "=Composum Platform Publication Receiver Backend Service"}
 )
 @Designate(ocd = PublicationReceiverBackendService.Configuration.class)
 public class PublicationReceiverBackendService implements PublicationReceiverBackend {
@@ -662,7 +661,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         @AttributeDefinition(
                 description = "The general on/off switch for this service."
         )
-        boolean enabled() default false;
+        boolean enabled() default true;
 
         @AttributeDefinition(
                 description = "Temporary directory to unpack received files."

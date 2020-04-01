@@ -41,7 +41,6 @@ import static com.composum.sling.platform.staging.replication.ReplicationConstan
 @Component(
         service = ReleaseChangeEventListener.class,
         property = {Constants.SERVICE_DESCRIPTION + "=Composum Platform In-Place Publisher Service"},
-        configurationPolicy = ConfigurationPolicy.REQUIRE,
         immediate = true
 )
 @Designate(ocd = InPlacePublisherService.Configuration.class)
@@ -211,7 +210,7 @@ public class InPlacePublisherService
         @AttributeDefinition(
                 description = "the general on/off switch for this service: whether in-place replication is allowed"
         )
-        boolean enabled() default false;
+        boolean enabled() default true;
 
         @AttributeDefinition(
                 name = "InPlace Preview path",
