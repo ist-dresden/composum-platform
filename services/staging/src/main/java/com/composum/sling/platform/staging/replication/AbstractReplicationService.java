@@ -4,30 +4,32 @@ import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.logging.Message;
 import com.composum.sling.core.logging.MessageContainer;
+import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeProcess;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.sling.api.resource.LoginException;
-import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceResolver;
-import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.api.resource.*;
 import org.osgi.service.component.annotations.Deactivate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.RepositoryException;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.composum.sling.core.util.CoreConstants.TYPE_SLING_FOLDER;
+import static com.composum.sling.core.util.SlingResourceUtil.appendPaths;
 import static com.composum.sling.core.util.SlingResourceUtil.isSameOrDescendant;
 import static com.composum.sling.platform.staging.ReleaseChangeProcess.ReleaseChangeProcessorState.*;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 
 /**
  * Base class for services that use the {@link ReplicatorStrategy} to replicate staged content.
@@ -244,6 +246,8 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
                     }
                     runningStrategyCopy.setAbortAtNextPossibility();
                     isNotRunning = false;
+                    state = aborted;
+                    updateHistory();
                 }
                 if (hard) {
                     Thread runningThreadCopy = runningThread;
@@ -473,6 +477,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             try (ResourceResolver serviceResolver = makeResolver()) {
 
                 LOG.info("Starting run of replication {}", getId());
+                updateHistory();
 
                 boolean[] forceCheckSwapped = new boolean[1];
                 Set<String> processedChangedPaths = swapOutChangedPaths(forceCheckSwapped);
@@ -516,6 +521,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
                 }
                 finished = System.currentTimeMillis();
                 LOG.info("Finished run with {} : {} - @{}", getState(), getId(), System.identityHashCode(this));
+                updateHistory();
             }
         }
 
@@ -674,5 +680,47 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         public ReplicationConfig getReplicationConfig() {
             return this.cachedConfig;
         }
+
+        @Nonnull
+        protected Resource getHistoryMetaResource(ResourceResolver resolver, String path, boolean createIfNecessary)
+                throws RepositoryException {
+            String metapath = appendPaths(ReplicationConstants.PATH_METADATA, path) + ReplicationConstants.NODE_METADATA_HISTORY;
+            Resource resource = resolver.getResource(metapath);
+            if (createIfNecessary && resource == null) {
+                resource = ResourceUtil.getOrCreateResource(resolver, metapath, TYPE_SLING_FOLDER + "/" + NT_UNSTRUCTURED + "/" + NT_UNSTRUCTURED);
+            }
+            return resource;
+        }
+
+        // FIXME(hps,01.04.20) clean up comment
+        // ! Im aggregierten Status zeitstempel:
+        //und zum jedem aggregierten Statuswert brauche ich dann noch einen Zeitstempel - letztes mal synchron, letztes mal gelaufen, letztes mal mit Fehler, letztes mal zurückgesetzt; letzter Fehler möglichst mit Message ; und es muss einen Neustart 'überleben', d.h. irgendwo in der Nähe der Site bzw. am Release gespeichert werden, separiert nach Stage und darunter für jeden der Prozesse
+        protected void updateHistory() {
+            LOG.info("Writing history entry for {} state {}", configPath, state);
+            try (ResourceResolver serviceResolver = makeResolver()) {
+                // we use our own resolver since the resolver used otherwise might be rolled back.
+                Resource historyResource = getHistoryMetaResource(serviceResolver, configPath, true);
+                ModifiableValueMap vm = historyResource.adaptTo(ModifiableValueMap.class);
+                long time = System.currentTimeMillis();
+                switch (state) {
+                    case success:
+                        vm.put("lastSuccessTime", time);
+                        break;
+                    case aborted:
+                        vm.put("lastAbortTime", time);
+                        break;
+                    case processing:
+                        vm.put("lastRunTime", time);
+                        break;
+                    case error:
+                        vm.put("lastErrorTime", time);
+                        break;
+                }
+                serviceResolver.commit();
+            } catch (LoginException | RepositoryException | RuntimeException | PersistenceException e) {
+                LOG.error("Error writing history entry for " + configPath, e);
+            }
+        }
+
     }
 }

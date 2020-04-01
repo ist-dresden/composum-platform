@@ -1,7 +1,6 @@
 package com.composum.sling.platform.staging.replication.impl;
 
 import com.composum.sling.core.ResourceHandle;
-import com.composum.sling.core.util.PropertyUtil;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.StagingConstants;
@@ -63,11 +62,6 @@ import static java.util.Objects.requireNonNull;
 public class PublicationReceiverBackendService implements PublicationReceiverBackend {
 
     private static final Logger LOG = LoggerFactory.getLogger(PublicationReceiverBackendService.class);
-
-    /**
-     * Prefix to create metadata path for replicated content.
-     */
-    public static final String PATH_METADATA = "/var/composum/replication";
 
     protected volatile Configuration config;
 
@@ -174,10 +168,10 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     @Nullable
     protected Resource getMetaResource(ResourceResolver resolver, ReplicationPaths replicationPaths, boolean createIfNecessary)
             throws RepositoryException {
-        String metapath = appendPaths(PATH_METADATA, replicationPaths.getDestination());
+        String metapath = appendPaths(ReplicationConstants.PATH_METADATA, replicationPaths.getDestination()) + ReplicationConstants.NODE_METADATA;
         Resource resource = resolver.getResource(metapath);
         if (createIfNecessary && resource == null) {
-            resource = ResourceUtil.getOrCreateResource(resolver, metapath, ResourceUtil.TYPE_SLING_FOLDER);
+            resource = ResourceUtil.getOrCreateResource(resolver, metapath, ResourceUtil.TYPE_SLING_FOLDER + "/" + ResourceUtil.NT_UNSTRUCTURED);
         }
         return resource;
     }

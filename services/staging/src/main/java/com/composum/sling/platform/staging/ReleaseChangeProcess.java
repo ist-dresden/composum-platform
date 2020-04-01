@@ -89,7 +89,7 @@ public interface ReleaseChangeProcess {
         /**
          * is waiting to be run
          */
-        awaiting, processing, success, error, disabled
+        awaiting, processing, success, error, disabled, aborted
     }
 
     /**

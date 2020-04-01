@@ -1,5 +1,7 @@
 package com.composum.sling.platform.staging.replication;
 
+import com.composum.sling.core.util.ResourceUtil;
+
 import java.util.regex.Pattern;
 
 /**
@@ -105,6 +107,23 @@ public interface ReplicationConstants {
      * and whose content needs to be moved into the main content.
      */
     String ATTR_UPDATEDPATHS = "updatedPaths";
+
+    /**
+     * Prefix to create metadata path for replicated content. We store the information for each path
+     * at a {@value #NODE_METADATA} node below the path the metadata is about. This makes sure that
+     * each node has its own metadata node since jcr:content cannot appear in a path.
+     */
+    String PATH_METADATA = "/var/composum/replication";
+
+    /**
+     * The relative path to the node below {@link #PATH_METADATA}/{contentpath} that contains metadata about replications.
+     */
+    String NODE_METADATA = "/" + ResourceUtil.CONTENT_NODE;
+
+    /**
+     * The name of the node below {@link #PATH_METADATA}/{contentpath} that contains metadata about replications.
+     */
+    String NODE_METADATA_HISTORY = NODE_METADATA + "/history";
 
     // FIXME(hps,26.03.20) synchronize with pages site constants
     String PROP_PUBLIC_MODE = "publicMode";
