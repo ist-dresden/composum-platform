@@ -8,6 +8,7 @@ import org.apache.sling.api.resource.ResourceResolver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Map;
 
 /**
  * A process or workflow that can be triggered by a
@@ -177,5 +178,30 @@ public interface ReleaseChangeProcess {
      */
     @Nullable
     ReleaseChangeEventPublisher.CompareResult compareTree(@Nonnull ResourceHandle resource, int details) throws ReleaseChangeEventListener.ReplicationFailedException;
+
+    /**
+     * Information about the last runs of the replication for each end state (error, success, abort).
+     */
+    public Map<ReleaseChangeProcessorState, ReplicationHistoryEntry> getHistory();
+
+    /**
+     * An entry that tells about a historical replication.
+     */
+    interface ReplicationHistoryEntry {
+        /**
+         * The state this history entry is about.
+         */
+        @Nonnull
+        ReleaseChangeProcess.ReleaseChangeProcessorState getState();
+
+        @Nonnull
+        public Long getTimestamp();
+
+        /**
+         * In the case of error this contains the messages from the run that leads to this error.
+         */
+        @Nullable
+        public MessageContainer getMessages();
+    }
 
 }

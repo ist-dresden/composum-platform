@@ -125,6 +125,27 @@ public interface ReplicationConstants {
      */
     String NODE_METADATA_HISTORY = NODE_METADATA + "/history";
 
+    /**
+     * Property at {@link #NODE_METADATA_HISTORY} that saves the timestamp ({@link System#currentTimeMillis()}) of the last successful run.
+     */
+    String PROP_LAST_SUCCESS_TIME = "lastSuccessTime";
+    /**
+     * Property at {@link #NODE_METADATA_HISTORY} that saves the timestamp ({@link System#currentTimeMillis()}) of the last aborted run.
+     */
+    String PROP_LAST_ABORT_TIME = "lastAbortTime";
+    /**
+     * Property at {@link #NODE_METADATA_HISTORY} that saves the start timestamp ({@link System#currentTimeMillis()}) of the last run.
+     */
+    String PROP_LAST_RUN_TIME = "lastRunTime";
+    /**
+     * Property at {@link #NODE_METADATA_HISTORY} that saves the timestamp ({@link System#currentTimeMillis()}) of the last faulty run.
+     */
+    String PROP_LAST_ERROR_TIME = "lastErrorTime";
+    /**
+     * Property at {@link #NODE_METADATA_HISTORY} that saves the messages of the last faulty run as JSON.
+     */
+    String PROP_LAST_ERROR_MESSAGES = "lastErrorMessages";
+
     // FIXME(hps,26.03.20) synchronize with pages site constants
     String PROP_PUBLIC_MODE = "publicMode";
     String PUBLIC_MODE_IN_PLACE = "inPlace";

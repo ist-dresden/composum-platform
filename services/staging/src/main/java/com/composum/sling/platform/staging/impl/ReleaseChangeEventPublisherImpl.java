@@ -260,6 +260,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                     process.updateSynchronized();
                     info.isSynchronized = process.isSynchronized(releaseRoot.getResourceResolver());
                     info.lastReplicationTimestamp = process.getLastReplicationTimestamp();
+                    info.history.putAll(process.getHistory());
                 } catch (Exception ex) {
                     LOG.error(ex.getMessage(), ex);
                     // there was an IllegalArgumentException in a process (bad configuration)

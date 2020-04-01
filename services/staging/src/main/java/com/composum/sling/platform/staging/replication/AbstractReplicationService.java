@@ -9,6 +9,8 @@ import com.composum.sling.platform.staging.ReleaseChangeEventListener;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeProcess;
 import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.sling.api.resource.*;
@@ -27,6 +29,7 @@ import static com.composum.sling.core.util.CoreConstants.TYPE_SLING_FOLDER;
 import static com.composum.sling.core.util.SlingResourceUtil.appendPaths;
 import static com.composum.sling.core.util.SlingResourceUtil.isSameOrDescendant;
 import static com.composum.sling.platform.staging.ReleaseChangeProcess.ReleaseChangeProcessorState.*;
+import static com.composum.sling.platform.staging.replication.ReplicationConstants.*;
 import static java.util.Objects.requireNonNull;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
@@ -704,16 +707,19 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
                 long time = System.currentTimeMillis();
                 switch (state) {
                     case success:
-                        vm.put("lastSuccessTime", time);
+                        vm.put(PROP_LAST_SUCCESS_TIME, time);
                         break;
                     case aborted:
-                        vm.put("lastAbortTime", time);
+                        vm.put(PROP_LAST_ABORT_TIME, time);
                         break;
                     case processing:
-                        vm.put("lastRunTime", time);
+                        vm.put(PROP_LAST_RUN_TIME, time);
                         break;
                     case error:
-                        vm.put("lastErrorTime", time);
+                        vm.put(PROP_LAST_ERROR_TIME, time);
+                        Gson gson = new GsonBuilder().create();
+                        String msgJson = gson.toJson(getMessages());
+                        vm.put(PROP_LAST_ERROR_MESSAGES, StringUtils.defaultString(msgJson));
                         break;
                 }
                 serviceResolver.commit();
@@ -722,5 +728,72 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             }
         }
 
+        @Override
+        public Map<ReleaseChangeProcessorState, ReplicationHistoryEntry> getHistory() {
+            Map<ReleaseChangeProcessorState, ReplicationHistoryEntry> result =
+                    new EnumMap<ReleaseChangeProcessorState, ReplicationHistoryEntry>(ReleaseChangeProcessorState.class);
+            try (ResourceResolver serviceResolver = makeResolver()) {
+                Resource historyResource = getHistoryMetaResource(serviceResolver, configPath, false);
+                ValueMap vm = historyResource != null ? historyResource.getValueMap() : null;
+                if (vm != null) {
+                    Long time = vm.get(PROP_LAST_SUCCESS_TIME, Long.class);
+                    if (time != null) {
+                        result.put(success, new ReplicationHistoryEntryImpl(success, time, null));
+                    }
+                    time = vm.get(PROP_LAST_ABORT_TIME, Long.class);
+                    if (time != null) {
+                        result.put(aborted, new ReplicationHistoryEntryImpl(aborted, time, null));
+                    }
+                    time = vm.get(PROP_LAST_RUN_TIME, Long.class);
+                    if (time != null) {
+                        result.put(processing, new ReplicationHistoryEntryImpl(processing, time, null));
+                    }
+                    time = vm.get(PROP_LAST_ERROR_TIME, Long.class);
+                    if (time != null) {
+                        String messages = vm.get(PROP_LAST_ERROR_MESSAGES, String.class);
+                        result.put(processing, new ReplicationHistoryEntryImpl(processing, time, messages));
+                    }
+                }
+            } catch (LoginException | RepositoryException | RuntimeException e) {
+                LOG.error("Error writing history entry for " + configPath, e);
+            }
+            return result;
+        }
+    }
+
+    protected class ReplicationHistoryEntryImpl implements ReleaseChangeProcess.ReplicationHistoryEntry {
+
+        protected final ReleaseChangeProcess.ReleaseChangeProcessorState historyState;
+        protected final Long timestamp;
+        protected final MessageContainer historyMessages;
+
+        public ReplicationHistoryEntryImpl(ReleaseChangeProcess.ReleaseChangeProcessorState historyState, Long timestamp, String historyMessagesJson) {
+            this.historyState = historyState;
+            this.timestamp = timestamp;
+            if (StringUtils.isNotBlank(historyMessagesJson)) {
+                Gson gson = new GsonBuilder().create();
+                this.historyMessages = gson.fromJson(historyMessagesJson, MessageContainer.class);
+            } else {
+                this.historyMessages = null;
+            }
+        }
+
+        @Nonnull
+        @Override
+        public ReleaseChangeProcess.ReleaseChangeProcessorState getState() {
+            return historyState;
+        }
+
+        @Nonnull
+        @Override
+        public Long getTimestamp() {
+            return timestamp;
+        }
+
+        @Nullable
+        @Override
+        public MessageContainer getMessages() {
+            return historyMessages;
+        }
     }
 }
