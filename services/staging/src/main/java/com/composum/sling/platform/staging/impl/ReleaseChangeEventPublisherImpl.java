@@ -301,7 +301,6 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                 switch (process.getState()) {
                     case error:
                         result.haveErrors = true;
-                        result.replicationsAreRunning = true;
                         break;
                     case awaiting:
                     case processing:
