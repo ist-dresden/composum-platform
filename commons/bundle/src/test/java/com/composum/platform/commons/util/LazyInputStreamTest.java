@@ -1,6 +1,7 @@
 package com.composum.platform.commons.util;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.BufferedReader;
@@ -16,6 +17,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** Test for {@link LazyInputStream}. */
+@Ignore
 public class LazyInputStreamTest {
 
     @Test
