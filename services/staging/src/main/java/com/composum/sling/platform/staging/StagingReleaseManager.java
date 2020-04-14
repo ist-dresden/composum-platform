@@ -119,6 +119,13 @@ public interface StagingReleaseManager {
     Release resetCurrentTo(@Nonnull Release release) throws PersistenceException, RepositoryException, ReleaseExistsException, ReleaseProtectedException;
 
     /**
+     * @param resource the release root or any resource below it to find the release root
+     * @return the set of number build from the number of the last release
+     */
+    @Nonnull
+    Map<String,String> nextRealeaseNumbers(@Nonnull Resource resource);
+
+    /**
      * Renames the current release to a freshly according to the given scheme created release number
      * and recreates the current release based on that (like {@link #resetCurrentTo(Release)}).
      * The release number is chosen according to the {@link Release#getPreviousRelease()} - it is an error if that already exists.
@@ -264,7 +271,7 @@ public interface StagingReleaseManager {
      * @return the marked release, or null if the mark isn't set.
      */
     @Nullable
-    Release findReleaseByMark(@Nonnull Resource resource, @Nonnull String mark);
+    Release findReleaseByMark(@Nullable Resource resource, @Nonnull String mark);
 
     /**
      * Returns the release to which the {releaseResource} (e.g. the metaData node of the release) belongs.
@@ -297,6 +304,14 @@ public interface StagingReleaseManager {
 
     /** Marks a release as {@link Release#isClosed()}. Afterwards, methods like {@link #updateRelease(Release, List)} that change the releases' contents will not work. */
     void closeRelease(@Nonnull Release release) throws RepositoryException;
+
+    /**
+     * Changes the {@link StagingConstants#PROP_CHANGE_NUMBER} of a release signifying that the release was changed.
+     * This is called internally on each change of the release content. Calling this externally will e.g.
+     * trigger a full synchronization the next time any change is transmitted.
+     */
+    @Nonnull
+    String bumpReleaseChangeNumber(@Nonnull Release release) throws RepositoryException;
 
     /**
      * Data structure with metadata information about a release. This must only be created within the {@link StagingReleaseManager}.
@@ -346,6 +361,14 @@ public interface StagingReleaseManager {
          */
         @Nonnull
         Resource getMetaDataNode();
+
+        /**
+         * An UID that changes on each release content change. If it's constant, you can rely on the release content
+         * being the same. (Unless for changes not using the {@link StagingReleaseManager}, which you shouldn't do,
+         * of course. At least not without calling {@link #bumpReleaseChangeNumber(Release)}, too.)
+         */
+        @Nonnull
+        String getChangeNumber();
 
         /** The marks that point to this release. Each mark can only point to exactly one release. */
         @Nonnull

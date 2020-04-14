@@ -171,6 +171,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
             }
             result.getChangedPathsInfo().putAll(orderUpdateMap);
         }
+        LOG.info("Activation of {} versionables done", versionables.size());
         return result;
     }
 
@@ -277,7 +278,9 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
      * Checks whether the last modification date is later than the last checkin date.
      */
     protected void maybeCheckpoint(ResourceHandle versionable) throws RepositoryException {
-        VersionManager versionManager = versionable.getResourceResolver().adaptTo(Session.class).getWorkspace().getVersionManager();
+        VersionManager versionManager =
+                Objects.requireNonNull(versionable.getResourceResolver().adaptTo(Session.class))
+                        .getWorkspace().getVersionManager();
         if (!ResourceUtil.isNonExistingResource(versionable)) {
             Version baseVersion = versionManager.getBaseVersion(versionable.getPath());
             VersionHistory versionHistory = versionManager.getVersionHistory(versionable.getPath());

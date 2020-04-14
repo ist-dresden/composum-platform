@@ -10,15 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.platform.staging.StagingConstants.FROZEN_PROP_NAMES_TO_REAL_NAMES;
@@ -140,7 +132,7 @@ public class StagingResourceValueMap extends ValueMapDecorator {
     @Nonnull
     public Set<Entry<String, Object>> entrySet() {
         final Set<Entry<String, Object>> entries = super.entrySet();
-        final Set<Entry<String, Object>> result = new HashSet<>();
+        final Set<Entry<String, Object>> result = new TreeSet<>(Entry.comparingByKey());
         for (Entry<String, Object> entry : entries) {
             if ((JCR_FROZENUUID.equals(entry.getKey())
                     || JCR_UUID.equals(entry.getKey())) && haveToRemoveUuid()

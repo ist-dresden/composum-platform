@@ -13,6 +13,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.regex.Matcher;
 
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.is;
@@ -152,8 +153,9 @@ public class AssertionCodeGenerator {
     }
 
     protected String quoteString(String string) {
-        if (string == null) return "null";
-        return '"' + string.replaceAll("\"", "\\\"") + '"';
+        if (string == null) { return "null"; }
+        String quoted = '"' + string.replaceAll("\"", Matcher.quoteReplacement("\\\"")) + '"';
+        return quoted;
         // yes, this is yet missing support for special chars
     }
 

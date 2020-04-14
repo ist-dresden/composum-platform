@@ -56,11 +56,11 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
     /**
      * Instantiates a new Staging resource resolver.
      *
-     * @param release                 the release
-     * @param underlyingResolver      the resolver used to access resources outside of the version space
-     * @param releaseMapper           the release mapper that determines which resources are release-mapped
-     * @param configuration           the configuration
-     * @param closeResolverOnClose    if true, the underlyingResolver is closed when this resolver is closed
+     * @param release              the release
+     * @param underlyingResolver   the resolver used to access resources outside of the version space
+     * @param releaseMapper        the release mapper that determines which resources are release-mapped
+     * @param configuration        the configuration
+     * @param closeResolverOnClose if true, the underlyingResolver is closed when this resolver is closed
      */
     protected StagingResourceResolver(@Nonnull StagingReleaseManager.Release release, @Nonnull ResourceResolver underlyingResolver, @Nonnull ReleaseMapper releaseMapper, @Nonnull DefaultStagingReleaseManager.Configuration configuration, boolean closeResolverOnClose) {
         super(underlyingResolver, closeResolverOnClose);
@@ -230,13 +230,16 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
         ResourceResolver resolver = underlyingResolver.clone(authenticationInfo);
         return new StagingResourceResolver(release, resolver, releaseMapper, configuration, true);
     }
-
-
+    
+    /**
+     * {@inheritDoc}
+     * CAUTION: we have to support the JCR {@link Session} here, since it's often used to access various
+     * managers, but the session does not support our simulated resources. Use at your own risk.
+     */
     @Override
     @Nullable
     public <AdapterType> AdapterType adaptTo(@Nonnull Class<AdapterType> type) {
-        if (QueryBuilder.class.equals(type))
-            return type.cast(new QueryBuilderImpl(this));
+        if (QueryBuilder.class.equals(type)) { return type.cast(new QueryBuilderImpl(this)); }
         return super.adaptTo(type);
     }
 

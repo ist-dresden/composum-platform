@@ -112,6 +112,16 @@ public interface StagingConstants {
     String PROP_REPLICATED_VERSION = "cpl:replicatedVersion";
 
     /**
+     * Property on the release root that is unique to a certain state of the release. Each time the release is updated,
+     * this property is updated. Defined in {@link #TYPE_MIX_RELEASE_ROOT}.
+     * This is actually a random UID since currently there is no history of the release states - it's purpose is just
+     * to see whether something changed.
+     */
+    String PROP_CHANGE_NUMBER = "cpl:releaseChangeNumber";
+
+    /** Property on the release root that is set when it is replicated from somewhere else at the end of each replication. */
+    String PROP_LAST_REPLICATION_DATE = "cpl:lastReplicationDate";
+    /**
      * "Releasenumber" or key of the current release : {@value #CURRENT_RELEASE}. This also serves as the "current release" (the release that's in construction and will be used as default preview)
      * below {@link #NODE_RELEASES}.
      */
@@ -128,6 +138,8 @@ public interface StagingConstants {
      * Nodename below a release node or {@link #CURRENT_RELEASE} that can contain metadata for a release.
      */
     String NODE_RELEASE_METADATA = "metaData";
+
+    String TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     /** Maps the frozen property types to their normal names. */
     ImmutableBiMap<String, String> FROZEN_PROP_NAMES_TO_REAL_NAMES = ImmutableBiMap.of(

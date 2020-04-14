@@ -73,7 +73,7 @@ public class ReleasedVersionable implements Serializable, Cloneable {
         if (!ResourceUtil.isResourceType(resource, StagingConstants.TYPE_VERSIONREFERENCE)) {
             throw new IllegalArgumentException("resource is not version reference: " + getPath(resource));
         }
-        if (!resource.getPath().equals(releaseWorkspaceCopyRoot) && !resource.getPath().startsWith(releaseWorkspaceCopyRoot.getPath() + '/')) {
+        if (!SlingResourceUtil.isSameOrDescendant(releaseWorkspaceCopyRoot, resource)) {
             throw new IllegalArgumentException("Resource not in treeroot: " + resource.getPath() + ", " + releaseWorkspaceCopyRoot.getPath());
         }
 
@@ -181,7 +181,7 @@ public class ReleasedVersionable implements Serializable, Cloneable {
 
     protected void clearVersionableProperties(Resource versionReference) {
         ModifiableValueMap modvm = versionReference.adaptTo(ModifiableValueMap.class);
-        for (String key : new ArrayList<String>(modvm.keySet())) {
+        for (String key : new ArrayList<>(modvm.keySet())) {
             if (!ResourceUtil.PROP_PRIMARY_TYPE.equals(key)) {
                 try {
                     modvm.remove(key);
@@ -229,6 +229,6 @@ public class ReleasedVersionable implements Serializable, Cloneable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getVersionHistory());
+        return Objects.hashCode(getVersionHistory());
     }
 }
