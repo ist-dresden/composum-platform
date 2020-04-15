@@ -3,6 +3,7 @@ package com.composum.platform.commons.util;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.BufferedReader;
@@ -20,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /** Tests {@link OutputStreamInputStreamAdapter}. */
+@Ignore
 public class OutputStreamInputStreamAdapterTest {
 
     private ExecutorService executor;
