@@ -6,9 +6,7 @@
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <sling:defineObjects/>
 <cpn:component id="model" type="com.composum.platform.models.simple.SimpleModel">
-    <c:set var="logouturl" value="<%=
-        StringUtils.defaultIfBlank((String) model.getService(CoreConfiguration.class).getLogoutUrl(), "/system/sling/logout.html?logout=true&GLO=true")
-    %>"/>
+    <c:set var="logouturl" value="<%=StringUtils.defaultIfBlank((String) model.getService(CoreConfiguration.class).getLogoutUrl(), "/system/sling/logout.html?logout=true&GLO=true")%>"/>
     <div class="composum-platform-public_header">
         <div class="composum-platform-public_titles">
             <cpn:text tagName="h1" class="composum-platform-public_title"
