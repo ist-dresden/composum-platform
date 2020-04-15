@@ -119,10 +119,18 @@ public class InPlacePublisherService
         if (configs.isEmpty() && !StringUtils.isAllBlank(theConfig.inPlacePreviewPath(), theConfig.inPlacePublicPath()) &&
                 PUBLIC_MODE_IN_PLACE.equals(ResourceHandle.use(releaseRoot).getContentProperty(PROP_PUBLIC_MODE, DEFAULT_PUBLIC_MODE))) {
             configs = new ArrayList<>();
-            if (!SlingResourceUtil.isSameOrDescendant(config.contentPath(), releaseRoot.getPath())) {
+            String basePath = config.contentPath();
+            if (!SlingResourceUtil.isSameOrDescendant(basePath, releaseRoot.getPath())) {
+                basePath = config.inPlacePublicPath();
+                if (!SlingResourceUtil.isSameOrDescendant(basePath, releaseRoot.getPath())) {
+                    basePath = config.inPlacePreviewPath();
+                }
+            }
+            if (!SlingResourceUtil.isSameOrDescendant(basePath, releaseRoot.getPath())) {
+                LOG.error("Releaseroot ({}) is not in base path ({})", releaseRoot.getPath(), basePath);
                 throw new IllegalArgumentException("Releaseroot is not in content path");
             }
-            String relativeContentPath = SlingResourceUtil.relativePath(config.contentPath(), releaseRoot.getPath());
+            String relativeContentPath = SlingResourceUtil.relativePath(basePath, releaseRoot.getPath());
             if (StringUtils.isNotBlank(config.inPlacePreviewPath())) {
                 String stage = AccessMode.ACCESS_MODE_PREVIEW.toLowerCase();
                 configs.add(new InPlaceReplicationConfig.ImplicitInPlaceReplicationConfig(
