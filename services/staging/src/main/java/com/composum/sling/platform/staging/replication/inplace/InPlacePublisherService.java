@@ -120,7 +120,8 @@ public class InPlacePublisherService
                 PUBLIC_MODE_IN_PLACE.equals(ResourceHandle.use(releaseRoot).getContentProperty(PROP_PUBLIC_MODE, DEFAULT_PUBLIC_MODE))) {
             configs = new ArrayList<>();
             if (!SlingResourceUtil.isSameOrDescendant(config.contentPath(), releaseRoot.getPath())) {
-                throw new IllegalArgumentException("Releaseroot is not in content path");
+                LOG.warn("Releaseroot is not in content path: {}", releaseRoot.getPath());
+                return Collections.emptyList();
             }
             String relativeContentPath = SlingResourceUtil.relativePath(config.contentPath(), releaseRoot.getPath());
             if (StringUtils.isNotBlank(config.inPlacePreviewPath())) {
