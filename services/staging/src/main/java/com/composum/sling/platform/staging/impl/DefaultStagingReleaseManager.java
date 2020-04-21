@@ -1372,9 +1372,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         public String getChangeNumber() {
             String changeNumber = getWorkspaceCopyNode() != null ?
                     getWorkspaceCopyNode().getValueMap().get(StagingConstants.PROP_CHANGE_NUMBER, String.class) : null;
-            if (StringUtils.isBlank(changeNumber)) { // only OK during a transition period
-                LOG.warn("No change number set: {}", SlingResourceUtil.getPath(getWorkspaceCopyNode()));
-                changeNumber = "chgunset"; // fake number satisfying @Nonnull; will be updated on next change.
+            if (StringUtils.isBlank(changeNumber)) { // for old releases we create a fake number; will be updated on next change.
+                changeNumber = getWorkspaceCopyNode() != null ? getWorkspaceCopyNode().getPath() : "chgunset";
             }
             return changeNumber;
         }
