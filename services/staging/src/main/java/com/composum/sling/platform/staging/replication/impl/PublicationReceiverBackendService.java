@@ -78,14 +78,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     protected boolean nodelete = false;
 
     public PublicationReceiverBackendService() {
-        Random therandom;
-        try {
-            therandom = SecureRandom.getInstanceStrong();
-        } catch (NoSuchAlgorithmException e) { // should be pretty much impossible
-            LOG.error("" + e, e);
-            therandom = new Random();
-        }
-        random = therandom;
+        random = new SecureRandom();
     }
 
     @Activate

@@ -48,7 +48,7 @@ public class CryptoServiceImpl implements CryptoService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CryptoServiceImpl.class);
 
-    private final SecureRandom secureRandom = SecureRandom.getInstanceStrong();
+    private final SecureRandom secureRandom = new SecureRandom();
 
     protected static final String ALGORITHM = "AES/GCM/NoPadding";
 

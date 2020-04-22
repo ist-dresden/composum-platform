@@ -106,7 +106,7 @@ public class CryptoServiceImplTest {
         final String key = "testkey";
         final String message = "somemessage";
         final byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
-        SecureRandom secureRandom = SecureRandom.getInstanceStrong();
+        SecureRandom secureRandom = new SecureRandom();
 
         byte[] salt = new byte[8];
         secureRandom.nextBytes(salt);

@@ -155,19 +155,15 @@ public class CredentialServiceImpl implements CredentialService {
 
     /** Writes a random password to the given password file. */
     protected void writePasswordFile(File passwdFile) {
-        try {
-            SecureRandom rnd = SecureRandom.getInstanceStrong();
-            String password = RandomStringUtils.random(1024, 32, 126, false, false, null, rnd);
-            try (FileOutputStream fout = new FileOutputStream(passwdFile)) {
-                fout.write(password.getBytes(StandardCharsets.UTF_8));
-            } catch (IOException e) {
-                LOG.error("Problem writing password file " + passwdFile.getAbsolutePath(), e);
-                throw new IllegalStateException(e);
-            }
-            LOG.info("Initialized master password with random key.");
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e); // extremely unlikely - give up.
+        SecureRandom rnd = new SecureRandom();
+        String password = RandomStringUtils.random(1024, 32, 126, false, false, null, rnd);
+        try (FileOutputStream fout = new FileOutputStream(passwdFile)) {
+            fout.write(password.getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            LOG.error("Problem writing password file " + passwdFile.getAbsolutePath(), e);
+            throw new IllegalStateException(e);
         }
+        LOG.info("Initialized master password with random key.");
     }
 
     protected void checkEnabled() {

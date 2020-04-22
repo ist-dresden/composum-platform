@@ -144,7 +144,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     /**
      * Random number generator for creating unique ids etc.
      */
-    protected final Random random = SecureRandom.getInstanceStrong();
+    protected final Random random = new SecureRandom();
 
     public DefaultStagingReleaseManager() throws NoSuchAlgorithmException {
     }
