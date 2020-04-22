@@ -223,6 +223,14 @@ $replication-stage-title-min-with: 120px;
         button {
             min-width: 100px;
         }
+
+        .dialog-form-buttons-toolbar {
+            display: inline-block;
+
+            .checkbox {
+                margin: 0 $bootstrap-spacing-h;
+            }
+        }
     }
 
     .composum-platform-replication-status {

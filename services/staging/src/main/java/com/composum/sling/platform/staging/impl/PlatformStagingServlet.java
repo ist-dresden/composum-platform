@@ -50,13 +50,15 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
     private static final Logger LOG = LoggerFactory.getLogger(PlatformStagingServlet.class);
 
     public static final String PARAM_RELEASE_KEY = "releaseKey";
+    public static final String PARAM_FULL_SYNC = "fullSync";
 
     protected ServletOperationSet<Extension, Operation> operations;
 
     public enum Operation {
         stageRelease, abortReplication,
         replicationState, aggregatedReplicationState,
-        compareContent}
+        compareContent
+    }
 
     public enum Extension {json}
 
@@ -128,10 +130,12 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
                     RequestPathInfo pathInfo = request.getRequestPathInfo();
                     String[] selectors = pathInfo.getSelectors();
                     try {
+                        boolean fullSync = Boolean.parseBoolean(
+                                RequestUtil.getParameter(request, PARAM_FULL_SYNC, "false"));
                         String stage = AccessMode.valueOf((selectors.length > 1 ? selectors[1] : "?")
                                 .toUpperCase()).name().toLowerCase();
                         // replication is triggered by setMark via the ReleaseChangeEventListener .
-                        releaseManager.setMark(stage, release);
+                        releaseManager.setMark(stage, release, fullSync);
                         LOG.info("Release '{}' published to stage '{}'.", release, stage);
                         request.getResourceResolver().commit();
                     } catch (IllegalArgumentException iaex) {

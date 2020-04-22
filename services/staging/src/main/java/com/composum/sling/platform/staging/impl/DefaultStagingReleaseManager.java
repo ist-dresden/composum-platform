@@ -1090,13 +1090,14 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     }
 
     @Override
-    public void setMark(@Nonnull String mark, @Nullable Release rawRelease) throws RepositoryException, ReleaseChangeEventListener.ReplicationFailedException {
+    public void setMark(@Nonnull String mark, @Nullable Release rawRelease, boolean full)
+            throws RepositoryException, ReleaseChangeEventListener.ReplicationFailedException {
         ReleaseImpl release = Objects.requireNonNull(ReleaseImpl.unwrap(rawRelease));
         ResourceHandle releasesnode = ResourceHandle.use(release.getReleaseNode().getParent()); // the cpl:releases node
         // property type REFERENCE prevents deleting it accidentially
         releasesnode.setProperty(mark, release.getUuid(), PropertyType.REFERENCE);
         // FIXME(hps,27.03.20) we force a full comparison here for testing purposes - that should be an option.
-        publisher.publishActivation(ReleaseChangeEvent.fullUpdate(release).setForceCheck(true));
+        publisher.publishActivation(ReleaseChangeEvent.fullUpdate(release).setForceCheck(full));
     }
 
     @Override

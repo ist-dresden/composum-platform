@@ -72,11 +72,9 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -429,10 +427,10 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
     public void releaseMarking() throws Exception {
         final Release rel1 = service.finalizeCurrentRelease(releaseRoot, ReleaseNumberCreator.MAJOR);
         final Release rel2 = service.finalizeCurrentRelease(releaseRoot, ReleaseNumberCreator.MAJOR);
-        service.setMark("public", rel1);
-        service.setMark("preview", rel1);
+        service.setMark("public", rel1, true);
+        service.setMark("preview", rel1, true);
         ec.checkThat(service.findReleaseByMark(releaseRoot, "public").getMarks(), containsInAnyOrder("public", "preview"));
-        service.setMark("preview", rel2);
+        service.setMark("preview", rel2, true);
         ec.checkThat(service.findReleaseByMark(releaseRoot, "public").getNumber(), is(rel1.getNumber()));
         ec.checkThat(service.findReleaseByMark(releaseRoot, "preview").getNumber(), is(rel2.getNumber()));
         ec.checkThat(service.findReleaseByMark(releaseRoot, "public").getMarks(), contains("public"));
@@ -604,7 +602,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ec.checkThat(versionManager.getVersionHistory(versionable.getPath()).getVersionLabels(),
                 arrayContainingInAnyOrder("composum-release-current", "composum-release-r1", "composum-release-r1.1"));
 
-        service.setMark("public", r1);
+        service.setMark("public", r1, true);
         ec.checkFailsWith(() -> service.deleteRelease(r1), instanceOf(StagingReleaseManager.ReleaseProtectedException.class));
         service.deleteMark("public", r1);
         Release r1n = service.findRelease(releaseRoot, r1.getNumber());

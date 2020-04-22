@@ -22,7 +22,9 @@
                 _progress: '_progress .progress-bar',
                 _timestamp: '_timestamp',
                 dialog: 'composum-platform-replication-dialog',
-                _footer: '_footer'
+                _footer: '_footer',
+                _option: '_option',
+                _full: '_full'
             },
             url: {
                 servlet: '/bin/cpm/platform/staging',
@@ -270,6 +272,7 @@
                 };
                 this.status = core.getWidget(this.$el, '.' + c.base, replication.Status);
                 var $footer = this.$('.' + c.dialog + c._footer);
+                this.$fullSync = $footer.find('.' + c.dialog + c._option + c._full);
                 this.$abort = $footer.find('button.abort');
                 this.$cancel = $footer.find('button.cancel');
                 this.$publish = $footer.find('button.publish');
@@ -320,7 +323,8 @@
                 var u = replication.const.url;
                 var url = u.servlet + u._publish + '.' + this.data.stage + '.json' + this.data.path;
                 core.ajaxPost(url, {
-                        releaseKey: this.data.targetKey
+                        releaseKey: this.data.targetKey,
+                        fullSync: this.$fullSync.prop('checked') ? 'true' : 'false'
                     }, {}, _.bind(function (result) {
                         if (replication.const.dialog === 'normal') {
                             // close like a normal dialog

@@ -34,6 +34,12 @@
                 <div class="composum-platform-replication-dialog_footer modal-footer buttons">
                     <button type="button"
                             class="abort button-left btn btn-danger hidden">${cpn:i18n(slingRequest,'Abort')}</button>
+                    <div class="dialog-form-buttons-toolbar">
+                        <div class="checkbox"><label>
+                            <input class="composum-platform-replication-dialog_option_full"
+                                   type="checkbox"> ${cpn:i18n(slingRequest,'Full Synchronization')}
+                        </label></div>
+                    </div>
                     <button type="button" class="cancel btn btn-default"
                             data-dismiss="modal">${cpn:i18n(slingRequest,'Cancel')}</button>
                     <button type="button" class="publish btn btn-primary">${cpn:i18n(slingRequest,'Publish')}</button>
