@@ -214,6 +214,11 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         }
         LOG.info("Requested activation {} in release {} to version {}", getPath(versionable), releaseKey, versionUuid);
         StatusImpl oldStatus = getStatus(versionable, releaseKey);
+        if (oldStatus == null) {
+            LOG.error("Could not determine status for {}", getPath(versionable));
+            return null; // TODO an exception might be better
+            // but the result isn't visible so far, so that wouldn't help, expecially when many things are activated.
+        }
         ActivationResult activationResult = new ActivationResult(release);
 
         boolean moveRequested = oldStatus.getNextVersionable() != null && oldStatus.getPreviousVersionable() != null &&
