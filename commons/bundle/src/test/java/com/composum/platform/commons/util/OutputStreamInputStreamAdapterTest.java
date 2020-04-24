@@ -21,7 +21,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /** Tests {@link OutputStreamInputStreamAdapter}. */
-@Ignore
 public class OutputStreamInputStreamAdapterTest {
 
     private ExecutorService executor;

@@ -17,7 +17,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /** Test for {@link LazyInputStream}. */
-@Ignore
 public class LazyInputStreamTest {
 
     @Test
