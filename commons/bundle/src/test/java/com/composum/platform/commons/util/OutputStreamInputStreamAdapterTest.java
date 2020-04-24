@@ -3,25 +3,22 @@ package com.composum.platform.commons.util;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
-/** Tests {@link OutputStreamInputStreamAdapter}. */
+/**
+ * Tests {@link OutputStreamInputStreamAdapter}.
+ */
 public class OutputStreamInputStreamAdapterTest {
+
+    private static final Logger LOG = LoggerFactory.getLogger(OutputStreamInputStreamAdapterTest.class);
 
     private ExecutorService executor;
 
@@ -47,15 +44,25 @@ public class OutputStreamInputStreamAdapterTest {
         }
     }
 
-    @Test(expected = IOException.class)
-    public void throwsException() throws IOException {
+    @Test
+    public void throwsException() throws Exception {
+        LOG.debug("Start throwsException");
         try (
                 InputStream stream = OutputStreamInputStreamAdapter.of(
-                        (OutputStream out) -> { throw new RuntimeException("go away"); },
+                        (OutputStream out) -> {
+                            throw new RuntimeException("go away");
+                        },
                         executor);
                 BufferedReader in = new BufferedReader(new InputStreamReader(stream));
         ) {
             in.readLine();
+        } catch (IOException e) {
+            LOG.info("OK: received {}", e.toString());
+        } catch (Throwable t) {
+            LOG.error("Unexpected exception", t);
+            throw t;
+        } finally {
+            LOG.debug("End throwsException");
         }
     }
 

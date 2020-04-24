@@ -80,13 +80,15 @@ public class OutputStreamInputStreamAdapter {
         Runnable runnable = () -> {
             try {
                 try {
+                    LOG.debug("Start writing");
                     writeToOutputStream.apply(outputStream);
                 } finally {
+                    LOG.debug("Closing stream");
                     outputStream.close();
                 }
             } catch (Exception e) {
                 exception = e;
-                LOG.error("" + e, e);
+                LOG.warn("Writing to output stream failed: " + e, e);
             }
         };
         execution = executor != null ? executor.submit(runnable) : threadPool.submit(runnable);
@@ -98,6 +100,7 @@ public class OutputStreamInputStreamAdapter {
      */
     protected void possiblyThrow() throws IOException {
         if (exception != null) {
+            LOG.debug("Throwing exception that occurred during writing (see warning) - {}", exception.toString());
             throw new IOException("Trouble writing stream: " + exception, exception);
         }
     }
@@ -129,6 +132,7 @@ public class OutputStreamInputStreamAdapter {
 
             @Override
             public void close() throws IOException {
+                LOG.debug("Closing inputstream");
                 try {
                     possiblyThrow();
                 } finally {
