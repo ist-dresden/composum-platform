@@ -9,7 +9,6 @@ import javax.annotation.Nullable;
 import java.io.*;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 
 /**
@@ -79,16 +78,23 @@ public class OutputStreamInputStreamAdapter {
         PipedOutputStream outputStream = new PipedOutputStream(input);
         Runnable runnable = () -> {
             try {
-                try {
-                    LOG.debug("Start writing");
-                    writeToOutputStream.apply(outputStream);
-                } finally {
-                    LOG.debug("Closing stream");
-                    outputStream.close();
-                }
+                LOG.debug("Start writing");
+                writeToOutputStream.apply(outputStream);
             } catch (Exception e) {
                 exception = e;
                 LOG.warn("Writing to output stream failed: " + e, e);
+            } finally {
+                try {
+                    LOG.debug("Closing stream");
+                    outputStream.close();
+                } catch (Exception e) {
+                    if (exception == null) {
+                        exception = e;
+                    } else {
+                        exception.addSuppressed(e);
+                    }
+                    LOG.warn("Closing output stream failed: " + e, e);
+                }
             }
         };
         execution = executor != null ? executor.submit(runnable) : threadPool.submit(runnable);

@@ -46,11 +46,14 @@ public class OutputStreamInputStreamAdapterTest {
 
     @Test
     public void throwsException() throws Exception {
+        System.out.flush();
+        System.err.flush();
+        Thread.sleep(100); // make sure log messages are written to deconfuse output
         LOG.debug("Start throwsException");
         try (
                 InputStream stream = OutputStreamInputStreamAdapter.of(
                         (OutputStream out) -> {
-                            throw new RuntimeException("go away");
+                            throw new RuntimeException("Throws immediately before writing anything");
                         },
                         executor);
                 BufferedReader in = new BufferedReader(new InputStreamReader(stream));
@@ -63,6 +66,9 @@ public class OutputStreamInputStreamAdapterTest {
             throw t;
         } finally {
             LOG.debug("End throwsException");
+            System.out.flush();
+            System.err.flush();
+            Thread.sleep(100); // make sure log messages are written to deconfuse output
         }
     }
 
@@ -77,7 +83,7 @@ public class OutputStreamInputStreamAdapterTest {
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
-                    throw new RuntimeException("go away");
+                    throw new RuntimeException("exception after writing 4 bytes");
                 },
                 executor);
         byte[] bytes = new byte[4];
@@ -106,7 +112,7 @@ public class OutputStreamInputStreamAdapterTest {
                                 interrupted = true;
                                 throw new RuntimeException(e);
                             }
-                            throw new RuntimeException("go away");
+                            throw new RuntimeException("not interrupted");
                         },
                         executor)
         ) {
