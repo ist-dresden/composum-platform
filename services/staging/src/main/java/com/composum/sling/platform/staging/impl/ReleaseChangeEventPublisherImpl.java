@@ -262,12 +262,11 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                     info.lastReplicationTimestamp = process.getLastReplicationTimestamp();
                     info.history.putAll(process.getHistory());
                 } catch (Exception ex) {
-                    LOG.error(ex.getMessage(), ex);
                     // there was an IllegalArgumentException in a process (bad configuration)
-                    // but a state retrieval should never throw exceptions - this breaks th UI
+                    // but a state retrieval should never throw exceptions - this breaks the UI
                     info.state = ReleaseChangeProcess.ReleaseChangeProcessorState.error;
-                    info.messages = new MessageContainer();
-                    info.messages.add(new Message(Message.Level.error, ex.getMessage()));
+                    info.messages = new MessageContainer(LOG);
+                    info.messages.add(new Message(Message.Level.error, ex.getMessage()), ex);
                 }
                 result.put(process.getId(), info);
             }
@@ -314,9 +313,9 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                         break;
                 }
             } catch (Exception ex) {
-                LOG.error(ex.getMessage(), ex);
+                LOG.error(ex.toString(), ex);
                 // there was an IllegalArgumentException in a process (bad configuration)
-                // but a state retrieval should never throw exceptions - this breaks th UI
+                // but a state retrieval should never throw exceptions - this breaks the UI
                 result.haveErrors = true;
                 result.allAreActive = false;
                 result.everythingIsSynchronized = false;
