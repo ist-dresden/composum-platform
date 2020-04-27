@@ -1,6 +1,6 @@
 package com.composum.sling.platform.staging.replication.impl;
 
-import com.composum.platform.commons.json.JsonArrayAsIterable;
+import com.composum.sling.platform.staging.replication.ReplicationException;
 import com.composum.sling.platform.staging.replication.ReplicationPaths;
 import com.composum.sling.platform.staging.replication.UpdateInfo;
 import com.composum.sling.platform.staging.replication.json.ChildrenOrderInfo;
@@ -15,7 +15,6 @@ import org.apache.sling.api.resource.ResourceResolver;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
@@ -102,27 +101,17 @@ public interface PublicationReceiverBackend {
      */
     VersionableTree contentStatus(@Nonnull ReplicationPaths replicationPaths, @Nonnull Collection<String> paths, @Nonnull ResourceResolver resolver);
 
+    @Deprecated
     public class RemotePublicationReceiverException extends Exception {
 
-        public enum RetryAdvice {
-            /**
-             * Temporary failure (e.g. because of concurrent modification) - can be retried immediately.
-             */
-            RETRY_IMMEDIATELY,
-            /**
-             * Permanent failure - manual intervention needed.
-             */
-            NO_AUTOMATIC_RETRY
-        }
+        private final ReplicationException.RetryAdvice retryadvice;
 
-        private final RetryAdvice retryadvice;
-
-        public RemotePublicationReceiverException(String message, RetryAdvice advice) {
+        public RemotePublicationReceiverException(String message, ReplicationException.RetryAdvice advice) {
             super(message);
             this.retryadvice = advice;
         }
 
-        public RetryAdvice getRetryadvice() {
+        public ReplicationException.RetryAdvice getRetryadvice() {
             return retryadvice;
         }
 

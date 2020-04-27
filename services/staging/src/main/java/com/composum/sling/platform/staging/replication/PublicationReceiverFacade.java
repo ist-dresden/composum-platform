@@ -119,6 +119,7 @@ public interface PublicationReceiverFacade {
     /**
      * Exception that signifies a problem with the replication.
      */
+    @Deprecated
     class PublicationReceiverFacadeException extends Exception {
         private static final Logger LOG = LoggerFactory.getLogger(PublicationReceiverFacadeException.class);
 

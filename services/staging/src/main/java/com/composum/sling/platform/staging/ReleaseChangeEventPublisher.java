@@ -89,7 +89,7 @@ public interface ReleaseChangeEventPublisher {
      *                        corresponding {@link CompareResult}.
      */
     void compareTree(@Nonnull ResourceHandle resource, int details, @Nullable String[] processIdParams,
-                     @Nonnull Map<String, Object> output) throws ReleaseChangeEventListener.ReplicationFailedException;
+                     @Nonnull Map<String, ? super CompareResult> output) throws ReleaseChangeEventListener.ReplicationFailedException;
 
     /**
      * Information about one {@link ReleaseChangeProcess} used for JSON serialization.

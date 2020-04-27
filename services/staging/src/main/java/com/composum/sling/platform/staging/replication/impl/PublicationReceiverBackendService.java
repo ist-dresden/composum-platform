@@ -6,6 +6,7 @@ import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.impl.NodeTreeSynchronizer;
 import com.composum.sling.platform.staging.replication.ReplicationConstants;
+import com.composum.sling.platform.staging.replication.ReplicationException;
 import com.composum.sling.platform.staging.replication.ReplicationPaths;
 import com.composum.sling.platform.staging.replication.UpdateInfo;
 import com.composum.sling.platform.staging.replication.json.ChildrenOrderInfo;
@@ -37,7 +38,6 @@ import javax.jcr.Session;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -230,7 +230,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
                     LOG.error("Aborting import on {} to {}: importer has errors. {}",
                             updateId, packageRootPath, archive.getMetaInf().getProperties());
                     throw new RemotePublicationReceiverException("Aborting: internal error importing on remote " +
-                            "system - please consult the logfile.", RemotePublicationReceiverException.RetryAdvice.NO_AUTOMATIC_RETRY);
+                            "system - please consult the logfile.", ReplicationException.RetryAdvice.NO_AUTOMATIC_RETRY);
                 }
 
                 processMove(resolver, SlingResourceUtil.appendPaths(tmpLocation.getPath(), packageRootPath), replicationPaths);
@@ -500,7 +500,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
                 LoggerFactory.getLogger(getClass()).error("Release change id changed since beginning of update: {} to" +
                         " {} . Aborting.", originalReleaseChangeId, releaseChangeId);
                 throw new RemotePublicationReceiverException("Release change Id changed since beginning of update - aborting " +
-                        "transfer. Retryable.", RemotePublicationReceiverException.RetryAdvice.RETRY_IMMEDIATELY);
+                        "transfer. Retryable.", ReplicationException.RetryAdvice.RETRY_IMMEDIATELY);
             }
 
         }
