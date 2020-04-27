@@ -1,6 +1,7 @@
 package com.composum.sling.platform.staging.replication.impl;
 
 import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.core.logging.Message;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.StagingConstants;
@@ -105,7 +106,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
 
     @Override
     public UpdateInfo startUpdate(@Nonnull ReplicationPaths replicationPaths)
-            throws PersistenceException, LoginException, RemotePublicationReceiverException, RepositoryException {
+            throws PersistenceException, LoginException, RemotePublicationReceiverException, RepositoryException, ReplicationException {
         LOG.info("Start update called for {}", replicationPaths);
         try (ResourceResolver resolver = makeResolver()) {
             ensureMetaResourceAndPath(replicationPaths, resolver);
@@ -134,7 +135,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         }
     }
 
-    protected void ensureMetaResourceAndPath(@Nonnull ReplicationPaths replicationPaths, ResourceResolver resolver) throws RepositoryException {
+    protected void ensureMetaResourceAndPath(@Nonnull ReplicationPaths replicationPaths, ResourceResolver resolver) throws RepositoryException, ReplicationException {
         // make sure the meta resource and target can be created
         Resource meta = Objects.requireNonNull(getMetaResource(resolver, replicationPaths, true));
         String destinationPath = appendPaths(config.changeRoot(), replicationPaths.getDestination());
@@ -148,7 +149,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     }
 
     protected void fillUpdateInfo(UpdateInfo updateInfo, ResourceResolver resolver, ReplicationPaths replicationPaths)
-            throws RepositoryException {
+            throws ReplicationException {
         Resource metaResource = getMetaResource(resolver, replicationPaths, false);
         updateInfo.originalPublisherReleaseChangeId = getReleaseChangeId(metaResource);
         Calendar lastReplicationDate = metaResource != null ?
@@ -159,18 +160,22 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
 
     @Nullable
     protected Resource getMetaResource(ResourceResolver resolver, ReplicationPaths replicationPaths, boolean createIfNecessary)
-            throws RepositoryException {
+            throws ReplicationException {
         String metapath = appendPaths(ReplicationConstants.PATH_METADATA, replicationPaths.getDestination()) + ReplicationConstants.NODE_METADATA;
         Resource resource = resolver.getResource(metapath);
         if (createIfNecessary && resource == null) {
-            resource = ResourceUtil.getOrCreateResource(resolver, metapath, ResourceUtil.TYPE_SLING_FOLDER + "/" + ResourceUtil.NT_UNSTRUCTURED);
+            try {
+                resource = ResourceUtil.getOrCreateResource(resolver, metapath, ResourceUtil.TYPE_SLING_FOLDER + "/" + ResourceUtil.NT_UNSTRUCTURED);
+            } catch (RepositoryException e) {
+                throw new ReplicationException(Message.error("Service user could not create {} in backend", metapath), e);
+            }
         }
         return resource;
     }
 
     @Nullable
     @Override
-    public UpdateInfo releaseInfo(@Nonnull ReplicationPaths replicationPaths) throws LoginException, RepositoryException {
+    public UpdateInfo releaseInfo(@Nonnull ReplicationPaths replicationPaths) throws ReplicationException {
         UpdateInfo result;
         if (LOG.isDebugEnabled()) {
             LOG.debug("ReleaseInfo called for {}", replicationPaths);
@@ -186,7 +191,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     @Override
     public List<String> compareContent(@Nullable ReplicationPaths replicationPaths, @Nullable String updateId,
                                        @Nonnull Stream<VersionableInfo> versionableInfos)
-            throws LoginException, RemotePublicationReceiverException, RepositoryException, IOException {
+            throws LoginException, RemotePublicationReceiverException, RepositoryException, IOException, ReplicationException {
         LOG.info("Compare content {} - {}", updateId, replicationPaths);
         try (ResourceResolver resolver = makeResolver()) {
             ReplicationPaths usedReplicationPaths = replicationPaths;
@@ -210,7 +215,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     // The packages are made for the untranslated paths. We have to consider the targetPath later.
     @Override
     public void pathUpload(@Nullable String updateId, @Nonnull String packageRootPath, @Nonnull InputStream inputStream)
-            throws LoginException, RemotePublicationReceiverException, RepositoryException, IOException, ConfigurationException {
+            throws LoginException, RemotePublicationReceiverException, RepositoryException, IOException, ConfigurationException, ReplicationException {
         LOG.info("Pathupload called for {} : {}", updateId, packageRootPath);
         try (ResourceResolver resolver = makeResolver()) {
             Resource tmpLocation = getTmpLocation(resolver, updateId, false);
@@ -259,7 +264,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     @Override
     public void commit(@Nonnull String updateId, @Nonnull Set<String> deletedPaths,
                        @Nonnull Iterable<ChildrenOrderInfo> childOrderings, String newReleaseChangeId)
-            throws LoginException, RemotePublicationReceiverException, RepositoryException, PersistenceException {
+            throws LoginException, RemotePublicationReceiverException, RepositoryException, PersistenceException, ReplicationException {
         LOG.info("Commit called for {} : {}", updateId, deletedPaths);
         try (ResourceResolver resolver = makeResolver()) {
             Resource tmpLocation = getTmpLocation(resolver, updateId, false);
@@ -359,7 +364,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
 
     @Override
     public void abort(@Nullable String updateId) throws LoginException, RemotePublicationReceiverException,
-            RepositoryException, PersistenceException {
+            RepositoryException, PersistenceException, ReplicationException {
         LOG.info("Abort called for {}", updateId);
         if (nodelete) {
             return;
@@ -474,7 +479,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
 
     @Nonnull
     protected Resource getTmpLocation(@Nonnull ResourceResolver resolver, @Nullable String updateId, boolean create)
-            throws RepositoryException, RemotePublicationReceiverException {
+            throws RepositoryException, RemotePublicationReceiverException, ReplicationException {
         cleanup(resolver);
 
         if (StringUtils.isBlank(updateId) || !ReplicationConstants.PATTERN_UPDATEID.matcher(updateId).matches()) {
@@ -546,7 +551,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     @Nonnull
     @Override
     public List<String> compareChildorderings(@Nonnull ReplicationPaths replicationPaths, @Nonnull Iterable<ChildrenOrderInfo> childOrderings)
-            throws LoginException, RemotePublicationReceiverException, RepositoryException {
+            throws LoginException, RemotePublicationReceiverException, RepositoryException, ReplicationException {
         LOG.info("Compare child orderings for {}", replicationPaths);
         List<String> result = new ArrayList<>();
         int read = 0;
@@ -585,7 +590,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     @Nonnull
     @Override
     public List<String> compareAttributes(@Nonnull ReplicationPaths replicationPaths, @Nonnull Iterable<NodeAttributeComparisonInfo> attributeInfos)
-            throws LoginException, RemotePublicationReceiverException {
+            throws LoginException, RemotePublicationReceiverException, ReplicationException {
         LOG.info("Compare parent attributes for {}", replicationPaths);
         List<String> result = new ArrayList<>();
         int read = 0;
@@ -636,8 +641,12 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
      * Creates the service resolver used to update the content.
      */
     @Nonnull
-    protected ResourceResolver makeResolver() throws LoginException {
-        return resolverFactory.getServiceResourceResolver(null);
+    protected ResourceResolver makeResolver() throws ReplicationException {
+        try {
+            return resolverFactory.getServiceResourceResolver(null);
+        } catch (LoginException e) {
+            throw new ReplicationException(Message.error("Could not get service user for backend"), e);
+        }
     }
 
     @Nullable

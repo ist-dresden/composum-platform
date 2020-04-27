@@ -1,6 +1,10 @@
 package com.composum.sling.platform.staging.replication;
 
+import com.composum.sling.core.logging.Message;
 import com.composum.sling.core.logging.MessageContainer;
+import org.apache.sling.api.resource.LoginException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -8,23 +12,23 @@ import javax.annotation.Nullable;
 /**
  * General exception reporting details about a failure of the replication process.
  */
-public class ReplicationException {
+public class ReplicationException extends Exception {
 
-    public enum RetryAdvice {
-        /**
-         * Temporary failure (e.g. because of concurrent modification) - can be retried immediately.
-         */
-        RETRY_IMMEDIATELY,
-        /**
-         * Permanent failure - manual intervention needed.
-         */
-        NO_AUTOMATIC_RETRY
-    }
+    private static final Logger LOG = LoggerFactory.getLogger(ReplicationException.class);
 
     protected ReplicationException.RetryAdvice retryadvice = RetryAdvice.NO_AUTOMATIC_RETRY;
 
     @Nonnull
-    protected final MessageContainer messages = new MessageContainer();
+    protected MessageContainer messages = new MessageContainer(LOG);
+
+    public ReplicationException() {
+    }
+
+    public ReplicationException(Message message, Exception e) {
+        super(message.toFormattedMessage(), e);
+        messages.add(message, e);
+        message.addDetail(Message.debug("Exception details: {}", e.toString()));
+    }
 
     /**
      * Indicates whether this is a temporary failure that is likely to go away when tried again (automatic retry recommended),
@@ -74,6 +78,17 @@ public class ReplicationException {
      */
     protected void extendToStringTail(StringBuilder sb) {
         // empty
+    }
+
+    public enum RetryAdvice {
+        /**
+         * Temporary failure (e.g. because of concurrent modification) - can be retried immediately.
+         */
+        RETRY_IMMEDIATELY,
+        /**
+         * Permanent failure - manual intervention needed.
+         */
+        NO_AUTOMATIC_RETRY
     }
 
 }
