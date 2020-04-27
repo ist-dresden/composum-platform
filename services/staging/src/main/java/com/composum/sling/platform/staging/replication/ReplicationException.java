@@ -24,10 +24,12 @@ public class ReplicationException extends Exception {
     public ReplicationException() {
     }
 
-    public ReplicationException(Message message, Exception e) {
+    public ReplicationException(@Nonnull Message message, @Nullable Exception e) {
         super(message.toFormattedMessage(), e);
         messages.add(message, e);
-        message.addDetail(Message.debug("Exception details: {}", e.toString()));
+        if (e != null) {
+            message.addDetail(Message.debug("Exception details: {}", e.toString()));
+        }
     }
 
     /**
@@ -78,6 +80,16 @@ public class ReplicationException extends Exception {
      */
     protected void extendToStringTail(StringBuilder sb) {
         // empty
+    }
+
+    /**
+     * Sets this exception to {@link RetryAdvice#RETRY_IMMEDIATELY}.
+     *
+     * @return this (for builder style usage)
+     */
+    public ReplicationException asRetryable() {
+        retryadvice = RetryAdvice.RETRY_IMMEDIATELY;
+        return this;
     }
 
     public enum RetryAdvice {

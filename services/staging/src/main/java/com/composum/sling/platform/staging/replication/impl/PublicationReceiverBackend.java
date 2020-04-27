@@ -39,13 +39,13 @@ public interface PublicationReceiverBackend {
      * Prepares the temporary directory for an update operation. Take care to remove it later!
      */
     UpdateInfo startUpdate(@Nonnull ReplicationPaths replicationPaths)
-            throws PersistenceException, LoginException, RemotePublicationReceiverException, RepositoryException, ReplicationException;
+            throws PersistenceException, RepositoryException, ReplicationException;
 
     /**
      * Uploads one package into the temporary directory, taking note of the root path for later moving to content.
      */
     void pathUpload(@Nullable String updateId, @Nonnull String packageRootPath, @Nonnull InputStream inputStream)
-            throws LoginException, RemotePublicationReceiverException, RepositoryException, IOException, ConfigurationException, ReplicationException;
+            throws RemotePublicationReceiverException, RepositoryException, IOException, ConfigurationException, ReplicationException;
 
     /**
      * Moves the content to the content directory and deletes the given paths, thus finalizing the update. The
@@ -53,7 +53,7 @@ public interface PublicationReceiverBackend {
      */
     void commit(@Nonnull String updateId, @Nonnull Set<String> deletedPaths,
                 @Nonnull Iterable<ChildrenOrderInfo> childOrderings, String newReleaseChangeId)
-            throws LoginException, RemotePublicationReceiverException, RepositoryException, PersistenceException, ReplicationException;
+            throws RemotePublicationReceiverException, RepositoryException, PersistenceException, ReplicationException;
 
     /**
      * Retrieves a list of {@link VersionableInfo} from the {jsonInputStream}, checks these against the content and
@@ -62,19 +62,19 @@ public interface PublicationReceiverBackend {
     @Nonnull
     List<String> compareContent(@Nullable ReplicationPaths replicationPaths, @Nullable String updateId,
                                 @Nonnull Stream<VersionableInfo> versionableInfos)
-            throws LoginException, RemotePublicationReceiverException, RepositoryException, IOException, ReplicationException;
+            throws ReplicationException;
 
     /**
      * Aborts the update operation and deletes the temporary directory.
      */
     void abort(@Nullable String updateId)
-            throws LoginException, RemotePublicationReceiverException, RepositoryException, PersistenceException, ReplicationException;
+            throws PersistenceException, ReplicationException;
 
     /**
      * Gets general info about a release without starting an update.
      */
     @Nullable
-    UpdateInfo releaseInfo(@Nonnull ReplicationPaths replicationPaths) throws LoginException, RepositoryException, ReplicationException;
+    UpdateInfo releaseInfo(@Nonnull ReplicationPaths replicationPaths) throws RepositoryException, ReplicationException;
 
     /**
      * Reads childorderings as {@link ChildrenOrderInfo} and compares these to whatever we have in our repository,
@@ -83,7 +83,7 @@ public interface PublicationReceiverBackend {
     @Nonnull
     List<String> compareChildorderings(@Nonnull ReplicationPaths replicationPaths,
                                        @Nonnull Iterable<ChildrenOrderInfo> childOrderings)
-            throws LoginException, RemotePublicationReceiverException, RepositoryException, ReplicationException;
+            throws ReplicationException;
 
     /**
      * Reads node attribute information {@link NodeAttributeComparisonInfo}  and compares these to whatever we have
@@ -91,7 +91,7 @@ public interface PublicationReceiverBackend {
      */
     @Nonnull
     List<String> compareAttributes(@Nonnull ReplicationPaths replicationPaths,
-                                   @Nonnull Iterable<NodeAttributeComparisonInfo> attributeInfos) throws LoginException, RemotePublicationReceiverException, ReplicationException;
+                                   @Nonnull Iterable<NodeAttributeComparisonInfo> attributeInfos) throws ReplicationException;
 
     /**
      * Generates a {@link VersionableTree} from which one can retrieve the {@link VersionableInfo}s below a set of paths.

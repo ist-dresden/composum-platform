@@ -47,12 +47,13 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static com.composum.sling.core.util.SlingResourceUtil.appendPaths;
+import static com.composum.sling.core.util.SlingResourceUtil.getPath;
 import static com.composum.sling.platform.staging.StagingConstants.PROP_LAST_REPLICATION_DATE;
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Interface for service that implements the functions behind the {@link RemotePublicationReceiverServlet}.
+ * Service for {@link PublicationReceiverBackend} - the backend for replication into a JCR repository.
  */
 @Component(
         service = PublicationReceiverBackend.class,
@@ -106,7 +107,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
 
     @Override
     public UpdateInfo startUpdate(@Nonnull ReplicationPaths replicationPaths)
-            throws PersistenceException, LoginException, RemotePublicationReceiverException, RepositoryException, ReplicationException {
+            throws ReplicationException {
         LOG.info("Start update called for {}", replicationPaths);
         try (ResourceResolver resolver = makeResolver()) {
             ensureMetaResourceAndPath(replicationPaths, resolver);
@@ -132,16 +133,22 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             }
             resolver.commit();
             return updateInfo;
+        } catch (PersistenceException e) {
+            throw new ReplicationException(Message.error("Error during commit: {}", e), e);
         }
     }
 
-    protected void ensureMetaResourceAndPath(@Nonnull ReplicationPaths replicationPaths, ResourceResolver resolver) throws RepositoryException, ReplicationException {
+    protected void ensureMetaResourceAndPath(@Nonnull ReplicationPaths replicationPaths, ResourceResolver resolver) throws ReplicationException {
         // make sure the meta resource and target can be created
         Resource meta = Objects.requireNonNull(getMetaResource(resolver, replicationPaths, true));
         String destinationPath = appendPaths(config.changeRoot(), replicationPaths.getDestination());
         Resource destinationResource = resolver.getResource(destinationPath);
         if (destinationResource == null) {
-            destinationResource = ResourceUtil.getOrCreateResource(resolver, destinationPath, ResourceUtil.TYPE_SLING_FOLDER);
+            try {
+                destinationResource = ResourceUtil.getOrCreateResource(resolver, destinationPath, ResourceUtil.TYPE_SLING_FOLDER);
+            } catch (RepositoryException e) {
+                throw new ReplicationException(Message.error("Service user could not create meta resource {} in backend", destinationPath), e);
+            }
             if (destinationResource != null) { // it wasn't just unreadable - reset change number since that was deleted
                 meta.adaptTo(ModifiableValueMap.class).remove(StagingConstants.PROP_CHANGE_NUMBER);
             }
@@ -191,7 +198,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     @Override
     public List<String> compareContent(@Nullable ReplicationPaths replicationPaths, @Nullable String updateId,
                                        @Nonnull Stream<VersionableInfo> versionableInfos)
-            throws LoginException, RemotePublicationReceiverException, RepositoryException, IOException, ReplicationException {
+            throws ReplicationException {
         LOG.info("Compare content {} - {}", updateId, replicationPaths);
         try (ResourceResolver resolver = makeResolver()) {
             ReplicationPaths usedReplicationPaths = replicationPaths;
@@ -215,7 +222,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     // The packages are made for the untranslated paths. We have to consider the targetPath later.
     @Override
     public void pathUpload(@Nullable String updateId, @Nonnull String packageRootPath, @Nonnull InputStream inputStream)
-            throws LoginException, RemotePublicationReceiverException, RepositoryException, IOException, ConfigurationException, ReplicationException {
+            throws ReplicationException {
         LOG.info("Pathupload called for {} : {}", updateId, packageRootPath);
         try (ResourceResolver resolver = makeResolver()) {
             Resource tmpLocation = getTmpLocation(resolver, updateId, false);
@@ -234,8 +241,8 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
                 if (importer.hasErrors()) {
                     LOG.error("Aborting import on {} to {}: importer has errors. {}",
                             updateId, packageRootPath, archive.getMetaInf().getProperties());
-                    throw new RemotePublicationReceiverException("Aborting: internal error importing on remote " +
-                            "system - please consult the logfile.", ReplicationException.RetryAdvice.NO_AUTOMATIC_RETRY);
+                    throw new ReplicationException(Message.error("Aborting: internal error importing on remote " +
+                            "system - please consult the logfile for details.").setPath(packageRootPath), null);
                 }
 
                 processMove(resolver, SlingResourceUtil.appendPaths(tmpLocation.getPath(), packageRootPath), replicationPaths);
@@ -248,6 +255,11 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             newPaths.add(packageRootPath);
             vm.put(ReplicationConstants.ATTR_UPDATEDPATHS, newPaths.toArray(new String[0]));
             resolver.commit();
+        } catch (IOException e) {
+            throw new ReplicationException(
+                    Message.error("Error reading package for {} in backend", packageRootPath).setPath(packageRootPath), e);
+        } catch (ConfigurationException | RepositoryException e) {
+            throw new ReplicationException(Message.error("Internal error on remote system: {}", e).setPath(packageRootPath), e);
         }
     }
 
@@ -264,7 +276,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     @Override
     public void commit(@Nonnull String updateId, @Nonnull Set<String> deletedPaths,
                        @Nonnull Iterable<ChildrenOrderInfo> childOrderings, String newReleaseChangeId)
-            throws LoginException, RemotePublicationReceiverException, RepositoryException, PersistenceException, ReplicationException {
+            throws RepositoryException, PersistenceException, ReplicationException {
         LOG.info("Commit called for {} : {}", updateId, deletedPaths);
         try (ResourceResolver resolver = makeResolver()) {
             Resource tmpLocation = getTmpLocation(resolver, updateId, false);
@@ -331,7 +343,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     }
 
     protected void adjustChildrenOrder(@Nonnull Resource resource, @Nonnull List<String> childNames) throws RepositoryException {
-        LOG.debug("Checking children order for {}", SlingResourceUtil.getPath(resource));
+        LOG.debug("Checking children order for {}", getPath(resource));
         List<String> currentChildNames = StreamSupport.stream(resource.getChildren().spliterator(), false)
                 .map(Resource::getName)
                 .collect(Collectors.toList());
@@ -342,7 +354,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
                     try {
                         node.orderBefore(childName, null); // move to end of list
                     } catch (RepositoryException | RuntimeException e) {
-                        LOG.error("Trouble reordering {} : {} from {}", SlingResourceUtil.getPath(resource),
+                        LOG.error("Trouble reordering {} : {} from {}", getPath(resource),
                                 childName, childNames);
                         throw e;
                     }
@@ -363,16 +375,19 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     }
 
     @Override
-    public void abort(@Nullable String updateId) throws LoginException, RemotePublicationReceiverException,
-            RepositoryException, PersistenceException, ReplicationException {
+    public void abort(@Nullable String updateId) throws ReplicationException {
         LOG.info("Abort called for {}", updateId);
         if (nodelete) {
             return;
         }
+        Resource tmpLocation = null;
         try (ResourceResolver resolver = makeResolver()) {
-            Resource tmpLocation = getTmpLocation(resolver, updateId, false);
+            tmpLocation = getTmpLocation(resolver, updateId, false);
             resolver.delete(tmpLocation);
             resolver.commit();
+        } catch (PersistenceException e) {
+            throw new ReplicationException(Message.error("Could not delete temporary location {} on backend",
+                    getPath(tmpLocation)), e);
         }
     }
 
@@ -427,12 +442,12 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             }
         }
 
-        LOG.info("Moved {} to {}", SlingResourceUtil.getPath(source),
-                SlingResourceUtil.getPath(destinationParent) + "/" + nodename);
+        LOG.info("Moved {} to {}", getPath(source),
+                getPath(destinationParent) + "/" + nodename);
     }
 
     protected void deletePath(@Nonnull ResourceResolver resolver, @Nonnull Resource tmpLocation,
-                              @Nonnull String deletedPath, ReplicationPaths replicationPaths, @Nonnull String chRoot) throws PersistenceException, RepositoryException {
+                              @Nonnull String deletedPath, ReplicationPaths replicationPaths, @Nonnull String chRoot) throws ReplicationException {
         NodeTreeSynchronizer synchronizer = new NodeTreeSynchronizer();
         Resource source = tmpLocation.getChild(SlingResourceUtil.relativePath("/", replicationPaths.getOrigin()));
         Resource destination = requireNonNull(resolver.getResource(SlingResourceUtil.appendPaths(chRoot, replicationPaths.getDestination())));
@@ -447,14 +462,22 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
                 if (source == null || destination == null) {
                     break;
                 }
-                synchronizer.updateAttributes(ResourceHandle.use(source), ResourceHandle.use(destination), ImmutableBiMap.of());
+                try {
+                    synchronizer.updateAttributes(ResourceHandle.use(source), ResourceHandle.use(destination), ImmutableBiMap.of());
+                } catch (RepositoryException e) {
+                    throw new ReplicationException(Message.error("Error during synchronization of attributes of {} in backend", getPath(destination)), e);
+                }
             }
         }
 
         Resource deletedResource = resolver.getResource(appendPaths(chRoot, replicationPaths.translate(deletedPath)));
         if (deletedResource != null) {
             LOG.info("Deleting {}", deletedPath);
-            resolver.delete(deletedResource);
+            try {
+                resolver.delete(deletedResource);
+            } catch (PersistenceException e) {
+                throw new ReplicationException(Message.error("Could not delete {} in backend", getPath(deletedResource)), e);
+            }
         } else { // some problem with the algorithm!
             LOG.warn("Path to delete unexpectedly not present in content: {}", deletedPath);
         }
@@ -479,7 +502,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
 
     @Nonnull
     protected Resource getTmpLocation(@Nonnull ResourceResolver resolver, @Nullable String updateId, boolean create)
-            throws RepositoryException, RemotePublicationReceiverException, ReplicationException {
+            throws ReplicationException {
         cleanup(resolver);
 
         if (StringUtils.isBlank(updateId) || !ReplicationConstants.PATTERN_UPDATEID.matcher(updateId).matches()) {
@@ -489,7 +512,11 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         Resource tmpLocation = resolver.getResource(path);
         if (tmpLocation == null) {
             if (create) {
-                tmpLocation = ResourceUtil.getOrCreateResource(resolver, path);
+                try {
+                    tmpLocation = ResourceUtil.getOrCreateResource(resolver, path);
+                } catch (RepositoryException e) {
+                    throw new ReplicationException(Message.error("Could not create temporary location {} in backend", path), e);
+                }
                 tmpLocation.adaptTo(ModifiableValueMap.class).put(ResourceUtil.PROP_MIXINTYPES,
                         new String[]{ResourceUtil.MIX_CREATED, ResourceUtil.MIX_LAST_MODIFIED});
             } else {
@@ -504,8 +531,8 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             if (releaseChangeId != null && !StringUtils.equals(releaseChangeId, originalReleaseChangeId)) {
                 LoggerFactory.getLogger(getClass()).error("Release change id changed since beginning of update: {} to" +
                         " {} . Aborting.", originalReleaseChangeId, releaseChangeId);
-                throw new RemotePublicationReceiverException("Release change Id changed since beginning of update - aborting " +
-                        "transfer. Retryable.", ReplicationException.RetryAdvice.RETRY_IMMEDIATELY);
+                throw new ReplicationException(Message.warn("Release change Id changed since beginning of update - aborting " +
+                        "transfer. Retryable."), null).asRetryable();
             }
 
         }
@@ -551,7 +578,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     @Nonnull
     @Override
     public List<String> compareChildorderings(@Nonnull ReplicationPaths replicationPaths, @Nonnull Iterable<ChildrenOrderInfo> childOrderings)
-            throws LoginException, RemotePublicationReceiverException, RepositoryException, ReplicationException {
+            throws ReplicationException {
         LOG.info("Compare child orderings for {}", replicationPaths);
         List<String> result = new ArrayList<>();
         int read = 0;
@@ -576,7 +603,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     }
 
     protected boolean equalChildrenOrder(@Nonnull Resource resource, @Nonnull List<String> childNames) {
-        LOG.debug("compare: {}, {}", SlingResourceUtil.getPath(resource), childNames);
+        LOG.debug("compare: {}, {}", getPath(resource), childNames);
         List<String> currentChildNames = StreamSupport.stream(resource.getChildren().spliterator(), false)
                 .map(Resource::getName)
                 .collect(Collectors.toList());
@@ -590,7 +617,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     @Nonnull
     @Override
     public List<String> compareAttributes(@Nonnull ReplicationPaths replicationPaths, @Nonnull Iterable<NodeAttributeComparisonInfo> attributeInfos)
-            throws LoginException, RemotePublicationReceiverException, ReplicationException {
+            throws ReplicationException {
         LOG.info("Compare parent attributes for {}", replicationPaths);
         List<String> result = new ArrayList<>();
         int read = 0;
