@@ -4,11 +4,13 @@ import com.composum.platform.commons.util.ExceptionThrowingConsumer;
 import com.composum.platform.commons.util.ExceptionThrowingRunnable;
 import com.composum.platform.commons.util.OutputStreamInputStreamAdapter;
 import com.composum.sling.core.BeanContext;
+import com.composum.sling.core.logging.Message;
 import com.composum.sling.core.servlet.Status;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.nodes.NodesConfiguration;
 import com.composum.sling.nodes.servlet.SourceModel;
 import com.composum.sling.platform.staging.replication.PublicationReceiverFacade;
+import com.composum.sling.platform.staging.replication.ReplicationException;
 import com.composum.sling.platform.staging.replication.ReplicationPaths;
 import com.composum.sling.platform.staging.replication.UpdateInfo;
 import com.composum.sling.platform.staging.replication.impl.PublicationReceiverBackend;
@@ -27,7 +29,6 @@ import javax.jcr.RepositoryException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -64,17 +65,23 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
     /**
      * Creates the service resolver used to read / update the content.
      */
-    protected ResourceResolver makeResolver() throws LoginException {
-        return resolverFactory.getServiceResourceResolver(null);
+    protected ResourceResolver makeResolver() throws ReplicationException {
+        try {
+            return resolverFactory.getServiceResourceResolver(null);
+        } catch (LoginException e) {
+            throw new ReplicationException(Message.error("Could not get service user for facade"), e);
+        }
     }
 
     @Nonnull
     @Override
-    public StatusWithReleaseData startUpdate(@Nonnull ReplicationPaths replicationPaths) throws PublicationReceiverFacadeException, RepositoryException {
+    public StatusWithReleaseData startUpdate(@Nonnull ReplicationPaths replicationPaths) {
         StatusWithReleaseData status = new StatusWithReleaseData(null, null, LOG);
         try {
             status.updateInfo = backend.startUpdate(replicationPaths);
-        } catch (PersistenceException | LoginException | RemotePublicationReceiverException | RuntimeException e) {
+        } catch (ReplicationException e) {
+            e.writeIntoStatus(status);
+        } catch (PersistenceException | RepositoryException | RuntimeException e) {
             status.error("Internal error", e);
         }
         return status;
@@ -82,11 +89,13 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
 
     @Nonnull
     @Override
-    public StatusWithReleaseData releaseInfo(@Nonnull ReplicationPaths replicationPaths) throws PublicationReceiverFacadeException, RepositoryException {
+    public StatusWithReleaseData releaseInfo(@Nonnull ReplicationPaths replicationPaths) {
         StatusWithReleaseData status = new StatusWithReleaseData(null, null, LOG);
         try {
             status.updateInfo = backend.releaseInfo(replicationPaths);
-        } catch (LoginException | RuntimeException e) {
+        } catch (ReplicationException e) {
+            e.writeIntoStatus(status);
+        } catch (RuntimeException | RepositoryException e) {
             status.error("Internal error", e);
         }
         return status;
@@ -95,36 +104,40 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
     @Nonnull
     @Override
     public ContentStateStatus contentState(@Nonnull UpdateInfo updateInfo, @Nonnull Collection<String> paths, @Nonnull ResourceResolver stagedResolver,
-                                           @Nonnull ReplicationPaths replicationPaths) throws PublicationReceiverFacadeException, RepositoryException {
-        ContentStateStatus result = new ContentStateStatus(LOG);
+                                           @Nonnull ReplicationPaths replicationPaths) {
+        ContentStateStatus status = new ContentStateStatus(LOG);
         VersionableTree backendResult = null;
         try (ResourceResolver resolver = makeResolver()) {
             backendResult = backend.contentStatus(replicationPaths, paths, resolver);
-            result.versionables = new VersionableTree();
-            result.versionables.process(backendResult.versionableInfos(replicationPaths.inverseTranslateMapping(backend.getChangeRoot())),
+            status.versionables = new VersionableTree();
+            status.versionables.process(backendResult.versionableInfos(replicationPaths.inverseTranslateMapping(backend.getChangeRoot())),
                     replicationPaths.getOrigin(), null, stagedResolver);
-        } catch (LoginException | RuntimeException e) {
-            result.error("Internal error", e);
+        } catch (ReplicationException e) {
+            e.writeIntoStatus(status);
+        } catch (RuntimeException e) {
+            status.error("Internal error", e);
         }
-        return result;
+        return status;
     }
 
     @Nonnull
     @Override
-    public Status compareContent(@Nonnull UpdateInfo updateInfo, @Nonnull Collection<String> paths, @Nonnull ResourceResolver resolver, @Nonnull ReplicationPaths replicationPaths) throws URISyntaxException, PublicationReceiverFacadeException, RepositoryException {
+    public Status compareContent(@Nonnull UpdateInfo updateInfo, @Nonnull Collection<String> paths, @Nonnull ResourceResolver resolver, @Nonnull ReplicationPaths replicationPaths) {
         Status status = new Status(null, null, LOG);
 
-        VersionableTree versionableTree = new VersionableTree();
-        Collection<Resource> resources = paths.stream()
-                .map(resolver::getResource)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-        versionableTree.setSearchtreeRoots(resources);
-
         try {
+            VersionableTree versionableTree = new VersionableTree();
+            Collection<Resource> resources = paths.stream()
+                    .map(resolver::getResource)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            versionableTree.setSearchtreeRoots(resources);
+
             List<String> diffpaths = backend.compareContent(replicationPaths, updateInfo.updateId, versionableTree.versionableInfos(null));
             status.data(Status.DATA).put(PARAM_PATH, diffpaths);
-        } catch (LoginException | RemotePublicationReceiverException | IOException e) {
+        } catch (ReplicationException e) {
+            e.writeIntoStatus(status);
+        } catch (RuntimeException e) {
             status.error("Internal error", e);
         }
         return status;
@@ -138,7 +151,7 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
      */
     @Nonnull
     @Override
-    public Status pathupload(@Nonnull UpdateInfo updateInfo, @Nonnull Resource resource) throws PublicationReceiverFacadeException, URISyntaxException, RepositoryException {
+    public Status pathupload(@Nonnull UpdateInfo updateInfo, @Nonnull Resource resource) {
         Status status = new Status(null, null, LOG);
         Resource writeResource = resource;
         if (com.composum.sling.core.util.ResourceUtil.isFile(resource) && ResourceUtil.CONTENT_NODE.equals(resource.getName())) {
@@ -161,7 +174,9 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
 
         try (InputStream inputStream = OutputStreamInputStreamAdapter.of(writer, threadPool)) {
             backend.pathUpload(updateInfo.updateId, resource.getPath(), inputStream);
-        } catch (LoginException | RemotePublicationReceiverException | IOException | ConfigurationException | RuntimeException e) {
+        } catch (ReplicationException e) {
+            e.writeIntoStatus(status);
+        } catch (RemotePublicationReceiverException | IOException | ConfigurationException | RepositoryException | RuntimeException e) {
             status.error("Internal error", e);
         }
         return status;
@@ -169,11 +184,13 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
 
     @Nonnull
     @Override
-    public Status commitUpdate(@Nonnull UpdateInfo updateInfo, @Nonnull String newReleaseChangeNumber, @Nonnull Set<String> deletedPaths, @Nonnull Stream<ChildrenOrderInfo> relevantOrderings, @Nonnull ExceptionThrowingRunnable<? extends Exception> checkForParallelModifications) throws PublicationReceiverFacadeException, RepositoryException {
+    public Status commitUpdate(@Nonnull UpdateInfo updateInfo, @Nonnull String newReleaseChangeNumber, @Nonnull Set<String> deletedPaths, @Nonnull Stream<ChildrenOrderInfo> relevantOrderings, @Nonnull ExceptionThrowingRunnable<? extends Exception> checkForParallelModifications) {
         Status status = new Status(null, null, LOG);
         try {
             backend.commit(updateInfo.updateId, deletedPaths, () -> relevantOrderings.iterator(), newReleaseChangeNumber);
-        } catch (PersistenceException | LoginException | RemotePublicationReceiverException | RuntimeException e) {
+        } catch (ReplicationException e) {
+            e.writeIntoStatus(status);
+        } catch (PersistenceException | RemotePublicationReceiverException | RuntimeException | RepositoryException e) {
             status.error("Internal error", e);
         }
         return status;
@@ -181,18 +198,20 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
 
     @Nonnull
     @Override
-    public Status abortUpdate(@Nonnull UpdateInfo updateInfo) throws PublicationReceiverFacadeException, RepositoryException {
+    public Status abortUpdate(@Nonnull UpdateInfo updateInfo) {
         Status status = new Status(null, null, LOG);
         try {
             backend.abort(updateInfo.updateId);
-        } catch (LoginException | RemotePublicationReceiverException | PersistenceException | RuntimeException e) {
+        } catch (ReplicationException e) {
+            e.writeIntoStatus(status);
+        } catch (PersistenceException | RuntimeException e) {
             status.error("Internal error", e);
         }
         return status;
     }
 
     @Override
-    public Status compareParents(@Nonnull ReplicationPaths replicationPaths, @Nonnull ResourceResolver resolver, @Nonnull Stream<ChildrenOrderInfo> relevantOrderings, @Nonnull Stream<NodeAttributeComparisonInfo> attributeInfos) throws PublicationReceiverFacadeException, RepositoryException {
+    public Status compareParents(@Nonnull ReplicationPaths replicationPaths, @Nonnull ResourceResolver resolver, @Nonnull Stream<ChildrenOrderInfo> relevantOrderings, @Nonnull Stream<NodeAttributeComparisonInfo> attributeInfos) {
         Status status = new Status(null, null, LOG);
         try {
             List<String> differentChildorderings = backend.compareChildorderings(replicationPaths, () -> relevantOrderings.iterator());
@@ -200,7 +219,9 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
 
             List<String> differentParentAttributes = backend.compareAttributes(replicationPaths, () -> attributeInfos.iterator());
             status.data(PARAM_ATTRIBUTEINFOS).put(PARAM_PATH, differentParentAttributes);
-        } catch (LoginException | RemotePublicationReceiverException | RuntimeException e) {
+        } catch (ReplicationException e) {
+            e.writeIntoStatus(status);
+        } catch (RuntimeException e) {
             status.error("Internal error", e);
         }
         return status;
