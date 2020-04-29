@@ -13,6 +13,7 @@ import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.Aggregate
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.ReplicationStateInfo;
 import com.composum.sling.platform.staging.ReleaseChangeProcess;
 import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.composum.sling.platform.staging.replication.ReplicationException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -172,8 +173,7 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
                     map.put(entry.getKey(), entry.getValue());
                 }
             } catch (Exception e) {
-                LOG.error("Internal error", e);
-                status.error("Internal error");
+                status.error("Internal error", e);
             } finally {
                 status.sendJson();
             }
@@ -198,8 +198,7 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
                 AggregatedReplicationStateInfo result = releasePublisher.aggregatedReplicationState(resource, stageParam);
                 status.data("aggregatedReplicationState").put("result", result);
             } catch (Exception e) {
-                LOG.error("Internal error", e);
-                status.error("Internal error");
+                status.error("Internal error", e);
             } finally {
                 status.sendJson();
             }
@@ -223,8 +222,7 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
                 String stageParam = RequestUtil.getParameter(request, PARAM_STAGE, (String) null);
                 releasePublisher.abortReplication(resource, stageParam);
             } catch (Exception e) {
-                LOG.error("Internal error", e);
-                status.error("Internal error");
+                status.error("Internal error", e);
             } finally {
                 status.sendJson();
             }
@@ -264,9 +262,10 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
                     status.error("Resource not found");
                     status.setStatus(SlingHttpServletResponse.SC_NOT_FOUND);
                 }
+            } catch (ReplicationException e) {
+                e.writeIntoStatus(status);
             } catch (Exception e) {
-                LOG.error("Internal error", e);
-                status.error("Internal error");
+                status.error("Internal error", e);
             } finally {
                 status.sendJson();
             }

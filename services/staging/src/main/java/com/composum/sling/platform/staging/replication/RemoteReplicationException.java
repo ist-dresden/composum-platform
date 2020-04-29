@@ -27,6 +27,11 @@ public class RemoteReplicationException extends ReplicationException {
         this.status = status;
         this.statusCode = statusLine != null ? statusLine.getStatusCode() : null;
         this.reasonPhrase = statusLine != null ? statusLine.getReasonPhrase() : null;
+        if (status != null) {
+            for (Message newMsg : status.getMessages()) {
+                messages.add(newMsg);
+            }
+        }
     }
 
     /**

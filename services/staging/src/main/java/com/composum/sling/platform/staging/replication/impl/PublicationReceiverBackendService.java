@@ -57,7 +57,7 @@ import static java.util.Objects.requireNonNull;
  */
 @Component(
         service = PublicationReceiverBackend.class,
-        property = {Constants.SERVICE_DESCRIPTION + "=Composum Platform Publication Receiver Backend Service"}
+        property = {Constants.SERVICE_DESCRIPTION + "=Composum Platform Replication Receiver Backend Service"}
 )
 @Designate(ocd = PublicationReceiverBackendService.Configuration.class)
 public class PublicationReceiverBackendService implements PublicationReceiverBackend {
@@ -303,7 +303,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
 
             @Nonnull String targetRootPath = appendPaths(chRoot, replicationPaths.getDestination());
             try {
-                Resource targetRoot = ResourceUtil.getOrCreateResource(resolver, targetRootPath);
+                Resource ignored = ResourceUtil.getOrCreateResource(resolver, targetRootPath);
             } catch (RepositoryException e) {
                 throw new ReplicationException(Message.error("Error creating target path in backend - {}", targetRootPath), e);
             }
@@ -543,8 +543,8 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             if (create) {
                 try {
                     tmpLocation = ResourceUtil.getOrCreateResource(resolver, path);
-                } catch (RepositoryException e) {
-                    throw new ReplicationException(Message.error("Could not create temporary location {} in backend", path), e);
+                } catch (RepositoryException | RuntimeException e) {
+                    throw new ReplicationException(Message.error("Could not create temporary location {} in backend : {}", path, e.getMessage()), e);
                 }
                 tmpLocation.adaptTo(ModifiableValueMap.class).put(ResourceUtil.PROP_MIXINTYPES,
                         new String[]{ResourceUtil.MIX_CREATED, ResourceUtil.MIX_LAST_MODIFIED});
@@ -711,7 +711,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     }
 
     @ObjectClassDefinition(
-            name = "Composum Platform Publication Receiver Backend Service",
+            name = "Composum Platform Replication Receiver Backend Service",
             description = "Configures a service that receives release changes from the local or a remote system"
     )
     public @interface Configuration {

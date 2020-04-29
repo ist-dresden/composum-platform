@@ -399,7 +399,7 @@ public class ReplicatorStrategy {
             return result;
         } catch (RuntimeException e) {
             LOG.error("" + e, e);
-            throw new ReplicationException(Message.error("Internal error during compareTree for ", replicationConfig.getPath()), e);
+            throw new ReplicationException(Message.error("Internal error during compareTree for {} : {}", replicationConfig.getPath(), e.getMessage()), e);
         }
     }
 
