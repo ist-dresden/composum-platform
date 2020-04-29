@@ -4,6 +4,7 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.logging.MessageContainer;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener.ReleaseChangeEvent;
 import com.composum.sling.platform.staging.replication.ReplicationConfig;
+import com.composum.sling.platform.staging.replication.ReplicationException;
 import org.apache.sling.api.resource.ResourceResolver;
 
 import javax.annotation.Nonnull;
@@ -177,7 +178,7 @@ public interface ReleaseChangeProcess {
      * @return the differences, or null if not enabled
      */
     @Nullable
-    ReleaseChangeEventPublisher.CompareResult compareTree(@Nonnull ResourceHandle resource, int details) throws ReleaseChangeEventListener.ReplicationFailedException;
+    ReleaseChangeEventPublisher.CompareResult compareTree(@Nonnull ResourceHandle resource, int details) throws ReplicationException;
 
     /**
      * Information about the last runs of the replication for each end state (error, success, abort).

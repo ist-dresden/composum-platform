@@ -8,6 +8,7 @@ import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeProcess;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.replication.ReplicationConfig;
+import com.composum.sling.platform.staging.replication.ReplicationException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.commons.threads.ThreadPool;
@@ -333,7 +334,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
 
     @Override
     public void compareTree(@Nonnull ResourceHandle resource, int details, @Nullable String[] processIdParams,
-                            @Nonnull Map<String, ? super CompareResult> output) throws ReleaseChangeEventListener.ReplicationFailedException {
+                            @Nonnull Map<String, ? super CompareResult> output) throws ReplicationException {
         for (ReleaseChangeProcess process : processesFor(resource, null)) {
             if (processIdParams != null && !Arrays.asList(processIdParams).contains(process.getId())) {
                 continue;

@@ -1,8 +1,11 @@
 package com.composum.sling.platform.staging.replication;
 
+import com.composum.sling.core.logging.Message;
 import com.composum.sling.core.servlet.Status;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.StatusLine;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
@@ -16,6 +19,15 @@ public class RemoteReplicationException extends ReplicationException {
     protected Integer statusCode;
     @Nullable
     protected String reasonPhrase;
+
+    public RemoteReplicationException(@Nonnull Message message, @Nullable Exception e,
+                                      @Nullable Status status, @Nullable StatusLine statusLine
+    ) {
+        super(message, e);
+        this.status = status;
+        this.statusCode = statusLine != null ? statusLine.getStatusCode() : null;
+        this.reasonPhrase = statusLine != null ? statusLine.getReasonPhrase() : null;
+    }
 
     /**
      * The {@link Status} object returned from the remote system.

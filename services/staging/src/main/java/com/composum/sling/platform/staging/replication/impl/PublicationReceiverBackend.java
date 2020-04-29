@@ -39,13 +39,13 @@ public interface PublicationReceiverBackend {
      * Prepares the temporary directory for an update operation. Take care to remove it later!
      */
     UpdateInfo startUpdate(@Nonnull ReplicationPaths replicationPaths)
-            throws PersistenceException, RepositoryException, ReplicationException;
+            throws ReplicationException;
 
     /**
      * Uploads one package into the temporary directory, taking note of the root path for later moving to content.
      */
     void pathUpload(@Nullable String updateId, @Nonnull String packageRootPath, @Nonnull InputStream inputStream)
-            throws RemotePublicationReceiverException, RepositoryException, IOException, ConfigurationException, ReplicationException;
+            throws ReplicationException;
 
     /**
      * Moves the content to the content directory and deletes the given paths, thus finalizing the update. The
@@ -53,7 +53,7 @@ public interface PublicationReceiverBackend {
      */
     void commit(@Nonnull String updateId, @Nonnull Set<String> deletedPaths,
                 @Nonnull Iterable<ChildrenOrderInfo> childOrderings, String newReleaseChangeId)
-            throws RemotePublicationReceiverException, RepositoryException, PersistenceException, ReplicationException;
+            throws ReplicationException;
 
     /**
      * Retrieves a list of {@link VersionableInfo} from the {jsonInputStream}, checks these against the content and
@@ -68,13 +68,13 @@ public interface PublicationReceiverBackend {
      * Aborts the update operation and deletes the temporary directory.
      */
     void abort(@Nullable String updateId)
-            throws PersistenceException, ReplicationException;
+            throws ReplicationException;
 
     /**
      * Gets general info about a release without starting an update.
      */
     @Nullable
-    UpdateInfo releaseInfo(@Nonnull ReplicationPaths replicationPaths) throws RepositoryException, ReplicationException;
+    UpdateInfo releaseInfo(@Nonnull ReplicationPaths replicationPaths) throws ReplicationException;
 
     /**
      * Reads childorderings as {@link ChildrenOrderInfo} and compares these to whatever we have in our repository,
@@ -100,29 +100,5 @@ public interface PublicationReceiverBackend {
      *                 VersionableTree contains resources from this resolver
      */
     VersionableTree contentStatus(@Nonnull ReplicationPaths replicationPaths, @Nonnull Collection<String> paths, @Nonnull ResourceResolver resolver);
-
-    @Deprecated
-    public class RemotePublicationReceiverException extends Exception {
-
-        private final ReplicationException.RetryAdvice retryadvice;
-
-        public RemotePublicationReceiverException(String message, ReplicationException.RetryAdvice advice) {
-            super(message);
-            this.retryadvice = advice;
-        }
-
-        public ReplicationException.RetryAdvice getRetryadvice() {
-            return retryadvice;
-        }
-
-        @Override
-        public String toString() {
-            final StringBuilder sb = new StringBuilder("PublicationReceiverFacadeException{");
-            sb.append("message='").append(getMessage()).append('\'');
-            sb.append(", retryadvice=").append(retryadvice);
-            sb.append('}');
-            return sb.toString();
-        }
-    }
 
 }

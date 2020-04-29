@@ -42,8 +42,7 @@ public interface PublicationReceiverFacade {
      * @return the basic information about the update which must be used for all related calls on this update.
      */
     @Nonnull
-    StatusWithReleaseData startUpdate(@Nonnull ReplicationPaths replicationPaths)
-            throws PublicationReceiverFacadeException, RepositoryException;
+    StatusWithReleaseData startUpdate(@Nonnull ReplicationPaths replicationPaths) throws ReplicationException;
 
     /**
      * Starts an update process on the remote side. To clean up resources, either
@@ -54,7 +53,7 @@ public interface PublicationReceiverFacade {
      * @return the basic information about the update which must be used for all related calls on this update.
      */
     @Nonnull
-    StatusWithReleaseData releaseInfo(@Nonnull ReplicationPaths replicationPaths) throws PublicationReceiverFacadeException, RepositoryException;
+    StatusWithReleaseData releaseInfo(@Nonnull ReplicationPaths replicationPaths) throws ReplicationException;
 
     /**
      * Queries the versions of versionables below {paths} on the remote side and returns in the status which
@@ -69,7 +68,7 @@ public interface PublicationReceiverFacade {
     ContentStateStatus contentState(
             @Nonnull UpdateInfo updateInfo, @Nonnull Collection<String> paths, @Nonnull ResourceResolver resolver,
             @Nonnull ReplicationPaths replicationPaths)
-            throws PublicationReceiverFacadeException, RepositoryException;
+            throws ReplicationException;
 
     /**
      * Transmits the versions of versionables below {paths} to the remote side, which returns a list of paths
@@ -79,13 +78,13 @@ public interface PublicationReceiverFacade {
     @Nonnull
     Status compareContent(@Nonnull UpdateInfo updateInfo, @Nonnull Collection<String> paths,
                           @Nonnull ResourceResolver resolver, @Nonnull ReplicationPaths replicationPaths)
-            throws URISyntaxException, PublicationReceiverFacadeException, RepositoryException;
+            throws ReplicationException;
 
     /**
      * Uploads the resource tree to the remote machine.
      */
     @Nonnull
-    Status pathupload(@Nonnull UpdateInfo updateInfo, @Nonnull Resource resource) throws PublicationReceiverFacadeException, URISyntaxException, RepositoryException;
+    Status pathupload(@Nonnull UpdateInfo updateInfo, @Nonnull Resource resource) throws ReplicationException;
 
     /**
      * Replaces the content with the updated content and deletes obsolete paths.
@@ -98,13 +97,13 @@ public interface PublicationReceiverFacade {
                         @Nonnull Set<String> deletedPaths,
                         @Nonnull Stream<ChildrenOrderInfo> relevantOrderings,
                         @Nonnull ExceptionThrowingRunnable<? extends Exception> checkForParallelModifications)
-            throws PublicationReceiverFacadeException, RepositoryException;
+            throws ReplicationException;
 
     /**
      * Aborts the update, deleting the temporary directory on the remote side.
      */
     @Nonnull
-    Status abortUpdate(@Nonnull UpdateInfo updateInfo) throws PublicationReceiverFacadeException, RepositoryException;
+    Status abortUpdate(@Nonnull UpdateInfo updateInfo) throws ReplicationException;
 
     /**
      * Compares children order and attributes of the parents.
@@ -114,53 +113,7 @@ public interface PublicationReceiverFacade {
     Status compareParents(@Nonnull ReplicationPaths replicationPaths, @Nonnull ResourceResolver resolver,
                           @Nonnull Stream<ChildrenOrderInfo> relevantOrderings,
                           @Nonnull Stream<NodeAttributeComparisonInfo> attributeInfos)
-            throws PublicationReceiverFacadeException, RepositoryException;
-
-    /**
-     * Exception that signifies a problem with the replication.
-     */
-    @Deprecated
-    class PublicationReceiverFacadeException extends Exception {
-        private static final Logger LOG = LoggerFactory.getLogger(PublicationReceiverFacadeException.class);
-
-        protected final Status status;
-        protected final Integer statusCode;
-        protected final String reasonPhrase;
-
-        public PublicationReceiverFacadeException(String message, Throwable throwable, Status status, StatusLine statusLine) {
-            super(message, throwable);
-            this.status = status;
-            this.statusCode = statusLine != null ? statusLine.getStatusCode() : null;
-            this.reasonPhrase = statusLine != null ? statusLine.getReasonPhrase() : null;
-        }
-
-        @Nullable
-        public Status getStatus() {
-            return status;
-        }
-
-        @Override
-        public String toString() {
-            final StringBuilder sb = new StringBuilder(super.toString()).append("{");
-            if (statusCode != null) {
-                sb.append(", statusCode=").append(statusCode);
-            }
-            if (reasonPhrase != null) {
-                sb.append(", reasonPhrase='").append(reasonPhrase).append('\'');
-            }
-            if (status != null) {
-                try (StringWriter statusString = new StringWriter()) {
-                    status.toJson(new JsonWriter(statusString));
-                    sb.append(", status=").append(statusString.toString());
-                } catch (IOException e) {
-                    LOG.error("" + e, e);
-                    sb.append(", status=Cannot deserialize: ").append(e);
-                }
-            }
-            sb.append('}');
-            return sb.toString();
-        }
-    }
+            throws ReplicationException;
 
     /**
      * Extends Status to write data about all versionables below resource without needing to save everything in

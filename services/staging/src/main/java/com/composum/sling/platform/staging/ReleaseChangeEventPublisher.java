@@ -4,6 +4,7 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.logging.MessageContainer;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener.ReleaseChangeEvent;
 import com.composum.sling.platform.staging.StagingReleaseManager.Release;
+import com.composum.sling.platform.staging.replication.ReplicationException;
 import org.apache.sling.api.resource.Resource;
 
 import javax.annotation.Nonnull;
@@ -89,7 +90,7 @@ public interface ReleaseChangeEventPublisher {
      *                        corresponding {@link CompareResult}.
      */
     void compareTree(@Nonnull ResourceHandle resource, int details, @Nullable String[] processIdParams,
-                     @Nonnull Map<String, ? super CompareResult> output) throws ReleaseChangeEventListener.ReplicationFailedException;
+                     @Nonnull Map<String, ? super CompareResult> output) throws ReplicationException;
 
     /**
      * Information about one {@link ReleaseChangeProcess} used for JSON serialization.

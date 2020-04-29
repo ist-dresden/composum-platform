@@ -145,8 +145,12 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
      * Creates the service resolver used to update the content.
      */
     @Nonnull
-    protected ResourceResolver makeResolver() throws LoginException {
-        return getResolverFactory().getServiceResourceResolver(null);
+    protected ResourceResolver makeResolver() throws ReplicationException {
+        try {
+            return getResolverFactory().getServiceResourceResolver(null);
+        } catch (LoginException e) {
+            throw new ReplicationException(Message.error("Could not create service resolver in replication service"), e);
+        }
     }
 
     @Deactivate
@@ -387,8 +391,8 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
                     Resource releaseRoot = serviceResolver.getResource(releaseRootPath);
                     StagingReleaseManager.Release release = releaseRoot != null ? getReleaseManager().findReleaseByMark(releaseRoot, mark) : null;
                     active = release != null;
-                } catch (LoginException e) {
-                    LOG.error("Can't get service resolver" + e, e);
+                } catch (ReplicationException e) {
+                    LOG.error("Can't get service resolver: " + e, e);
                 }
             }
             return Boolean.TRUE.equals(active);
@@ -507,13 +511,16 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
                     addBackChangedPaths(processedChangedPaths, forceCheckSwapped);
                 }
 
-            } catch (LoginException e) { // misconfiguration
-                messages.add(Message.error("Can't get service resolver"), e);
             } catch (InterruptedException e) {
                 LOG.error("Interrupted " + e, e);
                 messages.add(Message.warn("Interrupted"), e);
-            } catch (ReplicationFailedException | RuntimeException e) {
+            } catch (RuntimeException e) {
                 messages.add(Message.error("Other error: ", e.toString()), e);
+            } catch (ReplicationException e) {
+                LOG.error("Error during runReplication: " + e, e);
+                for (Message message : e.getMessages()) {
+                    messages.add(message);
+                }
             } finally {
                 //noinspection ObjectEquality : reset if there wasn't a new strategy created in the meantime
                 if (runningStrategy == strategy) {
@@ -530,8 +537,8 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
 
         @Override
         @Nullable
-        public ReleaseChangeEventPublisher.CompareResult compareTree(@Nonnull ResourceHandle resource,
-                                                                     int details) throws ReplicationFailedException {
+        public ReleaseChangeEventPublisher.CompareResult compareTree(
+                @Nonnull ResourceHandle resource, int details) throws ReplicationException {
             if (!isEnabled()) {
                 return null;
             }
@@ -539,11 +546,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             if (strategy == null) {
                 return null;
             }
-            try {
-                return strategy.compareTree(details);
-            } catch (PublicationReceiverFacade.PublicationReceiverFacadeException e) {
-                throw new ReplicationFailedException(e.getMessage(), e, null);
-            }
+            return strategy.compareTree(details);
         }
 
         @Nullable
@@ -644,7 +647,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         /**
          * Internal method - use {@link #getTargetReleaseInfo()} since this might be cached by it.
          */
-        protected UpdateInfo remoteReleaseInfo() throws PublicationReceiverFacade.PublicationReceiverFacadeException {
+        protected UpdateInfo remoteReleaseInfo() throws ReplicationException {
             if (!isEnabled()) {
                 return null;
             }
@@ -655,9 +658,6 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
                 if (strategy != null) {
                     result = strategy.remoteReleaseInfo();
                 }
-            } catch (LoginException e) { // serious misconfiguration
-                LOG.error("Can't get service resolver: " + e, e);
-                // ignore - that'll reappear when publishing and treated there
             }
             return result;
         }
@@ -668,8 +668,8 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         protected UpdateInfo getTargetReleaseInfo() {
             try {
                 return remoteReleaseInfo();
-            } catch (PublicationReceiverFacade.PublicationReceiverFacadeException e) {
-                LOG.error("" + e, e);
+            } catch (ReplicationException e) {
+                LOG.error("Error during getTargetReleaseInfo: " + e, e);
                 return null;
             }
         }
@@ -723,7 +723,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
                         break;
                 }
                 serviceResolver.commit();
-            } catch (LoginException | RepositoryException | RuntimeException | PersistenceException e) {
+            } catch (RepositoryException | RuntimeException | PersistenceException | ReplicationException e) {
                 LOG.error("Error writing history entry for " + configPath, e);
             }
         }
@@ -754,7 +754,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
                         result.put(processing, new ReplicationHistoryEntryImpl(processing, time, messages));
                     }
                 }
-            } catch (LoginException | RepositoryException | RuntimeException e) {
+            } catch (RepositoryException | RuntimeException | ReplicationException e) {
                 LOG.error("Error writing history entry for " + configPath, e);
             }
             return result;

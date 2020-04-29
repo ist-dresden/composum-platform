@@ -96,7 +96,7 @@ public class ReplicatorStrategy {
         return new ReplicationPaths(release.getReleaseRoot().getPath(), replicationConfig.getSourcePath(), replicationConfig.getTargetPath(), contentPath);
     }
 
-    public void replicate() throws ReleaseChangeEventListener.ReplicationFailedException {
+    public void replicate() throws ReplicationException {
         cleanupUpdateInfo = null;
         try {
             String commonParent = SlingResourceUtil.commonParent(changedPaths);
@@ -127,8 +127,7 @@ public class ReplicatorStrategy {
                     trimmedPaths, resolver, replicationPaths);
             if (!contentState.isValid()) {
                 messages.add(Message.error("Received invalid status on contentState for {}", updateInfo.updateId));
-                throw new ReleaseChangeEventListener.ReplicationFailedException("Querying content state failed for " + replicationConfig,
-                        null, null);
+                throw new ReplicationException(Message.error("Querying content state failed for {}", replicationConfig.getPath()), null);
             }
             messages.add(Message.info("Content difference on remote side: {} , deleted {}",
                     contentState.getVersionables().getChangedPaths(), contentState.getVersionables().getDeletedPaths()));
@@ -138,8 +137,7 @@ public class ReplicatorStrategy {
             if (!compareContentState.isValid()) {
                 messages.add(Message.error("Received invalid status on compare content for {}",
                         updateInfo.updateId));
-                throw new ReleaseChangeEventListener.ReplicationFailedException("Comparing content failed for " + replicationConfig, null,
-                        null);
+                throw new ReplicationException(Message.error("Comparing content failed for {}", replicationConfig.getPath()), null);
             }
             @SuppressWarnings("unchecked") List<String> remotelyDifferentPaths =
                     (List<String>) compareContentState.data(Status.DATA).get(PARAM_PATH);
@@ -164,8 +162,7 @@ public class ReplicatorStrategy {
                 Status status = publisher.pathupload(updateInfo, resource);
                 if (status == null || !status.isValid()) {
                     messages.add(Message.error("Received invalid status on pathupload {} : {}", path, status));
-                    throw new ReleaseChangeEventListener.ReplicationFailedException("Upload failed for " + replicationConfig + " " +
-                            "path " + path, null, null);
+                    throw new ReplicationException(Message.error("Upload failed to replication {}", replicationConfig.getPath()).setPath(path), null);
                 } else {
                     messages.add(Message.debug("Uploaded {} for {}", path, updateInfo.updateId));
                 }
@@ -181,17 +178,17 @@ public class ReplicatorStrategy {
             if (!status.isValid()) {
                 messages.add(Message.error("Received invalid status on commit {}", updateInfo.updateId));
                 progress = 0;
-                throw new ReleaseChangeEventListener.ReplicationFailedException("Commit failed for " + replicationConfig, null, null);
+                throw new ReplicationException(Message.error("Commit failed for {}", replicationConfig.getPath()), null);
             }
             progress = 100;
             cleanupUpdateInfo = null;
 
             messages.add(Message.info("Replication done for {}", updateInfo.updateId));
-        } catch (RuntimeException | PublicationReceiverFacade.PublicationReceiverFacadeException | URISyntaxException | RepositoryException e) {
+        } catch (RuntimeException e) {
             messages.add(Message.error("Replication failed for {} because of {}",
                     cleanupUpdateInfo != null ? cleanupUpdateInfo.updateId : "",
                     String.valueOf(e)), e);
-            throw new ReleaseChangeEventListener.ReplicationFailedException("Replication failed for " + replicationConfig, e, null);
+            throw new ReplicationException(Message.error("Internal error - replication failed for {}", replicationConfig.getPath()), null);
         } finally {
             if (cleanupUpdateInfo != null) { // remove temporary directory.
                 try {
@@ -275,49 +272,35 @@ public class ReplicatorStrategy {
                         .flatMap(this::childrenExcludingVersionables));
     }
 
-    protected void abortIfNecessary(@Nonnull UpdateInfo updateInfo) throws PublicationReceiverFacade.PublicationReceiverFacadeException,
-            ReleaseChangeEventListener.ReplicationFailedException {
+    protected void abortIfNecessary(@Nonnull UpdateInfo updateInfo) throws ReplicationException {
         if (abortAtNextPossibility) {
             messages.add(Message.info("Aborting because that was requested: {}", updateInfo.updateId));
             abort(updateInfo);
-            throw new ReleaseChangeEventListener.ReplicationFailedException("Aborted publishing because that was requested.", null,
-                    null);
+            throw new ReplicationException(Message.error("Aborted publishing because that was requested"), null);
         }
         release.getMetaDataNode().getResourceResolver().refresh(); // might be a performance risk (?), but necessary
         if (!release.getChangeNumber().equals(originalSourceReleaseChangeNumber)) {
             messages.add(Message.info("Aborting {} because of local release content change during " +
                     "publishing.", updateInfo.updateId));
             abort(updateInfo);
-            throw new ReleaseChangeEventListener.ReplicationFailedException("Abort publishing because of local release content change " +
-                    "during publishing.", null, null);
+            throw new ReplicationException(Message.error("Aborted publishing because that was requested"), null);
         }
     }
 
-    protected void abort(@Nonnull UpdateInfo updateInfo) throws PublicationReceiverFacade.PublicationReceiverFacadeException {
-        Status status = null;
-        try {
-            status = publisher.abortUpdate(updateInfo);
-            if (status == null || !status.isValid()) {
-                messages.add(Message.error("Aborting replication failed for {} - " +
-                        "please manually clean up resources used there.", updateInfo.updateId));
-            } else if (cleanupUpdateInfo == updateInfo) {
-                cleanupUpdateInfo = null;
-            }
-        } catch (RepositoryException e) {
-            throw new PublicationReceiverFacade.PublicationReceiverFacadeException("Error calling abort", e, status, null);
+    protected void abort(@Nonnull UpdateInfo updateInfo) throws ReplicationException {
+        Status status = publisher.abortUpdate(updateInfo);
+        if (status == null || !status.isValid()) {
+            messages.add(Message.error("Aborting replication failed for {} - " +
+                    "please manually clean up resources used there.", updateInfo.updateId));
+        } else if (cleanupUpdateInfo == updateInfo) {
+            cleanupUpdateInfo = null;
         }
-
     }
 
     @Nullable
-    public UpdateInfo remoteReleaseInfo() throws PublicationReceiverFacade.PublicationReceiverFacadeException {
+    public UpdateInfo remoteReleaseInfo() throws ReplicationException {
         PublicationReceiverFacade.StatusWithReleaseData status = null;
-        try {
-            status = publisher.releaseInfo(replicationPaths(null));
-        } catch (RepositoryException e) {
-            throw new PublicationReceiverFacade.PublicationReceiverFacadeException("Error calling " +
-                    "releaseInfo", e, status, null);
-        }
+        status = publisher.releaseInfo(replicationPaths(null));
         if (status == null || !status.isValid()) {
             LOG.error("Retrieve remote releaseinfo failed for {}", this.replicationConfig);
             messages.add(Message.error("Retrieve remote releaseinfo failed."));
@@ -338,8 +321,8 @@ public class ReplicatorStrategy {
     }
 
     @Nullable
-    public ReleaseChangeEventPublisher.CompareResult compareTree(int details) throws PublicationReceiverFacade.PublicationReceiverFacadeException, ReleaseChangeEventListener.ReplicationFailedException {
-        // FIXME(hps,24.03.20) not checked after replication - probably yet broken for inplace
+    public ReleaseChangeEventPublisher.CompareResult compareTree(int details) throws ReplicationException {
+        // FIXME(hps,24.03.20) not checked after replication - possibly yet broken for inplace
         try {
             ReleaseChangeEventPublisher.CompareResult result = new ReleaseChangeEventPublisher.CompareResult();
             PublicationReceiverFacade.StatusWithReleaseData releaseInfoStatus = publisher.releaseInfo(replicationPaths(null));
@@ -365,16 +348,14 @@ public class ReplicatorStrategy {
             PublicationReceiverFacade.ContentStateStatus contentState =
                     publisher.contentState(updateInfo, trimmedPaths, resolver, replicationPaths(commonParent));
             if (!contentState.isValid() || contentState.getVersionables() == null) {
-                throw new ReleaseChangeEventListener.ReplicationFailedException("Querying content state failed for " + replicationConfig + " " +
-                        "path " + commonParent, null, null);
+                throw new ReplicationException(Message.error("Querying content state failed for {} path {}", replicationConfig.getPath(), commonParent), null);
             }
             VersionableTree contentStateComparison = contentState.getVersionables();
 
             // check which of our versionables are changed / not present on the remote
             Status compareContentState = publisher.compareContent(updateInfo, trimmedPaths, resolver, replicationPaths(commonParent));
             if (!compareContentState.isValid()) {
-                throw new ReleaseChangeEventListener.ReplicationFailedException("Comparing content failed for " + replicationConfig, null,
-                        null);
+                throw new ReplicationException(Message.error("Comparing content failed for {}", replicationConfig.getPath()), null);
             }
             @SuppressWarnings("unchecked") List<String> remotelyDifferentPaths =
                     (List<String>) compareContentState.data(Status.DATA).get(PARAM_PATH);
@@ -394,8 +375,7 @@ public class ReplicatorStrategy {
             Status compareParentState = publisher.compareParents(replicationPaths(null), resolver,
                     relevantOrderings, attributeInfos);
             if (!compareParentState.isValid()) {
-                throw new ReleaseChangeEventListener.ReplicationFailedException("Comparing parents failed for " + replicationConfig, null,
-                        null);
+                throw new ReplicationException(Message.error("Comparing parents failed for {}", replicationConfig.getPath()), null);
             }
             List<String> differentChildorderings = (List<String>) compareParentState.data(PARAM_CHILDORDERINGS).get(PARAM_PATH);
             List<String> changedAttributes = (List<String>) compareParentState.data(PARAM_ATTRIBUTEINFOS).get(PARAM_PATH);
@@ -417,9 +397,9 @@ public class ReplicatorStrategy {
 
             result.equal = result.calculateEqual();
             return result;
-        } catch (URISyntaxException | RepositoryException e) {
+        } catch (RuntimeException e) {
             LOG.error("" + e, e);
-            throw new ReleaseChangeEventListener.ReplicationFailedException("Internal error", e, null);
+            throw new ReplicationException(Message.error("Internal error during compareTree for ", replicationConfig.getPath()), e);
         }
     }
 

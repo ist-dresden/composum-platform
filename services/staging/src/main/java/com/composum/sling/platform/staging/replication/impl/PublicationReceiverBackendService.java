@@ -276,7 +276,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     @Override
     public void commit(@Nonnull String updateId, @Nonnull Set<String> deletedPaths,
                        @Nonnull Iterable<ChildrenOrderInfo> childOrderings, String newReleaseChangeId)
-            throws RepositoryException, PersistenceException, ReplicationException {
+            throws ReplicationException {
         LOG.info("Commit called for {} : {}", updateId, deletedPaths);
         try (ResourceResolver resolver = makeResolver()) {
             Resource tmpLocation = getTmpLocation(resolver, updateId, false);
@@ -286,8 +286,13 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             String chRoot = requireNonNull(config.changeRoot());
             String @NotNull [] updatedPaths = vm.get(ReplicationConstants.ATTR_UPDATEDPATHS, new String[0]);
             Resource metaResource = getMetaResource(resolver, replicationPaths, true);
-            ResourceUtil.getOrCreateResource(resolver,
-                    SlingResourceUtil.appendPaths(chRoot, replicationPaths.getDestination()), ResourceUtil.TYPE_SLING_FOLDER);
+            String destinationPath = appendPaths(chRoot, replicationPaths.getDestination());
+            try {
+                ResourceUtil.getOrCreateResource(resolver,
+                        destinationPath, ResourceUtil.TYPE_SLING_FOLDER);
+            } catch (RepositoryException e) {
+                throw new ReplicationException(Message.error("Error creating destination in backend: {}", destinationPath), e);
+            }
 
             for (String deletedPath : deletedPaths) {
                 if (!SlingResourceUtil.isSameOrDescendant(topContentPath, deletedPath)) { // safety check - Bug!
@@ -297,7 +302,11 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             }
 
             @Nonnull String targetRootPath = appendPaths(chRoot, replicationPaths.getDestination());
-            Resource targetRoot = ResourceUtil.getOrCreateResource(resolver, targetRootPath);
+            try {
+                Resource targetRoot = ResourceUtil.getOrCreateResource(resolver, targetRootPath);
+            } catch (RepositoryException e) {
+                throw new ReplicationException(Message.error("Error creating target path in backend - {}", targetRootPath), e);
+            }
 
             for (String updatedPath : updatedPaths) {
                 if (!SlingResourceUtil.isSameOrDescendant(topContentPath, updatedPath)) { // safety check - Bug!
@@ -306,12 +315,20 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
                 if (!deletedPaths.contains(updatedPath)) {
                     // if it's deleted we needed to transfer a package for it, anyway, to update it's parents
                     // attributes. So it's in updatedPath, too, but doesn't need to be moved.
-                    moveVersionable(resolver, tmpLocation, updatedPath, replicationPaths, chRoot);
+                    try {
+                        moveVersionable(resolver, tmpLocation, updatedPath, replicationPaths, chRoot);
+                    } catch (RepositoryException | PersistenceException e) {
+                        throw new ReplicationException(Message.error("Error updating path").setPath(updatedPath), e);
+                    }
                 }
             }
 
             for (String deletedPath : deletedPaths) {
-                removeOrphans(resolver, chRoot, replicationPaths.translate(deletedPath), targetRootPath);
+                try {
+                    removeOrphans(resolver, chRoot, replicationPaths.translate(deletedPath), targetRootPath);
+                } catch (PersistenceException e) {
+                    throw new ReplicationException(Message.error("Error deleting path").setPath(deletedPath), e);
+                }
             }
 
             int numorderings = 0;
@@ -323,7 +340,11 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
                 String path = appendPaths(chRoot, replicationPaths.translate(childrenOrderInfo.getPath()));
                 Resource resource = resolver.getResource(path);
                 if (resource != null) {
-                    adjustChildrenOrder(resource, childrenOrderInfo.getChildNames());
+                    try {
+                        adjustChildrenOrder(resource, childrenOrderInfo.getChildNames());
+                    } catch (RepositoryException | RuntimeException e) {
+                        throw new ReplicationException(Message.error("Error adjusting children ordering").setPath(path), e);
+                    }
                 } else { // bug or concurrent modification
                     LOG.error("Resource for childorder doesn't exist: {}", path);
                 }
@@ -336,9 +357,17 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             releaseRootVm.put(ReplicationConstants.PARAM_SOURCEPATH, replicationPaths.getOrigin());
             releaseRootVm.put(ReplicationConstants.PARAM_RELEASEROOT, replicationPaths.getReleaseRoot());
             if (!nodelete) {
-                resolver.delete(tmpLocation);
+                try {
+                    resolver.delete(tmpLocation);
+                } catch (PersistenceException e) {
+                    throw new ReplicationException(Message.error("Error deleting temporary directory in backend: {}", destinationPath), e);
+                }
             }
-            resolver.commit();
+            try {
+                resolver.commit();
+            } catch (PersistenceException e) {
+                throw new ReplicationException(Message.error("Error during commit in backend"), e);
+            }
         }
     }
 

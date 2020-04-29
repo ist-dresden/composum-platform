@@ -25,9 +25,6 @@ public class ReplicationException extends Exception {
     @Nonnull
     protected MessageContainer messages = new MessageContainer(LOG);
 
-    public ReplicationException() {
-    }
-
     public ReplicationException(@Nonnull Message message, @Nullable Exception e) {
         super(message.toFormattedMessage(), e);
         messages.add(message, e);
@@ -53,10 +50,6 @@ public class ReplicationException extends Exception {
         return messages;
     }
 
-    protected String originalToString() {
-        return super.toString();
-    }
-
 
     @Override
     public String toString() {
@@ -64,8 +57,7 @@ public class ReplicationException extends Exception {
                 .append("{")
                 .append(Integer.toHexString(super.hashCode()))
                 .append("}")
-                .append("retryadvice=").append(retryadvice)
-                .append(", messages=").append(messages);
+                .append("retryadvice=").append(retryadvice);
         extendToString(sb);
         sb.append('}');
         extendToStringTail(sb);
@@ -83,7 +75,13 @@ public class ReplicationException extends Exception {
      * Stub to add further attributes to {@link #toString()} after the }.
      */
     protected void extendToStringTail(StringBuilder sb) {
-        // empty
+        if (!messages.isEmpty()) {
+            sb.append(" messages {{");
+            for (Message message : messages.getMessages()) {
+                sb.append(" ").append(message.toFormattedMessage());
+            }
+            sb.append("}}");
+        }
     }
 
     /**
