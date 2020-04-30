@@ -518,9 +518,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
                 messages.add(Message.error("Other error: ", e.toString()), e);
             } catch (ReplicationException e) {
                 LOG.error("Error during runReplication: " + e, e);
-                for (Message message : e.getMessages()) {
-                    messages.add(message);
-                }
+                messages.addAll(e.getMessages());
             } finally {
                 //noinspection ObjectEquality : reset if there wasn't a new strategy created in the meantime
                 if (runningStrategy == strategy) {
@@ -549,8 +547,9 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             return strategy.compareTree(details);
         }
 
-        @Nullable
-        protected ReplicatorStrategy makeReplicatorStrategy(ResourceResolver serviceResolver, Set<String> processedChangedPaths, boolean forceCheck) {
+        @Nonnull
+        protected ReplicatorStrategy makeReplicatorStrategy(ResourceResolver serviceResolver, Set<String> processedChangedPaths, boolean forceCheck)
+                throws ReplicationException {
             CONFIG replicationConfig = getRefreshedConfig(serviceResolver);
             if (replicationConfig == null || !replicationConfig.isEnabled()) {
                 LOG.warn("Disabled / unreadable config, not run: {}", getId());
@@ -559,12 +558,17 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
 
             Resource releaseRoot = requireNonNull(serviceResolver.getResource(releaseRootPath), releaseRootPath);
             StagingReleaseManager.Release release = null;
-            if (StringUtils.isNotBlank(releaseUuid)) {
-                release = getReleaseManager().findReleaseByUuid(releaseRoot, releaseUuid);
-            } else if (StringUtils.isNotBlank(mark)) {
-                release = getReleaseManager().findReleaseByMark(releaseRoot, mark);
+            try {
+                if (StringUtils.isNotBlank(releaseUuid)) {
+                    release = getReleaseManager().findReleaseByUuid(releaseRoot, releaseUuid);
+                } else if (StringUtils.isNotBlank(mark)) {
+                    release = getReleaseManager().findReleaseByMark(releaseRoot, mark);
+                }
+            } catch (StagingReleaseManager.ReleaseNotFoundException e) {
+                throw new ReplicationException(Message.error("Release not found"), e);
             }
             if (release == null) {
+                messages.add(Message.warn("No applicable release found for {}", getId()));
                 LOG.warn("No applicable release found for {}", getId());
                 return null;
             }
@@ -668,7 +672,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         protected UpdateInfo getTargetReleaseInfo() {
             try {
                 return remoteReleaseInfo();
-            } catch (ReplicationException e) {
+            } catch (ReplicationException | RuntimeException e) {
                 LOG.error("Error during getTargetReleaseInfo: " + e, e);
                 return null;
             }
@@ -686,11 +690,18 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
 
         @Nonnull
         protected Resource getHistoryMetaResource(ResourceResolver resolver, String path, boolean createIfNecessary)
-                throws RepositoryException {
+                throws ReplicationException {
             String metapath = appendPaths(ReplicationConstants.PATH_METADATA, path) + ReplicationConstants.NODE_METADATA_HISTORY;
             Resource resource = resolver.getResource(metapath);
             if (createIfNecessary && resource == null) {
-                resource = ResourceUtil.getOrCreateResource(resolver, metapath, TYPE_SLING_FOLDER + "/" + NT_UNSTRUCTURED + "/" + NT_UNSTRUCTURED);
+                try {
+                    resource = ResourceUtil.getOrCreateResource(resolver, metapath, TYPE_SLING_FOLDER + "/" + NT_UNSTRUCTURED + "/" + NT_UNSTRUCTURED);
+                } catch (RepositoryException e) {
+                    throw new ReplicationException(Message.error("Could not create replication history at {}", metapath), e);
+                }
+                if (resource == null) {
+                    throw new ReplicationException(Message.error("Could not create replication history at {}", metapath), null);
+                }
             }
             return resource;
         }
@@ -723,8 +734,10 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
                         break;
                 }
                 serviceResolver.commit();
-            } catch (RepositoryException | RuntimeException | PersistenceException | ReplicationException e) {
-                LOG.error("Error writing history entry for " + configPath, e);
+            } catch (ReplicationException e) {
+                messages.addAll(e.getMessages());
+            } catch (RuntimeException | PersistenceException e) {
+                messages.add(Message.error("Error writing history entry for " + configPath), e);
             }
         }
 
@@ -754,8 +767,10 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
                         result.put(processing, new ReplicationHistoryEntryImpl(processing, time, messages));
                     }
                 }
-            } catch (RepositoryException | RuntimeException | ReplicationException e) {
-                LOG.error("Error writing history entry for " + configPath, e);
+            } catch (ReplicationException e) {
+                messages.addAll(e.getMessages());
+            } catch (RuntimeException e) {
+                messages.add(Message.error("Error writing history entry for " + configPath), e);
             }
             return result;
         }

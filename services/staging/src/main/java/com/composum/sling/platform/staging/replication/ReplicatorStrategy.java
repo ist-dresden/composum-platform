@@ -172,6 +172,9 @@ public class ReplicatorStrategy {
             progress = 90;
 
             Stream<ChildrenOrderInfo> relevantOrderings = relevantOrderings(trimmedPaths, replicationPaths);
+            if (messages.hasError()) {
+                throw new ReplicationException(Message.error("Aborting because of previous error"), null);
+            }
 
             Status status = publisher.commitUpdate(updateInfo, originalSourceReleaseChangeNumber, deletedPaths,
                     relevantOrderings, () -> abortIfNecessary(updateInfo));
