@@ -153,9 +153,6 @@ public class VersionableTree {
                 .flatMap((root) -> SlingResourceUtil.descendantsStream(root, VersionableTree::isVersionableLeaf))
                 .map((r) -> VersionableInfo.of(r, pathMapping))
                 .filter(Objects::nonNull);
-        // FIXME(hps,23.03.20) for debugging - remove this step
-        List<VersionableInfo> list = versionableInfoStream.collect(Collectors.toList());
-        versionableInfoStream = list.stream();
         return versionableInfoStream;
     }
 

@@ -147,7 +147,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             try {
                 destinationResource = ResourceUtil.getOrCreateResource(resolver, destinationPath, ResourceUtil.TYPE_SLING_FOLDER);
             } catch (RepositoryException e) {
-                throw new ReplicationException(Message.error("Service user could not create meta resource {} in backend", destinationPath), e);
+                throw new ReplicationException(Message.error("Service user could not create resource {} in backend", destinationPath), e);
             }
             if (destinationResource != null) { // it wasn't just unreadable - reset change number since that was deleted
                 meta.adaptTo(ModifiableValueMap.class).remove(StagingConstants.PROP_CHANGE_NUMBER);

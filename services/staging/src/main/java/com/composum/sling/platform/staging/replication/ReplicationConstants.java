@@ -146,9 +146,8 @@ public interface ReplicationConstants {
      */
     String PROP_LAST_ERROR_MESSAGES = "lastErrorMessages";
 
-    // FIXME(hps,26.03.20) synchronize with pages site constants
     String PROP_PUBLIC_MODE = "publicMode";
-    String PUBLIC_MODE_IN_PLACE = "inPlace";
+    String PUBLIC_MODE_IN_PLACE = "inPlace"; // FIXME(hps,26.03.20) rename to "replicated"
     String DEFAULT_PUBLIC_MODE = PUBLIC_MODE_IN_PLACE;
 
 }

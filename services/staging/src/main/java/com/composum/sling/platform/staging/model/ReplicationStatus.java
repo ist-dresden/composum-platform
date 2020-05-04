@@ -81,8 +81,16 @@ public class ReplicationStatus extends AbstractSlingBean {
         }
 
         public State getState() {
-            return isRunning() ? State.running : isSynchronized() ? State.synchron
-                    : isEnabled() ? (isFaulty() ? State.faulty : State.undefined) : State.switchedoff;
+            if (isRunning()) {
+                return State.running;
+            } else if (!isEnabled()) {
+                return State.switchedoff;
+            } else if (isFaulty()) {
+                return State.faulty;
+            } else if (isSynchronized()) {
+                return State.synchron;
+            }
+            return State.undefined;
         }
 
         public boolean isEnabled() {
@@ -177,8 +185,14 @@ public class ReplicationStatus extends AbstractSlingBean {
         }
 
         public State getState() {
-            return isRunning() ? State.running : isSynchronized()
-                    ? State.synchron : isFaulty() ? State.faulty : State.undefined;
+            if (isRunning()) {
+                return State.running;
+            } else if (isFaulty()) {
+                return State.faulty;
+            } else if (isSynchronized()) {
+                return State.synchron;
+            }
+            return State.undefined;
         }
 
         public boolean isSynchronized() {
