@@ -88,18 +88,6 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
         return status;
     }
 
-    // FIXME(hps,28.04.20) used or not?
-    protected <T extends Status> T executeCall(ExceptionThrowingSupplier<T, Exception> call, String errorMessage, String... arguments)
-            throws ReplicationException {
-        try {
-            return call.get();
-        } catch (ReplicationException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ReplicationException(Message.error(errorMessage, arguments), e);
-        }
-    }
-
     @Nonnull
     @Override
     public StatusWithReleaseData releaseInfo(@Nonnull ReplicationPaths replicationPaths) throws ReplicationException {

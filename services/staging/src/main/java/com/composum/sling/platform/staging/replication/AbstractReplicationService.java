@@ -706,9 +706,9 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             return resource;
         }
 
-        // FIXME(hps,01.04.20) clean up comment
-        // ! Im aggregierten Status zeitstempel:
-        //und zum jedem aggregierten Statuswert brauche ich dann noch einen Zeitstempel - letztes mal synchron, letztes mal gelaufen, letztes mal mit Fehler, letztes mal zurückgesetzt; letzter Fehler möglichst mit Message ; und es muss einen Neustart 'überleben', d.h. irgendwo in der Nähe der Site bzw. am Release gespeichert werden, separiert nach Stage und darunter für jeden der Prozesse
+        /**
+         * Saves timestamps of last run, last successful run, last unsuccessful run, last abort and the errors on the last unsuccessful run.
+         */
         protected void updateHistory() {
             LOG.info("Writing history entry for {} state {}", configPath, state);
             try (ResourceResolver serviceResolver = makeResolver()) {

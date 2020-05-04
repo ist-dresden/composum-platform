@@ -42,6 +42,8 @@ import java.util.stream.Stream;
  * Base class for servlets that provides in conjunction with {@link AbstractJsonRpcClient} "remote procedure calls"
  * from a Sling server to another Sling server via the usual Sling Servlets and Gson serialization of the arguments.
  * A description of the needed constraints is given at {@link JsonRpcInterface}.
+ *
+ * @deprecated not yet tested
  */
 public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implements InvocationHandler {
 

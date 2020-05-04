@@ -8,6 +8,8 @@ import javax.annotation.Nullable;
 /**
  * Marker interface that marks an interface as implemented with {@link AbstractJsonRpcClient} and
  * {@link AbstractJsonRpcServlet}.
+ *
+ * @deprecated not yet tested
  */
 public interface JsonRpcInterface {
 
