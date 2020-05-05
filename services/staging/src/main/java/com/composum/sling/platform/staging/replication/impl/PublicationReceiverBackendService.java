@@ -427,11 +427,11 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
      */
     protected void moveVersionable(@Nonnull ResourceResolver resolver, @Nonnull Resource tmpLocation,
                                    @Nonnull String updatedPath, @Nonnull ReplicationPaths replicationPaths, @Nonnull String chRoot)
-            throws RepositoryException, PersistenceException {
+            throws RepositoryException, PersistenceException, ReplicationException {
         NodeTreeSynchronizer synchronizer = new NodeTreeSynchronizer();
         Resource source = tmpLocation.getChild(SlingResourceUtil.relativePath("/", replicationPaths.getOrigin()));
         Resource destination = requireNonNull(resolver.getResource(SlingResourceUtil.appendPaths(chRoot, replicationPaths.getDestination())));
-        synchronizer.updateAttributes(ResourceHandle.use(source), ResourceHandle.use(destination), ImmutableBiMap.of());
+        updateAttributes(synchronizer, source, destination);
         if (!SlingResourceUtil.isSameOrDescendant(replicationPaths.getOrigin(), updatedPath)) {
             throw new IllegalArgumentException("updatedPath should be child of origin.");
         }
@@ -440,7 +440,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             for (String pathsegment : relPath.split("/")) {
                 source = requireNonNull(source.getChild(pathsegment), updatedPath);
                 destination = ResourceUtil.getOrCreateChild(destination, pathsegment, ResourceUtil.TYPE_SLING_FOLDER);
-                synchronizer.updateAttributes(ResourceHandle.use(source), ResourceHandle.use(destination), ImmutableBiMap.of());
+                updateAttributes(synchronizer, source, destination);
             }
         }
         String nodename = ResourceUtil.getName(updatedPath);
@@ -453,7 +453,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             // can't replace the node since OAK wrongly thinks we changed protected attributes
             // see com.composum.platform.replication.remote.ReplacementStrategyExplorationTest.bugWithReplace
             // we copy the attributes and move the children, instead, so protected attributes stay the same.
-            synchronizer.updateAttributes(ResourceHandle.use(source), ResourceHandle.use(destination), ImmutableBiMap.of());
+            updateAttributes(synchronizer, source, destination);
             for (Resource previousChild : destination.getChildren()) {
                 resolver.delete(previousChild);
             }
@@ -471,8 +471,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             }
         }
 
-        LOG.info("Moved {} to {}", getPath(source),
-                getPath(destinationParent) + "/" + nodename);
+        LOG.info("Moved {} to {}", getPath(source), getPath(destinationParent) + "/" + nodename);
     }
 
     protected void deletePath(@Nonnull ResourceResolver resolver, @Nonnull Resource tmpLocation,
@@ -481,8 +480,9 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         Resource source = tmpLocation.getChild(SlingResourceUtil.relativePath("/", replicationPaths.getOrigin()));
         Resource destination = requireNonNull(resolver.getResource(SlingResourceUtil.appendPaths(chRoot, replicationPaths.getDestination())));
         if (!SlingResourceUtil.isSameOrDescendant(replicationPaths.getOrigin(), deletedPath)) {
-            throw new IllegalArgumentException("deletedPath should be child of origin.");
+            throw new IllegalArgumentException("deletedPath should be child of origin."); // Safety check against bugs.
         }
+        updateAttributes(synchronizer, source, destination);
         String relPath = ResourceUtil.getParent(SlingResourceUtil.relativePath(replicationPaths.getOrigin(), deletedPath));
         if (relPath != null) {
             for (String pathsegment : relPath.split("/")) {
@@ -491,11 +491,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
                 if (source == null || destination == null) {
                     break;
                 }
-                try {
-                    synchronizer.updateAttributes(ResourceHandle.use(source), ResourceHandle.use(destination), ImmutableBiMap.of());
-                } catch (RepositoryException e) {
-                    throw new ReplicationException(Message.error("Error during synchronization of attributes of {} in backend", getPath(destination)), e);
-                }
+                updateAttributes(synchronizer, source, destination);
             }
         }
 
@@ -508,7 +504,15 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
                 throw new ReplicationException(Message.error("Could not delete {} in backend", getPath(deletedResource)), e);
             }
         } else { // some problem with the algorithm!
-            LOG.warn("Path to delete unexpectedly not present in content: {}", deletedPath);
+            LOG.warn("Bug? Path to delete unexpectedly not present in content: {}", deletedPath);
+        }
+    }
+
+    protected void updateAttributes(NodeTreeSynchronizer synchronizer, Resource source, Resource destination) throws ReplicationException {
+        try {
+            synchronizer.updateAttributes(ResourceHandle.use(source), ResourceHandle.use(destination), ImmutableBiMap.of());
+        } catch (RepositoryException e) {
+            throw new ReplicationException(Message.error("Error during synchronization of attributes of {} in backend", getPath(destination)), e);
         }
     }
 
