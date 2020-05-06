@@ -207,7 +207,7 @@ public interface StagingReleaseManager {
      * @throws ReleaseClosedException if the release is {@link Release#isClosed()}
      */
     @Nonnull
-    Map<String, SiblingOrderUpdateStrategy.Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException, ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException;
+    Map<String, SiblingOrderUpdateStrategy.Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException, ReleaseClosedException, ReleaseChangeFailedException;
 
     /**
      * Restores a versionable to the state it was in a previous release.
@@ -219,7 +219,7 @@ public interface StagingReleaseManager {
      */
     @Nonnull
     Map<String, SiblingOrderUpdateStrategy.Result> revert(@Nonnull Release release, @Nonnull String pathToRevert, @Nullable Release fromRelease) throws RepositoryException,
-            PersistenceException, ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException;
+            PersistenceException, ReleaseClosedException, ReleaseChangeFailedException;
 
     /**
      * Creates a {@link StagingResourceResolver} that presents the given release.
@@ -242,7 +242,7 @@ public interface StagingReleaseManager {
      * @param full    force checking if 'true'
      */
     void setMark(@Nonnull String mark, @Nonnull Release release, boolean full)
-            throws RepositoryException, ReleaseChangeEventListener.ReplicationFailedException;
+            throws RepositoryException, ReleaseChangeFailedException;
 
     /**
      * Removes the mark from the given release.

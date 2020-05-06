@@ -11,7 +11,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -25,7 +24,7 @@ public interface ReleaseChangeEventPublisher {
      * {@link ReleaseChangeEventListener}s - see the event for documentation of the parameters, null will be transformed to empty lists.
      */
     void publishActivation(@Nullable ReleaseChangeEvent event)
-            throws ReleaseChangeEventListener.ReplicationFailedException;
+            throws ReleaseChangeFailedException;
 
     /**
      * Returns all {@link ReleaseChangeProcess} that apply to the given release.

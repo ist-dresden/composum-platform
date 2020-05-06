@@ -3,10 +3,7 @@ package com.composum.sling.platform.staging.impl;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.logging.Message;
 import com.composum.sling.core.logging.MessageContainer;
-import com.composum.sling.platform.staging.ReleaseChangeEventListener;
-import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
-import com.composum.sling.platform.staging.ReleaseChangeProcess;
-import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.composum.sling.platform.staging.*;
 import com.composum.sling.platform.staging.replication.ReplicationConfig;
 import com.composum.sling.platform.staging.replication.ReplicationException;
 import org.apache.commons.lang3.StringUtils;
@@ -88,20 +85,20 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
     }
 
     @Override
-    public void publishActivation(ReleaseChangeEventListener.ReleaseChangeEvent event) throws ReleaseChangeEventListener.ReplicationFailedException {
+    public void publishActivation(ReleaseChangeEventListener.ReleaseChangeEvent event) throws ReleaseChangeFailedException {
         if (event == null || event.isEmpty()) {
             return;
         }
         event.finish();
         LOG.info("publishActivation {}", event);
-        ReleaseChangeEventListener.ReplicationFailedException exception = null;
+        ReleaseChangeFailedException exception = null;
         List<ReleaseChangeEventListener> listeners = new ArrayList<>(this.releaseChangeEventListeners);
         // copy listeners to avoid concurrent modification problems
         for (ReleaseChangeEventListener releaseChangeEventListener : listeners) {
             try {
                 releaseChangeEventListener.receive(event);
                 LOG.debug("published to {} : {}", releaseChangeEventListener, event);
-            } catch (ReleaseChangeEventListener.ReplicationFailedException e) {
+            } catch (ReleaseChangeFailedException e) {
                 LOG.error("Error publishing to {} the event {}", releaseChangeEventListener, event, e);
                 if (exception != null) {
                     e.addSuppressed(e);
@@ -110,7 +107,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                 }
             } catch (RuntimeException e) {
                 LOG.error("Error publishing to {} the event {}", releaseChangeEventListener, event, e);
-                ReleaseChangeEventListener.ReplicationFailedException newException = new ReleaseChangeEventListener.ReplicationFailedException("Error publishing to " + releaseChangeEventListener, e, event);
+                ReleaseChangeFailedException newException = new ReleaseChangeFailedException("Error publishing to " + releaseChangeEventListener, e, event);
                 if (exception != null) {
                     e.addSuppressed(newException);
                 } else {

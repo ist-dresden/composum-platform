@@ -4,7 +4,6 @@ import com.composum.sling.core.logging.Message;
 import com.composum.sling.core.logging.MessageContainer;
 import com.composum.sling.core.servlet.Status;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.sling.api.resource.LoginException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

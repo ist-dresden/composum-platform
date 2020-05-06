@@ -5,16 +5,8 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
-import com.composum.sling.platform.staging.ReleaseChangeEventListener;
+import com.composum.sling.platform.staging.*;
 import com.composum.sling.platform.staging.ReleaseChangeEventListener.ReleaseChangeEvent;
-import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
-import com.composum.sling.platform.staging.ReleaseMapper;
-import com.composum.sling.platform.staging.ReleaseNumberCreator;
-import com.composum.sling.platform.staging.ReleasedVersionable;
-import com.composum.sling.platform.staging.StagingConstants;
-import com.composum.sling.platform.staging.StagingReleaseManager;
-import com.composum.sling.platform.staging.StagingReleaseManagerPlugin;
-import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Result;
 import com.composum.sling.platform.staging.query.Query;
 import com.composum.sling.platform.staging.query.QueryBuilder;
@@ -570,7 +562,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Nonnull
     @Override
-    public Map<String, Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException, ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
+    public Map<String, Result> updateRelease(@Nonnull Release release, @Nonnull List<ReleasedVersionable> releasedVersionableList) throws RepositoryException, PersistenceException, ReleaseClosedException, ReleaseChangeFailedException {
         ReleaseChangeEvent event = new ReleaseChangeEvent(release);
         Map<String, Result> result = new TreeMap<>();
         for (ReleasedVersionable releasedVersionable : releasedVersionableList) {
@@ -586,7 +578,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Override
     public Map<String, Result> revert(@Nonnull Release release, @Nonnull String pathToRevert,
                                       @Nullable Release rawFromRelease) throws RepositoryException, PersistenceException
-            , ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
+            , ReleaseClosedException, ReleaseChangeFailedException {
         Map<String, Result> result;
         ReleasedVersionable versionableInCurrentRelease = findReleasedVersionable(release, pathToRevert);
 
@@ -1091,7 +1083,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Override
     public void setMark(@Nonnull String mark, @Nullable Release rawRelease, boolean full)
-            throws RepositoryException, ReleaseChangeEventListener.ReplicationFailedException {
+            throws RepositoryException, ReleaseChangeFailedException {
         ReleaseImpl release = Objects.requireNonNull(ReleaseImpl.unwrap(rawRelease));
         ResourceHandle releasesnode = ResourceHandle.use(release.getReleaseNode().getParent()); // the cpl:releases node
         // property type REFERENCE prevents deleting it accidentially

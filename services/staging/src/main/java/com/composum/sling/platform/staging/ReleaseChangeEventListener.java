@@ -43,7 +43,7 @@ public interface ReleaseChangeEventListener {
      * whether he is responsible. The processing should be synchronous, so that the user can be notified whether it succeeded or not.
      * CAUTION: the changes can also encompass the attributes and node order of parent nodes of the resources transmitted in the event.
      */
-    default void receive(ReleaseChangeEvent releaseChangeEvent) throws ReplicationFailedException {
+    default void receive(ReleaseChangeEvent releaseChangeEvent) throws ReleaseChangeFailedException {
         // default empty - if processesFor contains the things to do
     }
 
@@ -252,29 +252,6 @@ public interface ReleaseChangeEventListener {
             finalized = true;
         }
 
-    }
-
-    /**
-     * Informs that a replication failed and a full site replication is needed. If there are several failures,
-     * those are appended to {@link ReplicationFailedException#getSuppressed()}.
-     */
-    class ReplicationFailedException extends Exception {
-
-        private final ReleaseChangeEvent releaseChangeEvent;
-
-        public ReplicationFailedException(String message, ReleaseChangeEvent releaseChangeEvent) {
-            super(message);
-            this.releaseChangeEvent = releaseChangeEvent;
-        }
-
-        public ReplicationFailedException(String message, Exception e, ReleaseChangeEvent releaseChangeEvent) {
-            super(message, e);
-            this.releaseChangeEvent = releaseChangeEvent;
-        }
-
-        public ReleaseChangeEvent getReleaseChangeEvent() {
-            return releaseChangeEvent;
-        }
     }
 
 }

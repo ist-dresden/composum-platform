@@ -2,12 +2,7 @@ package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.platform.staging.ReleaseMapper;
-import com.composum.sling.platform.staging.ReleasedVersionable;
-import com.composum.sling.platform.staging.ReleaseChangeEventListener;
-import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
-import com.composum.sling.platform.staging.StagingConstants;
-import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.composum.sling.platform.staging.*;
 import com.composum.sling.platform.staging.query.QueryBuilder;
 import com.composum.sling.platform.staging.query.impl.QueryBuilderAdapterFactory;
 import com.composum.sling.platform.testing.testutil.AnnotationWithDefaults;
@@ -124,7 +119,7 @@ public abstract class AbstractStagingTest {
     }
 
     protected String makeNode(ResourceBuilder builder, String documentName, String nodepath, boolean versioned,
-                              boolean released, String title) throws RepositoryException, PersistenceException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException {
+                              boolean released, String title) throws RepositoryException, PersistenceException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeFailedException {
         String[] mixins = versioned ? new String[]{TYPE_VERSIONABLE, TYPE_LAST_MODIFIED} : new String[]{};
         builder = builder.resource(documentName, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED);
         builder = builder.resource(CONTENT_NODE, PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED, PROP_MIXINTYPES, mixins);
