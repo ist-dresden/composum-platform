@@ -6,7 +6,7 @@ import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.*;
-import com.composum.sling.platform.staging.ReleaseChangeEventListener.ReleaseChangeEvent;
+import com.composum.sling.platform.staging.ReleaseChangeEvent;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy.Result;
 import com.composum.sling.platform.staging.query.Query;
 import com.composum.sling.platform.staging.query.QueryBuilder;
@@ -1291,7 +1291,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     }
 
 
-    public static class ReleaseImpl implements StagingReleaseManager.Release {
+    public static class ReleaseImpl implements Release {
 
         @Nonnull
         final Resource releaseRoot;
@@ -1616,7 +1616,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         @Override
         @Nonnull
-        public StagingReleaseManager.Release getRelease() {
+        public Release getRelease() {
             return release;
         }
 

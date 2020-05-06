@@ -6,19 +6,19 @@ package com.composum.sling.platform.staging;
  */
 public class ReleaseChangeFailedException extends Exception {
 
-    private final ReleaseChangeEventListener.ReleaseChangeEvent releaseChangeEvent;
+    private final ReleaseChangeEvent releaseChangeEvent;
 
-    public ReleaseChangeFailedException(String message, ReleaseChangeEventListener.ReleaseChangeEvent releaseChangeEvent) {
+    public ReleaseChangeFailedException(String message, ReleaseChangeEvent releaseChangeEvent) {
         super(message);
         this.releaseChangeEvent = releaseChangeEvent;
     }
 
-    public ReleaseChangeFailedException(String message, Exception e, ReleaseChangeEventListener.ReleaseChangeEvent releaseChangeEvent) {
+    public ReleaseChangeFailedException(String message, Exception e, ReleaseChangeEvent releaseChangeEvent) {
         super(message, e);
         this.releaseChangeEvent = releaseChangeEvent;
     }
 
-    public ReleaseChangeEventListener.ReleaseChangeEvent getReleaseChangeEvent() {
+    public ReleaseChangeEvent getReleaseChangeEvent() {
         return releaseChangeEvent;
     }
 }

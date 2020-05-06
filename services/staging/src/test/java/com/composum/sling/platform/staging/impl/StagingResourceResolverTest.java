@@ -4,9 +4,9 @@ import com.composum.platform.commons.util.ExceptionUtil;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
+import com.composum.sling.platform.staging.Release;
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingConstants;
-import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.JcrTestUtils;
 import com.composum.sling.platform.testing.testutil.SlingMatchers;
@@ -103,7 +103,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
     private String node2;
     private String unreleasedNode;
     private String unversionedNode;
-    private StagingReleaseManager.Release release;
+    private Release release;
     private String releasesNode;
     private ResourceBuilder builderAtFolder;
 
@@ -133,7 +133,7 @@ public class StagingResourceResolverTest extends AbstractStagingTest {
             assertNotNull(path + " doesn't exist", context.resourceResolver().getResource(path));
         }
 
-        List<StagingReleaseManager.Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
+        List<Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
         assertEquals(1, releases.size());
         release = releases.get(0);
         stagingResourceResolver = (StagingResourceResolver) releaseManager.getResolverForRelease(releases.get(0), releaseMapper, false);

@@ -2,8 +2,6 @@ package com.composum.sling.platform.staging;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.logging.MessageContainer;
-import com.composum.sling.platform.staging.ReleaseChangeEventListener.ReleaseChangeEvent;
-import com.composum.sling.platform.staging.StagingReleaseManager.Release;
 import com.composum.sling.platform.staging.replication.ReplicationException;
 import org.apache.sling.api.resource.Resource;
 

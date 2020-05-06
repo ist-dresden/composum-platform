@@ -7,6 +7,7 @@ import com.composum.sling.core.logging.Message;
 import com.composum.sling.core.util.I18N;
 import com.composum.sling.core.util.RequestUtil;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.platform.staging.Release;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.AggregatedReplicationStateInfo;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.ReplicationStateInfo;
@@ -284,9 +285,9 @@ public class ReplicationStatus extends AbstractSlingBean {
     public class ReleaseModel {
 
         @Nullable
-        protected final StagingReleaseManager.Release release;
+        protected final Release release;
 
-        public ReleaseModel(@Nullable final StagingReleaseManager.Release release) {
+        public ReleaseModel(@Nullable final Release release) {
             this.release = release;
         }
 

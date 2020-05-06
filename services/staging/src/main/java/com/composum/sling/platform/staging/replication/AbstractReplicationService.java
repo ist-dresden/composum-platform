@@ -5,10 +5,7 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.logging.Message;
 import com.composum.sling.core.logging.MessageContainer;
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.platform.staging.ReleaseChangeEventListener;
-import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
-import com.composum.sling.platform.staging.ReleaseChangeProcess;
-import com.composum.sling.platform.staging.StagingReleaseManager;
+import com.composum.sling.platform.staging.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.commons.lang3.StringUtils;
@@ -52,7 +49,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
 
     @Nonnull
     @Override
-    public Collection<PROCESS> processesFor(@Nullable StagingReleaseManager.Release release) {
+    public Collection<PROCESS> processesFor(@Nullable Release release) {
         if (release == null || !isEnabled()) {
             return Collections.emptyList();
         }
@@ -194,7 +191,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
          */
         void readConfig(@Nonnull AbstractReplicationConfig replicationConfig);
 
-        boolean appliesTo(StagingReleaseManager.Release release);
+        boolean appliesTo(Release release);
     }
 
     public abstract class AbstractReplicationProcess implements ReplicationProcess {
@@ -389,7 +386,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             if (active == null) {
                 try (ResourceResolver serviceResolver = makeResolver()) {
                     Resource releaseRoot = serviceResolver.getResource(releaseRootPath);
-                    StagingReleaseManager.Release release = releaseRoot != null ? getReleaseManager().findReleaseByMark(releaseRoot, mark) : null;
+                    Release release = releaseRoot != null ? getReleaseManager().findReleaseByMark(releaseRoot, mark) : null;
                     active = release != null;
                 } catch (ReplicationException e) {
                     LOG.error("Can't get service resolver: " + e, e);
@@ -413,7 +410,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         }
 
         @Override
-        public boolean appliesTo(StagingReleaseManager.Release release) {
+        public boolean appliesTo(Release release) {
             ResourceResolver resolver = release.getReleaseRoot().getResourceResolver();
             CONFIG publicationConfig = getRefreshedConfig(resolver);
             List<String> marks = release.getMarks();
@@ -557,7 +554,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             }
 
             Resource releaseRoot = requireNonNull(serviceResolver.getResource(releaseRootPath), releaseRootPath);
-            StagingReleaseManager.Release release = null;
+            Release release = null;
             try {
                 if (StringUtils.isNotBlank(releaseUuid)) {
                     release = getReleaseManager().findReleaseByUuid(releaseRoot, releaseUuid);
@@ -619,7 +616,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             abort(false);
         }
 
-        protected StagingReleaseManager.Release getRelease(@Nonnull ResourceResolver resolver) {
+        protected Release getRelease(@Nonnull ResourceResolver resolver) {
             Resource releaseRoot = resolver.getResource(this.releaseRootPath);
             if (releaseRoot == null) { // safety check - strange case. Site removed? Inaccessible?
                 LOG.warn("Cannot find release root {}", this.releaseRootPath);
@@ -640,7 +637,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             UpdateInfo updateInfo = getTargetReleaseInfo();
             Boolean result = null;
             if (updateInfo != null && isNotBlank(updateInfo.originalPublisherReleaseChangeId)) {
-                StagingReleaseManager.Release release = getRelease(resolver);
+                Release release = getRelease(resolver);
                 if (release != null) {
                     result = StringUtils.equals(release.getChangeNumber(), updateInfo.originalPublisherReleaseChangeId);
                 }

@@ -2,7 +2,6 @@ package com.composum.sling.platform.staging;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.logging.MessageContainer;
-import com.composum.sling.platform.staging.ReleaseChangeEventListener.ReleaseChangeEvent;
 import com.composum.sling.platform.staging.replication.ReplicationConfig;
 import com.composum.sling.platform.staging.replication.ReplicationException;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -144,7 +143,7 @@ public interface ReleaseChangeProcess {
 
     /**
      * Checks whether the remote replication is currently at the same
-     * {@link StagingReleaseManager.Release#getChangeNumber()} as the local content.
+     * {@link Release#getChangeNumber()} as the local content.
      * If a remote access is necessary to determine this, the result is cached for a while since this might be
      * called on each request of an editor.
      */

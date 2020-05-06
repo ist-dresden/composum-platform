@@ -6,9 +6,8 @@ import com.composum.sling.core.logging.MessageContainer;
 import com.composum.sling.core.servlet.Status;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
-import com.composum.sling.platform.staging.ReleaseChangeEventListener;
+import com.composum.sling.platform.staging.Release;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
-import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.replication.json.ChildrenOrderInfo;
 import com.composum.sling.platform.staging.replication.json.NodeAttributeComparisonInfo;
 import com.composum.sling.platform.staging.replication.json.VersionableTree;
@@ -21,8 +20,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.RepositoryException;
-import java.net.URISyntaxException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -42,7 +39,7 @@ public class ReplicatorStrategy {
     @Nonnull
     protected final Set<String> changedPaths;
     @Nonnull
-    protected final StagingReleaseManager.Release release;
+    protected final Release release;
     @Nonnull
     protected final ResourceResolver resolver;
     @Nonnull
@@ -68,7 +65,7 @@ public class ReplicatorStrategy {
     protected volatile boolean abortAtNextPossibility = false;
     protected volatile UpdateInfo cleanupUpdateInfo;
 
-    public ReplicatorStrategy(@Nonnull Set<String> changedPaths, @Nonnull StagingReleaseManager.Release release,
+    public ReplicatorStrategy(@Nonnull Set<String> changedPaths, @Nonnull Release release,
                               @Nonnull BeanContext context, @Nonnull ReplicationConfig replicationConfig,
                               @Nonnull MessageContainer messages, @Nonnull PublicationReceiverFacade publisher, boolean forceCheck) {
         this.changedPaths = changedPaths;

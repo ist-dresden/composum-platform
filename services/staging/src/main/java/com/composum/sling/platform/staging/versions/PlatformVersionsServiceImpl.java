@@ -73,11 +73,11 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     @Nonnull
     @Override
-    public StagingReleaseManager.Release getDefaultRelease(@Nonnull Resource versionable) {
+    public Release getDefaultRelease(@Nonnull Resource versionable) {
         return releaseManager.findRelease(versionable, StagingConstants.CURRENT_RELEASE);
     }
 
-    protected StagingReleaseManager.Release getRelease(Resource versionable, String releaseKey) {
+    protected Release getRelease(Resource versionable, String releaseKey) {
         if (StringUtils.isBlank(releaseKey)) {
             return getDefaultRelease(versionable);
         }
@@ -118,7 +118,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     public StatusImpl getStatus(@Nonnull Resource rawVersionable, @Nullable String releaseKey) {
         try {
             ResourceHandle versionable = normalizeVersionable(rawVersionable);
-            StagingReleaseManager.Release release = getRelease(versionable, releaseKey);
+            Release release = getRelease(versionable, releaseKey);
             ReleasedVersionable released = releaseManager.findReleasedVersionable(release, versionable);
             if (released == null) {
                 released = releaseManager.findReleasedVersionable(release, versionable.getPath());
@@ -149,7 +149,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
                 maybeCheckpoint(versionable);
                 normalizedCheckedinVersionables.add(versionable);
             }
-            StagingReleaseManager.Release release = getRelease(normalizedCheckedinVersionables.get(0), releaseKey);
+            Release release = getRelease(normalizedCheckedinVersionables.get(0), releaseKey);
             List<Pair<ReleasedVersionable, Supplier<ActivationResult>>> activatorList = new ArrayList<>();
             for (Resource versionable : normalizedCheckedinVersionables) {
                 Pair<ReleasedVersionable, Supplier<ActivationResult>> activator = activateSingle(releaseKey, versionable, null, release);
@@ -177,7 +177,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         ActivationResult activationResult;
         ResourceHandle versionable = normalizeVersionable(rawVersionable);
         maybeCheckpoint(versionable);
-        StagingReleaseManager.Release release = getRelease(versionable, releaseKey);
+        Release release = getRelease(versionable, releaseKey);
         Pair<ReleasedVersionable, Supplier<ActivationResult>> activator = activateSingle(releaseKey, versionable, versionUuid, release);
         if (activator != null) {
             Map<String, SiblingOrderUpdateStrategy.Result> orderUpdateMap = releaseManager.updateRelease(release,
@@ -191,7 +191,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     }
 
     /**
-     * Returns a {@link ReleasedVersionable} that should be fed to {@link StagingReleaseManager#updateRelease(StagingReleaseManager.Release, List)}
+     * Returns a {@link ReleasedVersionable} that should be fed to {@link StagingReleaseManager#updateRelease(Release, List)}
      * and a function that updates an
      * {@link com.composum.sling.platform.staging.versions.PlatformVersionsService.ActivationResult} afterwards.
      * The reason these are separated is that all versionables that are activated should put into one updateRelease
@@ -201,7 +201,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     @Nullable
     protected Pair<ReleasedVersionable, Supplier<ActivationResult>> activateSingle(@Nullable String releaseKey,
                                                                                    @Nonnull Resource versionable,
-                                                                                   @Nullable String versionUuid, StagingReleaseManager.Release release)
+                                                                                   @Nullable String versionUuid, Release release)
             throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeFailedException {
         Pair<ReleasedVersionable, Supplier<ActivationResult>> result;
         if (!release.appliesToPath(versionable.getPath())) {
@@ -330,8 +330,8 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         Resource firstResource = resolver.getResource(versionablePaths.get(0));
         firstResource = firstResource != null ? firstResource :
                 new NonExistingResource(resolver, versionablePaths.get(0));
-        StagingReleaseManager.Release release = getRelease(firstResource, releaseKey);
-        StagingReleaseManager.Release previousRelease = release.getPreviousRelease();
+        Release release = getRelease(firstResource, releaseKey);
+        Release previousRelease = release.getPreviousRelease();
         ActivationResult result = new ActivationResult(release);
 
         String previousReleaseNumber = previousRelease != null ? previousRelease.getNumber() : null;
@@ -409,14 +409,14 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     @Nonnull
     @Override
     public ResourceFilter releaseAsResourceFilter(@Nonnull Resource resourceInRelease, @Nullable String releaseKey, @Nullable ReleaseMapper releaseMapper, @Nullable ResourceFilter additionalFilter) {
-        StagingReleaseManager.Release release = getRelease(resourceInRelease, releaseKey);
+        Release release = getRelease(resourceInRelease, releaseKey);
         ResourceResolver resolver = releaseManager.getResolverForRelease(release, releaseMapper, false);
         return new ResolvedResourceFilter(resolver, release.toString(), additionalFilter);
     }
 
     @Nonnull
     @Override
-    public List<Status> findReleaseChanges(@Nonnull StagingReleaseManager.Release release) throws RepositoryException {
+    public List<Status> findReleaseChanges(@Nonnull Release release) throws RepositoryException {
         List<Status> result = new ArrayList<>();
 
         List<ReleasedVersionable> releaseContent = releaseManager.listReleaseContents(release);
@@ -425,7 +425,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         Map<String, ReleasedVersionable> pathToRelease = releaseContent.stream()
                 .collect(Collectors.toMap(ReleasedVersionable::getRelativePath, Function.identity()));
 
-        StagingReleaseManager.Release previousRelease = release.getPreviousRelease();
+        Release previousRelease = release.getPreviousRelease();
         List<ReleasedVersionable> previousContent = previousRelease != null ? releaseManager.listReleaseContents(previousRelease) : Collections.emptyList();
         Map<String, ReleasedVersionable> historyIdToPrevious = previousContent.stream()
                 .collect(Collectors.toMap(ReleasedVersionable::getVersionHistory, Function.identity()));
@@ -457,7 +457,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
     @Nonnull
     @Override
-    public List<Status> findWorkspaceChanges(@Nonnull StagingReleaseManager.Release release) {
+    public List<Status> findWorkspaceChanges(@Nonnull Release release) {
         List<Status> result = new ArrayList<>();
 
         List<ReleasedVersionable> releaseContent = releaseManager.listReleaseContents(release);
@@ -501,11 +501,11 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
     protected static class StatusImpl implements Status {
 
         @Nullable
-        protected final StagingReleaseManager.Release nextRelease;
+        protected final Release nextRelease;
         @Nullable
         protected final ReleasedVersionable nextVersionable;
         @Nullable
-        protected final StagingReleaseManager.Release previousRelease;
+        protected final Release previousRelease;
         @Nullable
         protected final ReleasedVersionable previousVersionable;
         @Nullable // null if deleted in workspace
@@ -522,7 +522,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
         /**
          * Creates a StatusImpl that informs about the status of a versionable in the workspace in comparison to a release.
          */
-        public StatusImpl(@Nullable ReleasedVersionable workspaceVersionable, @Nonnull StagingReleaseManager.Release release, @Nullable ReleasedVersionable releasedVersionable) {
+        public StatusImpl(@Nullable ReleasedVersionable workspaceVersionable, @Nonnull Release release, @Nullable ReleasedVersionable releasedVersionable) {
             this.previousRelease = Objects.requireNonNull(release);
             this.previousVersionable = releasedVersionable;
             this.nextVersionable = workspaceVersionable;
@@ -556,8 +556,8 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
          * Compares the versionable from release to previous release.
          * This should only be called if released is not equal to previouslyReleased since there is no state for equal things.
          */
-        public StatusImpl(@Nonnull StagingReleaseManager.Release nextRelease, @Nullable ReleasedVersionable nextVersionable,
-                          @Nullable StagingReleaseManager.Release previousRelease, @Nullable ReleasedVersionable previousVersionable,
+        public StatusImpl(@Nonnull Release nextRelease, @Nullable ReleasedVersionable nextVersionable,
+                          @Nullable Release previousRelease, @Nullable ReleasedVersionable previousVersionable,
                           @Nullable ReleasedVersionable workspace) {
             this.nextRelease = Objects.requireNonNull(nextRelease);
             this.nextVersionable = nextVersionable;
@@ -641,7 +641,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
         @Nullable
         @Override
-        public StagingReleaseManager.Release getNextRelease() {
+        public Release getNextRelease() {
             return nextRelease;
         }
 
@@ -653,7 +653,7 @@ public class PlatformVersionsServiceImpl implements PlatformVersionsService {
 
         @Nullable
         @Override
-        public StagingReleaseManager.Release getPreviousRelease() {
+        public Release getPreviousRelease() {
             return previousRelease;
         }
 

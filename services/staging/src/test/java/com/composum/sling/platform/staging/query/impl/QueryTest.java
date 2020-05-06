@@ -3,9 +3,8 @@ package com.composum.sling.platform.staging.query.impl;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.core.util.SlingResourceUtil;
+import com.composum.sling.platform.staging.Release;
 import com.composum.sling.platform.staging.StagingConstants;
-import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.AbstractStagingTest;
 import com.composum.sling.platform.staging.impl.StagingResourceResolver;
 import com.composum.sling.platform.staging.query.Query;
@@ -118,7 +117,7 @@ public class QueryTest extends AbstractStagingTest {
         assertNotNull(resolver.getResource(node1current));
         assertNull(resolver.getResource(node1version));
 
-        List<StagingReleaseManager.Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
+        List<Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
         errorCollector.checkThat(releases.size(), is(1));
         stagingResourceResolver = (StagingResourceResolver) releaseManager.getResolverForRelease(releases.get(0), releaseMapper, false);
         LOG.debug("\n===== setup done =====\n");

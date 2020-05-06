@@ -85,7 +85,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
     }
 
     @Override
-    public void publishActivation(ReleaseChangeEventListener.ReleaseChangeEvent event) throws ReleaseChangeFailedException {
+    public void publishActivation(ReleaseChangeEvent event) throws ReleaseChangeFailedException {
         if (event == null || event.isEmpty()) {
             return;
         }
@@ -192,7 +192,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
 
     @Nonnull
     @Override
-    public Collection<ReleaseChangeProcess> processesFor(@Nullable StagingReleaseManager.Release release, @Nullable String stage) {
+    public Collection<ReleaseChangeProcess> processesFor(@Nullable Release release, @Nullable String stage) {
         List<ReleaseChangeProcess> result = new ArrayList<>();
         if (release != null) {
             for (ReleaseChangeEventListener releaseChangeEventListener : new ArrayList<>(this.releaseChangeEventListeners)) {

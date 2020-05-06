@@ -35,7 +35,7 @@ public interface VersionReference {
     Calendar getVersionCreated();
 
     @Nonnull
-    StagingReleaseManager.Release getRelease();
+    Release getRelease();
 
     /** The absolute path for the versionable, as it appears in the release. */
     @Nonnull

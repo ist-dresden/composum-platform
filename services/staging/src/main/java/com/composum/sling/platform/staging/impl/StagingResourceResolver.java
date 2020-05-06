@@ -3,6 +3,7 @@ package com.composum.sling.platform.staging.impl;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
+import com.composum.sling.platform.staging.Release;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
@@ -31,7 +32,7 @@ import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAME
 
 /**
  * <p>A {@link ResourceResolver} that provides transparent access to releases as defined in {@link StagingReleaseManager}.
- * This is always instantiated through {@link StagingReleaseManager#getResolverForRelease(StagingReleaseManager.Release, ReleaseMapper, boolean)}.
+ * This is always instantiated through {@link StagingReleaseManager#getResolverForRelease(Release, ReleaseMapper, boolean)}.
  * </p>
  * <h3>Limitations:</h3>
  * <ul>
@@ -45,7 +46,7 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
     private static final Logger LOG = LoggerFactory.getLogger(StagingResourceResolver.class);
 
     @Nonnull
-    protected final StagingReleaseManager.Release release;
+    protected final Release release;
 
     @Nonnull
     protected final ReleaseMapper releaseMapper;
@@ -62,16 +63,18 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
      * @param configuration        the configuration
      * @param closeResolverOnClose if true, the underlyingResolver is closed when this resolver is closed
      */
-    protected StagingResourceResolver(@Nonnull StagingReleaseManager.Release release, @Nonnull ResourceResolver underlyingResolver, @Nonnull ReleaseMapper releaseMapper, @Nonnull DefaultStagingReleaseManager.Configuration configuration, boolean closeResolverOnClose) {
+    protected StagingResourceResolver(@Nonnull Release release, @Nonnull ResourceResolver underlyingResolver, @Nonnull ReleaseMapper releaseMapper, @Nonnull DefaultStagingReleaseManager.Configuration configuration, boolean closeResolverOnClose) {
         super(underlyingResolver, closeResolverOnClose);
         this.release = release;
         this.releaseMapper = releaseMapper;
         this.configuration = configuration;
     }
 
-    /** The release that is presented by this resolver. */
+    /**
+     * The release that is presented by this resolver.
+     */
     @Nonnull
-    public StagingReleaseManager.Release getRelease() {
+    public Release getRelease() {
         return release;
     }
 

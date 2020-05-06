@@ -82,9 +82,11 @@ public interface PlatformVersionsService {
         @Nullable
         VersionReference getVersionReference();
 
-        /** The release we compare from. If we compare the workspace, this is null. */
+        /**
+         * The release we compare from. If we compare the workspace, this is null.
+         */
         @Nullable
-        StagingReleaseManager.Release getNextRelease();
+        Release getNextRelease();
 
         /**
          * The detail information about the versionable as it is in the workspace / the release if we're comparing a release with a previous release.
@@ -99,7 +101,7 @@ public interface PlatformVersionsService {
          * when comparing release to release this might be null (if there was no previous release).
          */
         @Nullable
-        StagingReleaseManager.Release getPreviousRelease();
+        Release getPreviousRelease();
 
         /**
          * The detail information about the versionable within the release if the status is about the workspace / within the previous release if it's comparing two releases. This is null if the versionable is {@link ActivationState#initial} /
@@ -120,7 +122,7 @@ public interface PlatformVersionsService {
      * This is used in many of the other methods if the release isn't given explicitly.
      */
     @Nonnull
-    StagingReleaseManager.Release getDefaultRelease(@Nonnull Resource versionable);
+    Release getDefaultRelease(@Nonnull Resource versionable);
 
     /**
      * Returns the status for the versionable comparing the workspace to the given or {@link #getDefaultRelease(Resource)} release.
@@ -211,18 +213,18 @@ public interface PlatformVersionsService {
      * Returns description of versionables which are changed in a release in comparision to the release before.
      */
     @Nonnull
-    List<Status> findReleaseChanges(@Nonnull final StagingReleaseManager.Release release) throws RepositoryException;
+    List<Status> findReleaseChanges(@Nonnull final Release release) throws RepositoryException;
 
     /**
      * Returns description of versionables which are changed in the workspace in comparision to the release.
      */
     @Nonnull
-    List<Status> findWorkspaceChanges(@Nonnull final StagingReleaseManager.Release release) throws RepositoryException;
+    List<Status> findWorkspaceChanges(@Nonnull final Release release) throws RepositoryException;
 
     /** Can be used to inform the user about the results of an activation. */
     class ActivationResult {
         @Nullable
-        private transient final StagingReleaseManager.Release release;
+        private transient final Release release;
         @Nonnull
         private final Map<String, SiblingOrderUpdateStrategy.Result> changedPathsInfo;
         @Nonnull
@@ -232,13 +234,17 @@ public interface PlatformVersionsService {
         @Nonnull
         private final Set<String> removedPaths;
 
-        /** Constructor for which the sets / maps are modified later. */
-        public ActivationResult(@Nullable StagingReleaseManager.Release release) {
+        /**
+         * Constructor for which the sets / maps are modified later.
+         */
+        public ActivationResult(@Nullable Release release) {
             this(release, null, null, null, null);
         }
 
-        /** Constructor that immediately sets everything. */
-        public ActivationResult(@Nullable StagingReleaseManager.Release release, @Nullable Map<String, SiblingOrderUpdateStrategy.Result> changedPathsInfo,
+        /**
+         * Constructor that immediately sets everything.
+         */
+        public ActivationResult(@Nullable Release release, @Nullable Map<String, SiblingOrderUpdateStrategy.Result> changedPathsInfo,
                                 @Nullable Set<String> newPaths, @Nullable Map<String, String> movedPaths, @Nullable Set<String> removedPaths) {
             this.release = release;
             this.changedPathsInfo = changedPathsInfo != null ? changedPathsInfo : new HashMap<>();
@@ -252,7 +258,7 @@ public interface PlatformVersionsService {
             if (release != null && !release.equals(other.getRelease())) {
                 throw new IllegalArgumentException("Merging results for different releases.");
             }
-            StagingReleaseManager.Release newRelease = release != null ? release : other.getRelease();
+            Release newRelease = release != null ? release : other.getRelease();
             Map<String, String> moved = new HashMap<>();
             moved.putAll(getMovedPaths());
             moved.putAll(other.getMovedPaths());
@@ -275,7 +281,7 @@ public interface PlatformVersionsService {
         }
 
         @Nullable
-        public StagingReleaseManager.Release getRelease() {
+        public Release getRelease() {
             return release;
         }
 

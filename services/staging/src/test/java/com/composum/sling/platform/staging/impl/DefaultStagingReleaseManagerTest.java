@@ -2,13 +2,7 @@ package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.platform.staging.ReleaseChangeEventListener;
-import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
-import com.composum.sling.platform.staging.ReleaseNumberCreator;
-import com.composum.sling.platform.staging.ReleasedVersionable;
-import com.composum.sling.platform.staging.StagingConstants;
-import com.composum.sling.platform.staging.StagingReleaseManager;
-import com.composum.sling.platform.staging.StagingReleaseManager.Release;
+import com.composum.sling.platform.staging.*;
 import com.composum.sling.platform.staging.query.QueryBuilder;
 import com.composum.sling.platform.staging.query.impl.QueryBuilderAdapterFactory;
 import com.composum.sling.platform.testing.testutil.AnnotationWithDefaults;
@@ -177,7 +171,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         ec.checkThat(releaseChangeNumber, Matchers.allOf(not(isEmptyOrNullString()), is(releaseChangeNumber)));
         releaseChangeNumber = currentRelease.getChangeNumber();
 
-        ArgumentCaptor<ReleaseChangeEventListener.ReleaseChangeEvent> eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEventListener.ReleaseChangeEvent.class);
+        ArgumentCaptor<ReleaseChangeEvent> eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEvent.class);
         Mockito.verify(releaseChangeEventPublisher, times(2)).publishActivation(eventCaptor.capture());
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newResources(), contains(parentPath));
@@ -204,7 +198,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         releaseChangeNumber = currentRelease.getChangeNumber();
 
         // check that the right event is sent
-        eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEventListener.ReleaseChangeEvent.class);
+        eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEvent.class);
         Mockito.verify(releaseChangeEventPublisher, times(1)).publishActivation(eventCaptor.capture());
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newResources(), Matchers.hasSize(0));
@@ -220,7 +214,7 @@ public class DefaultStagingReleaseManagerTest extends Assert implements StagingC
         releaseChangeNumber = currentRelease.getChangeNumber();
 
         // check that the right event is sent
-        eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEventListener.ReleaseChangeEvent.class);
+        eventCaptor = ArgumentCaptor.forClass(ReleaseChangeEvent.class);
         Mockito.verify(releaseChangeEventPublisher, times(1)).publishActivation(eventCaptor.capture());
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().release(), is(currentRelease));
         ec.checkThat(eventCaptor.getValue().toString(), eventCaptor.getValue().newOrMovedResources(),

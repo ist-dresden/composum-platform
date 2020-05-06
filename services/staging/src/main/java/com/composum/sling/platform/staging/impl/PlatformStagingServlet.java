@@ -8,6 +8,7 @@ import com.composum.sling.core.servlet.Status;
 import com.composum.sling.core.util.RequestUtil;
 import com.composum.sling.core.util.XSS;
 import com.composum.sling.platform.security.AccessMode;
+import com.composum.sling.platform.staging.Release;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.AggregatedReplicationStateInfo;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.ReplicationStateInfo;
@@ -127,7 +128,7 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
             if (resource != null && resource.isValid()) {
                 try {
                     String releaseKey = getReleaseKey(request, resource, status);
-                    StagingReleaseManager.Release release = releaseManager.findRelease(resource, releaseKey);
+                    Release release = releaseManager.findRelease(resource, releaseKey);
                     RequestPathInfo pathInfo = request.getRequestPathInfo();
                     String[] selectors = pathInfo.getSelectors();
                     try {
