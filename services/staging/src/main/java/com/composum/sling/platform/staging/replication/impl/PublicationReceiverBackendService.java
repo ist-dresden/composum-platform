@@ -115,7 +115,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             UpdateInfo updateInfo = new UpdateInfo();
             updateInfo.updateId = "upd-" + RandomStringUtils.random(12, 0, 0, true, true, null, random);
             assert ReplicationConstants.PATTERN_UPDATEID.matcher(updateInfo.updateId).matches();
-            Resource tmpLocation = getTmpLocation(resolver, updateInfo.updateId, true);
+            Resource tmpLocation = getTmpLocation(resolver, updateInfo.updateId, true, true);
 
             ModifiableValueMap vm = requireNonNull(tmpLocation.adaptTo(ModifiableValueMap.class));
             vm.put(ReplicationConstants.ATTR_TOP_CONTENTPATH, replicationPaths.getContentPath());
@@ -203,7 +203,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         try (ResourceResolver resolver = makeResolver()) {
             ReplicationPaths usedReplicationPaths = replicationPaths;
             if (StringUtils.isNotBlank(updateId)) {
-                Resource tmpLocation = getTmpLocation(resolver, updateId, false);
+                Resource tmpLocation = getTmpLocation(resolver, updateId, false, true);
                 ValueMap vm = tmpLocation.getValueMap();
                 usedReplicationPaths = new ReplicationPaths(vm);
             }
@@ -225,7 +225,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             throws ReplicationException {
         LOG.info("Pathupload called for {} : {}", updateId, packageRootPath);
         try (ResourceResolver resolver = makeResolver()) {
-            Resource tmpLocation = getTmpLocation(resolver, updateId, false);
+            Resource tmpLocation = getTmpLocation(resolver, updateId, false, true);
             ModifiableValueMap vm = requireNonNull(tmpLocation.adaptTo(ModifiableValueMap.class));
             ReplicationPaths replicationPaths = new ReplicationPaths(vm);
 
@@ -279,7 +279,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             throws ReplicationException {
         LOG.info("Commit called for {} : {}", updateId, deletedPaths);
         try (ResourceResolver resolver = makeResolver()) {
-            Resource tmpLocation = getTmpLocation(resolver, updateId, false);
+            Resource tmpLocation = getTmpLocation(resolver, updateId, false, true);
             ValueMap vm = tmpLocation.getValueMap();
             ReplicationPaths replicationPaths = new ReplicationPaths(vm);
             String topContentPath = vm.get(ReplicationConstants.ATTR_TOP_CONTENTPATH, String.class);
@@ -411,7 +411,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         }
         Resource tmpLocation = null;
         try (ResourceResolver resolver = makeResolver()) {
-            tmpLocation = getTmpLocation(resolver, updateId, false);
+            tmpLocation = getTmpLocation(resolver, updateId, false, false);
             resolver.delete(tmpLocation);
             resolver.commit();
         } catch (PersistenceException e) {
@@ -534,7 +534,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
 
 
     @Nonnull
-    protected Resource getTmpLocation(@Nonnull ResourceResolver resolver, @Nullable String updateId, boolean create)
+    protected Resource getTmpLocation(@Nonnull ResourceResolver resolver, @Nullable String updateId, boolean create, boolean checkReleaseId)
             throws ReplicationException {
         cleanup(resolver);
 
@@ -555,7 +555,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
             } else {
                 throw new IllegalArgumentException("Unknown updateId " + updateId);
             }
-        } else {
+        } else if (checkReleaseId) {
             ModifiableValueMap vm = tmpLocation.adaptTo(ModifiableValueMap.class);
             vm.put(ResourceUtil.PROP_LAST_MODIFIED, new Date());
             ReplicationPaths replicationPaths = new ReplicationPaths(vm);

@@ -649,7 +649,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
          * Internal method - use {@link #getTargetReleaseInfo()} since this might be cached by it.
          */
         protected UpdateInfo remoteReleaseInfo() throws ReplicationException {
-            if (!isEnabled()) {
+            if (!isEnabled() || StringUtils.isAllBlank(releaseUuid, mark)) {
                 return null;
             }
             UpdateInfo result = null;
