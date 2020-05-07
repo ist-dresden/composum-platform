@@ -2,7 +2,6 @@ package com.composum.sling.platform.staging.replication.inplace;
 
 import com.composum.platform.commons.util.ExceptionThrowingConsumer;
 import com.composum.platform.commons.util.ExceptionThrowingRunnable;
-import com.composum.platform.commons.util.ExceptionThrowingSupplier;
 import com.composum.platform.commons.util.OutputStreamInputStreamAdapter;
 import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.logging.Message;
@@ -19,6 +18,7 @@ import com.composum.sling.platform.staging.replication.impl.PublicationReceiverB
 import com.composum.sling.platform.staging.replication.json.ChildrenOrderInfo;
 import com.composum.sling.platform.staging.replication.json.NodeAttributeComparisonInfo;
 import com.composum.sling.platform.staging.replication.json.VersionableTree;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.LoginException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -79,6 +79,13 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
     @Nonnull
     @Override
     public StatusWithReleaseData startUpdate(@Nonnull ReplicationPaths replicationPaths) throws ReplicationException {
+        if (!replicationPaths.isMove()) {
+            throw new ReplicationException(Message.error("An in-place replication must have a different target directory than source directory."), null);
+        }
+        if (StringUtils.startsWith(replicationPaths.getDestination(), "/content")) {
+            throw new ReplicationException(Message.error("An in-place replication must have a target directory outside of /content - e.g. at /public or /preview."), null);
+        }
+
         StatusWithReleaseData status = new StatusWithReleaseData(null, null, LOG);
         try {
             status.updateInfo = backend.startUpdate(replicationPaths);
