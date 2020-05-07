@@ -37,11 +37,11 @@
     <distributionManagement>
         <repository>
             <id>archiva</id>
-            <url>https://build.ist-software.com/archiva/repository/releases/</url>
+            <url>https://build.ist-software.com/nexus/repository/maven-releases</url>
         </repository>
         <snapshotRepository>
             <id>archiva</id>
-            <url>https://build.ist-software.com/archiva/repository/snapshots/</url>
+            <url>https://build.ist-software.com/nexus/repository/maven-snapshots</url>
         </snapshotRepository>
     </distributionManagement>
 
