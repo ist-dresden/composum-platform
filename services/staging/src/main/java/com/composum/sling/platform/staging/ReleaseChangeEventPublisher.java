@@ -102,6 +102,10 @@ public interface ReleaseChangeEventPublisher {
          */
         public boolean enabled;
         /**
+         * True if there is a matching release.
+         */
+        public boolean hasRelease;
+        /**
          * True if it's enabled and there is a matching release.
          */
         public boolean active;
@@ -173,6 +177,10 @@ public interface ReleaseChangeEventPublisher {
          * Number of enabled {@link ReleaseChangeProcess}es.
          */
         public int numberEnabledProcesses;
+        /**
+         * True if there is a release for the {@link ReleaseChangeProcess}es.
+         */
+        public boolean hasRelease;
     }
 
     /**

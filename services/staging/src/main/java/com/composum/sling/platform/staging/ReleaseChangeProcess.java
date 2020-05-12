@@ -90,7 +90,31 @@ public interface ReleaseChangeProcess {
         /**
          * is waiting to be run
          */
-        awaiting, processing, success, error, disabled, aborted
+        awaiting,
+        /**
+         * The replication is currently running.
+         */
+        processing,
+        /**
+         * Replication was run successfully.
+         */
+        success,
+        /**
+         * The replication was aborted because of errors. This should mean that nothing was changed in almost all cases.
+         */
+        error,
+        /**
+         * The replication was switched off.
+         */
+        disabled,
+        /**
+         * There is no matchingly marked release for the replication.
+         */
+        norelease,
+        /**
+         * The replication was aborted by the user.
+         */
+        aborted
     }
 
     /**
@@ -113,6 +137,11 @@ public interface ReleaseChangeProcess {
      * True if the process is enabled and there is a matching release.
      */
     boolean isActive();
+
+    /**
+     * True if there is a release matching the configuration.
+     */
+    boolean hasRelease();
 
     /**
      * Estimation how much of the currently queued release changes have been processed.

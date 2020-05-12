@@ -117,7 +117,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             PROCESS process = processesCache.computeIfAbsent(replicationConfig.getPath(),
                     (k) -> makePublishingProcess(releaseRoot, replicationConfig)
             );
-            process.readConfig(replicationConfig);
+            process.readConfig(replicationConfig, releaseRoot);
             processes.add(process);
         }
         return processes;
@@ -189,7 +189,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
          * Reads the configuration from this. The actual type of {replicationConfig} is CONFIG, but we cannot
          * do that because the type parameters would be getting out of hand.
          */
-        void readConfig(@Nonnull AbstractReplicationConfig replicationConfig);
+        void readConfig(@Nonnull AbstractReplicationConfig replicationConfig, @Nonnull Resource releaseRoot);
 
         boolean appliesTo(Release release);
     }
@@ -219,12 +219,13 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         @Nonnull
         protected volatile String releaseRootPath;
         protected volatile Boolean active;
+        protected volatile Boolean hasRelease;
         protected volatile String releaseUuid;
         protected volatile ReplicationConfig cachedConfig;
 
         protected AbstractReplicationProcess(@Nonnull Resource releaseRoot, @Nonnull CONFIG config) {
             releaseRootPath = releaseRoot.getPath();
-            readConfig(config);
+            readConfig(config, releaseRoot);
         }
 
         protected void abortAlreadyRunningStrategy() throws InterruptedException {
@@ -399,7 +400,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
          * Called as often as possible to adapt to config changes.
          */
         @Override
-        public void readConfig(@Nonnull AbstractReplicationConfig replicationConfig) {
+        public void readConfig(@Nonnull AbstractReplicationConfig replicationConfig, @Nonnull Resource releaseRoot) {
             configPath = requireNonNull(replicationConfig.getPath());
             title = replicationConfig.getTitle();
             description = replicationConfig.getDescription();
@@ -407,6 +408,16 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             mark = replicationConfig.getStage();
             active = null;
             cachedConfig = replicationConfig;
+            checkReleaseExists(replicationConfig, releaseRoot);
+        }
+
+        protected void checkReleaseExists(AbstractReplicationConfig replicationConfig, Resource releaseRoot) {
+            hasRelease = getReleaseManager().findReleaseByMark(releaseRoot, mark) != null;
+        }
+
+        @Override
+        public boolean hasRelease() {
+            return hasRelease;
         }
 
         @Override
@@ -562,12 +573,16 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
                     release = getReleaseManager().findReleaseByMark(releaseRoot, mark);
                 }
             } catch (StagingReleaseManager.ReleaseNotFoundException e) {
+                hasRelease = false;
                 throw new ReplicationException(Message.error("Release not found"), e);
             }
             if (release == null) {
+                hasRelease = false;
                 messages.add(Message.warn("No applicable release found for {}", getId()));
                 LOG.warn("No applicable release found for {}", getId());
                 return null;
+            } else {
+                hasRelease = true;
             }
             ResourceResolver releaseResolver = getReleaseManager().getResolverForRelease(release, null, false);
             BeanContext context = new BeanContext.Service(releaseResolver);

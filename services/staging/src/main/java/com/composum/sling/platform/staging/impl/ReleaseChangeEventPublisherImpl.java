@@ -253,6 +253,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                     info.finishedAt = process.getRunFinished();
                     info.messages = process.getMessages();
                     info.enabled = process.isEnabled();
+                    info.hasRelease = process.hasRelease();
                     info.active = process.isActive();
                     info.completionPercentage = process.getCompletionPercentage();
                     process.updateSynchronized();
@@ -284,6 +285,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         result.everythingIsSynchronized = true;
         result.numberEnabledProcesses = 0;
         result.allAreActive = true;
+        result.hasRelease = false;
 
         for (ReleaseChangeProcess process : processesFor(releaseRoot, stage)) {
             try {
@@ -295,6 +297,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                 if (process.isEnabled()) {
                     result.numberEnabledProcesses++;
                 }
+                result.hasRelease = result.hasRelease || process.hasRelease();
                 switch (process.getState()) {
                     case error:
                         result.haveErrors = true;
@@ -306,6 +309,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
                     case idle:
                     case success:
                     case disabled:
+                    case norelease:
                     default:
                         // no action
                         break;

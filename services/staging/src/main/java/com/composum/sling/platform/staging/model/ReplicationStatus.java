@@ -49,6 +49,13 @@ public class ReplicationStatus extends AbstractSlingBean {
          * Internal error or no connection possible.
          */
         faulty,
+        /**
+         * No release has the mark for this synchronization.
+         */
+        norelease,
+        /**
+         * Switched off in the configuration.
+         */
         switchedoff
     }
 
@@ -90,8 +97,14 @@ public class ReplicationStatus extends AbstractSlingBean {
                 return State.faulty;
             } else if (isSynchronized()) {
                 return State.synchron;
+            } else if (!hasRelease()) {
+                return State.norelease;
             }
             return State.undefined;
+        }
+
+        public boolean hasRelease() {
+            return state.hasRelease && state.state != ReleaseChangeProcess.ReleaseChangeProcessorState.norelease;
         }
 
         public boolean isEnabled() {
@@ -192,12 +205,18 @@ public class ReplicationStatus extends AbstractSlingBean {
                 return State.faulty;
             } else if (isSynchronized()) {
                 return State.synchron;
+            } else if (!hasRelease()) {
+                return State.norelease;
             }
             return State.undefined;
         }
 
         public boolean isSynchronized() {
             return state.everythingIsSynchronized;
+        }
+
+        public boolean hasRelease() {
+            return state.hasRelease;
         }
 
         public boolean isRunning() {
