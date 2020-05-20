@@ -67,7 +67,7 @@
 
             initialize: function (options) {
                 this.data = {
-                    state: JSON.parse(atob(this.$el.data('state')))
+                    state: JSON.parse(Base64.decode(this.$el.data('state')))
                 };
                 this.resumeRefresh();
             },
@@ -95,7 +95,7 @@
             initialize: function (options) {
                 var c = replication.const.css;
                 this.data = {
-                    state: JSON.parse(atob(this.$el.data('state')))
+                    state: JSON.parse(Base64.decode(this.$el.data('state')))
                 };
                 this.$state = this.$('.' + c.base + c._state);
                 this.$progress = this.$('.' + c.base + c._progress);
@@ -138,7 +138,7 @@
                     release: this.$view.data('release'),
                     releaseKey: this.$view.data('key'),
                     releaseLabel: this.$view.data('label'),
-                    state: JSON.parse(atob(this.$view.data('state')))
+                    state: JSON.parse(Base64.decode(this.$view.data('state')))
                 };
                 this.$stage = this.$('.' + c.base + c._stage);
                 this.$state = this.$stage.find('.' + c.base + c._state);
