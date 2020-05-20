@@ -20,18 +20,8 @@
         login.UserLoginForm = Backbone.View.extend({
 
             initialize: function (options) {
-                var href = new RegExp('(https?://[^/]+)/.*[\\?&]resource=([^&#]*)').exec(window.location.href);
-                if (href) {
-                    this.baseUrl = href[1];
-                    this.resource = decodeURIComponent(href[2]);
-                    while (this.resource.indexOf('%') === 0) { // ? multiple encodings...
-                        this.resource = decodeURIComponent(this.resource);
-                    }
-                }
-                var acm = new RegExp('(https?://[^/]+)/.*[\\?&]accessmode=([^&#]*)').exec(window.location.href);
-                if (acm) {
-                    this.accessmode = acm;
-                }
+                var href = new RegExp('(https?://[^/]+)/.*[?&]target=([^&#]*)').exec(window.location.href);
+                this.targetUrl = href ? decodeURIComponent(href[2]) : '/';
                 this.$alert = this.$('.alert');
                 this.$submit = this.$('.buttons .login');
                 this.$submit.click(_.bind(this.login, this));
@@ -51,11 +41,7 @@
                         if (result.status === 0 // FIXME: interim fix for the insecure redirect
                             || (result.status >= 200 && result.status < 400)) {
                             this.alert();
-                            var target = this.resource ? this.resource : '/';
-                            if (this.accessmode) {
-                                target = target + '?accessmode=' + this.accessmode;
-                            }
-                            window.location.href = target;
+                            window.location.href = this.targetUrl;
                         } else {
                             this.alert('Danger', result.responseText ? result.responseText : thrownError);
                         }
