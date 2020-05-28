@@ -64,7 +64,7 @@
             <artifactId>gson</artifactId>
         </dependency>
 
-        <!-- JUnit stuff. Included in scope compile since we need those for the exported utilities and this artefact is included in scope test. -->
+        <!-- JUnit stuff. Included in scope compile since we need those for the exported utilities and this artifact is included in scope test. -->
         <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-core</artifactId>
