@@ -75,7 +75,8 @@
             refresh: function () {
                 this.tmRefresh = undefined;
                 var u = replication.const.url;
-                core.getJson(u.base + u._summary + '.' + this.data.state.stage + '.json' + this.$el.data('path'),
+                core.getJson(u.base + u._summary + '.' + this.data.state.stage + '.json'
+                    + core.encodePath(this.$el.data('path')),
                     _.bind(function (state) {
                         var c = replication.const.css;
                         this.$el.removeClass().addClass(c.base + c._badge + ' widget badge badge-pill ' + state.state);
@@ -209,7 +210,8 @@
             refresh: function () {
                 this.tmRefresh = undefined;
                 var u = replication.const.url;
-                core.getJson(u.base + u._status + '.' + this.data.state.stage + '.json' + this.data.path,
+                core.getJson(u.base + u._status + '.' + this.data.state.stage + '.json'
+                    + core.encodePath(this.data.path),
                     _.bind(function (data) {
                         var state = data.summary;
                         this.$state.removeClass().addClass('badge badge-pill ' + state.state);
@@ -244,7 +246,8 @@
 
             reload: function () {
                 var u = replication.const.url;
-                core.getHtml(u.base + u._status + u._reload + '.' + this.data.state.stage + '.html' + this.data.path,
+                core.getHtml(u.base + u._status + u._reload + '.' + this.data.state.stage + '.html'
+                    + core.encodePath(this.data.path),
                     _.bind(function (content) {
                         this.$el.html(content);
                         this.initContent();
@@ -308,8 +311,9 @@
             abort: function (event) {
                 event.preventDefault();
                 var u = replication.const.url;
-                var url = u.servlet + u._abort + '.' + this.data.stage + '.json' + this.data.path;
+                var url = u.servlet + u._abort + '.' + this.data.stage + '.json' + core.encodePath(this.data.path);
                 core.ajaxPost(url, {
+                        _charset_: 'UTF-8',
                         releaseKey: this.data.targetKey
                     }, {}, _.bind(function (result) {
                         this.status.refresh();
@@ -321,8 +325,9 @@
             publish: function (event) {
                 event.preventDefault();
                 var u = replication.const.url;
-                var url = u.servlet + u._publish + '.' + this.data.stage + '.json' + this.data.path;
+                var url = u.servlet + u._publish + '.' + this.data.stage + '.json' + core.encodePath(this.data.path);
                 core.ajaxPost(url, {
+                        _charset_: 'UTF-8',
                         releaseKey: this.data.targetKey,
                         fullSync: this.$fullSync.prop('checked') ? 'true' : 'false'
                     }, {}, _.bind(function (result) {
