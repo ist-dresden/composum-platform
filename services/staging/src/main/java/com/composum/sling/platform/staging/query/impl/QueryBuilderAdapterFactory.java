@@ -17,10 +17,10 @@ import static org.apache.sling.api.adapter.AdapterFactory.ADAPTER_CLASSES;
  * <p>
  * In tests you might need to register this:
  * <code>
- *         context.registerAdapter(ResourceResolver.class, QueryBuilder.class,
- *                 (com.google.common.base.Function<ResourceResolver, QueryBuilder>) (resolver) ->
- *                         new QueryBuilderAdapterFactory().getAdapter(resolver, QueryBuilder.class));
- *                         </code>
+ * context.registerAdapter(ResourceResolver.class, QueryBuilder.class,
+ * (Function<ResourceResolver, QueryBuilder>) (resolver) ->
+ * new QueryBuilderAdapterFactory().getAdapter(resolver, QueryBuilder.class));
+ * </code>
  */
 @Component(
         property = {
