@@ -68,7 +68,7 @@ public class ErrorPage extends AbstractSlingBean {
         try {
             String requestUrl = request.getRequestURL().toString();
             if (!requestUrl.startsWith(getLoginUrl())) {
-                SlingUrl url = new SlingUrl(request, getLoginUrl()).parameter(TARGET_PARAMETER, requestUrl);
+                SlingUrl url = new SlingUrl(request).fromUrl(getLoginUrl()).parameter(TARGET_PARAMETER, requestUrl);
                 response.sendRedirect(url.toString());
                 return true;
             }
