@@ -285,19 +285,22 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         result.everythingIsSynchronized = true;
         result.numberEnabledProcesses = 0;
         result.allAreActive = true;
-        result.hasRelease = false;
+        result.allEnabledHaveReleases = false;
 
         for (ReleaseChangeProcess process : processesFor(releaseRoot, stage)) {
             try {
+                result.allAreActive = result.allAreActive && process.isActive();
+                result.allEnabledHaveReleases = result.allEnabledHaveReleases || process.hasRelease();
+                if (!process.isActive()) {
+                    continue;
+                }
                 if (process.isEnabled() && result.everythingIsSynchronized
                         && !Boolean.TRUE.equals(process.isSynchronized(releaseRoot.getResourceResolver()))) {
                     result.everythingIsSynchronized = false;
                 }
-                result.allAreActive = result.allAreActive && process.isActive();
                 if (process.isEnabled()) {
                     result.numberEnabledProcesses++;
                 }
-                result.hasRelease = result.hasRelease || process.hasRelease();
                 switch (process.getState()) {
                     case error:
                         result.haveErrors = true;

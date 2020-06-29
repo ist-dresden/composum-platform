@@ -211,7 +211,7 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
             } catch (IllegalAccessException e) {
                 LOG.error("On " + method, e);
                 throw new JsonRpcInternalServletException("Illegal access to method", (Object[]) null);
-            } catch (InvocationTargetException e) { // FIXME(hps,03.02.20) possible / sensible to serialize this?
+            } catch (InvocationTargetException e) { // TODO(hps,03.02.20) possible / sensible to serialize this?
                 throw new JsonRpcInternalServletException("Method threw exception", e);
             }
         }

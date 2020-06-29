@@ -216,7 +216,7 @@ public class ReplicationStatus extends AbstractSlingBean {
         }
 
         public boolean hasRelease() {
-            return state.hasRelease;
+            return state.allEnabledHaveReleases;
         }
 
         public boolean isRunning() {

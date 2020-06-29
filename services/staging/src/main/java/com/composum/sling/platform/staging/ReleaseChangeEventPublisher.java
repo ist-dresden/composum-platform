@@ -178,9 +178,9 @@ public interface ReleaseChangeEventPublisher {
          */
         public int numberEnabledProcesses;
         /**
-         * True if there is a release for the {@link ReleaseChangeProcess}es.
+         * True if there is a release for all enabled {@link ReleaseChangeProcess}es.
          */
-        public boolean hasRelease;
+        public boolean allEnabledHaveReleases;
     }
 
     /**
