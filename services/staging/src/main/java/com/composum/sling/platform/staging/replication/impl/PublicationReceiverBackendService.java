@@ -17,6 +17,7 @@ import com.composum.sling.platform.staging.replication.json.VersionableTree;
 import com.google.common.collect.ImmutableBiMap;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;
 import org.apache.jackrabbit.vault.fs.config.ConfigurationException;
 import org.apache.jackrabbit.vault.fs.config.DefaultWorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.io.Importer;
@@ -238,6 +239,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
                 archive.open(true);
                 LOG.info("Importing {}", archive.getMetaInf().getProperties());
                 importer.run(archive, session, tmpLocation.getPath());
+                setLoggingProgressTracker(importer);
                 if (importer.hasErrors()) {
                     LOG.error("Aborting import on {} to {}: importer has errors. {}",
                             updateId, packageRootPath, archive.getMetaInf().getProperties());
@@ -260,6 +262,26 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
                     Message.error("Error reading package for {} in backend", packageRootPath).setPath(packageRootPath), e);
         } catch (ConfigurationException | RepositoryException e) {
             throw new ReplicationException(Message.error("Internal error on remote system: {}", e).setPath(packageRootPath), e);
+        }
+    }
+
+    /**
+     * If debugging is enabled, sets a progress tracker that logs everything on debug level.
+     */
+    protected void setLoggingProgressTracker(Importer importer) {
+        if (LOG.isDebugEnabled()) {
+            importer.getOptions().setListener(
+                    new ProgressTrackerListener() {
+                        @Override
+                        public void onMessage(Mode mode, String action, String path) {
+                            LOG.debug("{} : {} on {}", mode, action, path);
+                        }
+
+                        @Override
+                        public void onError(Mode mode, String path, Exception e) {
+                            LOG.error("Error at {} on {}", mode, path, e);
+                        }
+                    });
         }
     }
 
@@ -482,16 +504,18 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         if (!SlingResourceUtil.isSameOrDescendant(replicationPaths.getOrigin(), deletedPath)) {
             throw new IllegalArgumentException("deletedPath should be child of origin."); // Safety check against bugs.
         }
-        updateAttributes(synchronizer, source, destination);
-        String relPath = ResourceUtil.getParent(SlingResourceUtil.relativePath(replicationPaths.getOrigin(), deletedPath));
-        if (relPath != null) {
-            for (String pathsegment : relPath.split("/")) {
-                source = source.getChild(pathsegment);
-                destination = destination.getChild(pathsegment);
-                if (source == null || destination == null) {
-                    break;
+        if (source != null) { // possibly null if this is a partial replication of a path that doesn't exist in release
+            updateAttributes(synchronizer, source, destination);
+            String relPath = ResourceUtil.getParent(SlingResourceUtil.relativePath(replicationPaths.getOrigin(), deletedPath));
+            if (relPath != null) {
+                for (String pathsegment : relPath.split("/")) {
+                    source = source.getChild(pathsegment);
+                    destination = destination.getChild(pathsegment);
+                    if (source == null || destination == null) {
+                        break;
+                    }
+                    updateAttributes(synchronizer, source, destination);
                 }
-                updateAttributes(synchronizer, source, destination);
             }
         }
 
@@ -508,10 +532,10 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         }
     }
 
-    protected void updateAttributes(NodeTreeSynchronizer synchronizer, Resource source, Resource destination) throws ReplicationException {
+    protected void updateAttributes(@Nonnull NodeTreeSynchronizer synchronizer, @Nonnull Resource source, @Nonnull Resource destination) throws ReplicationException {
         try {
             synchronizer.updateAttributes(ResourceHandle.use(source), ResourceHandle.use(destination), ImmutableBiMap.of());
-        } catch (RepositoryException e) {
+        } catch (RepositoryException | RuntimeException e) {
             throw new ReplicationException(Message.error("Error during synchronization of attributes of {} in backend", getPath(destination)), e);
         }
     }

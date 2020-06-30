@@ -151,7 +151,7 @@ public class ReplicatorStrategy {
                 progress = 89 * (count) / pathsToTransmit.size();
 
                 Resource resource = resolver.getResource(path);
-                if (resource == null) { // we need to transmit the parent nodes of even deleted resources
+                if (resource == null) { // we need to transmit the parent nodes even of deleted resources
                     deletedPaths.add(path);
                     resource = new NonExistingResource(resolver, path);
                 }
