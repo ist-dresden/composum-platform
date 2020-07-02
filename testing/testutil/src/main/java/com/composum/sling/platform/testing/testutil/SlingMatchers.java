@@ -1,5 +1,7 @@
 package com.composum.sling.platform.testing.testutil;
 
+import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.core.util.SlingResourceUtil;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.sling.api.resource.Resource;
@@ -17,7 +19,9 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-/** Some extensions for hamcrest {@link org.hamcrest.Matchers}. */
+/**
+ * Some extensions for hamcrest {@link org.hamcrest.Matchers}.
+ */
 public class SlingMatchers extends org.hamcrest.Matchers {
 
     /**
@@ -32,7 +36,9 @@ public class SlingMatchers extends org.hamcrest.Matchers {
         return ResourceMatchers.path(path);
     }
 
-    /** Matcher that passes the item through a function {mapper} and then does the matching with {matcher}. */
+    /**
+     * Matcher that passes the item through a function {mapper} and then does the matching with {matcher}.
+     */
     @Nonnull
     public static <U, V> Matcher<V> mappedMatches(@Nullable String funcname, @Nonnull final Function<V, U> mapper, @Nonnull final Matcher<U> matcher) {
         return new BaseMatcher<V>() {
@@ -56,7 +62,35 @@ public class SlingMatchers extends org.hamcrest.Matchers {
         };
     }
 
-    /** Matcher that passes the item through a function {mapper} and then does the matching with {matcher}. */
+    /**
+     * Matches when a resource is a nonexisting resource.
+     */
+    @Nonnull
+    public static Matcher<Resource> nonExistingResource() {
+        return new BaseMatcher<Resource>() {
+            @Override
+            public boolean matches(Object item) {
+                return (item instanceof Resource) && ResourceUtil.isNonExistingResource((Resource) item);
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText(" was not a NonExistingResource");
+            }
+        };
+    }
+
+    /**
+     * Matches when a resource is a nonexisting resource with the given path.
+     */
+    @Nonnull
+    public static Matcher<Resource> nonExistingResource(@Nonnull String path) {
+        return Matchers.allOf(ResourceMatchers.resourceType(Resource.RESOURCE_TYPE_NON_EXISTING), hasResourcePath(path));
+    }
+
+    /**
+     * Matcher that passes the item through a function {mapper} and then does the matching with {matcher}.
+     */
     @Nonnull
     public static <U, V> Matcher<V> mappedMatches(@Nonnull final Function<V, U> mapper, @Nonnull final Matcher<U> matcher) {
         return mappedMatches(null, mapper, matcher);
@@ -144,17 +178,29 @@ public class SlingMatchers extends org.hamcrest.Matchers {
         };
     }
 
-    public static Throwable exceptionOf(Callable<?> callable) {
+    /**
+     * Returns the exceptions that is thrown by callable, or null if it doesn't throw.
+     */
+    @Nullable
+    public static Throwable exceptionOf(@Nullable Callable<?> callable) {
         try {
-            callable.call();
+            if (callable != null) {
+                callable.call();
+            }
             return null;
         } catch (Throwable t) {
             return t;
         }
     }
 
-    public static List<String> resourcePaths(Iterable<Resource> resourceList) {
-        return IterableUtils.toList(resourceList).stream().map(Resource::getPath).collect(Collectors.toList());
+    /**
+     * The list of paths of the resources in the list. If a resource is null, we insert a null.
+     */
+    @Nonnull
+    public static List<String> resourcePaths(@Nullable Iterable<Resource> resourceList) {
+        return resourceList != null ?
+                IterableUtils.toList(resourceList).stream().map(SlingResourceUtil::getPath).collect(Collectors.toList())
+                : Collections.emptyList();
     }
 
     /**
