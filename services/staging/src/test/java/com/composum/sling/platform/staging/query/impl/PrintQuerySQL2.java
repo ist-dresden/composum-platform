@@ -12,7 +12,12 @@ public class PrintQuerySQL2 {
     public static void main(String[] args) {
         ResourceResolver resolver = Mockito.mock(ResourceResolver.class);
         Query query = new StagingQueryImpl(resolver);
-        query.path("/preview").condition(query.conditionBuilder().contains("/content"));
+        //query.path("/preview").condition(query.conditionBuilder().contains("/content"));
+        // select * from [nt:base]  where path() LIKE '/libs/%/edit/help/%'
+        query.path("/libs").condition(query.conditionBuilder()
+                .property("jcr:path").like().val("%/edit/help/%")
+                .and().property("FIXME").notNull()
+        );
         String sql2 = ((StagingQueryImpl) query).buildSQL2(Query.QueryGenerationMode.NORMAL);
         System.out.println(sql2);
     }

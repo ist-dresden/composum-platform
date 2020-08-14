@@ -481,6 +481,24 @@ public class QueryConditionDsl {
             append("LIKE ");
             return conditionStaticValue;
         }
+
+        /**
+         * IS NULL
+         */
+        public QueryCondition isNull() {
+            closeParentheses();
+            append("IS NULL ");
+            return queryCondition;
+        }
+
+        /**
+         * IS NOT NULL
+         */
+        public QueryCondition notNull() {
+            closeParentheses();
+            append("IS NOT NULL ");
+            return queryCondition;
+        }
     }
 
     /**
