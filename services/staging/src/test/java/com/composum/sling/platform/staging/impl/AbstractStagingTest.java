@@ -6,6 +6,7 @@ import com.composum.sling.platform.staging.*;
 import com.composum.sling.platform.staging.query.QueryBuilder;
 import com.composum.sling.platform.staging.query.impl.QueryBuilderAdapterFactory;
 import com.composum.sling.platform.testing.testutil.AnnotationWithDefaults;
+import com.google.common.base.Function;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.sling.api.resource.PersistenceException;
@@ -31,7 +32,6 @@ import javax.jcr.version.VersionManager;
 import java.io.InputStreamReader;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.function.Function;
 
 import static com.composum.sling.core.util.ResourceUtil.*;
 import static org.mockito.Mockito.mock;
@@ -83,7 +83,7 @@ public abstract class AbstractStagingTest {
         when(releaseMapper.releaseMappingAllowed(argThat(isA(String.class)), argThat(isA(String.class)))).thenThrow(UnsupportedOperationException.class);
 
         context.registerAdapter(ResourceResolver.class, QueryBuilder.class,
-                (Function<ResourceResolver, QueryBuilder>) (resolver) ->
+                (Function) (resolver) ->
                         new QueryBuilderAdapterFactory().getAdapter(resolver, QueryBuilder.class));
     }
 
