@@ -4,7 +4,6 @@ import com.composum.platform.commons.credentials.CredentialService;
 import com.composum.platform.commons.crypt.CryptoService;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -13,17 +12,9 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.sling.api.resource.LoginException;
-import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ResourceResolver;
-import org.apache.sling.api.resource.ResourceResolverFactory;
-import org.apache.sling.api.resource.ValueMap;
+import org.apache.sling.api.resource.*;
 import org.osgi.framework.Constants;
-import org.osgi.service.component.annotations.Activate;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Deactivate;
-import org.osgi.service.component.annotations.Modified;
-import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.*;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.AttributeType;
 import org.osgi.service.metatype.annotations.Designate;
@@ -34,12 +25,13 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
+import javax.mail.Authenticator;
+import javax.mail.PasswordAuthentication;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -60,17 +52,29 @@ public class CredentialServiceImpl implements CredentialService {
      */
     protected static final String PATH_CONFIGS = "/var/composum/platform/security/credentials";
 
-    /** A path the user has to have read-access to in order to use the credentials (for ACL based permission check). */
+    /**
+     * A path the user has to have read-access to in order to use the credentials (for ACL based permission check).
+     */
     public static final String PROP_REFERENCEPATH = "referencePath";
-    /** Property that tells whether the configuration is enabled.. */
+    /**
+     * Property that tells whether the configuration is enabled..
+     */
     public static final String PROP_ENABLED = "enabled";
-    /** The encrypted password. */
+    /**
+     * The encrypted password.
+     */
     public static final String PROP_ENCRYPTED_PASSWD = "encryptedPasswd";
-    /** The encrypted username. */
+    /**
+     * The encrypted username.
+     */
     public static final String PROP_ENCRYPTED_USER = "encryptedUser";
-    /** Alternatively, the unencrypted username (for testing purposes only). */
+    /**
+     * Alternatively, the unencrypted username (for testing purposes only).
+     */
     public static final String PROP_USER = "user";
-    /** Alternatively, the unencrypted password (for testing purposes only). */
+    /**
+     * Alternatively, the unencrypted password (for testing purposes only).
+     */
     public static final String PROP_PASSWD = "passwd";
 
     @Reference
@@ -84,21 +88,8 @@ public class CredentialServiceImpl implements CredentialService {
 
     @Override
     public void initHttpContextCredentials(@Nonnull HttpClientContext context, @Nonnull AuthScope authScope,
-                                           @Nonnull String credentialId, @Nullable ResourceResolver resolver) throws RepositoryException {
-        if (!isEnabled()) { throw new IllegalStateException("CredentialService is not enabled."); }
-        CredentialConfiguration credentials = getCredentials(credentialId);
-        if (credentials == null) {
-            throw new IllegalArgumentException("Wrong credential ID " + credentialId);
-        }
-        if (!credentials.enabled) {
-            throw new IllegalArgumentException("Credentials are not enabled: " + credentialId);
-        }
-        if (StringUtils.isNotBlank(credentials.referencePath)) {
-            Resource aclResource = resolver != null ? resolver.getResource(credentials.referencePath) : null;
-            if (aclResource == null) {
-                throw new RepositoryException("No rights to acl path for " + credentialId);
-            }
-        }
+                                           @Nonnull String credentialId, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException {
+        CredentialConfiguration credentials = getCredentialConfiguration(credentialId, aclCheckResolver);
 
         CredentialsProvider credsProvider = context.getCredentialsProvider() != null ?
                 context.getCredentialsProvider() : new BasicCredentialsProvider();
@@ -106,9 +97,48 @@ public class CredentialServiceImpl implements CredentialService {
         context.setCredentialsProvider(credsProvider);
     }
 
+    @Override
+    public Authenticator getMailAuthenticator(@Nonnull String credentialId, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException {
+        CredentialConfiguration credentials = getCredentialConfiguration(credentialId, aclCheckResolver);
+        PasswordAuthentication passwordAuthentication = new PasswordAuthentication(credentials.user, credentials.passwd);
+        Authenticator result = new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return passwordAuthentication;
+            }
+        };
+        return result;
+    }
 
-    /** Internal method to retrieve credential data. */
-    protected CredentialConfiguration getCredentials(String proxyCredentialId) {
+    /**
+     * Reads the credentials from a resource after checking that the service and credentials are enabled, and the
+     * acl path is readable by aclCheckResolver.
+     */
+    @Nonnull
+    protected CredentialConfiguration getCredentialConfiguration(@Nonnull String credentialId, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException {
+        if (!isEnabled()) {
+            throw new IllegalStateException("CredentialService is not enabled.");
+        }
+        CredentialConfiguration credentials = readCredentials(credentialId);
+        if (credentials == null) {
+            throw new IllegalArgumentException("Wrong credential ID " + credentialId);
+        }
+        if (!credentials.enabled) {
+            throw new IllegalArgumentException("Credentials are not enabled: " + credentialId);
+        }
+        if (StringUtils.isNotBlank(credentials.referencePath)) {
+            Resource aclResource = aclCheckResolver != null ? aclCheckResolver.getResource(credentials.referencePath) : null;
+            if (aclResource == null) {
+                throw new RepositoryException("No rights to acl path for " + credentialId);
+            }
+        }
+        return credentials;
+    }
+
+    /**
+     * Internal method to retrieve credential data.
+     */
+    protected CredentialConfiguration readCredentials(String proxyCredentialId) {
         try (ResourceResolver resolver = resolverFactory.getServiceResourceResolver(null)) {
             String path = SlingResourceUtil.appendPaths(PATH_CONFIGS, proxyCredentialId);
             if (!SlingResourceUtil.isSameOrDescendant(PATH_CONFIGS, path)) {
@@ -132,7 +162,9 @@ public class CredentialServiceImpl implements CredentialService {
 
     @Nonnull
     protected String getMasterPassword() {
-        if (StringUtils.isNotBlank(masterPassword)) { return masterPassword; }
+        if (StringUtils.isNotBlank(masterPassword)) {
+            return masterPassword;
+        }
         if (StringUtils.isNotBlank(config.masterPasswordFile())) {
             File passwdFile = new File(config.masterPasswordFile());
             if ((!passwdFile.exists() || passwdFile.length() == 0) && config.createPasswordFileIfMissing()) {
@@ -153,7 +185,9 @@ public class CredentialServiceImpl implements CredentialService {
         return masterPassword;
     }
 
-    /** Writes a random password to the given password file. */
+    /**
+     * Writes a random password to the given password file.
+     */
     protected void writePasswordFile(File passwdFile) {
         SecureRandom rnd = new SecureRandom();
         String password = RandomStringUtils.random(1024, 32, 126, false, false, null, rnd);
@@ -167,7 +201,9 @@ public class CredentialServiceImpl implements CredentialService {
     }
 
     protected void checkEnabled() {
-        if (!isEnabled()) { throw new IllegalStateException("Service not enabled."); }
+        if (!isEnabled()) {
+            throw new IllegalStateException("Service not enabled.");
+        }
     }
 
     @Override
@@ -214,7 +250,9 @@ public class CredentialServiceImpl implements CredentialService {
         boolean createPasswordFileIfMissing();
     }
 
-    /** Captures the data from a resource. */
+    /**
+     * Captures the data from a resource.
+     */
     protected class CredentialConfiguration {
         public final String referencePath;
         public final String user;

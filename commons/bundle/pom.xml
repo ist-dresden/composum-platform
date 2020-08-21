@@ -163,6 +163,12 @@
             <artifactId>jsr305</artifactId>
         </dependency>
 
+        <!-- Other -->
+        <dependency>
+            <groupId>javax.mail</groupId>
+            <artifactId>mail</artifactId>
+        </dependency>
+
         <!-- JUnit -->
         <dependency>
             <groupId>junit</groupId>
