@@ -83,7 +83,11 @@ public class InPlacePublisherService
     protected void activate(final Configuration theConfig) {
         LOG.info("activated");
         this.config = theConfig;
-        this.threadPool = threadPoolManager.get(THREADPOOL_NAME);
+        if (theConfig != null && theConfig.enabled()) {
+            this.threadPool = threadPoolManager.get(THREADPOOL_NAME);
+        } else {
+            releaseThreadpool();
+        }
     }
 
     @Override
@@ -94,11 +98,15 @@ public class InPlacePublisherService
         try {
             super.deactivate();
         } finally {
-            ThreadPool oldThreadPool = this.threadPool;
-            this.threadPool = null;
-            if (oldThreadPool != null) {
-                threadPoolManager.release(oldThreadPool);
-            }
+            releaseThreadpool();
+        }
+    }
+
+    protected void releaseThreadpool() {
+        ThreadPool oldThreadPool = this.threadPool;
+        this.threadPool = null;
+        if (oldThreadPool != null) {
+            threadPoolManager.release(oldThreadPool);
         }
     }
 

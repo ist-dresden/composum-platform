@@ -37,7 +37,8 @@ public interface CredentialService {
     /**
      * Creates an {@link Authenticator} returning a {@link java.net.PasswordAuthentication} with the credentials.
      *
-     * @param credentialId     ID for the credentials, usually a path from the credential root, e.g. /content/ist/testsites/testpages/localfullsite
+     * @param credentialId     ID for the credentials, usually a path from the credential root, e.g. content/ist/testsites/testpages/localfullsite.
+     *                         It can also start with a slash, but it is not recommended to do so, since that could be confused with an absolute path.
      * @param aclCheckResolver a resolver that has to be able to resolve the aclpath stored in the credential as a security mechanism.
      */
     Authenticator getMailAuthenticator(@Nonnull String credentialId, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException;
