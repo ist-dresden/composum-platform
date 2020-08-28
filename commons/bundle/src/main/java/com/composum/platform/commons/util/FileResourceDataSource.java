@@ -1,6 +1,7 @@
 package com.composum.platform.commons.util;
 
 import com.composum.sling.clientlibs.handle.FileHandle;
+import org.apache.sling.api.resource.Resource;
 
 import javax.activation.DataSource;
 import javax.annotation.Nonnull;
@@ -10,7 +11,7 @@ import java.io.*;
 /**
  * Presents a {@link com.composum.sling.clientlibs.handle.FileHandle} as a javax.activation.{@link DataSource}, primarily for reading it.
  */
-public class FileHandleDataSource implements DataSource {
+public class FileResourceDataSource implements DataSource {
 
     @Nonnull
     protected final FileHandle fileHandle;
@@ -18,8 +19,15 @@ public class FileHandleDataSource implements DataSource {
     /**
      * Creates a {@link com.composum.sling.clientlibs.handle.FileHandle} as a javax.activation.{@link DataSource}, primarily for reading it.
      */
-    public FileHandleDataSource(@Nonnull FileHandle fileHandle) {
+    public FileResourceDataSource(@Nonnull FileHandle fileHandle) {
         this.fileHandle = fileHandle;
+    }
+
+    /**
+     * Wraps a file resource as a javax.activation.{@link DataSource}, primarily for reading it.
+     */
+    public FileResourceDataSource(@Nonnull Resource fileResource) {
+        this.fileHandle = new FileHandle(fileResource);
     }
 
     @Override
