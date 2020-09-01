@@ -1,6 +1,5 @@
 package com.composum.platform.commons.util;
 
-import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +13,8 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Adapter that turns an {@link java.util.concurrent.ExecutorService} (such as {@link SlingThreadPoolExecutorService})
  * into an {@link java.util.concurrent.ScheduledExecutorService}. Please remember to shut it down when discarded! It'll shut down the underlying ExecutorService, too.
+ * This mostly ties up one thread of the pool for the scheduling mechanism, so take care not to run too many
+ * executors on the same threadpool. (We do, however, free the thread again and again).
  */
 public class ScheduledExecutorServiceFromExecutorService implements ScheduledExecutorService {
 
@@ -42,40 +43,48 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
     }
 
     /**
-     * The task that checks whether there are some scheduled tasks to be done now. An endless loop that ends when the
-     * executor is shutdown - this means one thread is tied up with this. :-(
-     * // FIXME(hps,01.09.20) use executor repeatedly instead of continuous thread.
+     * The task that checks whether there are some scheduled tasks to be done now. It waits until there is
+     * something to do, submits all that needs to be done now and then puts itself into the executors queue
+     * to avoid blocking it.
      */
     protected void processQueue() {
         try {
-            while (!executorService.isShutdown()) {
-                DelayedTask<?> nextTask;
-                synchronized (queueLockObject) {
-                    long waitTime = 10000;
-                    nextTask = queue.peek();
-                    if (nextTask != null) {
-                        waitTime = nextTask.nextExecutionTime.get() - System.currentTimeMillis();
-                    }
-                    try {
-                        LOG.debug("Waiting {}", waitTime);
+            DelayedTask<?> nextTask;
+            synchronized (queueLockObject) {
+                // wait until the first task needs to be run
+                long waitTime = 1000;
+                nextTask = queue.peek();
+                if (nextTask != null) {
+                    waitTime = nextTask.nextExecutionTime.get() - System.currentTimeMillis();
+                }
+                if (waitTime > 0) {
+                    try { // waits for notifications from #queue
+                        LOG.debug("Wait for {} ms: {}", waitTime, System.identityHashCode(this));
                         queueLockObject.wait(waitTime, 0);
                     } catch (InterruptedException e) {
                         LOG.debug("Interrupted.");
                     }
-                    nextTask = queue.peek();
-                    if (nextTask != null && System.currentTimeMillis() < nextTask.nextExecutionTime.get()) {
-                        nextTask = null; // repeat loop
-                    } else { // work on it
-                        nextTask = queue.poll();
-                    }
-                    LOG.debug("processQueue woken; task {} / {}", nextTask, queue.peek());
-                }
-                if (nextTask != null) {
-                    nextTask.submittedFuture = executorService.submit(nextTask);
                 }
             }
+            do {
+                synchronized (queueLockObject) {
+                    nextTask = queue.peek();
+                    if (nextTask != null && System.currentTimeMillis() < nextTask.nextExecutionTime.get()) {
+                        nextTask = null; // next one is not ready - repeat loop.
+                    } else { // remove it from the queue and work on it now
+                        nextTask = queue.poll();
+                    }
+                }
+                if (nextTask != null) {
+                    LOG.debug("Task submitted for execution: {}", nextTask);
+                    nextTask.submittedFuture = executorService.submit(nextTask);
+                }
+            } while (nextTask != null && !executorService.isShutdown());
+            if (!executorService.isShutdown()) { // repeat this, but let other pending tasks have their share of CPU time
+                executorService.submit(this::processQueue);
+            }
         } catch (Exception e) {
-            LOG.error("ProcessQueue aborted!", e);
+            LOG.error("Bug: ProcessQueue aborted, executor is now dysfunctional!", e);
         }
     }
 
@@ -114,7 +123,7 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
         protected ScheduledFuture<V> scheduledFuture = new AbstractDelegatedScheduledFuture<>(future) {
             @Override
             public long getDelay(@Nonnull TimeUnit unit) {
-                return TimeUnit.MICROSECONDS.convert(System.currentTimeMillis() - nextExecutionTime.get(), unit);
+                return TimeUnit.MILLISECONDS.convert(System.currentTimeMillis() - nextExecutionTime.get(), unit);
             }
         };
 
@@ -140,10 +149,7 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
 
         @Override
         public int compareTo(@Nonnull DelayedTask<V> o) {
-            return new CompareToBuilder()
-                    .append(nextExecutionTime, o.nextExecutionTime)
-                    .append(callable, callable)
-                    .build();
+            return Long.compare(nextExecutionTime.get(), o.nextExecutionTime.get());
         }
 
         @Override
@@ -180,7 +186,6 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
         if (task.isLive()) {
             synchronized (queueLockObject) {
                 queue.add(task);
-                LOG.debug("Notify");
                 queueLockObject.notifyAll();
             }
         }
@@ -336,9 +341,7 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
 
         @Override
         public int compareTo(@Nonnull Delayed o) {
-            return new CompareToBuilder()
-                    .append(getDelay(TimeUnit.MILLISECONDS), o.getDelay(TimeUnit.MILLISECONDS))
-                    .append(future, future).build();
+            return Long.compare(getDelay(TimeUnit.MILLISECONDS), o.getDelay(TimeUnit.MILLISECONDS));
         }
 
         @Override
