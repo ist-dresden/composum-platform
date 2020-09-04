@@ -18,6 +18,8 @@ public class SlingThreadPoolExecutorService extends AbstractExecutorService {
 
     private static final Logger LOG = LoggerFactory.getLogger(SlingThreadPoolExecutorService.class);
 
+    protected final String name;
+
     @Nonnull
     protected ThreadPoolManager threadPoolManager;
 
@@ -29,6 +31,7 @@ public class SlingThreadPoolExecutorService extends AbstractExecutorService {
     public SlingThreadPoolExecutorService(@Nonnull ThreadPoolManager threadPoolManager, @Nonnull String name) {
         this.threadPoolManager = threadPoolManager;
         threadPool = threadPoolManager.get(name);
+        this.name = name;
     }
 
     /**
@@ -123,4 +126,10 @@ public class SlingThreadPoolExecutorService extends AbstractExecutorService {
     public <T> Future<T> submit(Callable<T> task) throws RejectedExecutionException {
         return getSlingThreadpool().submit(task);
     }
+
+    @Override
+    public String toString() {
+        return super.toString() + "{" + name + "}";
+    }
+
 }

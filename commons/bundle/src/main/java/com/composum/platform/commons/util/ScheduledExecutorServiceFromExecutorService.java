@@ -1,5 +1,6 @@
 package com.composum.platform.commons.util;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,8 +31,6 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
 
     protected final Object queueLockObject = new Object();
 
-    protected final Future<?> processQueueTask;
-
     /**
      * Creates the scheduled executor service and sets the used executorService.
      *
@@ -39,7 +38,7 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
      */
     public ScheduledExecutorServiceFromExecutorService(@Nonnull ExecutorService executorService) {
         this.executorService = executorService;
-        this.processQueueTask = executorService.submit(this::processQueue);
+        executorService.submit(this::processQueue);
     }
 
     /**
@@ -59,10 +58,10 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
                 }
                 if (waitTime > 0) {
                     try { // waits for notifications from #queue
-                        LOG.debug("Wait for {} ms: {}", waitTime, System.identityHashCode(this));
+                        LOG.debug("Wait for {} ms: @{}", waitTime, System.identityHashCode(this));
                         queueLockObject.wait(waitTime, 0);
                     } catch (InterruptedException e) {
-                        LOG.debug("Interrupted.");
+                        LOG.debug("Interrupted. @{}", System.identityHashCode(this));
                     }
                 }
             }
@@ -76,7 +75,7 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
                     }
                 }
                 if (nextTask != null) {
-                    LOG.debug("Task submitted for execution: {}", nextTask);
+                    LOG.debug("Task submitted for execution: {} at @{}", nextTask, System.identityHashCode(this));
                     nextTask.submittedFuture = executorService.submit(nextTask);
                 }
             } while (nextTask != null && !executorService.isShutdown());
@@ -84,7 +83,7 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
                 executorService.submit(this::processQueue);
             }
         } catch (Exception e) {
-            LOG.error("Bug: ProcessQueue aborted, executor is now dysfunctional!", e);
+            LOG.error("Bug: ProcessQueue aborted, executor is now dysfunctional! @{}", System.identityHashCode(this), e);
         }
     }
 
@@ -142,7 +141,7 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
                     }
                 }
             } catch (Exception exception) {
-                LOG.warn("Abnormal termination of task: {}", exception);
+                LOG.warn("Abnormal termination of task: {} in @{}", exception, System.identityHashCode(this), exception);
                 future.completeExceptionally(exception);
             }
         }
@@ -160,6 +159,12 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
 
         protected boolean isLive() {
             return !future.isDone() && !future.isCancelled();
+        }
+
+
+        @Override
+        public String toString() {
+            return "DelayedTask@" + System.identityHashCode(DelayedTask.this);
         }
     }
 
@@ -349,6 +354,11 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
             if (!(o instanceof AbstractDelegatedScheduledFuture)) return false;
             return compareTo((AbstractDelegatedScheduledFuture) o) == 0;
         }
+    }
+
+    @Override
+    public String toString() {
+        return super.toString() + "{" + executorService + "}";
     }
 
 }

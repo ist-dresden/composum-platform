@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.mail.Authenticator;
 import javax.mail.PasswordAuthentication;
@@ -33,6 +34,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.Collection;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -76,6 +79,19 @@ public class CredentialServiceImpl implements CredentialService {
      * Alternatively, the unencrypted password (for testing purposes only).
      */
     public static final String PROP_PASSWD = "passwd";
+    /**
+     * Optional, restricts the use of the credentials to certain types of credentials, such as {@link #TYPE_EMAIL} or {@link #TYPE_HTTP}. Can have multiple values.
+     */
+    public static final String PROP_TYPE = "credentialType";
+
+    /**
+     * Value for {@link #PROP_TYPE}: credentials for use with {@link #initHttpContextCredentials(HttpClientContext, AuthScope, String, ResourceResolver)}.
+     */
+    public static final String TYPE_HTTP = "http";
+    /**
+     * Value for {@link #PROP_TYPE}: credentials for use with {@link #getMailAuthenticator(String, ResourceResolver)}.
+     */
+    public static final String TYPE_EMAIL = "email";
 
     @Reference
     protected CryptoService cryptoService;
@@ -90,6 +106,7 @@ public class CredentialServiceImpl implements CredentialService {
     public void initHttpContextCredentials(@Nonnull HttpClientContext context, @Nonnull AuthScope authScope,
                                            @Nonnull String credentialId, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException {
         CredentialConfiguration credentials = getCredentialConfiguration(credentialId, aclCheckResolver);
+        typeAllowed(credentials, TYPE_HTTP);
 
         CredentialsProvider credsProvider = context.getCredentialsProvider() != null ?
                 context.getCredentialsProvider() : new BasicCredentialsProvider();
@@ -100,6 +117,7 @@ public class CredentialServiceImpl implements CredentialService {
     @Override
     public Authenticator getMailAuthenticator(@Nonnull String credentialId, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException {
         CredentialConfiguration credentials = getCredentialConfiguration(credentialId, aclCheckResolver);
+        typeAllowed(credentials, TYPE_EMAIL);
         PasswordAuthentication passwordAuthentication = new PasswordAuthentication(credentials.user, credentials.passwd);
         Authenticator result = new Authenticator() {
             @Override
@@ -108,6 +126,16 @@ public class CredentialServiceImpl implements CredentialService {
             }
         };
         return result;
+    }
+
+    protected void typeAllowed(CredentialConfiguration credentials, String type) {
+        if (credentials.types != null && !credentials.types.isEmpty()) {
+            if (!credentials.types.contains(type)) {
+                LOG.info("Trying to use credentials {} having type {} with type {}",
+                        credentials.id, credentials.types, type);
+                throw new IllegalArgumentException("Wrong credential type");
+            }
+        }
     }
 
     /**
@@ -138,17 +166,17 @@ public class CredentialServiceImpl implements CredentialService {
     /**
      * Internal method to retrieve credential data.
      */
-    protected CredentialConfiguration readCredentials(String proxyCredentialId) {
+    protected CredentialConfiguration readCredentials(String credentialId) throws PathNotFoundException {
         try (ResourceResolver resolver = resolverFactory.getServiceResourceResolver(null)) {
-            String path = SlingResourceUtil.appendPaths(PATH_CONFIGS, proxyCredentialId);
+            String path = SlingResourceUtil.appendPaths(PATH_CONFIGS, credentialId);
             if (!SlingResourceUtil.isSameOrDescendant(PATH_CONFIGS, path)) {
-                throw new IllegalArgumentException("No . or .. allowed in credential ID " + proxyCredentialId);
+                throw new IllegalArgumentException("No . or .. allowed in credential ID " + credentialId);
             }
             Resource resource = resolver.getResource(path);
             if (resource == null) {
-                throw new IllegalArgumentException("No credentials found with key " + proxyCredentialId);
+                throw new PathNotFoundException("No credentials found with key " + credentialId);
             }
-            return new CredentialConfiguration(resource);
+            return new CredentialConfiguration(credentialId, resource);
         } catch (LoginException e) { // should be impossible.
             throw new IllegalStateException("Can't get service resolver.", e);
         }
@@ -254,12 +282,15 @@ public class CredentialServiceImpl implements CredentialService {
      * Captures the data from a resource.
      */
     protected class CredentialConfiguration {
+        public final String id;
         public final String referencePath;
         public final String user;
         public final String passwd;
         public final boolean enabled;
+        public final Collection<String> types;
 
-        protected CredentialConfiguration(Resource resource) {
+        protected CredentialConfiguration(String credentialId, Resource resource) {
+            id = credentialId;
             ValueMap vm = resource.getValueMap();
             this.referencePath = vm.get(PROP_REFERENCEPATH, String.class);
             enabled = vm.get(PROP_ENABLED, true);
@@ -275,6 +306,8 @@ public class CredentialServiceImpl implements CredentialService {
             }
             this.user = user;
             this.passwd = passwd;
+            String[] typenames = vm.get(PROP_TYPE, String[].class);
+            types = typenames != null && typenames.length > 0 ? Arrays.asList(typenames) : null;
         }
     }
 
@@ -318,7 +351,7 @@ public class CredentialServiceImpl implements CredentialService {
             if (resource != null) {
                 resource = resource.getChild(credentialsId);
             }
-            return resource != null ? new CredentialConfiguration(resource) : null;
+            return resource != null ? new CredentialConfiguration(credentialsId, resource) : null;
         }
 
         /**

@@ -23,9 +23,12 @@ public interface CredentialService {
      * @param authScope        authentication scope
      * @param credentialId     ID for the credentials, usually a path from the credential root, e.g. /content/ist/testsites/testpages/localfullsite
      * @param aclCheckResolver a resolver that has to be able to resolve the aclpath stored in the credential as a security mechanism.
+     * @throws RepositoryException      error accessing the repository or the aclpath could not be read with the aclCheckResolver
+     * @throws IllegalArgumentException if the credentials do not exist or are of the wrong type
+     * @throws IllegalStateException    if the service is not enabled
      */
     void initHttpContextCredentials(@Nonnull HttpClientContext context, @Nonnull AuthScope authScope,
-                                    @Nonnull String credentialId, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException;
+                                    @Nonnull String credentialId, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException, IllegalArgumentException, IllegalStateException;
 
     /**
      * Encodes a password with the master password.
@@ -40,7 +43,10 @@ public interface CredentialService {
      * @param credentialId     ID for the credentials, usually a path from the credential root, e.g. content/ist/testsites/testpages/localfullsite.
      *                         It can also start with a slash, but it is not recommended to do so, since that could be confused with an absolute path.
      * @param aclCheckResolver a resolver that has to be able to resolve the aclpath stored in the credential as a security mechanism.
+     * @throws RepositoryException      error accessing the repository or the aclpath could not be read with the aclCheckResolver
+     * @throws IllegalArgumentException if the credentials do not exist or are of the wrong type
+     * @throws IllegalStateException    if the service is not enabled
      */
-    Authenticator getMailAuthenticator(@Nonnull String credentialId, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException;
+    Authenticator getMailAuthenticator(@Nonnull String credentialId, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException, IllegalArgumentException, IllegalStateException;
 
 }
