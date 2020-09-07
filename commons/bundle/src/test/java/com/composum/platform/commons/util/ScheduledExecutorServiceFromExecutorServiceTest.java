@@ -93,9 +93,9 @@ public class ScheduledExecutorServiceFromExecutorServiceTest {
     public void checkPeriodicScheduling() throws Exception {
         ScheduledFuture<?> future;
         if (fixedDelay) {
-            future = service.scheduleWithFixedDelay(this::execute3Times, 75, 50, TimeUnit.MILLISECONDS);
+            future = service.scheduleWithFixedDelay(this::execute3Times, 55, 50, TimeUnit.MILLISECONDS);
         } else {
-            future = service.scheduleAtFixedRate(this::execute3Times, 75, 50, TimeUnit.MILLISECONDS);
+            future = service.scheduleAtFixedRate(this::execute3Times, 55, 50, TimeUnit.MILLISECONDS);
         }
         ec.checkThat(future.isDone(), is(false));
         ec.checkThat(timesExecuted, is(0));
@@ -126,9 +126,9 @@ public class ScheduledExecutorServiceFromExecutorServiceTest {
     public void checkCancelPeriodical() throws Exception {
         ScheduledFuture<?> future;
         if (fixedDelay) {
-            future = service.scheduleWithFixedDelay(this::execute3Times, 75, 50, TimeUnit.MILLISECONDS);
+            future = service.scheduleWithFixedDelay(this::execute3Times, 55, 50, TimeUnit.MILLISECONDS);
         } else {
-            future = service.scheduleAtFixedRate(this::execute3Times, 75, 50, TimeUnit.MILLISECONDS);
+            future = service.scheduleAtFixedRate(this::execute3Times, 55, 50, TimeUnit.MILLISECONDS);
         }
         ec.checkThat(future.isDone(), is(false));
         ec.checkThat(timesExecuted, is(0));
