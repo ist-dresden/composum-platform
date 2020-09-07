@@ -2,6 +2,7 @@ package com.composum.platform.commons.credentials.impl;
 
 import com.composum.platform.commons.credentials.CredentialService;
 import com.composum.platform.commons.crypt.CryptoService;
+import com.composum.platform.commons.util.TokenUtil;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
 import org.apache.commons.io.IOUtils;
@@ -36,9 +37,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
-import static org.apache.commons.lang3.StringUtils.isBlank;
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.commons.lang3.StringUtils.*;
 
 @Component(
         service = CredentialService.class,
@@ -85,13 +88,9 @@ public class CredentialServiceImpl implements CredentialService {
     public static final String PROP_TYPE = "credentialType";
 
     /**
-     * Value for {@link #PROP_TYPE}: credentials for use with {@link #initHttpContextCredentials(HttpClientContext, AuthScope, String, ResourceResolver)}.
+     * Prefix marking a token returned by {@link #getAccessToken(String, ResourceResolver, String)}.
      */
-    public static final String TYPE_HTTP = "http";
-    /**
-     * Value for {@link #PROP_TYPE}: credentials for use with {@link #getMailAuthenticator(String, ResourceResolver)}.
-     */
-    public static final String TYPE_EMAIL = "email";
+    public static final String PREFIX_TOKEN = "credentialtoken:";
 
     @Reference
     protected CryptoService cryptoService;
@@ -104,9 +103,9 @@ public class CredentialServiceImpl implements CredentialService {
 
     @Override
     public void initHttpContextCredentials(@Nonnull HttpClientContext context, @Nonnull AuthScope authScope,
-                                           @Nonnull String credentialId, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException {
-        CredentialConfiguration credentials = getCredentialConfiguration(credentialId, aclCheckResolver);
-        typeAllowed(credentials, TYPE_HTTP);
+                                           @Nonnull String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException {
+        CredentialConfiguration credentials = getCredentialConfiguration(credentialIdOrToken, aclCheckResolver);
+        verifyTypeAllowed(credentials, TYPE_HTTP);
 
         CredentialsProvider credsProvider = context.getCredentialsProvider() != null ?
                 context.getCredentialsProvider() : new BasicCredentialsProvider();
@@ -115,9 +114,9 @@ public class CredentialServiceImpl implements CredentialService {
     }
 
     @Override
-    public Authenticator getMailAuthenticator(@Nonnull String credentialId, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException {
-        CredentialConfiguration credentials = getCredentialConfiguration(credentialId, aclCheckResolver);
-        typeAllowed(credentials, TYPE_EMAIL);
+    public Authenticator getMailAuthenticator(@Nonnull String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException {
+        CredentialConfiguration credentials = getCredentialConfiguration(credentialIdOrToken, aclCheckResolver);
+        verifyTypeAllowed(credentials, TYPE_EMAIL);
         PasswordAuthentication passwordAuthentication = new PasswordAuthentication(credentials.user, credentials.passwd);
         Authenticator result = new Authenticator() {
             @Override
@@ -128,12 +127,29 @@ public class CredentialServiceImpl implements CredentialService {
         return result;
     }
 
-    protected void typeAllowed(CredentialConfiguration credentials, String type) {
+    /**
+     * The access token is an encrypted and tamper-proofed (well, more or less signed) string containing the credentialId, the type, the
+     * time it was created and until which it is valid.
+     */
+    @Override
+    public String getAccessToken(@Nonnull String credentialId, @Nullable ResourceResolver aclCheckResolver, @Nonnull String type)
+            throws RepositoryException, IllegalArgumentException, IllegalStateException {
+        CredentialConfiguration credentials = getCredentialConfiguration(credentialId, aclCheckResolver);
+        verifyTypeAllowed(credentials, type);
+        LOG.debug("Creating token for {}", credentialId);
+        String token = TokenUtil.join(credentials.id, type, System.currentTimeMillis(),
+                System.currentTimeMillis() + MILLISECONDS.convert(config.tokenValiditySeconds(), SECONDS));
+        token = TokenUtil.addHash(token);
+        token = PREFIX_TOKEN + cryptoService.encrypt(token, getMasterPassword());
+        return token;
+    }
+
+    protected void verifyTypeAllowed(CredentialConfiguration credentials, String type) {
         if (credentials.types != null && !credentials.types.isEmpty()) {
             if (!credentials.types.contains(type)) {
                 LOG.info("Trying to use credentials {} having type {} with type {}",
                         credentials.id, credentials.types, type);
-                throw new IllegalArgumentException("Wrong credential type");
+                throw new IllegalArgumentException("Credential type not permitted: " + type);
             }
         }
     }
@@ -143,21 +159,23 @@ public class CredentialServiceImpl implements CredentialService {
      * acl path is readable by aclCheckResolver.
      */
     @Nonnull
-    protected CredentialConfiguration getCredentialConfiguration(@Nonnull String credentialId, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException {
+    protected CredentialConfiguration getCredentialConfiguration(@Nonnull String tokenOrCredentialId, @Nullable ResourceResolver aclCheckResolver)
+            throws RepositoryException {
         if (!isEnabled()) {
             throw new IllegalStateException("CredentialService is not enabled.");
         }
-        CredentialConfiguration credentials = readCredentials(credentialId);
+        boolean isToken = startsWith(PREFIX_TOKEN, tokenOrCredentialId);
+        CredentialConfiguration credentials = readCredentials(tokenOrCredentialId);
         if (credentials == null) {
-            throw new IllegalArgumentException("Wrong credential ID " + credentialId);
+            throw new IllegalArgumentException("Wrong credential ID " + tokenOrCredentialId);
         }
         if (!credentials.enabled) {
-            throw new IllegalArgumentException("Credentials are not enabled: " + credentialId);
+            throw new IllegalArgumentException("Credentials are not enabled: " + tokenOrCredentialId);
         }
-        if (StringUtils.isNotBlank(credentials.referencePath)) {
+        if (!isToken && isNotBlank(credentials.referencePath)) {
             Resource aclResource = aclCheckResolver != null ? aclCheckResolver.getResource(credentials.referencePath) : null;
             if (aclResource == null) {
-                throw new RepositoryException("No rights to acl path for " + credentialId);
+                throw new RepositoryException("No rights to acl path for " + tokenOrCredentialId);
             }
         }
         return credentials;
@@ -166,8 +184,29 @@ public class CredentialServiceImpl implements CredentialService {
     /**
      * Internal method to retrieve credential data.
      */
-    protected CredentialConfiguration readCredentials(String credentialId) throws PathNotFoundException {
+    protected CredentialConfiguration readCredentials(String tokenOrCredentialId) throws PathNotFoundException {
         try (ResourceResolver resolver = resolverFactory.getServiceResourceResolver(null)) {
+            String credentialId;
+            String tokenRequiredType = null;
+            if (StringUtils.startsWith(tokenOrCredentialId, PREFIX_TOKEN)) {
+                String token = decodeAndCheckToken(tokenOrCredentialId);
+                List<String> decoded = TokenUtil.extract(token, 4);
+                // was constructed with TokenUtil.join(credentials.id, type, System.currentTimeMillis(),
+                //      System.currentTimeMillis() + MILLISECONDS.convert(config.tokenValiditySeconds(), SECONDS));
+                credentialId = decoded.get(0);
+                long now = System.currentTimeMillis();
+                long creationTime = Long.parseLong(decoded.get(2));
+                long validUntilTime = Long.parseLong(decoded.get(3));
+                if (now < creationTime || now > validUntilTime
+                        || creationTime < now - MILLISECONDS.convert(config.tokenValiditySeconds(), SECONDS)) {
+                    throw new IllegalArgumentException("Token time out of range.");
+                }
+                tokenRequiredType = decoded.get(1);
+                LOG.info("Credential retrieved with token: {}", credentialId);
+                // FIXME(hps,07.09.20) We also should check something about the current user.
+            } else {
+                credentialId = tokenOrCredentialId;
+            }
             String path = SlingResourceUtil.appendPaths(PATH_CONFIGS, credentialId);
             if (!SlingResourceUtil.isSameOrDescendant(PATH_CONFIGS, path)) {
                 throw new IllegalArgumentException("No . or .. allowed in credential ID " + credentialId);
@@ -176,10 +215,22 @@ public class CredentialServiceImpl implements CredentialService {
             if (resource == null) {
                 throw new PathNotFoundException("No credentials found with key " + credentialId);
             }
-            return new CredentialConfiguration(credentialId, resource);
+            CredentialConfiguration credentialConfiguration = new CredentialConfiguration(credentialId, resource);
+            if (StringUtils.isNotBlank(tokenRequiredType)) {
+                verifyTypeAllowed(credentialConfiguration, tokenRequiredType);
+                credentialConfiguration.types = Arrays.asList(tokenRequiredType);
+            }
+            return credentialConfiguration;
         } catch (LoginException e) { // should be impossible.
             throw new IllegalStateException("Can't get service resolver.", e);
         }
+    }
+
+    protected String decodeAndCheckToken(String encodedToken) {
+        String token = cryptoService.decrypt(encodedToken.substring(PREFIX_TOKEN.length()), getMasterPassword());
+        TokenUtil.checkHash(token);
+        token = TokenUtil.removeHash(token);
+        return token;
     }
 
     @Override
@@ -190,10 +241,10 @@ public class CredentialServiceImpl implements CredentialService {
 
     @Nonnull
     protected String getMasterPassword() {
-        if (StringUtils.isNotBlank(masterPassword)) {
+        if (isNotBlank(masterPassword)) {
             return masterPassword;
         }
-        if (StringUtils.isNotBlank(config.masterPasswordFile())) {
+        if (isNotBlank(config.masterPasswordFile())) {
             File passwdFile = new File(config.masterPasswordFile());
             if ((!passwdFile.exists() || passwdFile.length() == 0) && config.createPasswordFileIfMissing()) {
                 writePasswordFile(passwdFile);
@@ -257,6 +308,7 @@ public class CredentialServiceImpl implements CredentialService {
             description = "A place to put credentials for use with other services."
     )
     protected @interface Configuration {
+
         @AttributeDefinition(name = "enabled", required = true, description = "The on/off switch")
         boolean enabled() default false;
 
@@ -268,14 +320,19 @@ public class CredentialServiceImpl implements CredentialService {
         @AttributeDefinition(name = "Master Passwordfile path", required = false, type = AttributeType.STRING,
                 description = "A relative or absolute path to a file containing the password to decrypt the " +
                         "credentials. This is an alternative " +
-                        "choice to setting the password directly. Caution: the password is stored in plaintext in the" +
+                        "choice to setting the password directly. Caution: the password is stored in plaintext in the " +
                         "file.")
         String masterPasswordFile();
 
         @AttributeDefinition(name = "Create Master Passwordfile", required = false,
-                description = "If a path for a master password is set but it is empty or missing, the service tries to" +
+                description = "If a path for a master password is set but it is empty or missing, the service tries to " +
                         "write a random password to this file.")
         boolean createPasswordFileIfMissing();
+
+        @AttributeDefinition(name = "Token validity time", required = false,
+                description = "Time in seconds an access token is valid.")
+        int tokenValiditySeconds() default 86400 * 3;
+
     }
 
     /**
@@ -287,7 +344,7 @@ public class CredentialServiceImpl implements CredentialService {
         public final String user;
         public final String passwd;
         public final boolean enabled;
-        public final Collection<String> types;
+        public Collection<String> types;
 
         protected CredentialConfiguration(String credentialId, Resource resource) {
             id = credentialId;
@@ -324,6 +381,9 @@ public class CredentialServiceImpl implements CredentialService {
         protected final String id;
         protected final String path;
         protected final String title;
+        /**
+         * the repository path to use for ACL driven access rules check
+         */
         protected final String referencePath;
         private final String vaultPassword;
 
@@ -334,14 +394,6 @@ public class CredentialServiceImpl implements CredentialService {
             this.title = values.get(ResourceUtil.JCR_TITLE, String.class);
             this.referencePath = values.get(PROP_REFERENCEPATH, String.class);
             this.vaultPassword = cryptoService.decrypt(values.get(PROP_ENCRYPTED_PASSWD, String.class), getMasterPassword());
-        }
-
-        /**
-         * @return the repository path to use for ACL driven access rules check
-         */
-        @Nonnull
-        public String getReferencePath() {
-            return referencePath;
         }
 
         @Nullable

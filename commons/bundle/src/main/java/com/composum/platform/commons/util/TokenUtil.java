@@ -46,6 +46,7 @@ public class TokenUtil {
     /**
      * Undoes {@link #join(Object...)} in that it extracts the string forms of the parts that were joined into the token.
      *
+     * @param token the token to decode
      * @return a list of the parts, some may be null
      * @throws IllegalArgumentException if there was something wrong with the token
      */
@@ -86,6 +87,23 @@ public class TokenUtil {
             // which might occur if the format was broken.
             throw new IllegalArgumentException(e);
         }
+    }
+
+    /**
+     * Undoes {@link #join(Object...)} in that it extracts the string forms of the parts that were joined into the token.
+     *
+     * @param token          the token to decode
+     * @param expectedLength the number of parts the token should have
+     * @return a list of the parts, has size {expectedLength}, some may be null
+     * @throws IllegalArgumentException if there was something wrong with the token
+     */
+    @Nonnull
+    public static List<String> extract(@Nullable String token, int expectedLength) throws IllegalArgumentException {
+        List<String> extracted = extract(token);
+        if (extracted.size() != expectedLength) {
+            throw new IllegalArgumentException("Expected token with " + expectedLength + " parts.");
+        }
+        return extracted;
     }
 
     /**

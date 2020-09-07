@@ -8,6 +8,7 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.api.wrappers.ValueMapDecorator;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -21,6 +22,7 @@ import java.util.Map;
 
 import static com.composum.platform.commons.credentials.impl.CredentialServiceImpl.*;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -56,6 +58,7 @@ public class CredentialServiceImplTest {
         impl.config = this.config;
         when(config.enabled()).thenReturn(true);
         when(config.masterPassword()).thenReturn(MASTERPWD);
+        when(config.tokenValiditySeconds()).thenReturn(10);
         impl.cryptoService = new CryptoServiceImpl();
         impl.resolverFactory = resolverFactory;
 
@@ -82,6 +85,60 @@ public class CredentialServiceImplTest {
     public void typeForbidden() throws Exception {
         credValues.put(PROP_TYPE, new String[]{TYPE_HTTP});
         emailCredentials();
+    }
+
+    @Test
+    public void accessToken() throws Exception {
+        String accessToken = service.getAccessToken(credId, resolver, TYPE_EMAIL);
+        ec.checkThat(accessToken, startsWith(PREFIX_TOKEN));
+
+        Authenticator auth = service.getMailAuthenticator(accessToken, resolver);
+        PasswordAuthentication pwdAuth = (PasswordAuthentication) MethodUtils.invokeMethod(auth, true, "getPasswordAuthentication");
+        ec.checkThat(pwdAuth.getUserName(), is("theuser"));
+        ec.checkThat(pwdAuth.getPassword(), is("thepwd"));
+    }
+
+    @Test
+    public void typeUnrestrictedToken() throws Exception {
+        credValues.remove(PROP_TYPE);
+        String accessToken = service.getAccessToken(credId, resolver, TYPE_EMAIL);
+        Authenticator auth = service.getMailAuthenticator(accessToken, resolver);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void invalidTokenType() throws Exception {
+        credValues.put(PROP_TYPE, new String[]{TYPE_HTTP});
+        String accessToken = service.getAccessToken(credId, resolver, TYPE_EMAIL);
+    }
+
+    @Test
+    public void invalidTokenTypeDelayed() throws Exception {
+        String accessToken = service.getAccessToken(credId, resolver, TYPE_EMAIL);
+        credValues.put(PROP_TYPE, new String[]{TYPE_HTTP});
+        try {
+            Authenticator auth = service.getMailAuthenticator(accessToken, resolver);
+            Assert.fail();
+        } catch (IllegalArgumentException e) {
+            // OK
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void noTokenIfDisabled() throws Exception {
+        credValues.put(PROP_ENABLED, false);
+        service.getAccessToken(credId, resolver, TYPE_EMAIL);
+    }
+
+    @Test
+    public void noTokenIfDisabledDelayed() throws Exception {
+        String accessToken = service.getAccessToken(credId, resolver, TYPE_EMAIL);
+        credValues.put(PROP_ENABLED, false);
+        try {
+            Authenticator auth = service.getMailAuthenticator(accessToken, resolver);
+            Assert.fail();
+        } catch (IllegalArgumentException e) {
+            // OK
+        }
     }
 
 }
