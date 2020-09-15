@@ -13,7 +13,7 @@ import java.util.Base64;
 import java.util.List;
 
 /**
- * Some support utilities to create a token containing several bits of information such that these can be put together and later extracted safely again.
+ * Some support utilities to create a token containing several pieces of information such that these can be put together and later extracted safely again.
  * We use a format using the length of each part as prefix: a token consisting of "part1", "thepart2" and "apart3" will look like
  * "3|5:part1|8:part2|6:apart3" - the first number is the number of parts as a quick sanity check that nothing was lost.
  */
@@ -95,7 +95,7 @@ public class TokenUtil {
      * @param token          the token to decode
      * @param expectedLength the number of parts the token should have
      * @return a list of the parts, has size {expectedLength}, some may be null
-     * @throws IllegalArgumentException if there was something wrong with the token
+     * @throws IllegalArgumentException if there was something wrong with the token, including not having the {expectedLength}.
      */
     @Nonnull
     public static List<String> extract(@Nullable String token, int expectedLength) throws IllegalArgumentException {
@@ -107,7 +107,9 @@ public class TokenUtil {
     }
 
     /**
-     * Makes the token resistant against accidential tampering by adding a hash. If the result of this is encrypted, this results in some kind of digital signature.
+     * Makes the token resistant against accidential tampering by adding a hash.
+     * If the result of this is also encrypted, this results in some kind of digital signature
+     * (which, of course can be done by all sides having the encryption key).
      */
     @Nonnull
     public static String addHash(@Nonnull String token) {
@@ -117,7 +119,7 @@ public class TokenUtil {
     }
 
     /**
-     * Removes a hash added with {@link #addHash(String)}.
+     * Removes a hash added with {@link #addHash(String)}. Does not check it - you need to {@link #checkHash(String)} before!
      */
     public static String removeHash(@Nonnull String tokenWithHash) {
         int firstBar = StringUtils.indexOf(tokenWithHash, '|');
