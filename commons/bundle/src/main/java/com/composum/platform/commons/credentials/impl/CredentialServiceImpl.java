@@ -202,7 +202,7 @@ public class CredentialServiceImpl implements CredentialService {
                     throw new IllegalArgumentException("Token time out of range.");
                 }
                 tokenRequiredType = decoded.get(1);
-                LOG.info("Credential retrieved with token: {}", credentialId);
+                LOG.debug("Credential retrieved with token: {}", credentialId);
                 // FIXME(hps,07.09.20) We also should check something about the current user.
             } else {
                 credentialId = tokenOrCredentialId;

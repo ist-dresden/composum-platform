@@ -1,6 +1,7 @@
 package com.composum.platform.commons.util;
 
 import org.apache.sling.commons.threads.ThreadPool;
+import org.apache.sling.commons.threads.ThreadPoolConfig;
 import org.apache.sling.commons.threads.ThreadPoolManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,8 @@ public class SlingThreadPoolExecutorService extends AbstractExecutorService {
 
     /**
      * Frees resources - remember to call this when no longer used.
+     * Caution: the Sling {@link ThreadPool} implementation threads this as {@link #shutdown()} or {@link #shutdownNow()}
+     * depending on {@link ThreadPoolConfig#isShutdownGraceful()}. If it's switched to graceful, it still does a {@link #shutdownNow()} after {@link ThreadPoolConfig#getShutdownWaitTimeMs()} before it returns.
      */
     @Override
     public synchronized void shutdown() {
@@ -62,15 +65,15 @@ public class SlingThreadPoolExecutorService extends AbstractExecutorService {
     }
 
     /**
-     * Not implemented.
+     * Not implemented, since the {@link #shutdown()} does that depending on the {@link ThreadPoolConfig}.
      *
-     * @deprecated not implemented; tell us if you really need this.
+     * @see #shutdown()
      */
     @Deprecated
     @Nonnull
     @Override
     public List<Runnable> shutdownNow() {
-        throw new UnsupportedOperationException("Not implemented yet: SlingThreadPoolExecutorService.shutdownNow");
+        throw new UnsupportedOperationException("Not implemented: SlingThreadPoolExecutorService.shutdownNow");
     }
 
     @Override
