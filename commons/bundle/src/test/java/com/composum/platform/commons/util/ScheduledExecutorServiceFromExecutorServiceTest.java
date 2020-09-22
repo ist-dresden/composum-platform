@@ -1,11 +1,14 @@
 package com.composum.platform.commons.util;
 
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
+import com.composum.sling.platform.testing.testutil.junitcategory.SlowTest;
+import com.composum.sling.platform.testing.testutil.junitcategory.TimingSensitive;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -20,6 +23,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 @RunWith(Parameterized.class)
+@Category({SlowTest.class, TimingSensitive.class})
 public class ScheduledExecutorServiceFromExecutorServiceTest {
 
     @Rule
@@ -79,14 +83,14 @@ public class ScheduledExecutorServiceFromExecutorServiceTest {
             executionTime = System.currentTimeMillis();
             System.out.println("Done: " + System.currentTimeMillis());
             return 1;
-        }, 50, TimeUnit.MILLISECONDS);
+        }, 100, TimeUnit.MILLISECONDS);
         ec.checkThat(future.isDone(), is(false));
-        Thread.sleep(100);
+        Thread.sleep(200);
         ec.checkThat(future.isDone(), is(true));
         ec.checkThat(future.get(5, TimeUnit.SECONDS), is(1));
         long timing = executionTime - begin;
-        ec.checkThat("" + timing, timing >= 50, is(true));
-        ec.checkThat("" + timing, timing < 100, is(true));
+        ec.checkThat("" + timing, timing >= 100, is(true));
+        ec.checkThat("" + timing, timing < 200, is(true));
     }
 
     @Test
@@ -126,21 +130,21 @@ public class ScheduledExecutorServiceFromExecutorServiceTest {
     public void checkCancelPeriodical() throws Exception {
         ScheduledFuture<?> future;
         if (fixedDelay) {
-            future = service.scheduleWithFixedDelay(this::execute3Times, 55, 50, TimeUnit.MILLISECONDS);
+            future = service.scheduleWithFixedDelay(this::execute3Times, 150, 100, TimeUnit.MILLISECONDS);
         } else {
-            future = service.scheduleAtFixedRate(this::execute3Times, 55, 50, TimeUnit.MILLISECONDS);
+            future = service.scheduleAtFixedRate(this::execute3Times, 150, 100, TimeUnit.MILLISECONDS);
         }
         ec.checkThat(future.isDone(), is(false));
         ec.checkThat(timesExecuted, is(0));
-        Thread.sleep(50);
+        Thread.sleep(100);
         ec.checkThat(future.isDone(), is(false));
         ec.checkThat(timesExecuted, is(0));
-        Thread.sleep(50);
+        Thread.sleep(100);
         ec.checkThat(future.isDone(), is(false));
         ec.checkThat(timesExecuted, is(1));
         future.cancel(true);
         ec.checkThat(future.isDone(), is(true));
-        Thread.sleep(150);
+        Thread.sleep(300);
         ec.checkThat(timesExecuted, is(1));
     }
 
