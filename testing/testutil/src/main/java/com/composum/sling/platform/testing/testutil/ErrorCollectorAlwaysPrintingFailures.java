@@ -89,16 +89,16 @@ public class ErrorCollectorAlwaysPrintingFailures implements MethodRule {
     }
 
     /**
-     * Adds to the table the exception, if any, thrown from {@code callable}.
+     * Adds to the table the exception, if any, thrown from {@code runnable}.
      * Execution continues, but the test will fail at the end if
      * {@code runnable} threw an exception and {@code exceptionMatcher} does not accept that.
      */
-    public void checkFailsWith(Callable<?> callable, Matcher<Throwable> exceptionMatcher) {
+    public void checkFailsWith(String reason, TestingRunnableWithException runnable, Matcher<Throwable> exceptionMatcher) {
         try {
-            callable.call();
-            errorCollector.checkThat(null, exceptionMatcher);
+            runnable.run();
+            errorCollector.checkThat(reason,null, exceptionMatcher);
         } catch (Throwable e) {
-            errorCollector.checkThat(e, exceptionMatcher);
+            errorCollector.checkThat(reason, e, exceptionMatcher);
         }
     }
 
@@ -108,13 +108,9 @@ public class ErrorCollectorAlwaysPrintingFailures implements MethodRule {
      * {@code runnable} threw an exception and {@code exceptionMatcher} does not accept that.
      */
     public void checkFailsWith(TestingRunnableWithException runnable, Matcher<Throwable> exceptionMatcher) {
-        try {
-            runnable.run();
-            errorCollector.checkThat(null, exceptionMatcher);
-        } catch (Throwable e) {
-            errorCollector.checkThat(e, exceptionMatcher);
-        }
+        checkFailsWith(null, runnable, exceptionMatcher);
     }
+
 
     /**
      * Adds a Throwable to the table.  Execution continues, but the test will fail at the end.
