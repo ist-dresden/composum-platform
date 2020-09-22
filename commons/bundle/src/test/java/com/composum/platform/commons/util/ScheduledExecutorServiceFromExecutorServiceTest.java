@@ -65,14 +65,14 @@ public class ScheduledExecutorServiceFromExecutorServiceTest {
     @Test
     public void testSubmit() throws Exception {
         Future<Integer> future = service.submit(() -> {
-            timesExecuted = 1;
+            timesExecuted.set(1);
             return 1;
         });
         // ec.checkThat(timesExecuted, is(0)); // does usually but not always work
         ec.checkThat(future.isDone(), is(false));
         Thread.sleep(100);
         ec.checkThat(future.isDone(), is(true));
-        ec.checkThat(timesExecuted, is(1));
+        ec.checkThat(timesExecuted.get(), is(1));
         ec.checkThat(future.get(5, TimeUnit.SECONDS), is(1));
     }
 
@@ -102,13 +102,13 @@ public class ScheduledExecutorServiceFromExecutorServiceTest {
             future = service.scheduleAtFixedRate(this::execute3Times, 150, 100, TimeUnit.MILLISECONDS);
         }
         ec.checkThat(future.isDone(), is(false));
-        ec.checkThat(timesExecuted, is(0));
+        ec.checkThat(timesExecuted.get(), is(0));
         Thread.sleep(100);
         ec.checkThat(future.isDone(), is(false));
-        ec.checkThat(timesExecuted, is(0));
+        ec.checkThat(timesExecuted.get(), is(0));
         System.out.println(future.isDone());
         Thread.sleep(100);
-        ec.checkThat(timesExecuted, is(1));
+        ec.checkThat(timesExecuted.get(), is(1));
         System.out.println(future.isDone());
         Thread.sleep(100);
         System.out.println(future.isDone());
@@ -123,7 +123,7 @@ public class ScheduledExecutorServiceFromExecutorServiceTest {
         } catch (ExecutionException e) {
             ec.checkThat(e.getCause(), instanceOf(IllegalStateException.class));
         }
-        ec.checkThat(timesExecuted, is(3));
+        ec.checkThat(timesExecuted.get(), is(3));
     }
 
     @Test
@@ -134,18 +134,12 @@ public class ScheduledExecutorServiceFromExecutorServiceTest {
         } else {
             future = service.scheduleAtFixedRate(this::execute3Times, 150, 100, TimeUnit.MILLISECONDS);
         }
-        ec.checkThat(future.isDone(), is(false));
-        ec.checkThat(timesExecuted, is(0));
-        Thread.sleep(100);
-        ec.checkThat(future.isDone(), is(false));
-        ec.checkThat(timesExecuted, is(0));
-        Thread.sleep(100);
-        ec.checkThat(future.isDone(), is(false));
-        ec.checkThat(timesExecuted, is(1));
+        while (timesExecuted.get() < 2) {
+            Thread.sleep(20);
+        }
         future.cancel(true);
-        ec.checkThat(future.isDone(), is(true));
         Thread.sleep(300);
-        ec.checkThat(timesExecuted, is(1));
+        ec.checkThat(timesExecuted.get(), is(2)); // wasn't run again.
     }
 
     protected AtomicInteger counter = new AtomicInteger();
@@ -170,26 +164,26 @@ public class ScheduledExecutorServiceFromExecutorServiceTest {
     @Test
     public void checkOrdering() throws Exception {
         ScheduledFuture<?> future1 = service.schedule(() -> {
-            timesExecuted = 1;
+            timesExecuted.set(1);
         }, 200, TimeUnit.MILLISECONDS);
         ScheduledFuture<?> future2 = service.schedule(() -> {
-            otherExecuted = 1;
+            otherExecuted.set(1);
         }, 100, TimeUnit.MILLISECONDS);
         future2.get(1, TimeUnit.SECONDS);
-        ec.checkThat(timesExecuted, is(0));
-        ec.checkThat(otherExecuted, is(1));
+        ec.checkThat(timesExecuted.get(), is(0));
+        ec.checkThat(otherExecuted.get(), is(1));
         future1.get(1, TimeUnit.SECONDS);
-        ec.checkThat(timesExecuted, is(1));
-        ec.checkThat(otherExecuted, is(1));
+        ec.checkThat(timesExecuted.get(), is(1));
+        ec.checkThat(otherExecuted.get(), is(1));
     }
 
-    int timesExecuted = 0;
-    int otherExecuted = 0;
+    AtomicInteger timesExecuted = new AtomicInteger();
+    AtomicInteger otherExecuted = new AtomicInteger();
 
     protected void execute3Times() {
         System.out.println("execute3Times at " + (System.currentTimeMillis() - begin));
-        timesExecuted++;
-        if (timesExecuted >= 3) {
+        timesExecuted.incrementAndGet();
+        if (timesExecuted.get() >= 3) {
             throw new IllegalStateException();
         }
     }
