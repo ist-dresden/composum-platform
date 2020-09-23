@@ -18,6 +18,10 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
 import static org.apache.commons.lang3.StringUtils.isBlank;
@@ -277,7 +281,7 @@ public abstract class Query {
     }
 
     /**
-     * Executes the query and returns the results as Resources.
+     * Executes the query and returns the results as an {@link Iterable} of Resources.
      *
      * @return the result, not null
      * @throws SlingException       if an error occurs querying for the resources.
@@ -286,6 +290,22 @@ public abstract class Query {
      */
     @Nonnull
     public abstract Iterable<Resource> execute() throws SlingException, QuerySyntaxException;
+
+    /**
+     * Executes the query and returns the results as {@link Stream} of Resources.
+     *
+     * @return the result, not null
+     * @throws SlingException       if an error occurs querying for the resources.
+     * @throws QuerySyntaxException if the query is not syntactically correct. (Shouldn't rarely happen, because of
+     *                              being a DSL and whatnot.)
+     */
+    @Nonnull
+    public Stream<Resource> stream() throws SlingException, QuerySyntaxException {
+        Iterable<Resource> resourceIterable = execute();
+        Spliterator<Resource> spliterator = Spliterators.spliteratorUnknownSize(resourceIterable.iterator(),
+                Spliterator.IMMUTABLE | Spliterator.NONNULL);
+        return StreamSupport.stream(spliterator, false);
+    }
 
     /**
      * Executes the query and returns only the given columns of the node. It can return various pseudo-columns .
