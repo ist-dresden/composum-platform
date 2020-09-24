@@ -8,6 +8,10 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.jcr.RepositoryException;
 import javax.mail.Authenticator;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
+import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * A systemwide credential store where you can retrieve credentials which are stored encrypted in the repository.
@@ -49,18 +53,20 @@ public interface CredentialService {
     boolean isEnabled();
 
     /**
-     * Creates an {@link Authenticator} returning a {@link java.net.PasswordAuthentication} with the credentials.
+     * Sends an email using the credentials specified by {credentialIdOrToken}.
      *
+     * @param message the message to send. It is cloned by {@link MimeMessage#writeTo(OutputStream)} to avoid exposing the credentials, so it's unmodified.
      * @param credentialIdOrToken ID for the credentials, usually a path from the credential root, e.g. content/ist/testsites/testpages/localfullsite.
      *                            It can also start with a slash, but it is not recommended to do so, since that could be confused with an absolute path.
      *                            It is also possible to give a token returned by {@link #getAccessToken(String, ResourceResolver, String)}.
      * @param aclCheckResolver    a resolver that has to be able to resolve the aclpath stored in the credential as a security mechanism.
+     * @return the Message-ID of the sent message.
      * @throws RepositoryException      error accessing the repository or the aclpath could not be read with the aclCheckResolver
      * @throws IllegalArgumentException if the credentials do not exist or are of the wrong type
      * @throws IllegalStateException    if the service is not enabled
      */
-    Authenticator getMailAuthenticator(@Nonnull String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException, IllegalArgumentException, IllegalStateException;
-
+    String sendMail(@Nonnull MimeMessage message, @Nonnull String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver)
+            throws RepositoryException, IOException, MessagingException;
     /**
      * Returns a token that can be used in place of a credentialId to access a credential for some time.
      * This is sometimes neccessary if a service needs credentials for retries - it won't have access to the

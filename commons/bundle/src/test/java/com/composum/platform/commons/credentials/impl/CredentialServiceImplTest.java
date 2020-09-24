@@ -49,7 +49,7 @@ public class CredentialServiceImplTest {
     @Mock
     CredentialServiceImpl.Configuration config;
 
-    CredentialService service = new CredentialServiceImpl();
+    CredentialServiceImpl service = new CredentialServiceImpl();
 
     @Before
     public void setup() throws Exception {

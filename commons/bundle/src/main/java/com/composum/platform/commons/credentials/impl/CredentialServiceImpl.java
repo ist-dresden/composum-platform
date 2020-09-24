@@ -28,7 +28,10 @@ import javax.annotation.Nullable;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.mail.Authenticator;
+import javax.mail.MessagingException;
 import javax.mail.PasswordAuthentication;
+import javax.mail.Transport;
+import javax.mail.internet.MimeMessage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -113,8 +116,21 @@ public class CredentialServiceImpl implements CredentialService {
         context.setCredentialsProvider(credsProvider);
     }
 
-    @Override
-    public Authenticator getMailAuthenticator(@Nonnull String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException {
+    /**
+     * Creates an {@link Authenticator} returning a {@link java.net.PasswordAuthentication} with the credentials.
+     * We do not pass this method outside since the credentials could be extracted from the authenticator using reflection.
+     * So this method is just used by {@link #sendMail(MimeMessage, String, ResourceResolver)}.
+     *
+     * @param credentialIdOrToken ID for the credentials, usually a path from the credential root, e.g. content/ist/testsites/testpages/localfullsite.
+     *                            It can also start with a slash, but it is not recommended to do so, since that could be confused with an absolute path.
+     *                            It is also possible to give a token returned by {@link #getAccessToken(String, ResourceResolver, String)}.
+     * @param aclCheckResolver    a resolver that has to be able to resolve the aclpath stored in the credential as a security mechanism.
+     * @throws RepositoryException      error accessing the repository or the aclpath could not be read with the aclCheckResolver
+     * @throws IllegalArgumentException if the credentials do not exist or are of the wrong type
+     * @throws IllegalStateException    if the service is not enabled
+     */
+    // currently only used for testing purposes
+    protected Authenticator getMailAuthenticator(@Nonnull String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException {
         CredentialConfiguration credentials = getCredentialConfiguration(credentialIdOrToken, aclCheckResolver);
         verifyTypeAllowed(credentials, TYPE_EMAIL);
         PasswordAuthentication passwordAuthentication = new PasswordAuthentication(credentials.user, credentials.passwd);
@@ -125,6 +141,21 @@ public class CredentialServiceImpl implements CredentialService {
             }
         };
         return result;
+    }
+
+    @Override
+    public String sendMail(@Nonnull MimeMessage message, @Nullable String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver)
+            throws RepositoryException, IOException, MessagingException {
+        if (StringUtils.isNotBlank(credentialIdOrToken)) {
+            CredentialConfiguration credentials = getCredentialConfiguration(credentialIdOrToken, aclCheckResolver);
+            verifyTypeAllowed(credentials, TYPE_EMAIL);
+            Transport.send(message, credentials.user, credentials.passwd);
+        } else {
+            Transport.send(message);
+        }
+        String messageId = message.getMessageID();
+        LOG.debug("Sent email ");
+        return messageId;
     }
 
     /**
