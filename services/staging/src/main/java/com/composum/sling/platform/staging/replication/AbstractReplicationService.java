@@ -579,7 +579,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             if (release == null) {
                 hasRelease = false;
                 messages.add(Message.warn("No applicable release found for {}", getId()));
-                LOG.warn("No applicable release found for {}", getId());
+                LOG.debug("No applicable release found for {}", getId());
                 return null;
             } else {
                 hasRelease = true;
