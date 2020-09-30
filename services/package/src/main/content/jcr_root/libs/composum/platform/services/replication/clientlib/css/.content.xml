@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0" xmlns:jcr="http://www.jcp.org/jcr/1.0"
+<jcr:root xmlns:jcr="http://www.jcp.org/jcr/1.0"
+        xmlns:sling="http://sling.apache.org/jcr/sling/1.0"
         jcr:primaryType="sling:OrderedFolder"
-        depends="[
-            fonts/awesome/4.7.0/css/font-awesome.css,
-            category:composum.components.widgets
-        ]"
-        embed="[
-            composum/platform/services/replication/css/replication.css
-        ]"/>
+        depends="[            fonts/awesome/4.7.0/css/font-awesome.css,            category:composum.components.widgets        ]"
+        embed="[            composum/platform/services/replication/css/replication.css        ]">
+</jcr:root>
