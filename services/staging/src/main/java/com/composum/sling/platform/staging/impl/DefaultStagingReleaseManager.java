@@ -1633,8 +1633,8 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         public String getType() {
             String type = versionReference.getProperty(JCR_FROZENPRIMARYTYPE, String.class);
             if (StringUtils.isBlank(type)) { // fallback for backwards compatibility - the primaryType wasn't always saved.
-                Resource versionResource = getVersionResource();
-                type = versionResource != null ? versionResource.getValueMap().get(JCR_FROZENPRIMARYTYPE, String.class) : null;
+                ResourceHandle versionResource = ResourceHandle.use(getVersionResource());
+                type = versionResource.isValid() ? versionResource.getProperty(JCR_FROZENNODE+"/" + JCR_FROZENPRIMARYTYPE, String.class) : null;
             }
             return Objects.requireNonNull(type, "Bug: could not determine primary type of reference"); // can't happen
         }
