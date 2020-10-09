@@ -102,8 +102,7 @@ import static com.composum.sling.platform.staging.StagingConstants.RELEASE_ROOT_
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
 import static com.composum.sling.platform.staging.StagingConstants.TYPE_VERSIONREFERENCE;
 import static java.util.Objects.requireNonNull;
-import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
-import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;
+import static org.apache.jackrabbit.JcrConstants.*;
 
 /**
  * Default implementation of {@link StagingReleaseManager} - description see there.
@@ -138,7 +137,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
      */
     protected final Random random = new SecureRandom();
 
-    public DefaultStagingReleaseManager() throws NoSuchAlgorithmException {
+    public DefaultStagingReleaseManager() {
     }
 
     @Reference(
@@ -152,6 +151,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         plugins.add(plugin);
     }
 
+    @SuppressWarnings("unused")
     protected void removeReleaseManagerPlugin(@Nonnull StagingReleaseManagerPlugin plugin) {
         LOG.info("Removing plugin {}@{}", plugin.getClass().getName(), System.identityHashCode(plugin));
         plugins.removeIf(stagingReleaseManagerPlugin -> stagingReleaseManagerPlugin == plugin);
@@ -167,9 +167,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
     @Nonnull
     @Override
     public ResourceHandle findReleaseRoot(@Nonnull Resource resource) throws ReleaseRootNotFoundException {
-        if (resource == null) {
-            throw new IllegalArgumentException("resource was null");
-        }
+        Objects.requireNonNull(resource,"resource was null");
 
         Resource result;
         String path = ResourceUtil.normalize(resource.getPath());
@@ -1545,6 +1543,10 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         @Nonnull
         private final ResourceHandle versionReference;
 
+        /** Lazily calculated resource in the version store this version refers to. */
+        @Nullable
+        private transient Resource versionResource;
+
         protected VersionReferenceImpl(@Nonnull ReleaseImpl release, @Nonnull Resource versionReference) {
             this.release = Objects.requireNonNull(release);
             this.versionReference = ResourceHandle.use(requireNonNull(versionReference));
@@ -1578,33 +1580,33 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         @Override
         @Nullable
         public String getLastActivatedBy() {
-            return versionReference != null ? versionReference.getProperty(PROP_LAST_ACTIVATED_BY, String.class) : null;
+            return versionReference.getProperty(PROP_LAST_ACTIVATED_BY, String.class);
         }
 
         @Override
         @Nullable
         public Calendar getLastDeactivated() {
-            return versionReference != null ? versionReference.getProperty(PROP_LAST_DEACTIVATED, Calendar.class) : null;
+            return versionReference.getProperty(PROP_LAST_DEACTIVATED, Calendar.class);
         }
 
         @Override
         @Nullable
         public String getLastDeactivatedBy() {
-            return versionReference != null ? versionReference.getProperty(PROP_LAST_DEACTIVATED_BY, String.class) : null;
+            return versionReference.getProperty(PROP_LAST_DEACTIVATED_BY, String.class);
         }
 
         @Override
         @Nullable
         public Resource getVersionResource() {
-            if (versionReference == null) {
-                return null;
+            if (versionResource == null) {
+                try {
+                    ResourceResolver resourceResolver = release.getReleaseRoot().getResourceResolver();
+                    versionResource = ResourceUtil.getByUuid(resourceResolver, getReleasedVersionable().getVersionUuid());
+                } catch (RepositoryException | ClassCastException e) {
+                    throw new SlingException("Trouble accessing version " + getReleasedVersionable().getVersionUuid(), e);
+                }
             }
-            try {
-                ResourceResolver resourceResolver = release.getReleaseRoot().getResourceResolver();
-                return ResourceUtil.getByUuid(resourceResolver, getReleasedVersionable().getVersionUuid());
-            } catch (RepositoryException | ClassCastException e) {
-                throw new SlingException("Trouble accessing version " + getReleasedVersionable().getVersionUuid(), e);
-            }
+            return versionResource;
         }
 
         @Nullable
@@ -1624,6 +1626,17 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
         @Override
         public String getPath() {
             return release.absolutePath(getReleasedVersionable().getRelativePath());
+        }
+
+        @Nonnull
+        @Override
+        public String getType() {
+            String type = versionReference.getProperty(JCR_FROZENPRIMARYTYPE, String.class);
+            if (StringUtils.isBlank(type)) { // fallback for backwards compatibility - the primaryType wasn't always saved.
+                Resource versionResource = getVersionResource();
+                type = versionResource != null ? versionResource.getValueMap().get(JCR_FROZENPRIMARYTYPE, String.class) : null;
+            }
+            return Objects.requireNonNull(type, "Bug: could not determine primary type of reference"); // can't happen
         }
 
         @Override
