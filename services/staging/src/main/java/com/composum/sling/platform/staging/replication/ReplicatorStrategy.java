@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -168,7 +169,7 @@ public class ReplicatorStrategy {
             abortIfNecessary(updateInfo);
             progress = 90;
 
-            Stream<ChildrenOrderInfo> relevantOrderings = relevantOrderings(trimmedPaths, replicationPaths);
+            Supplier<Stream<ChildrenOrderInfo>> relevantOrderings = () -> relevantOrderings(trimmedPaths, replicationPaths);
             if (messages.hasError()) {
                 throw new ReplicationException(Message.error("Aborting because of previous error"), null);
             }
@@ -369,8 +370,8 @@ public class ReplicatorStrategy {
             }
 
             // compare the children orderings and parent attributes
-            Stream<ChildrenOrderInfo> relevantOrderings = relevantOrderings(trimmedPaths, replicationPaths);
-            Stream<NodeAttributeComparisonInfo> attributeInfos = parentAttributeInfos(trimmedPaths, replicationPaths);
+            Supplier<Stream<ChildrenOrderInfo>> relevantOrderings = () -> relevantOrderings(trimmedPaths, replicationPaths);
+            Supplier<Stream<NodeAttributeComparisonInfo>> attributeInfos = () -> parentAttributeInfos(trimmedPaths, replicationPaths);
             Status compareParentState = publisher.compareParents(replicationPaths(null), resolver,
                     relevantOrderings, attributeInfos);
             if (!compareParentState.isValid()) {

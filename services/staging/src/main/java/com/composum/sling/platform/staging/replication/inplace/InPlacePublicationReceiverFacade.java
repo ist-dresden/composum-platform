@@ -186,10 +186,10 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
 
     @Nonnull
     @Override
-    public Status commitUpdate(@Nonnull UpdateInfo updateInfo, @Nonnull String newReleaseChangeNumber, @Nonnull Set<String> deletedPaths, @Nonnull Stream<ChildrenOrderInfo> relevantOrderings, @Nonnull ExceptionThrowingRunnable<? extends Exception> checkForParallelModifications) throws ReplicationException {
+    public Status commitUpdate(@Nonnull UpdateInfo updateInfo, @Nonnull String newReleaseChangeNumber, @Nonnull Set<String> deletedPaths, @Nonnull Supplier<Stream<ChildrenOrderInfo>> relevantOrderings, @Nonnull ExceptionThrowingRunnable<? extends Exception> checkForParallelModifications) throws ReplicationException {
         Status status = new Status(null, null, LOG);
         try {
-            backend.commit(updateInfo.updateId, deletedPaths, () -> relevantOrderings.iterator(), newReleaseChangeNumber);
+            backend.commit(updateInfo.updateId, deletedPaths, () -> relevantOrderings.get().iterator(), newReleaseChangeNumber);
         } catch (RuntimeException e) {
             throw new ReplicationException(Message.error("Internal error in operation commitUpdate"), e);
         }
@@ -209,13 +209,13 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
     }
 
     @Override
-    public Status compareParents(@Nonnull ReplicationPaths replicationPaths, @Nonnull ResourceResolver resolver, @Nonnull Stream<ChildrenOrderInfo> relevantOrderings, @Nonnull Stream<NodeAttributeComparisonInfo> attributeInfos) throws ReplicationException {
+    public Status compareParents(@Nonnull ReplicationPaths replicationPaths, @Nonnull ResourceResolver resolver, @Nonnull Supplier<Stream<ChildrenOrderInfo>> relevantOrderings, @Nonnull Supplier<Stream<NodeAttributeComparisonInfo>> attributeInfos) throws ReplicationException {
         Status status = new Status(null, null, LOG);
         try {
-            List<String> differentChildorderings = backend.compareChildorderings(replicationPaths, () -> relevantOrderings.iterator());
+            List<String> differentChildorderings = backend.compareChildorderings(replicationPaths, () -> relevantOrderings.get().iterator());
             status.data(PARAM_CHILDORDERINGS).put(PARAM_PATH, differentChildorderings);
 
-            List<String> differentParentAttributes = backend.compareAttributes(replicationPaths, () -> attributeInfos.iterator());
+            List<String> differentParentAttributes = backend.compareAttributes(replicationPaths, () -> attributeInfos.get().iterator());
             status.data(PARAM_ATTRIBUTEINFOS).put(PARAM_PATH, differentParentAttributes);
         } catch (RuntimeException e) {
             throw new ReplicationException(Message.error("Internal error in operation commitUpdate"), e);

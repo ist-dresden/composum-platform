@@ -6,23 +6,16 @@ import com.composum.sling.platform.staging.replication.json.ChildrenOrderInfo;
 import com.composum.sling.platform.staging.replication.json.NodeAttributeComparisonInfo;
 import com.composum.sling.platform.staging.replication.json.VersionableTree;
 import com.google.gson.GsonBuilder;
-import com.google.gson.stream.JsonWriter;
-import org.apache.http.StatusLine;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.jcr.RepositoryException;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
@@ -95,7 +88,7 @@ public interface PublicationReceiverFacade {
     @Nonnull
     Status commitUpdate(@Nonnull UpdateInfo updateInfo, @Nonnull String newReleaseChangeNumber,
                         @Nonnull Set<String> deletedPaths,
-                        @Nonnull Stream<ChildrenOrderInfo> relevantOrderings,
+                        @Nonnull Supplier<Stream<ChildrenOrderInfo>> relevantOrderings,
                         @Nonnull ExceptionThrowingRunnable<? extends Exception> checkForParallelModifications)
             throws ReplicationException;
 
@@ -111,8 +104,8 @@ public interface PublicationReceiverFacade {
      * .data(PARAM_ATTRIBUTEINFOS).get(PARAM_PATH) a list of paths that have different attributes.
      */
     Status compareParents(@Nonnull ReplicationPaths replicationPaths, @Nonnull ResourceResolver resolver,
-                          @Nonnull Stream<ChildrenOrderInfo> relevantOrderings,
-                          @Nonnull Stream<NodeAttributeComparisonInfo> attributeInfos)
+                          @Nonnull Supplier<Stream<ChildrenOrderInfo>> relevantOrderings,
+                          @Nonnull Supplier<Stream<NodeAttributeComparisonInfo>> attributeInfos)
             throws ReplicationException;
 
     /**
