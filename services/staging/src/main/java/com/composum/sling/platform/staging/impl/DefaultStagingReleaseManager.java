@@ -1117,7 +1117,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
     @Nullable
     @Override
-    public Release findReleaseByMark(@Nullable Resource resource, @Nonnull String mark) {
+    public Release findReleaseByMark(@Nullable Resource resource, @Nonnull String mark) throws ReleaseRootNotFoundException {
         if (resource == null) {
             return null;
         }

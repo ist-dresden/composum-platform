@@ -3,10 +3,12 @@ package com.composum.sling.platform.staging.model;
 import com.composum.platform.commons.util.ExceptionThrowingFunction;
 import com.composum.sling.core.AbstractSlingBean;
 import com.composum.sling.core.BeanContext;
+import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.logging.Message;
 import com.composum.sling.core.util.I18N;
 import com.composum.sling.core.util.RequestUtil;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.Release;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.AggregatedReplicationStateInfo;
@@ -425,7 +427,13 @@ public class ReplicationStatus extends AbstractSlingBean {
     @Nullable
     public ReleaseModel getRelease() {
         if (release == null) {
-            release = new ReleaseModel(getReleaseManager().findReleaseByMark(getResource(), getStage()));
+            ResourceHandle resource = getResource();
+            String stage = getStage();
+            try {
+                release = new ReleaseModel(getReleaseManager().findReleaseByMark(resource, stage));
+            } catch (StagingReleaseManager.ReleaseRootNotFoundException e) {
+                LOG.warn("Cannot find release root for stage {} of {}", stage, SlingResourceUtil.getPath(resource));
+            }
         }
         return release;
     }

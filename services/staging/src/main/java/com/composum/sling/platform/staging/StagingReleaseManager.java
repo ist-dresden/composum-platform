@@ -273,9 +273,10 @@ public interface StagingReleaseManager {
      * @param resource a release root or its subnodes
      * @param mark     a nonempty string usable as attribute name
      * @return the marked release, or null if the mark isn't set.
+     * @throws ReleaseRootNotFoundException if the resource is not below a {@link ResourceHandle#isValid()} release root
      */
     @Nullable
-    Release findReleaseByMark(@Nullable Resource resource, @Nonnull String mark);
+    Release findReleaseByMark(@Nullable Resource resource, @Nonnull String mark) throws ReleaseRootNotFoundException;
 
     /**
      * Returns the release to which the {releaseResource} (e.g. the metaData node of the release) belongs.
