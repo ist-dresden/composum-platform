@@ -197,7 +197,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
     public abstract class AbstractReplicationProcess implements ReplicationProcess {
 
         protected final Object changedPathsChangeLock = new Object();
-        protected volatile MessageContainer messages = new MessageContainer(LoggerFactory.getLogger(getClass()));
+        protected volatile MessageContainer messages = new MessageContainer(/*LoggerFactory.getLogger(getClass())*/);
         // we deliberately save nothing that refers to resolvers, since this is an object that lives long
         @Nonnull
         protected volatile String configPath;
