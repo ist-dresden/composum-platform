@@ -117,7 +117,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
                 description = "uri patterns which are always editing requests"
         )
         String[] author_uri_patterns() default {
-                "^/bin/(?!public/).*$"
+                "^/bin/(?!(public|cpm/platform/auth)/).*$"
         };
 
         @AttributeDefinition(
@@ -125,13 +125,14 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
                 description = "URI patterns allowed for public access (to enable the login function)"
         )
         String[] author_allow_anonymous() default {
-                "^/apps/.*\\.(css|js)$",
+                "^/apps/.*\\.(css|js|svg|jpg|jpeg|png|gif|ico|ttf|woff2?)$",
                 "^/bin/public/clientlibs\\.(min\\.)?(css|js)(/.*)?$",
                 "^/libs(/jslibs)?/.*\\.(js|css|map)$",
                 "^/(libs/)?fonts/.*\\.(css|eot|svg|ttf|woff2?)$",
                 "^/libs(/composum/platform/public)?/login.*\\.(html|css|js|png)$",
                 "^/j_security_check$",
-                "^/favicon.ico$"
+                "^/favicon.ico$",
+                "^/bin/cpm/platform/auth/sessionTransferCallback$"
         };
 
         @AttributeDefinition(
@@ -163,7 +164,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
                 description = "the general whitelist URI patterns for a public host"
         )
         String[] public_uri_allow() default {
-                "^/robots\\.txt$",
+                "^/(sitemap\\.)?robots\\.txt$",
                 "^/sitemap\\.xml$",
                 "^/favicon\\.ico$",
                 "^/bin/public/clientlibs\\.(min\\.)?(css|js)(/.*)?$"
@@ -174,7 +175,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
                 description = "the general whitelist PATH patterns for a public host"
         )
         String[] public_path_allow() default {
-                "^/apps/.*\\.(css|js)$",
+                "^/apps/.*\\.(css|js|svg|jpg|jpeg|png|gif|ico|ttf|woff2?)$",
                 "^/libs/sling/servlet/errorhandler/.*$",
                 "^/libs/(fonts|jslibs|themes)/.*$",
                 "^/libs(/composum/platform/public)?/login.*$"
