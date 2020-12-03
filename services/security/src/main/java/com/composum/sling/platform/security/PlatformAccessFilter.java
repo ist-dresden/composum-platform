@@ -5,6 +5,7 @@
  */
 package com.composum.sling.platform.security;
 
+import com.composum.platform.commons.request.AccessMode;
 import com.composum.sling.core.util.LinkMapper;
 import com.composum.sling.core.util.LinkUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -43,9 +44,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import static com.composum.sling.platform.security.AccessMode.ACCESS_MODE_AUTHOR;
-import static com.composum.sling.platform.security.AccessMode.ACCESS_MODE_PREVIEW;
-import static com.composum.sling.platform.security.AccessMode.ACCESS_MODE_PUBLIC;
+import static com.composum.platform.commons.request.AccessMode.ACCESS_MODE_AUTHOR;
+import static com.composum.platform.commons.request.AccessMode.ACCESS_MODE_PREVIEW;
+import static com.composum.platform.commons.request.AccessMode.ACCESS_MODE_PUBLIC;
+import static com.composum.platform.commons.request.AccessMode.RA_ACCESS_MODE;
 
 @Component(
         service = {Filter.class, PlatformAccessService.class},
@@ -65,7 +67,6 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
 
     // access filter keys
     public static final String ACCESS_MODE_PARAM = "cpm.access";
-    public static final String ACCESS_MODE_KEY = "composum-platform-access-mode";
 
     @ObjectClassDefinition(
             name = "Composum Platform Access Filter Configuration",
@@ -293,7 +294,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
         SlingHttpServletResponse slingResponse = (SlingHttpServletResponse) response;
 
         AccessMode accessMode = getAccessMode(slingRequest, slingResponse);
-        slingRequest.setAttribute(ACCESS_MODE_KEY, accessMode.name());
+        slingRequest.setAttribute(RA_ACCESS_MODE, accessMode.name());
 
         if (authPlugin != null) {
             if (LOG.isDebugEnabled()) {
@@ -433,9 +434,9 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
                 accessMode = value;
                 HttpSession httpSession = request.getSession(true);
                 if (httpSession != null) {
-                    httpSession.setAttribute(ACCESS_MODE_KEY, accessMode);
+                    httpSession.setAttribute(RA_ACCESS_MODE, accessMode);
                     if (LOG.isInfoEnabled()) {
-                        LOG.info("session access mode (" + ACCESS_MODE_KEY + ") set to: " + accessMode);
+                        LOG.info("session access mode (" + RA_ACCESS_MODE + ") set to: " + accessMode);
                     }
                 }
             }
@@ -447,7 +448,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
                 // otherwise you can lost the editing context for a session
                 HttpSession httpSession = request.getSession(false);
                 if (httpSession != null) {
-                    value = AccessMode.accessModeValue(httpSession.getAttribute(ACCESS_MODE_KEY));
+                    value = AccessMode.accessModeValue(httpSession.getAttribute(RA_ACCESS_MODE));
                     if (value != null && isAuthorHost(request)) {
                         accessMode = value;
                     }
@@ -567,7 +568,9 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
         }
         previewHostPatterns = new ArrayList<>();
         for (String rule : PropertiesUtil.toStringArray(config.preview_host_patterns())) {
-            if (StringUtils.isNotBlank(rule = rule.trim())) { previewHostPatterns.add(Pattern.compile(rule)); }
+            if (StringUtils.isNotBlank(rule = rule.trim())) {
+                previewHostPatterns.add(Pattern.compile(rule));
+            }
         }
         authorUriPatterns = new ArrayList<>();
         for (String rule : PropertiesUtil.toStringArray(config.author_uri_patterns())) {

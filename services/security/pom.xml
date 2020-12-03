@@ -61,6 +61,12 @@
     </build>
     <dependencies>
 
+        <!-- Composum Platform -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>composum-platform-commons-bundle</artifactId>
+        </dependency>
+
         <!-- Composum Nodes (Core) -->
         <dependency>
             <groupId>com.composum.sling.core</groupId>

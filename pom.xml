@@ -58,6 +58,20 @@
     <dependencyManagement>
         <dependencies>
 
+            <!-- Composum Platform -->
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>composum-platform-commons-bundle</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>composum-platform-models-bundle</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
             <!-- Composum Nodes -->
             <dependency>
                 <groupId>com.composum.sling.core</groupId>

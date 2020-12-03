@@ -3,7 +3,7 @@ package com.composum.sling.platform.staging.replication;
 import com.composum.sling.core.AbstractSlingBean;
 import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.platform.security.AccessMode;
+import com.composum.platform.commons.request.AccessMode;
 import org.apache.sling.api.resource.Resource;
 
 import javax.annotation.Nonnull;
@@ -51,8 +51,8 @@ public abstract class AbstractReplicationConfig extends AbstractSlingBean implem
     }
 
     /**
-     * The release mark (mostly {@link com.composum.sling.platform.security.AccessMode#PUBLIC} /
-     * {@link com.composum.sling.platform.security.AccessMode#PREVIEW}) for which the release is replicated.
+     * The release mark (mostly {@link AccessMode#PUBLIC} /
+     * {@link AccessMode#PREVIEW}) for which the release is replicated.
      * If empty, there is no replication.
      */
     @Nonnull
