@@ -92,7 +92,9 @@ public class DefaultPlatformRequestLogger implements PlatformRequestLogger {
         }
         builder.append("' (")
                 .append(request.getRemoteUser())
-                .append(") '")
+                .append(") ")
+                .append(duration)
+                .append("ms '")
                 .append(referer != null ? referer : "-")
                 .append("' {")
                 .append(userAgent != null ? userAgent : "?")

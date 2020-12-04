@@ -30,7 +30,7 @@ import java.util.Map;
         property = {
                 Constants.SERVICE_DESCRIPTION + "=Composum Request Tracking Filter",
                 "sling.filter.scope=REQUEST",
-                "service.ranking:Integer=" + 50
+                "service.ranking:Integer=" + 9000
         },
         immediate = true
 )
