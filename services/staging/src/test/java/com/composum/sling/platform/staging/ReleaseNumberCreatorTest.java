@@ -41,6 +41,13 @@ public class ReleaseNumberCreatorTest {
     }
 
     @Test
+    public void firstRelease() {
+        ec.checkThat(MAJOR.bumpRelease(""), is("r1"));
+        ec.checkThat(MINOR.bumpRelease(""), is("r0.1"));
+        ec.checkThat(BUGFIX.bumpRelease(""), is("r0.0.1"));
+    }
+
+    @Test
     public void sorting() {
         List<String> rels = new ArrayList<>(Arrays.asList("r10.9", "r1.2.1", "r3.2.2", "r1.2", "", "r3.10.2", CURRENT_RELEASE, "r", "r3.5"));
         Collections.sort(rels, COMPARATOR_RELEASES);

@@ -7,15 +7,12 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.commons.lang3.reflect.TypeUtils;
-import org.hamcrest.Matchers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Method;
 import java.util.*;
-
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.is;
+import java.util.regex.Matcher;
 
 public class AssertionCodeGenerator {
 
@@ -27,7 +24,7 @@ public class AssertionCodeGenerator {
 
     protected final StringBuilder assertionBuf = new StringBuilder();
 
-    protected boolean useErrorCollector = false;
+    protected String errorCollector;
 
     protected String message;
 
@@ -38,34 +35,51 @@ public class AssertionCodeGenerator {
         this.object = object;
     }
 
-    /** Prints the neccesary imports. */
+    /**
+     * Prints the neccesary imports.
+     */
     public AssertionCodeGenerator printImports() {
         allAssertionsBuf.append("import static org.hamcrest.Matchers.*;\n");
         allAssertionsBuf.append("import static " + SlingMatchers.class.getName() + ".*;\n");
-        if (useErrorCollector)
+        if (errorCollector != null)
             allAssertionsBuf.append("import " + ErrorCollectorAlwaysPrintingFailures.class.getName() + ";\n\n" +
                     "    @Rule\n" +
-                    "    public final ErrorCollectorAlwaysPrintingFailures errorCollector = new ErrorCollectorAlwaysPrintingFailures();\n\n");
+                    "    public final ErrorCollectorAlwaysPrintingFailures " + errorCollector + " = new ErrorCollectorAlwaysPrintingFailures();\n\n");
         allAssertionsBuf.append("    // ASSERTIONS FOR OBJECT ").append(variableName)
                 .append(" OF CLASS ").append(object.getClass()).append(" : \n");
         return this;
     }
 
-    /** Uses the ErrorCollectorAlwaysPrintingFailures rule to catch all errors at the same time. */
+    /**
+     * Uses the ErrorCollectorAlwaysPrintingFailures rule to catch all errors at the same time.
+     */
     @Nonnull
-    public AssertionCodeGenerator useErrorCollector() {
-        useErrorCollector = true;
+    public AssertionCodeGenerator useErrorCollector(String errorCollector) {
+        this.errorCollector = errorCollector;
         return this;
     }
 
-    /** Specifies a message to log. */
+    /**
+     * Uses the ErrorCollectorAlwaysPrintingFailures rule to catch all errors at the same time.
+     */
+    @Nonnull
+    public AssertionCodeGenerator useErrorCollector() {
+        return useErrorCollector("errorCollector");
+    }
+
+
+    /**
+     * Specifies a message to log.
+     */
     @Nonnull
     public AssertionCodeGenerator withMessage(String message) {
         this.message = message;
         return this;
     }
 
-    /** Spezifies some properties to ignore. */
+    /**
+     * Spezifies some properties to ignore.
+     */
     @Nonnull
     public AssertionCodeGenerator ignoreProperties(String... ignoredProperties) {
         ignoredPropertySet.addAll(Arrays.asList(ignoredProperties));
@@ -126,7 +140,9 @@ public class AssertionCodeGenerator {
         return this;
     }
 
-    /** Generate assertions for a map - all elements and the size. */
+    /**
+     * Generate assertions for a map - all elements and the size.
+     */
     @Nonnull
     public AssertionCodeGenerator printMapAssertions() {
         try {
@@ -152,12 +168,17 @@ public class AssertionCodeGenerator {
     }
 
     protected String quoteString(String string) {
-        if (string == null) return "null";
-        return '"' + string.replaceAll("\"", "\\\"") + '"';
+        if (string == null) {
+            return "null";
+        }
+        String quoted = '"' + string.replaceAll("\"", Matcher.quoteReplacement("\\\"")) + '"';
+        return quoted;
         // yes, this is yet missing support for special chars
     }
 
-    /** Appends a matcher to buf that matches if a value is just like {value}. */
+    /**
+     * Appends a matcher to buf that matches if a value is just like {value}.
+     */
     protected void createMatcher(Object value) {
         if (value == null) {
             assertionBuf.append("nullValue()");
@@ -221,12 +242,16 @@ public class AssertionCodeGenerator {
         }
     }
 
-    /** Creates a matcher for a generic Iterable. Difficult. We just compare lengths for a start. */
+    /**
+     * Creates a matcher for a generic Iterable. Difficult. We just compare lengths for a start.
+     */
     protected void createMatcherForIterable(List contents) {
         assertionBuf.append("iterableWithSize(").append(contents.size()).append(")");
     }
 
-    /** Creates a matcher for a Map. Difficult. We just compare toStrings for a start. */
+    /**
+     * Creates a matcher for a Map. Difficult. We just compare toStrings for a start.
+     */
     protected void createMatcherForMap(@Nonnull Map<?, ?> map) {
         /* assertionBuf.append("mappedMatches(SlingMatchers::sortedToString, is(");
         appendQuotedString(sortedToString(map));
@@ -247,7 +272,9 @@ public class AssertionCodeGenerator {
         }
     }
 
-    /** Creates a matcher for a Map. Difficult. We just compare toStrings for a start. */
+    /**
+     * Creates a matcher for a Map. Difficult. We just compare toStrings for a start.
+     */
     protected void createMatcherForList(@Nonnull Collection<?> collection) {
         assertionBuf.append("mappedMatches(Object::toString, is(");
         appendQuotedString(collection.toString());
@@ -264,8 +291,8 @@ public class AssertionCodeGenerator {
 
     protected void appendAssertionStart(String invocation) {
         assertionBuf.setLength(0);
-        if (useErrorCollector) {
-            assertionBuf.append("        errorCollector.checkThat(");
+        if (errorCollector != null) {
+            assertionBuf.append("        " + errorCollector + ".checkThat(");
             if (message != null) {
                 assertionBuf.append(message);
                 assertionBuf.append(", ");
@@ -287,7 +314,9 @@ public class AssertionCodeGenerator {
         assertionBuf.setLength(0);
     }
 
-    /** Marker that the current property should be skipped - perhaps since it's an unknown type */
+    /**
+     * Marker that the current property should be skipped - perhaps since it's an unknown type
+     */
     protected static class SkipPropertyException extends RuntimeException {
         //empty
     }

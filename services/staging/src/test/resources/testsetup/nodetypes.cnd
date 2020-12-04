@@ -4,10 +4,12 @@
 <'sling'='http://sling.apache.org/jcr/sling/1.0'>
 <'cpl'='http://sling.composum.com/platform/1.0'>
 
-/* Mixin that makes a node a root of a release. This is currently just a marker mixin.
+/* Mixin that makes a node a root of a release.
+   cpl:releaseChangeNumber is a UID for the content contained in a release - each time it's changed this is updated
  */
 [cpl:releaseRoot]
   mixin
+  - cpl:releaseChangeNumber (STRING)
 
 /* References a version within the release tree. Allows other attributes / child nodes as release metadata.
    cpl:versionHistory is the jcr:uuid of the nt:versionHistory - the jcr:versionHistory attribute in mix:versionable ,
@@ -24,3 +26,16 @@
   - * (UNDEFINED)
   + * (nt:base) = nt:unstructured VERSION
 
+/** A mixin to add to replicated versionables which specifies from which version it was replicated.
+ We create a mixin for that since this can be added to e.g. nt:resource, which doesn't admit additional properties. */
+[mix:ReplicatedVersionable]
+  mixin
+  - cpl:replicatedVersion (REFERENCE)
+
+[cpl:MetaData] > nt:unstructured, mix:created, mix:lastModified
+
+/** Is often added to nt:resource to allow it having a metadata node, and also makes it versionable so that it
+ is easily usable with the staging mechanisms. */
+[cpl:Resource] > sling:Resource, mix:created, mix:versionable
+  mixin
+  + meta (cpl:MetaData) = cpl:MetaData

@@ -1,13 +1,13 @@
 package com.composum.sling.platform.staging.impl;
 
 
+import com.composum.sling.platform.staging.Release;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.StagingReleaseManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
-import org.apache.sling.api.resource.ResourceResolverFactory;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.api.wrappers.SlingHttpServletRequestWrapper;
 import org.apache.sling.engine.EngineConstants;
@@ -103,7 +103,7 @@ public class ResourceResolverChangeFilter implements Filter, ReleaseMapper {
                         String releaseNumber = StringUtils.removeStart(releasedLabel, "composum-release-");
 
                         try {
-                            StagingReleaseManager.Release release = releaseManager.findRelease(requestedResource, releaseNumber);
+                            Release release = releaseManager.findRelease(requestedResource, releaseNumber);
                             final ResourceResolver stagingResourceResolver =
                                     releaseManager.getResolverForRelease(release, this, true);
                             toClose = stagingResourceResolver;

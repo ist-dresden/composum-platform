@@ -16,7 +16,8 @@ import java.io.Writer;
 import java.util.Map;
 
 /**
- * a service to embed dynamic values specified in a text (property) as placeholders ('${...}')
+ * A service to embed dynamic values specified in a text (property) as placeholders ('${...}').
+ * The placeholders can have several forms as documented in {@link com.composum.sling.core.util.ValueEmbeddingReader}.
  *
  * @see com.composum.sling.core.util.ValueEmbeddingReader
  */

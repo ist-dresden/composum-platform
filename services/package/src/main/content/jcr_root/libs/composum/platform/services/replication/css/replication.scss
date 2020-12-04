@@ -1,0 +1,248 @@
+@charset "UTF-8";
+
+@import "variables";
+
+$replication-status-width: 100px;
+$replication-inline-padding: 7px;
+$replication-panel-padding: 10px;
+$replication-switch-indent: 35px;
+$replication-switch-font-size: 20px;
+$replication-horizontal-padding: 15px;
+$replication-process-progress-width: 35%;
+$replication-stage-title-min-with: 120px;
+
+.composum-platform-replication-status {
+
+    &_badge.badge {
+        min-width: 18px;
+        min-height: 18px;
+        padding: 3px;
+
+        &:empty {
+            display: inline-block;
+        }
+
+        &.running {
+            color: $replication-badge-running-fg;
+            background-color: $replication-badge-running-bg;
+        }
+
+        &.synchron {
+            color: $replication-badge-synchron-fg;
+            background-color: $replication-badge-synchron-bg;
+        }
+
+        &.undefined {
+            color: $replication-badge-undefined-fg;
+            background-color: $replication-badge-undefined-bg;
+        }
+
+        &.switchedoff {
+            color: $replication-badge-switchedoff-fg;
+            background-color: $replication-badge-switchedoff-bg;
+        }
+
+        &.faulty {
+            color: $replication-badge-faulty-fg;
+            background-color: $replication-badge-faulty-bg;
+        }
+    }
+
+    &_progress {
+
+        .progress {
+            margin: 0;
+        }
+    }
+
+    &_state {
+
+        .badge {
+            min-width: $replication-status-width;
+
+            &.running {
+                color: $replication-badge-running-fg;
+                background-color: $replication-badge-running-bg;
+            }
+
+            &.synchron {
+                color: $replication-badge-synchron-fg;
+                background-color: $replication-badge-synchron-bg;
+            }
+
+            &.undefined {
+                color: $replication-badge-undefined-fg;
+                background-color: $replication-badge-undefined-bg;
+            }
+
+            &.switchedoff {
+                color: $replication-badge-switchedoff-fg;
+                background-color: $replication-badge-switchedoff-bg;
+            }
+
+            &.faulty {
+                color: $replication-badge-faulty-fg;
+                background-color: $replication-badge-faulty-bg;
+            }
+        }
+    }
+
+    &_view {
+        margin: 0;
+    }
+
+    &_heading {
+        padding: 0;
+        height: auto !important;
+    }
+
+    &_stage {
+        margin: 0;
+
+        .composum-platform-replication-status {
+
+            &_toggle {
+                display: flex;
+                align-items: center;
+                width: 100%;
+                padding: $replication-panel-padding $replication-horizontal-padding;
+
+                &, &:hover, &:active, &:focus, &:visited {
+                    text-decoration: none;
+                }
+            }
+
+            &_title {
+                min-width: $replication-stage-title-min-with;
+            }
+
+            &_state {
+                margin: 0 $replication-horizontal-padding;
+                font-size: 12px;
+
+                .badge {
+                    font-size: inherit;
+                }
+            }
+
+            &_progress {
+                width: 100%;
+            }
+
+            &_toolbar {
+                margin-left: $replication-horizontal-padding - $replication-inline-padding;
+
+                > div {
+                    margin-left: $replication-inline-padding;
+                }
+
+                button {
+                    padding: 3px $replication-inline-padding;
+                }
+            }
+        }
+    }
+
+    &_process {
+        position: relative;
+        padding-left: $replication-switch-indent + $replication-horizontal-padding;
+
+        .composum-platform-replication-status {
+
+            &_enabled {
+                position: absolute;
+                top: $replication-panel-padding;
+                left: $replication-horizontal-padding;
+                font-size: $replication-switch-font-size;
+                color: $bootstrap-color-success;
+
+                &.fa-toggle-off {
+                    color: $bootstrap-color-danger;
+                }
+            }
+
+            &_title {
+                margin-top: 0;
+                font-size: 16px;
+            }
+
+            &_general {
+                display: flex;
+                align-items: center;
+            }
+
+            &_state {
+                margin-right: $replication-inline-padding;
+                font-size: 12px;
+
+                .badge {
+                    font-size: inherit;
+                }
+            }
+
+            &_type, &_timestamp {
+                margin-left: $replication-inline-padding;
+            }
+
+            &_timestamp {
+
+                &:before {
+                    display: inline-block;
+                    content: '/';
+                    margin-right: $replication-inline-padding;
+                }
+            }
+
+            &_progress {
+                position: absolute;
+                top: $replication-panel-padding;
+                right: $replication-horizontal-padding;
+                width: $replication-process-progress-width;
+            }
+        }
+    }
+
+    &_page {
+
+        &-body {
+            margin: $replication-panel-padding;
+        }
+    }
+}
+
+.composum-platform-replication-dialog {
+    z-index: 3000;
+
+    &_stage {
+        font-size: 16px;
+        margin-left: $replication-panel-padding;
+    }
+
+    &_footer {
+
+        button {
+            min-width: 100px;
+        }
+
+        .dialog-form-buttons-toolbar {
+            display: inline-block;
+
+            .checkbox {
+                margin: 0 $bootstrap-spacing-h;
+            }
+        }
+    }
+
+    .composum-platform-replication-status {
+
+        &_stage {
+
+            .composum-platform-replication-status {
+
+                &_toolbar {
+                    display: none;
+                }
+            }
+        }
+    }
+}

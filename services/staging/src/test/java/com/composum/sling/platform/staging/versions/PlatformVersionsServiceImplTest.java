@@ -2,11 +2,11 @@ package com.composum.sling.platform.staging.versions;
 
 import com.composum.sling.core.filter.ResourceFilter;
 import com.composum.sling.core.filter.StringFilter;
-import com.composum.sling.platform.security.AccessMode;
+import com.composum.platform.commons.request.AccessMode;
 import com.composum.sling.platform.staging.ReleaseNumberCreator;
 import com.composum.sling.platform.staging.ReleasedVersionable;
 import com.composum.sling.platform.staging.StagingReleaseManager;
-import com.composum.sling.platform.staging.StagingReleaseManager.Release;
+import com.composum.sling.platform.staging.Release;
 import com.composum.sling.platform.staging.impl.AbstractStagingTest;
 import com.composum.sling.platform.staging.impl.DefaultStagingReleaseManager;
 import com.composum.sling.platform.staging.query.Query;
@@ -23,7 +23,6 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.SyntheticResource;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
 import org.hamcrest.Matchers;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,7 +54,6 @@ import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.fail;
 
 /** Tests for {@link PlatformVersionsServiceImpl}. */
 public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
@@ -156,7 +154,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
     public void defaultRelease() throws Exception {
         ec.checkThat(service.getDefaultRelease(versionable).getNumber(), is(CURRENT_RELEASE));
         Release r1 = releaseManager.finalizeCurrentRelease(versionable, ReleaseNumberCreator.MAJOR);
-        releaseManager.setMark(AccessMode.ACCESS_MODE_PUBLIC.toLowerCase(), r1);
+        releaseManager.setMark(AccessMode.ACCESS_MODE_PUBLIC.toLowerCase(), r1, true);
         resourceResolver.commit();
         ec.checkThat(service.getDefaultRelease(versionable).getNumber(), is(CURRENT_RELEASE));
     }
@@ -254,7 +252,7 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         ec.checkThat(status1.getPreviousRelease(), hasToString("Release('r1',/content/release)"));
         ec.checkThat(status1.getVersionReference().getLastActivated(), is(status.getVersionReference().getLastActivated()));
 
-        releaseManager.setMark(AccessMode.ACCESS_MODE_PUBLIC.toLowerCase(), r1);
+        releaseManager.setMark(AccessMode.ACCESS_MODE_PUBLIC.toLowerCase(), r1, true);
         resourceResolver.commit();
 
         status1 = service.getStatus(versionable, null); // without release key the current release
@@ -383,8 +381,8 @@ public class PlatformVersionsServiceImplTest extends AbstractStagingTest {
         releaseManager.updateRelease(r2, Collections.singletonList(rv));
 
         filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r2.getNumber(), null, null);
-        ec.checkThat(filter.accept(new SyntheticResource(resourceResolver, document1, TYPE_UNSTRUCTURED)), is(true)); // normally the cpp:Page - still there
-        ec.checkThat(filter.accept(new SyntheticResource(resourceResolver, document1 + "/jcr:content", TYPE_UNSTRUCTURED)), is(false)); // only this is removed
+        ec.checkThat(filter.accept(new SyntheticResource(resourceResolver, document1, TYPE_UNSTRUCTURED)), is(false)); // normally the cpp:Page - removed as well
+        ec.checkThat(filter.accept(new SyntheticResource(resourceResolver, document1 + "/jcr:content", TYPE_UNSTRUCTURED)), is(false));
 
         filter = service.releaseAsResourceFilter(currentRelease.getReleaseRoot(), r2.getNumber(), null, contentNodeFilter);
         // its content node is absent -> contentNodeFilter now blocks document1 , normally the cpp:Page

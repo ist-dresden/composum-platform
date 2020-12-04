@@ -1,20 +1,17 @@
 package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.platform.staging.StagingConstants;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.sling.api.resource.Resource;
 
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
 import java.util.regex.Pattern;
 
 import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASES;
-import static com.composum.sling.platform.staging.StagingConstants.NODE_RELEASE_ROOT;
 import static com.composum.sling.platform.staging.StagingConstants.RELEASE_ROOT_PATH;
 
 public class StagingUtils {
@@ -40,6 +37,20 @@ public class StagingUtils {
         String path = resource.getPath();
         if (isInVersionStorage(path)) { return true; }
         return path.startsWith(RELEASE_ROOT_PATH) && RELEASE_PATH_PATTERN.matcher(path).matches();
+    }
+
+    /** Checks whether a node is the jcr:frozenNode that represents the original versionable in the version storage. */
+    public static boolean isStoredVersionTopNode(@Nullable Resource resource) {
+        if (!isInStorage(resource)) { return false; }
+        return JcrConstants.JCR_FROZENNODE.equals(resource.getName()) &&
+                ResourceUtil.isPrimaryType(resource.getParent(), JcrConstants.NT_VERSION);
+    }
+
+    /** Checks whether a node is the jcr:frozenNode that represents the original versionable in the version storage. */
+    public static boolean isStoredVersionTopNode(@Nullable Node node) throws RepositoryException {
+        if (!isInStorage(node)) { return false; }
+        return JcrConstants.JCR_FROZENNODE.equals(node.getName()) &&
+                node.getParent().getPrimaryNodeType().isNodeType(JcrConstants.NT_VERSION);
     }
 
     public static boolean isInStorage(@Nullable Node node) throws RepositoryException {

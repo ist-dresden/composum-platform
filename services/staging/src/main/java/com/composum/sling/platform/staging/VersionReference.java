@@ -35,9 +35,13 @@ public interface VersionReference {
     Calendar getVersionCreated();
 
     @Nonnull
-    StagingReleaseManager.Release getRelease();
+    Release getRelease();
 
     /** The absolute path for the versionable, as it appears in the release. */
     @Nonnull
     String getPath();
+
+    /** The {@value com.composum.sling.core.util.ResourceUtil#PROP_PRIMARY_TYPE} of the resource. */
+    @Nonnull
+    String getType();
 }

@@ -1,0 +1,232 @@
+[
+  {
+    "path": "/",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/content",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": [
+              "jcr:read",
+              "rep:write",
+              "jcr:versionManagement"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/conf",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/var",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/var/composum",
+    "jcr:primaryType": "sling:Folder",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/var/composum/content",
+    "jcr:primaryType": "sling:Folder",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": [
+              "jcr:read",
+              "rep:write",
+              "jcr:versionManagement"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/var/composum/platform/security/credentials",
+    "jcr:primaryType": "sling:Folder",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/tmp",
+    "jcr:primaryType": "sling:Folder",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/tmp/composum",
+    "jcr:primaryType": "sling:Folder",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": "jcr:read",
+            "restrictions": {
+              "rep:glob": ""
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/tmp/composum/platform",
+    "jcr:primaryType": "sling:Folder",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": [
+              "jcr:read",
+              "rep:write",
+              "jcr:versionManagement"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/public",
+    "jcr:primaryType": "sling:Folder",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": [
+              "jcr:read",
+              "rep:write",
+              "jcr:versionManagement"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/preview",
+    "jcr:primaryType": "sling:Folder",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": [
+              "jcr:read",
+              "rep:write",
+              "jcr:versionManagement"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/var/composum/replication",
+    "jcr:primaryType": "sling:Folder",
+    "acl": [
+      {
+        "principal": "composum-platform-service",
+        "acl": [
+          {
+            "allow": true,
+            "privileges": [
+              "jcr:read",
+              "rep:write",
+              "jcr:versionManagement"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -50,11 +50,11 @@ public class QueryConditionDsl2Test {
                         "CONTAINS(n.* , $nval1 ) AND SCORE(n) > $nval2 "},
                 {builder().contains("prop", "test").or().upper().name().neq().val("node"),
                         "CONTAINS(n.[prop] , $nval1 ) OR UPPER( NAME(n) ) <> $nval2 "},
-                {builder().not().isNotNull("ha").or().not().startGroup().isChildOf("/somewhere"),
+                {builder().not().isNotNull("ha").or().not().startGroup().isChildOf("/somewhere").endGroup(),
                         "NOT n.[ha] IS NOT NULL OR NOT ( ISCHILDNODE(n,'/somewhere' ) ) "},
-                {builder().isDescendantOf("/what").and().startGroup().isSameNodeAs("/where"),
+                {builder().isDescendantOf("/what").and().startGroup().isSameNodeAs("/where").endGroup(),
                         "ISDESCENDANTNODE(n,'/what' ) AND ( ISSAMENODE(n,'/where' ) ) "},
-                {builder().isNull("that").and().startGroup().length("what").geq().val(17),
+                {builder().isNull("that").and().startGroup().length("what").geq().val(17).endGroup(),
                         "n.[that] IS NULL AND ( LENGTH(n.[what] ) >= $nval1 ) "},
                 {builder().property("that").gt().val(Double.MAX_VALUE).and().property("what").geq().val(Long.MAX_VALUE)
                         .and().property(JCR_PATH).like().val("/bla/%").and().property("p4").lt().val(Long.MIN_VALUE)

@@ -3,6 +3,7 @@ package com.composum.sling.platform.staging.impl;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
+import com.composum.sling.platform.staging.Release;
 import com.composum.sling.platform.staging.ReleaseMapper;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.StagingReleaseManager;
@@ -31,7 +32,7 @@ import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAME
 
 /**
  * <p>A {@link ResourceResolver} that provides transparent access to releases as defined in {@link StagingReleaseManager}.
- * This is always instantiated through {@link StagingReleaseManager#getResolverForRelease(StagingReleaseManager.Release, ReleaseMapper, boolean)}.
+ * This is always instantiated through {@link StagingReleaseManager#getResolverForRelease(Release, ReleaseMapper, boolean)}.
  * </p>
  * <h3>Limitations:</h3>
  * <ul>
@@ -45,7 +46,7 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
     private static final Logger LOG = LoggerFactory.getLogger(StagingResourceResolver.class);
 
     @Nonnull
-    protected final StagingReleaseManager.Release release;
+    protected final Release release;
 
     @Nonnull
     protected final ReleaseMapper releaseMapper;
@@ -56,22 +57,24 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
     /**
      * Instantiates a new Staging resource resolver.
      *
-     * @param release                 the release
-     * @param underlyingResolver      the resolver used to access resources outside of the version space
-     * @param releaseMapper           the release mapper that determines which resources are release-mapped
-     * @param configuration           the configuration
-     * @param closeResolverOnClose    if true, the underlyingResolver is closed when this resolver is closed
+     * @param release              the release
+     * @param underlyingResolver   the resolver used to access resources outside of the version space
+     * @param releaseMapper        the release mapper that determines which resources are release-mapped
+     * @param configuration        the configuration
+     * @param closeResolverOnClose if true, the underlyingResolver is closed when this resolver is closed
      */
-    protected StagingResourceResolver(@Nonnull StagingReleaseManager.Release release, @Nonnull ResourceResolver underlyingResolver, @Nonnull ReleaseMapper releaseMapper, @Nonnull DefaultStagingReleaseManager.Configuration configuration, boolean closeResolverOnClose) {
+    protected StagingResourceResolver(@Nonnull Release release, @Nonnull ResourceResolver underlyingResolver, @Nonnull ReleaseMapper releaseMapper, @Nonnull DefaultStagingReleaseManager.Configuration configuration, boolean closeResolverOnClose) {
         super(underlyingResolver, closeResolverOnClose);
         this.release = release;
         this.releaseMapper = releaseMapper;
         this.configuration = configuration;
     }
 
-    /** The release that is presented by this resolver. */
+    /**
+     * The release that is presented by this resolver.
+     */
     @Nonnull
-    public StagingReleaseManager.Release getRelease() {
+    public Release getRelease() {
         return release;
     }
 
@@ -230,13 +233,16 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
         ResourceResolver resolver = underlyingResolver.clone(authenticationInfo);
         return new StagingResourceResolver(release, resolver, releaseMapper, configuration, true);
     }
-
-
+    
+    /**
+     * {@inheritDoc}
+     * CAUTION: we have to support the JCR {@link Session} here, since it's often used to access various
+     * managers, but the session does not support our simulated resources. Use at your own risk.
+     */
     @Override
     @Nullable
     public <AdapterType> AdapterType adaptTo(@Nonnull Class<AdapterType> type) {
-        if (QueryBuilder.class.equals(type))
-            return type.cast(new QueryBuilderImpl(this));
+        if (QueryBuilder.class.equals(type)) { return type.cast(new QueryBuilderImpl(this)); }
         return super.adaptTo(type);
     }
 

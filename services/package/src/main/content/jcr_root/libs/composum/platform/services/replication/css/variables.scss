@@ -1,0 +1,60 @@
+@charset "UTF-8";
+
+/*
+ * screen sizes (potential breakpoints)
+ */
+$screen-size-xl: 1500px;
+$screen-size-l: 1200px; // bootstrap -lg-
+$screen-size-m: 992px; // bootstrap -md-
+$screen-size-s: 768px; // bootstrap -sm-
+$screen-size-xs: 624px;
+$screen-size-xxs: 480px;
+
+/*
+ * extracted bootstrap values
+ */
+$bootstrap-screen-sm-min: 768px !default;
+$bootstrap-screen-md-min: 992px !default;
+$bootstrap-screen-lg-min: 1200px !default;
+
+$bootstrap-screen-xs-max: ($bootstrap-screen-sm-min - 1) !default;
+$bootstrap-screen-sm-max: ($bootstrap-screen-md-min - 1) !default;
+$bootstrap-screen-md-max: ($bootstrap-screen-lg-min - 1) !default;
+
+$bootstrap-spacing-v: 10px;
+$bootstrap-spacing-h: 15px;
+
+$bootstrap-color-muted: #777;
+$bootstrap-color-default: #333;
+$bootstrap-color-info: #31708f;
+$bootstrap-color-primary: #fff;
+$bootstrap-color-success: #3c763d;
+$bootstrap-color-warning: #8a6d3b;
+$bootstrap-color-danger: #a94442;
+
+$bootstrap-bg-default: #fff;
+$bootstrap-bg-muted: #e6e6e6;
+$bootstrap-bg-info: #d9edf7;
+$bootstrap-bg-primary: #337ab7;
+$bootstrap-bg-success: #dff0d8;
+$bootstrap-bg-warning: #fcf8e3;
+$bootstrap-bg-danger: #e4b9b9;
+
+$bootstrap-link-color: #337ab7;
+$bootstrap-link-focus: #23527c;
+
+$bootstrap-btn-menu-active-bg: #e6e6e6;
+
+/*
+ * replication module settings
+ */
+$replication-badge-running-fg: $bootstrap-bg-info;
+$replication-badge-running-bg: $bootstrap-bg-primary;
+$replication-badge-synchron-fg: $bootstrap-bg-success;
+$replication-badge-synchron-bg: $bootstrap-color-success;
+$replication-badge-undefined-fg: $bootstrap-bg-warning;
+$replication-badge-undefined-bg: #d90;
+$replication-badge-switchedoff-fg: $bootstrap-color-muted;
+$replication-badge-switchedoff-bg: $bootstrap-bg-muted;
+$replication-badge-faulty-fg: $bootstrap-bg-danger;
+$replication-badge-faulty-bg: #c00;

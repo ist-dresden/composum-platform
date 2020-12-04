@@ -1,5 +1,6 @@
-package com.composum.platform.commons.request.service;
+package com.composum.platform.commons.request.service.impl;
 
+import com.composum.platform.commons.request.service.InternalRequestService;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.engine.SlingRequestProcessor;

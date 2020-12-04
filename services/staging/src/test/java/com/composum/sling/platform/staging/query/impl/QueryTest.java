@@ -3,9 +3,8 @@ package com.composum.sling.platform.staging.query.impl;
 import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.core.util.SlingResourceUtil;
+import com.composum.sling.platform.staging.Release;
 import com.composum.sling.platform.staging.StagingConstants;
-import com.composum.sling.platform.staging.StagingReleaseManager;
 import com.composum.sling.platform.staging.impl.AbstractStagingTest;
 import com.composum.sling.platform.staging.impl.StagingResourceResolver;
 import com.composum.sling.platform.staging.query.Query;
@@ -118,7 +117,7 @@ public class QueryTest extends AbstractStagingTest {
         assertNotNull(resolver.getResource(node1current));
         assertNull(resolver.getResource(node1version));
 
-        List<StagingReleaseManager.Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
+        List<Release> releases = releaseManager.getReleases(builderAtFolder.commit().getCurrentParent());
         errorCollector.checkThat(releases.size(), is(1));
         stagingResourceResolver = (StagingResourceResolver) releaseManager.getResolverForRelease(releases.get(0), releaseMapper, false);
         LOG.debug("\n===== setup done =====\n");
@@ -186,7 +185,7 @@ public class QueryTest extends AbstractStagingTest {
         q.path("/").element(PROP_JCR_CONTENT).type(TYPE_UNSTRUCTURED).orderBy(JcrConstants.JCR_CREATED);
         // TODO: this doesn't work right, but would be very hard to fix:
         // q.condition(q.conditionBuilder().name().eq().val(PROP_JCR_CONTENT));
-        assertResults(q, folder + "/" + PROP_JCR_CONTENT, document1 + "/" + PROP_JCR_CONTENT, document2 + "/" + PROP_JCR_CONTENT);
+        assertResults(q, document1 + "/" + PROP_JCR_CONTENT, document2 + "/" + PROP_JCR_CONTENT);
     }
 
     @Test
@@ -201,7 +200,14 @@ public class QueryTest extends AbstractStagingTest {
         assertResults(q, node2oldandnew);
 
         condition = q.conditionBuilder().isNotNull(PROP_CREATED).and().startGroup()
-                .upper().property(PROP_TITLE).eq().val("3 THIRD TITLE").or().contains(PROP_TITLE, "THIRD");
+                .upper().property(PROP_TITLE).eq().val("3 THIRD TITLE").or().contains(PROP_TITLE, "THIRD").endGroup();
+        q.condition(condition);
+        assertResults(q, node1version);
+
+        // same thing with alternative group syntax:
+        condition = q.conditionBuilder().isNotNull(PROP_CREATED).and().group((b) -> b.
+                upper().property(PROP_TITLE).eq().val("3 THIRD TITLE").or().contains(PROP_TITLE, "THIRD")
+        );
         q.condition(condition);
         assertResults(q, node1version);
     }
@@ -374,7 +380,7 @@ public class QueryTest extends AbstractStagingTest {
         Query q = stagingResourceResolver.adaptTo(QueryBuilder.class).createQuery();
         q.path("/jcr:system/jcr:nodeTypes").type("rep:NodeType");
         List<Resource> result = IterableUtils.toList(q.execute());
-        errorCollector.checkThat(result.size(), is(95));
+        errorCollector.checkThat(result.size(), is(98));
     /* List<String> nodetypenames = new ArrayList<>();
         for (Resource r : result) nodetypenames.add(r.getName());
         Collections.sort(nodetypenames);
@@ -464,7 +470,6 @@ public class QueryTest extends AbstractStagingTest {
         }
         errorCollector.checkThat(results, contains(document1 + "/" + PROP_JCR_CONTENT, document2 + "/" + PROP_JCR_CONTENT));
     }
-
 
     protected void assertResults(Query q, String... expected) throws RepositoryException {
         assertResults(IterableUtils.toList(q.execute()), expected);

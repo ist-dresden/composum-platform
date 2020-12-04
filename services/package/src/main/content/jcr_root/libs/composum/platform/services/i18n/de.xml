@@ -5,6 +5,37 @@
           jcr:primaryType="sling:Folder"
           sling:basename="composum-platform-services">
 
+    <replication jcr:primaryType="sling:Folder">
+
+        <replication jcr:primaryType="sling:MessageEntry" sling:key="replication" sling:message="Replikation"/>
+        <Replication jcr:primaryType="sling:MessageEntry" sling:key="Replication" sling:message="Replikation"/>
+
+        <faulty jcr:primaryType="sling:MessageEntry" sling:key="faulty" sling:message="fehlerhaft"/>
+        <running jcr:primaryType="sling:MessageEntry" sling:key="running" sling:message="laufend"/>
+        <synchron jcr:primaryType="sling:MessageEntry" sling:key="synchron" sling:message="synchron"/>
+        <undefined jcr:primaryType="sling:MessageEntry" sling:key="undefined" sling:message="undefiniert"/>
+        <switchedoff jcr:primaryType="sling:MessageEntry" sling:key="switchedoff" sling:message="ausgeschaltet"/>
+        <switched_off jcr:primaryType="sling:MessageEntry" sling:key="switched off" sling:message="ausgeschaltet"/>
+        <deactivated jcr:primaryType="sling:MessageEntry" sling:key="deactivated" sling:message="deaktiviert"/>
+        <activated jcr:primaryType="sling:MessageEntry" sling:key="activated" sling:message="aktiviert"/>
+        <active jcr:primaryType="sling:MessageEntry" sling:key="active" sling:message="aktiv"/>
+        <not_active jcr:primaryType="sling:MessageEntry" sling:key="not active" sling:message="nicht aktiv"/>
+        <notactive jcr:primaryType="sling:MessageEntry" sling:key="notactive" sling:message="nicht aktiv"/>
+
+        <started_at jcr:primaryType="sling:MessageEntry" sling:key="started at" sling:message="gestartet um"/>
+        <finished_at jcr:primaryType="sling:MessageEntry" sling:key="finished at" sling:message="beendet um"/>
+        <last_replication jcr:primaryType="sling:MessageEntry" sling:key="last replication" sling:message="letzte Replikation"/>
+        <to_publish jcr:primaryType="sling:MessageEntry" sling:key="to publish" sling:message="zu publizieren"/>
+        <published_currently jcr:primaryType="sling:MessageEntry" sling:key="published currently" sling:message="aktuell publiziert"/>
+
+        <Publish jcr:primaryType="sling:MessageEntry" sling:key="Publish" sling:message="Publizieren"/>
+        <Publishing jcr:primaryType="sling:MessageEntry" sling:key="Publishing" sling:message="Publizierung"/>
+        <Synchronize jcr:primaryType="sling:MessageEntry" sling:key="Synchronize" sling:message="Synchronisieren"/>
+        <Terminate jcr:primaryType="sling:MessageEntry" sling:key="Terminate" sling:message="Beenden"/>
+        <Abort jcr:primaryType="sling:MessageEntry" sling:key="Abort" sling:message="Abbruch"/>
+
+    </replication>
+
     <servlet jcr:primaryType="sling:Folder">
         <activateOnlyContent jcr:primaryType="sling:MessageEntry"
                              sling:key="Can only activate references from /content, but got: {}"

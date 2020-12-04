@@ -142,7 +142,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
         public void doIt(SlingHttpServletRequest request, SlingHttpServletResponse response,
                          ResourceHandle resource)
                 throws IOException {
-            Status status = new Status(request, response);
+            Status status = new Status(request, response, LOG);
             Collection<Resource> versionable = new ArrayList<>();
             String[] targetValues = request.getParameterValues(PARAM_TARGET);
             if (targetValues != null && targetValues.length > 0) {
@@ -172,9 +172,13 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
             if (status.isValid()) {
                 if (versionable.size() > 0) {
                     String releaseKey = request.getParameter("release");
-                    performIt(request, response, status, versionable, releaseKey);
+                    try {
+                        performIt(request, response, status, versionable, releaseKey);
+                    } catch (RuntimeException e) {
+                        status.error("Internal error", e);
+                    }
                 } else {
-                    status.withLogging(LOG).error("Resource is not versionable: {}", request.getRequestURI());
+                    status.error("Resource is not versionable: {}", request.getRequestURI());
                 }
             }
             status.sendJson();
@@ -262,11 +266,11 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                 List<Resource> toActivate = new ArrayList<>(versionable);
                 for (String referencedPath : references) {
                     if (!StringUtils.startsWith(referencedPath, "/content")) {
-                        status.withLogging(LOG).error("Can only activate references from /content, but got: {}", referencedPath);
+                        status.error("Can only activate references from /content, but got: {}", referencedPath);
                     } else {
                         Resource reference = request.getResourceResolver().getResource(referencedPath);
                         if (reference == null) {
-                            status.withLogging(LOG).error("Reference to activate not found: {}", referencedPath);
+                            status.error("Reference to activate not found: {}", referencedPath);
                         } else {
                             toActivate.add(reference);
                         }
@@ -277,6 +281,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                         PlatformVersionsService.ActivationResult result = versionsService.activate(releaseKey, toActivate);
                         // TODO(hps,2019-05-20) actually use result
                         request.getResourceResolver().commit();
+                        status.data("data").put("activationResult", result);
                     } catch (Exception ex) {
                         LOG.error(ex.getMessage(), ex);
                         status.error(ex.getMessage());
@@ -297,7 +302,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
             for (String referrerPath : referrers) {
                 Resource referrer = request.getResourceResolver().getResource(referrerPath);
                 if (referrer == null) {
-                    status.withLogging(LOG).error("Referrer to deactivate not found: {}", referrerPath);
+                    status.error("Referrer to deactivate not found: {}", referrerPath);
                 } else {
                     toDeactivate.add(referrer);
                 }
@@ -329,6 +334,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
                     PlatformVersionsService.ActivationResult result = versionsService.revert(request.getResourceResolver(), releaseKey, toRevert);
                     // TODO(hps,2019-05-21) do something with result
                     request.getResourceResolver().commit();
+                    status.data("data").put("activationResult", result);
                 } catch (Exception ex) {
                     LOG.error(ex.getMessage(), ex);
                     status.error(ex.getMessage());

@@ -19,21 +19,33 @@ import static java.lang.Math.min;
  */
 public interface ReleaseNumberCreator {
 
-    /** Creates new major release - increases the first version number , e.g. r1.5.3 or r1 to r2 . */
-    ReleaseNumberCreator MAJOR = new DefaultReleaseNumberCreator(0);
+    /**
+     * Creates new major release - increases the first version number , e.g. r1.5.3 or r1 to r2 .
+     */
+    ReleaseNumberCreator MAJOR = new DefaultReleaseNumberCreator("MAJOR", 0);
 
-    /** Creates new minor release - increases the second version number , e.g. r1.5.3 or r1.5 to r1.6 . */
-    ReleaseNumberCreator MINOR = new DefaultReleaseNumberCreator(1);
+    /**
+     * Creates new minor release - increases the second version number , e.g. r1.5.3 or r1.5 to r1.6 .
+     */
+    ReleaseNumberCreator MINOR = new DefaultReleaseNumberCreator("MINOR", 1);
 
-    /** Creates new minor release - increases the second version number , e.g. r1.5.3 or r1.5 to r1.5.4 , r3 to r3.0.1. */
-    ReleaseNumberCreator BUGFIX = new DefaultReleaseNumberCreator(2);
+    /**
+     * Creates new minor release - increases the second version number , e.g. r1.5.3 or r1.5 to r1.5.4 , r3 to r3.0.1.
+     */
+    ReleaseNumberCreator BUGFIX = new DefaultReleaseNumberCreator("BUGFIX", 2);
 
+    @Nonnull
+    String name();
 
-    /** Creates a new release key from the last one - e.g. r1.6.0 from r1.5.3 for {@link #MINOR} . */
+    /**
+     * Creates a new release key from the last one - e.g. r1.6.0 from r1.5.3 for {@link #MINOR} .
+     */
     @Nonnull
     String bumpRelease(@Nonnull String oldname);
 
-    /** Returns the comparator to use when sorting release numbers. */
+    /**
+     * Returns the comparator to use when sorting release numbers.
+     */
     @Nonnull
     default Comparator<String> releaseComparator() {
         return COMPARATOR_RELEASES;
@@ -99,9 +111,12 @@ public interface ReleaseNumberCreator {
      * are missing numbers, these are set to 0 - e.g. a bugfix increment on r1 goes to r1.0.1 .
      */
     class DefaultReleaseNumberCreator implements ReleaseNumberCreator {
+
+        private final String name;
         private final int increasePosition;
 
-        public DefaultReleaseNumberCreator(int increasePosition) {
+        public DefaultReleaseNumberCreator(String name, int increasePosition) {
+            this.name = name;
             if (increasePosition < 0)
                 throw new IllegalArgumentException("Illegal argument: " + increasePosition);
             this.increasePosition = increasePosition;
@@ -109,9 +124,14 @@ public interface ReleaseNumberCreator {
 
         @Nonnull
         @Override
+        public String name() {
+            return name;
+        }
+
+        @Nonnull
+        @Override
         public String bumpRelease(@Nonnull String oldname) {
-            if (StringUtils.isBlank(oldname) || CURRENT_RELEASE.equals(oldname)) return "r1";
-            String[] numbers = oldname.split("\\D+");
+            String[] numbers = StringUtils.defaultIfBlank(oldname, "r0").split("\\D+");
             List<Integer> rnum = Arrays.asList(numbers).stream()
                     .filter(StringUtils::isNotBlank)
                     .map(Integer::valueOf)

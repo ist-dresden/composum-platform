@@ -7,7 +7,7 @@
     <parent>
         <groupId>com.composum.platform</groupId>
         <artifactId>composum-platform-testing</artifactId>
-        <version>1.1.0</version>
+        <version>1.2.0</version>
     </parent>
 
     <artifactId>composum-platform-testing-testutil</artifactId>
@@ -51,6 +51,10 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+        </dependency>
 
         <!-- Java Annotations -->
         <dependency>
@@ -64,7 +68,7 @@
             <artifactId>gson</artifactId>
         </dependency>
 
-        <!-- JUnit stuff. Included in scope compile since we need those for the exported utilities and this artefact is included in scope test. -->
+        <!-- JUnit stuff. Included in scope compile since we need those for the exported utilities and this artifact is included in scope test. -->
         <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-core</artifactId>
@@ -110,6 +114,20 @@
             <artifactId>org.apache.sling.testing.logging-mock</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
+        </dependency>
+
+        <!--
+            TODO Temporary workaround for https://issues.apache.org/jira/browse/SLING-8576 .
+            Once that's fixed this should be removed.
+            This is a workaround for a
+            java.lang.NoClassDefFoundError: org/apache/sling/scripting/core/impl/ScriptEngineManagerFactory
+            in org.apache.sling.testing.mock.sling.context.SlingContextImpl.registerDefaultServices
+        -->
+        <dependency>
+            <groupId>org.apache.sling</groupId>
+            <artifactId>org.apache.sling.scripting.core</artifactId>
+            <version>2.0.50</version>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

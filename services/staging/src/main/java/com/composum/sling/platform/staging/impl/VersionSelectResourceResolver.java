@@ -1,11 +1,17 @@
 package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.platform.staging.VersionReference;
+import com.composum.sling.platform.staging.versions.PlatformVersionsService;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.resource.*;
+import org.apache.sling.api.resource.LoginException;
+import org.apache.sling.api.resource.NonExistingResource;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ValueMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +25,10 @@ import java.util.Iterator;
 import java.util.Map;
 
 import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES;
-import static org.apache.jackrabbit.JcrConstants.*;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENNODE;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
+import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
+import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 
 /**
  * A unmodifiable {@link org.apache.sling.api.resource.ResourceResolver} for which one can specify specific versions of
@@ -53,7 +62,9 @@ public class VersionSelectResourceResolver extends AbstractStagingResourceResolv
         this.historyToVersion = historyToVersion;
     }
 
-    /** Creates a map usable for {@link #VersionSelectResourceResolver(ResourceResolver, boolean, Map)} from a number of versions, retrieving their version history uuids. */
+    /**
+     * Creates a map usable for {@link #VersionSelectResourceResolver(ResourceResolver, boolean, Map)} from a number of versions, retrieving their version history uuids.
+     */
     protected static Map<String, String> makeHistoryToVersionMap(@Nonnull ResourceResolver resolver, @Nonnull String... versions) throws RepositoryException {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
         for (String version : versions) {
@@ -97,6 +108,19 @@ public class VersionSelectResourceResolver extends AbstractStagingResourceResolv
 
     }
 
+    @Nullable
+    public Resource getResource(PlatformVersionsService.Status status) {
+        Resource resource = null;
+        VersionReference reference = status.getVersionReference();
+        if (reference != null) {
+            resource = reference.getVersionResource();
+            if (resource != null) {
+                return wrapIntoStagingResource(status.getPath(), resource.getChild(JCR_FROZENNODE), null, false);
+            }
+        }
+        return null;
+    }
+
     @Override
     @Nonnull
     public Resource resolve(@Nonnull HttpServletRequest request, @Nonnull String rawAbsPath) {
@@ -106,7 +130,9 @@ public class VersionSelectResourceResolver extends AbstractStagingResourceResolv
         return retrieveReleasedResource((SlingHttpServletRequest) request, resource.getPath());
     }
 
-    /** Checks whether the resource is a versionable for which we step into version space. */
+    /**
+     * Checks whether the resource is a versionable for which we step into version space.
+     */
     @Override
     protected Resource stepResource(Resource resource) {
         if (ResourceUtil.isNodeType(resource, MIX_VERSIONABLE)) {

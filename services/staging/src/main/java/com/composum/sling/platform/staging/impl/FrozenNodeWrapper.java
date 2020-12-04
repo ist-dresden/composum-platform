@@ -2,26 +2,57 @@ package com.composum.sling.platform.staging.impl;
 
 import com.composum.platform.commons.util.ExceptionUtil;
 import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.platform.staging.StagingConstants;
 import org.apache.commons.collections4.IteratorUtils;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.commons.ItemNameMatcher;
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.sling.api.resource.Resource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.jcr.*;
+import javax.jcr.AccessDeniedException;
+import javax.jcr.Binary;
+import javax.jcr.InvalidItemStateException;
+import javax.jcr.InvalidLifecycleTransitionException;
+import javax.jcr.Item;
+import javax.jcr.ItemExistsException;
+import javax.jcr.ItemNotFoundException;
+import javax.jcr.MergeException;
+import javax.jcr.NoSuchWorkspaceException;
+import javax.jcr.Node;
+import javax.jcr.NodeIterator;
+import javax.jcr.PathNotFoundException;
+import javax.jcr.Property;
+import javax.jcr.PropertyIterator;
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.UnsupportedRepositoryOperationException;
+import javax.jcr.Value;
+import javax.jcr.ValueFormatException;
+import javax.jcr.Workspace;
 import javax.jcr.lock.Lock;
 import javax.jcr.lock.LockException;
-import javax.jcr.nodetype.*;
+import javax.jcr.nodetype.ConstraintViolationException;
+import javax.jcr.nodetype.NoSuchNodeTypeException;
+import javax.jcr.nodetype.NodeDefinition;
+import javax.jcr.nodetype.NodeType;
+import javax.jcr.nodetype.NodeTypeManager;
 import javax.jcr.version.ActivityViolationException;
 import javax.jcr.version.Version;
 import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
 
 import static com.composum.sling.platform.staging.StagingConstants.FROZEN_PROP_NAMES_TO_REAL_NAMES;
+import static com.composum.sling.platform.staging.StagingConstants.PROP_REPLICATED_VERSION;
 import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAMES_TO_FROZEN_NAMES;
 
 /**
@@ -35,8 +66,16 @@ import static com.composum.sling.platform.staging.StagingConstants.REAL_PROPNAME
 @SuppressWarnings({"RedundantThrows", "DuplicateThrows", "deprecation"})
 public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node {
 
+    /**
+     * Path to the version property from a top level frozenNode of a version - represents
+     * {@link StagingConstants#PROP_REPLICATED_VERSION}.
+     */
+    protected static final String TOP_FROZENNODE_PROP_REPLICATEDVERSION = "../" + ResourceUtil.JCR_UUID;
+
     @Nonnull
     private final Resource resource;
+    private transient Boolean storedVersionTopNode;
+    private transient Boolean inStorage;
 
     FrozenNodeWrapper(@Nonnull Node wrapped, @Nonnull Resource resource) {
         super(wrapped, resource.getPath());
@@ -45,27 +84,41 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
 
     @Nullable
     public static FrozenNodeWrapper wrap(@Nullable Node wrapped, @Nonnull Resource resource) {
-        if (wrapped == null)
-            return null;
+        if (wrapped == null) { return null; }
         if (wrapped instanceof FrozenNodeWrapper) {
             Node unwrapped = ((FrozenNodeWrapper) wrapped).getWrapped();
             try {
-                if (wrapped.getPath().equals(resource.getPath()))
+                if (wrapped.getPath().equals(resource.getPath())) {
                     throw new IllegalArgumentException("Something's broken: wrapping " + wrapped.getPath() + " as " + resource.getPath());
+                }
             } catch (RepositoryException e) {
-                throw new IllegalStateException(e);
+                throw new IllegalArgumentException(e);
             }
-            return new FrozenNodeWrapper(unwrapped, resource);
+            return FrozenNodeWrapper.wrap(unwrapped, resource);
         }
         return new FrozenNodeWrapper(wrapped, resource);
+    }
+
+    protected boolean isInStorage() throws RepositoryException {
+        if (inStorage == null) {
+            inStorage = StagingUtils.isInStorage(wrapped);
+        }
+        return inStorage;
+    }
+
+    protected boolean isStoredVersionTopNode() throws RepositoryException {
+        if (storedVersionTopNode == null) {
+            storedVersionTopNode = StagingUtils.isStoredVersionTopNode(wrapped);
+        }
+        return storedVersionTopNode;
     }
 
     @Override
     public Node getNode(String relPath) throws PathNotFoundException, RepositoryException {
         Resource r = resource.getChild(relPath);
-        if (r == null) throw new PathNotFoundException("Can't find " + getPath() + " - " + relPath);
+        if (r == null) { throw new PathNotFoundException("Can't find " + getPath() + " - " + relPath); }
         Node node = r.adaptTo(Node.class);
-        if (node == null) throw unsupported();
+        if (node == null) { throw unsupported(); }
         return node;
     }
 
@@ -106,13 +159,21 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
             Property prop = null;
             if (child != null) {
                 prop = child.adaptTo(Property.class);
-                if (prop == null) throw new PathNotFoundException("Can't find " + getPath() + " - " + relPath);
+                if (prop == null) { throw new PathNotFoundException("Can't find " + getPath() + " - " + relPath); }
             }
             return prop;
         }
-        String realName = StagingUtils.isInStorage(wrapped) ?
-                REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(relPath, relPath)
-                : relPath;
+        if (ResourceUtil.PROP_MIXINTYPES.equals(relPath) && isStoredVersionTopNode()) {
+            return mixinsWithMixReplicatedVersionable();
+        }
+        String realName;
+        if (PROP_REPLICATED_VERSION.equals(relPath) && isStoredVersionTopNode()) {
+            realName = TOP_FROZENNODE_PROP_REPLICATEDVERSION;
+        } else {
+            realName = isInStorage() ?
+                    REAL_PROPNAMES_TO_FROZEN_NAMES.getOrDefault(relPath, relPath)
+                    : relPath;
+        }
         Property prop = wrapped.getProperty(realName);
         return FrozenPropertyWrapper.wrap(prop, getPath() + "/" + relPath);
     }
@@ -120,14 +181,53 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
     @Override
     public PropertyIterator getProperties() throws RepositoryException {
         PropertyIterator properties = wrapped.getProperties();
-        return rewrapIntoWrappedProperty(properties);
+        PropertyIterator result = rewrapIntoWrappedProperty(properties);
+        if (isStoredVersionTopNode()) {
+            result = addCplReplicatedVersionProperty(result);
+        }
+        return result;
+    }
+
+    /** Creates a property that adds the mixin {@link StagingConstants#TYPE_MIX_REPLICATEDVERSIONABLE} to the mixins. */
+    protected Property mixinsWithMixReplicatedVersionable() throws RepositoryException {
+        String path = resource.getPath() + "/" + ResourceUtil.PROP_MIXINTYPES;
+        List<String> values = new ArrayList<>();
+        if (wrapped.hasProperty(JcrConstants.JCR_FROZENMIXINTYPES)) {
+            Property frozenProp = wrapped.getProperty(JcrConstants.JCR_FROZENMIXINTYPES);
+            for (Value value : frozenProp.getValues()) {
+                values.add(value.getString());
+            }
+        }
+        if (!values.contains(StagingConstants.TYPE_MIX_REPLICATEDVERSIONABLE)) {
+            values.add(StagingConstants.TYPE_MIX_REPLICATEDVERSIONABLE);
+        }
+        return new SimulatedMixinProperty(path, wrapped.getSession(), values);
+    }
+
+    @Nonnull
+    protected PropertyIterator addCplReplicatedVersionProperty(PropertyIterator propertyIterator) throws RepositoryException {
+        FrozenPropertyWrapper replproperty = FrozenPropertyWrapper.wrap(wrapped.getProperty(TOP_FROZENNODE_PROP_REPLICATEDVERSION),
+                resource.getPath() + "/" + PROP_REPLICATED_VERSION);
+        Property mixinProperty = mixinsWithMixReplicatedVersionable();
+        return new PropertyIteratorAdapter(IteratorUtils.chainedIterator(
+                IteratorUtils.<Property>filteredIterator(propertyIterator, this::notMixinProperty),
+                IteratorUtils.arrayIterator(replproperty, mixinProperty)
+        ));
+    }
+
+    protected boolean notMixinProperty(Property property) {
+        try {
+            return !ResourceUtil.PROP_MIXINTYPES.equals(property.getName());
+        } catch (RepositoryException e) { // should be impossible
+            throw new IllegalStateException("Should be impossible: " + e, e);
+        }
     }
 
     @SuppressWarnings({"unchecked", "ConstantConditions"})
     @Nonnull
     protected PropertyIterator rewrapIntoWrappedProperty(PropertyIterator properties) throws RepositoryException {
         Iterator filteredproperties = properties;
-        if (StagingUtils.isInStorage(wrapped)) {
+        if (isInStorage()) {
             filteredproperties = IteratorUtils.filteredIterator(properties,
                     (Property p) ->
                             ExceptionUtil.callAndSneakExceptions(
@@ -148,12 +248,20 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
 
     @Override
     public PropertyIterator getProperties(String namePattern) throws RepositoryException {
-        return rewrapIntoWrappedProperty(wrapped.getProperties(namePattern));
+        PropertyIterator result = rewrapIntoWrappedProperty(wrapped.getProperties(namePattern));
+        if (ItemNameMatcher.matches(PROP_REPLICATED_VERSION, namePattern) && isStoredVersionTopNode()) {
+            result = addCplReplicatedVersionProperty(result);
+        }
+        return result;
     }
 
     @Override
     public PropertyIterator getProperties(String[] nameGlobs) throws RepositoryException {
-        return rewrapIntoWrappedProperty(wrapped.getProperties(nameGlobs));
+        PropertyIterator result = rewrapIntoWrappedProperty(wrapped.getProperties(nameGlobs));
+        if (ItemNameMatcher.matches(PROP_REPLICATED_VERSION, nameGlobs) && isStoredVersionTopNode()) {
+            result = addCplReplicatedVersionProperty(result);
+        }
+        return result;
     }
 
     @Override
@@ -204,7 +312,7 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
     public final Node getParent() throws ItemNotFoundException, AccessDeniedException, RepositoryException {
         Resource parent = resource.getParent();
         Node n = parent != null ? parent.adaptTo(Node.class) : null;
-        if (n == null) throw new ItemNotFoundException("Could not get parent of " + getPath());
+        if (n == null) { throw new ItemNotFoundException("Could not get parent of " + getPath()); }
         return n;
     }
 
@@ -237,11 +345,9 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
     @Override
     public boolean isNodeType(String nodeTypeName) throws RepositoryException {
         NodeType primaryNodeType = getPrimaryNodeType();
-        if (primaryNodeType != null && primaryNodeType.isNodeType(nodeTypeName))
-            return true;
+        if (primaryNodeType != null && primaryNodeType.isNodeType(nodeTypeName)) { return true; }
         for (NodeType nodeType : getMixinNodeTypes()) {
-            if (nodeType.isNodeType(nodeTypeName))
-                return true;
+            if (nodeType.isNodeType(nodeTypeName)) { return true; }
         }
         return false;
     }
@@ -249,7 +355,7 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
     @Nonnull
     protected NodeTypeManager getNodeTypeManager() throws RepositoryException {
         try {
-            Session session = resource.getResourceResolver().adaptTo(Session.class);
+            Session session = this.wrapped.getSession();
             Workspace workspace = session.getWorkspace();
             return Objects.requireNonNull(workspace.getNodeTypeManager());
         } catch (NullPointerException e) {

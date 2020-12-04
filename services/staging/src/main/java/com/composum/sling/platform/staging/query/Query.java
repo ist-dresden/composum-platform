@@ -3,6 +3,7 @@ package com.composum.sling.platform.staging.query;
 import com.composum.sling.platform.staging.StagingConstants;
 import com.composum.sling.platform.staging.impl.StagingResourceResolver;
 import com.composum.sling.platform.staging.query.impl.StagingQueryImpl;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.jackrabbit.JcrConstants;
@@ -14,12 +15,20 @@ import org.slf4j.Logger;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
 import static org.apache.commons.lang3.StringUtils.isBlank;
-import static org.apache.jackrabbit.JcrConstants.*;
+import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.JCR_PATH;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -33,17 +42,32 @@ import static org.slf4j.LoggerFactory.getLogger;
  */
 public abstract class Query {
 
-    /** Various modi of the SQL2 generation. For internal use only. */
+    /**
+     * Various modi of the SQL2 generation. For internal use only.
+     */
     public static enum QueryGenerationMode {
-        /** Query outside version storage and release workspace copy. */ NORMAL,
-        /** Query in release workspace copy */ WORKSPACECOPY,
-        /** Query in version storage */ VERSIONSTORAGE
+        /**
+         * Query outside version storage and release workspace copy.
+         */
+        NORMAL,
+        /**
+         * Query in release workspace copy
+         */
+        WORKSPACECOPY,
+        /**
+         * Query in version storage
+         */
+        VERSIONSTORAGE
     }
 
-    /** Virtual column that returns the path of the resource for {@link #selectAndExecute(String...)}. */
+    /**
+     * Virtual column that returns the path of the resource for {@link #selectAndExecute(String...)}.
+     */
     public static final String COLUMN_PATH = JcrConstants.JCR_PATH;
 
-    /** Virtual column that returns the score of the resource for {@link #selectAndExecute(String...)}. */
+    /**
+     * Virtual column that returns the score of the resource for {@link #selectAndExecute(String...)}.
+     */
     public static final String COLUMN_SCORE = JcrConstants.JCR_SCORE;
 
     /**
@@ -95,8 +119,22 @@ public abstract class Query {
      *
      * @return this for chaining calls in builder-style
      */
-    public Query element(String element) {
-        this.element = element;
+    public Query element(String name) {
+        this.element = name;
+        return this;
+    }
+
+    /**
+     * XPATH like 'element(name or '*',type)' condition - element(name) + type(type)
+     */
+    @Nonnull
+    public Query element(@Nullable final String name, @Nullable final String type) {
+        if (StringUtils.isNotBlank(name) && !"*".equals(name)) {
+            element(name);
+        }
+        if (StringUtils.isNotBlank(type)) {
+            type(type);
+        }
         return this;
     }
 
@@ -243,7 +281,7 @@ public abstract class Query {
     }
 
     /**
-     * Executes the query and returns the results as Resources.
+     * Executes the query and returns the results as an {@link Iterable} of Resources.
      *
      * @return the result, not null
      * @throws SlingException       if an error occurs querying for the resources.
@@ -254,22 +292,39 @@ public abstract class Query {
     public abstract Iterable<Resource> execute() throws SlingException, QuerySyntaxException;
 
     /**
-     * Executes the query and returns only the given columns of the node. It can return various pseudo-columns .
+     * Executes the query and returns the results as {@link Stream} of Resources.
      *
-     * @param columns property names of the searched nodes or pseudo-columns
-     * @return not null
-     * @see #COLUMN_PATH
-     * @see #COLUMN_SCORE
-     * @see #COLUMN_EXCERPT
-     *
+     * @return the result, not null
      * @throws SlingException       if an error occurs querying for the resources.
      * @throws QuerySyntaxException if the query is not syntactically correct. (Shouldn't rarely happen, because of
      *                              being a DSL and whatnot.)
      */
     @Nonnull
+    public Stream<Resource> stream() throws SlingException, QuerySyntaxException {
+        Iterable<Resource> resourceIterable = execute();
+        Spliterator<Resource> spliterator = Spliterators.spliteratorUnknownSize(resourceIterable.iterator(),
+                Spliterator.IMMUTABLE | Spliterator.NONNULL);
+        return StreamSupport.stream(spliterator, false);
+    }
+
+    /**
+     * Executes the query and returns only the given columns of the node. It can return various pseudo-columns .
+     *
+     * @param columns property names of the searched nodes or pseudo-columns
+     * @return not null
+     * @throws SlingException       if an error occurs querying for the resources.
+     * @throws QuerySyntaxException if the query is not syntactically correct. (Shouldn't rarely happen, because of
+     *                              being a DSL and whatnot.)
+     * @see #COLUMN_PATH
+     * @see #COLUMN_SCORE
+     * @see #COLUMN_EXCERPT
+     */
+    @Nonnull
     public abstract Iterable<QueryValueMap> selectAndExecute(String... columns) throws SlingException, QuerySyntaxException;
 
-    /** Implementation calls this before using the query to check whether it's in a sane state. */
+    /**
+     * Implementation calls this before using the query to check whether it's in a sane state.
+     */
     protected void validate() {
         Validate.notNull(path, "path is required");
     }

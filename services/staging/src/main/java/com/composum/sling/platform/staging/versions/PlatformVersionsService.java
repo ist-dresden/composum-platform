@@ -2,13 +2,8 @@ package com.composum.sling.platform.staging.versions;
 
 import com.composum.sling.core.filter.ResourceFilter;
 import com.composum.sling.core.util.CoreConstants;
-import com.composum.sling.platform.staging.ReleaseChangeEventListener;
-import com.composum.sling.platform.staging.ReleaseMapper;
-import com.composum.sling.platform.staging.ReleasedVersionable;
-import com.composum.sling.platform.staging.StagingReleaseManager;
-import com.composum.sling.platform.staging.VersionReference;
+import com.composum.sling.platform.staging.*;
 import com.composum.sling.platform.staging.impl.SiblingOrderUpdateStrategy;
-import org.apache.commons.collections4.SetUtils;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -19,6 +14,7 @@ import javax.jcr.RepositoryException;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,7 +30,7 @@ public interface PlatformVersionsService {
      * A {@link ResourceFilter} that filters things that can be activated (that is, is versionable itself or contains a
      * content node that can be activated).
      */
-    public static final ResourceFilter ACTIVATABLE_FILTER = ResourceFilter.FilterSet.Rule.or.of(
+    ResourceFilter ACTIVATABLE_FILTER = ResourceFilter.FilterSet.Rule.or.of(
             new ResourceFilter.TypeFilter(CoreConstants.MIX_VERSIONABLE),
             new ResourceFilter.ContentNodeFilter(false, ResourceFilter.ALL,
                     new ResourceFilter.TypeFilter(CoreConstants.MIX_VERSIONABLE)
@@ -53,7 +49,7 @@ public interface PlatformVersionsService {
          * wrt. to the last activation, as well as a different version.
          */
         modified,
-        /** Deactivated (originally present but later removed ({@link #deactivate(String, Resource)}) from release. */
+        /** Deactivated (originally present but later removed ({@link #deactivate(String, List)}) from release. */
         deactivated,
         /** When comparing the workspace to a release: deleted from the workspace. */
         deleted
@@ -62,12 +58,15 @@ public interface PlatformVersionsService {
     /** Information about the status of a versionable in the workspace wrt. a release, or of a versionable within a release wrt. a previous release. */
     interface Status {
 
+        String getPath();
+
         /** Calculated modification status. */
         @Nonnull
         ActivationState getActivationState();
 
         /**
          * The time the versionable was last modified in the workspace.
+         *
          * @return 'last modified' or 'created'
          */
         @Nullable
@@ -83,9 +82,11 @@ public interface PlatformVersionsService {
         @Nullable
         VersionReference getVersionReference();
 
-        /** The release we compare from. If we compare the workspace, this is null. */
+        /**
+         * The release we compare from. If we compare the workspace, this is null.
+         */
         @Nullable
-        StagingReleaseManager.Release getNextRelease();
+        Release getNextRelease();
 
         /**
          * The detail information about the versionable as it is in the workspace / the release if we're comparing a release with a previous release.
@@ -95,11 +96,12 @@ public interface PlatformVersionsService {
         ReleasedVersionable getNextVersionable();
 
         /**
-         * The release {@link #getPreviousVersionableInfo()} is about (see there). When comparing workspace to release this is not null,
+         * The release {@link #getPreviousVersionable()} is about (see there). When comparing workspace to
+         * release this is not null,
          * when comparing release to release this might be null (if there was no previous release).
          */
         @Nullable
-        StagingReleaseManager.Release getPreviousRelease();
+        Release getPreviousRelease();
 
         /**
          * The detail information about the versionable within the release if the status is about the workspace / within the previous release if it's comparing two releases. This is null if the versionable is {@link ActivationState#initial} /
@@ -120,14 +122,14 @@ public interface PlatformVersionsService {
      * This is used in many of the other methods if the release isn't given explicitly.
      */
     @Nonnull
-    StagingReleaseManager.Release getDefaultRelease(@Nonnull Resource versionable);
+    Release getDefaultRelease(@Nonnull Resource versionable);
 
     /**
      * Returns the status for the versionable comparing the workspace to the given or {@link #getDefaultRelease(Resource)} release.
      * Some non-obvious edge cases:
      *
      * @param versionable the versionable in the workspace
-     * @param releaseKey the key for the release; if null we take the {@link #getDefaultRelease(Resource)}
+     * @param releaseKey  the key for the release; if null we take the {@link #getDefaultRelease(Resource)}
      * @return the status or null if this isn't applicable because there is no release root or the resource is not a versionable.
      */
     @Nullable
@@ -148,7 +150,7 @@ public interface PlatformVersionsService {
      */
     @Nonnull
     ActivationResult activate(@Nullable String releaseKey, @Nonnull Resource versionable, @Nullable String versionUuid)
-            throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException;
+            throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeFailedException;
 
     /**
      * Puts the latest content of a couple of documents into the release.
@@ -163,7 +165,7 @@ public interface PlatformVersionsService {
      */
     @Nonnull
     ActivationResult activate(@Nullable String releaseKey, @Nonnull List<Resource> versionables)
-            throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException;
+            throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeFailedException;
 
     /**
      * Sets the versionables to "deactivated" - it is marked as not present in the release anymore.
@@ -172,7 +174,7 @@ public interface PlatformVersionsService {
      * @param versionables ist of versionables to revert
      */
     void deactivate(@Nullable String releaseKey, @Nonnull List<Resource> versionables)
-            throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException;
+            throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeFailedException;
 
     /**
      * Reverts a number of versionables to the state they were in the previous release
@@ -187,7 +189,7 @@ public interface PlatformVersionsService {
      */
     @Nonnull
     ActivationResult revert(@Nonnull ResourceResolver resolver, @Nullable String releaseKey, @Nonnull List<String> versionablePaths)
-            throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeEventListener.ReplicationFailedException;
+            throws PersistenceException, RepositoryException, StagingReleaseManager.ReleaseClosedException, ReleaseChangeFailedException;
 
     /** Deletes old versions of the versionable - only versions in releases and after the last version which is in a release are kept. */
     void purgeVersions(@Nonnull Resource versionable)
@@ -211,18 +213,18 @@ public interface PlatformVersionsService {
      * Returns description of versionables which are changed in a release in comparision to the release before.
      */
     @Nonnull
-    List<Status> findReleaseChanges(@Nonnull final StagingReleaseManager.Release release) throws RepositoryException;
+    List<Status> findReleaseChanges(@Nonnull final Release release) throws RepositoryException;
 
     /**
      * Returns description of versionables which are changed in the workspace in comparision to the release.
      */
     @Nonnull
-    List<Status> findWorkspaceChanges(@Nonnull final StagingReleaseManager.Release release) throws RepositoryException;
+    List<Status> findWorkspaceChanges(@Nonnull final Release release) throws RepositoryException;
 
     /** Can be used to inform the user about the results of an activation. */
     class ActivationResult {
         @Nullable
-        private final StagingReleaseManager.Release release;
+        private transient final Release release;
         @Nonnull
         private final Map<String, SiblingOrderUpdateStrategy.Result> changedPathsInfo;
         @Nonnull
@@ -232,13 +234,17 @@ public interface PlatformVersionsService {
         @Nonnull
         private final Set<String> removedPaths;
 
-        /** Constructor for which the sets / maps are modified later. */
-        public ActivationResult(@Nullable StagingReleaseManager.Release release) {
+        /**
+         * Constructor for which the sets / maps are modified later.
+         */
+        public ActivationResult(@Nullable Release release) {
             this(release, null, null, null, null);
         }
 
-        /** Constructor that immediately sets everything. */
-        public ActivationResult(@Nullable StagingReleaseManager.Release release, @Nullable Map<String, SiblingOrderUpdateStrategy.Result> changedPathsInfo,
+        /**
+         * Constructor that immediately sets everything.
+         */
+        public ActivationResult(@Nullable Release release, @Nullable Map<String, SiblingOrderUpdateStrategy.Result> changedPathsInfo,
                                 @Nullable Set<String> newPaths, @Nullable Map<String, String> movedPaths, @Nullable Set<String> removedPaths) {
             this.release = release;
             this.changedPathsInfo = changedPathsInfo != null ? changedPathsInfo : new HashMap<>();
@@ -247,18 +253,24 @@ public interface PlatformVersionsService {
             this.removedPaths = removedPaths != null ? removedPaths : new HashSet<>();
         }
 
-        public ActivationResult merge(ActivationResult other) {
-            if (release != null && !release.equals(other.getRelease()))
+        @Nonnull
+        public ActivationResult merge(@Nonnull ActivationResult other) {
+            if (release != null && !release.equals(other.getRelease())) {
                 throw new IllegalArgumentException("Merging results for different releases.");
-            StagingReleaseManager.Release newRelease = release != null ? release : other.getRelease();
+            }
+            Release newRelease = release != null ? release : other.getRelease();
             Map<String, String> moved = new HashMap<>();
             moved.putAll(getMovedPaths());
             moved.putAll(other.getMovedPaths());
+            LinkedHashSet<String> combinedNewPaths = new LinkedHashSet<>(getNewPaths());
+            combinedNewPaths.addAll(other.newPaths);
+            LinkedHashSet<String> combinedRemovedPaths = new LinkedHashSet<>(getRemovedPaths());
+            combinedRemovedPaths.addAll(other.getRemovedPaths());
             return new ActivationResult(newRelease,
                     SiblingOrderUpdateStrategy.Result.combine(changedPathsInfo, other.getChangedPathsInfo()),
-                    SetUtils.union(getNewPaths(), other.getNewPaths()),
+                    combinedNewPaths,
                     moved,
-                    SetUtils.union(getRemovedPaths(), other.getRemovedPaths())
+                    combinedRemovedPaths
             );
         }
 
@@ -269,7 +281,7 @@ public interface PlatformVersionsService {
         }
 
         @Nullable
-        public StagingReleaseManager.Release getRelease() {
+        public Release getRelease() {
             return release;
         }
 
@@ -291,6 +303,7 @@ public interface PlatformVersionsService {
             return removedPaths;
         }
 
+        @Nonnull
         @Override
         public String toString() {
             return "ActivationResult(" + changedPathsInfo + ")";

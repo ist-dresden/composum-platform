@@ -1,8 +1,13 @@
 <%@page session="false" pageEncoding="utf-8"
-        import="com.composum.sling.core.CoreConfiguration" %><%
-%><%@taglib prefix="sling" uri="http://sling.apache.org/taglibs/sling/1.2"%><%
-%><%@taglib prefix="cpn" uri="http://sling.composum.com/cpnl/1.0"%><%
+        import="com.composum.platform.commons.request.service.RequestRedirectService,
+                com.composum.sling.core.CoreConfiguration" %><%
+%><%@taglib prefix="sling" uri="http://sling.apache.org/taglibs/sling/1.2" %><%
+%><%@taglib prefix="cpn" uri="http://sling.composum.com/cpnl/1.0" %><%
 %><sling:defineObjects/><%
+    RequestRedirectService redirectService = sling.getService(RequestRedirectService.class);
+    if (redirectService != null && redirectService.redirectRequest(slingRequest, slingResponse)) {
+        return;
+    }
     CoreConfiguration configuration = sling.getService(CoreConfiguration.class);
     if (configuration == null ||
             // try to forward to a custom error page
