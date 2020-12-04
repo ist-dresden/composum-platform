@@ -65,6 +65,8 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>composum-platform-commons-bundle</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Composum Nodes (Core) -->
