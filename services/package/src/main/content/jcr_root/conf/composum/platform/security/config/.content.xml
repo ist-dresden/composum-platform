@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jcr:root xmlns:jcr="http://www.jcp.org/jcr/1.0"
+        xmlns:nt="http://www.jcp.org/jcr/nt/1.0"
+        xmlns:sling="http://sling.apache.org/jcr/sling/1.0"
+        jcr:primaryType="nt:unstructured"
+        sling:resourceType="composum/nodes/commons/components/security/config"
+        jcr:title="Composum Platform Security Setup"
+        jcr:description="the Composum Platform security configuration set"
+        category="[composum,platform]"
+        rank="{Long}20">
+    <everyone jcr:primaryType="nt:unstructured"
+            category="[everyone,ondemand]"
+            autoSetup="{Boolean}false"
+            jcr:title="Composum Platform 'everyone' ACL script"
+            jcr:description="the access control rule script to setup the Composum Platform rules for 'everyone'"
+            script="/conf/composum/platform/security/acl/everyone.json"/>
+    <login jcr:primaryType="nt:unstructured"
+            category="[login,setup]"
+            autoSetup="{Boolean}true"
+            jcr:title="Composum Platform 'login' ACL script"
+            jcr:description="the access control rule script to setup rules to enable login for 'anonymous'"
+            script="/conf/composum/platform/security/acl/login.json"/>
+    <service jcr:primaryType="nt:unstructured"
+            category="[service,setup]"
+            autoSetup="{Boolean}true"
+            jcr:title="Composum Platform 'service' ACL script"
+            jcr:description="the access control rule script to setup the rules for the Composum Platform service users"
+            script="/conf/composum/platform/security/acl/service.json"/>
+</jcr:root>

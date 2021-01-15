@@ -1,97 +1,35 @@
 [
   {
-    "path": "/libs",
-    "acl": [
-      {
-        "principal": "everyone",
-        "acl": [
-          {
-            "allow": true,
-            "privileges": "jcr:read",
-            "restrictions": {
-              "rep:glob": ""
-            }
-          }
-        ]
+    "description": "allows a 'walk through' the given paths for 'everyone'",
+    "path": [
+      "/libs",
+      "/libs/composum",
+      "/libs/composum/platform"
+    ],
+    "jcr:primaryType": "sling:Folder",
+    "acl": {
+      "principal": "everyone",
+      "rule": {
+        "grant": "jcr:read",
+        "restrictions": {
+          "rep:glob": ""
+        }
       }
-    ]
+    }
   },
   {
-    "path": "/libs/fonts",
-    "acl": [
-      {
-        "principal": "everyone",
-        "acl": [
-          {
-            "allow": true,
-            "privileges": "jcr:read"
-          }
-        ]
+    "description": "allows read access for 'everyone' at the given paths",
+    "path": [
+      "/libs/fonts",
+      "/libs/jslibs",
+      "/libs/composum/platform/public"
+    ],
+    "jcr:primaryType": "sling:Folder",
+    "acl": {
+      "principal": "everyone",
+      "rule": {
+        "grant": "jcr:read"
       }
-    ]
-  },
-  {
-    "path": "/libs/jslibs",
-    "acl": [
-      {
-        "principal": "everyone",
-        "acl": [
-          {
-            "allow": true,
-            "privileges": "jcr:read"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "path": "/libs/composum",
-    "acl": [
-      {
-        "principal": "everyone",
-        "acl": [
-          {
-            "allow": true,
-            "privileges": "jcr:read",
-            "restrictions": {
-              "rep:glob": ""
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "path": "/libs/composum/platform",
-    "acl": [
-      {
-        "principal": "everyone",
-        "condition": "",
-        "acl": [
-          {
-            "allow": true,
-            "privileges": "jcr:read",
-            "restrictions": {
-              "rep:glob": ""
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "path": "/libs/composum/platform/public",
-    "acl": [
-      {
-        "principal": "everyone",
-        "condition": "",
-        "acl": [
-          {
-            "allow": true,
-            "privileges": "jcr:read"
-          }
-        ]
-      }
-    ]
+    }
   }
 ]
