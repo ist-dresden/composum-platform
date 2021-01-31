@@ -22,10 +22,20 @@ import org.apache.jackrabbit.vault.fs.config.ConfigurationException;
 import org.apache.jackrabbit.vault.fs.config.DefaultWorkspaceFilter;
 import org.apache.jackrabbit.vault.fs.io.Importer;
 import org.apache.jackrabbit.vault.fs.io.ZipStreamArchive;
-import org.apache.sling.api.resource.*;
+import org.apache.sling.api.resource.LoginException;
+import org.apache.sling.api.resource.ModifiableValueMap;
+import org.apache.sling.api.resource.PersistenceException;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.api.resource.ValueMap;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.Constants;
-import org.osgi.service.component.annotations.*;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
@@ -41,7 +51,14 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.SecureRandom;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -535,9 +552,41 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     protected void updateAttributes(@Nonnull NodeTreeSynchronizer synchronizer, @Nonnull Resource source, @Nonnull Resource destination) throws ReplicationException {
         try {
             synchronizer.updateAttributes(ResourceHandle.use(source), ResourceHandle.use(destination), ImmutableBiMap.of());
+            //adjustLastModified(source, destination);
         } catch (RepositoryException | RuntimeException e) {
             throw new ReplicationException(Message.error("Error during synchronization of attributes of {} in backend", getPath(destination)), e);
         }
+    }
+
+    /**
+     * copies the jcr:lastModified or the jcr:created date of the source to the destination as jcr:lastModified
+     *
+    protected void adjustLastModified(@Nonnull Resource source, @Nonnull Resource destination) {
+        if (ResourceUtil.isNodeType(destination, "mix:lastModified")) {
+            Calendar modificationDate = getModificationDate(source);
+            if (modificationDate != null) {
+                ModifiableValueMap destValues = destination.adaptTo(ModifiableValueMap.class);
+                if (destValues != null) {
+                    destValues.put(ResourceUtil.PROP_LAST_MODIFIED, modificationDate);
+                / *
+                String lastModifiedBy = source.getValueMap().get(ResourceUtil.PROP_LAST_MODIFIED + "By", String.class);
+                if (lastModifiedBy != null) {
+                    destValues.put(ResourceUtil.PROP_LAST_MODIFIED + "By", lastModifiedBy);
+                }
+                * /
+                }
+            }
+        }
+    }
+    */
+
+    protected Calendar getModificationDate(Resource resource) {
+        ValueMap values = resource.getValueMap();
+        Calendar modificationDate = values.get(ResourceUtil.PROP_LAST_MODIFIED, Calendar.class);
+        if (modificationDate == null) {
+            modificationDate = values.get(ResourceUtil.PROP_CREATED, Calendar.class);
+        }
+        return modificationDate;
     }
 
     /**
@@ -615,11 +664,8 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         long expireTime = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(cleanupDays);
         for (Resource child : tmpDir.getChildren()) {
             if (ReplicationConstants.PATTERN_UPDATEID.matcher(child.getName()).matches()) {
-                Date modificationDate = child.getValueMap().get(ResourceUtil.PROP_LAST_MODIFIED, Date.class);
-                if (modificationDate == null) {
-                    modificationDate = child.getValueMap().get(ResourceUtil.PROP_CREATED, Date.class);
-                }
-                if (modificationDate != null && modificationDate.getTime() < expireTime) {
+                Calendar modificationDate = getModificationDate(child);
+                if (modificationDate != null && modificationDate.getTime().getTime() < expireTime) {
                     LOG.error("Cleanup: needing to delete temporary directory not touched for {} days: {}",
                             cleanupDays, child.getPath());
                     try {
@@ -767,5 +813,4 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         )
         int cleanupTmpdirDays() default 1;
     }
-
 }
