@@ -74,7 +74,7 @@
         <dependency>
             <groupId>org.ehcache</groupId>
             <artifactId>ehcache-bundle</artifactId>
-            <version>3.4.0</version>
+            <version>3.6.3</version>
             <scope>provided</scope>
         </dependency>
 
