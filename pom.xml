@@ -60,9 +60,8 @@
 
                 <plugin>
                     <groupId>org.apache.sling</groupId>
-                    <artifactId>maven-sling-plugin</artifactId>
+                    <artifactId>sling-maven-plugin</artifactId>
                     <configuration>
-                        <skip>false</skip>
                         <slingUrl>${sling.scheme}://${sling.host}:${sling.port}${sling.context}</slingUrl>
                         <slingUrlSuffix>${sling.install.path}</slingUrlSuffix>
                         <deploymentMethod>WebDAV</deploymentMethod>
