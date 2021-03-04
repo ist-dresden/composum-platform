@@ -83,7 +83,7 @@
                             <root>/libs/composum/platform/commons</root>
                         </filter>
                         <filter>
-                            <root>/libs/composum/platform/install</root>
+                            <root>${sling.install.path}</root>
                             <includes>
                                 <include>.*/composum-platform-commons-bundle.*\.jar</include>
                                 <include>.*/org.apache.sling.serviceusermapping.impl.ServiceUserMapperImpl.amended-platformcommons.config</include>
@@ -95,7 +95,7 @@
                         <embedded>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>composum-platform-commons-bundle</artifactId>
-                            <target>/libs/composum/platform/install</target>
+                            <target>${sling.install.path}</target>
                         </embedded>
                     </embeddeds>
 
@@ -142,7 +142,6 @@
             </activation>
             <build>
                 <plugins>
-
                     <plugin>
                         <groupId>com.day.jcr.vault</groupId>
                         <artifactId>content-package-maven-plugin</artifactId>
@@ -156,7 +155,6 @@
                             </execution>
                         </executions>
                     </plugin>
-
                 </plugins>
             </build>
         </profile>

@@ -20,13 +20,12 @@
     <url>https://github.com/ist-dresden/composum</url>
 
     <properties>
-        <release.repository.id>ossrh</release.repository.id>
-        <release.repository.url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</release.repository.url>
+        <sling.install.path>/libs/composum/platform/install</sling.install.path>
         <package.group>com/composum/platform</package.group>
         <bundle.category>composum,platform</bundle.category>
-
         <composum.nodes.version>2.2.2</composum.nodes.version>
-
+        <release.repository.id>ossrh</release.repository.id>
+        <release.repository.url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</release.repository.url>
     </properties>
 
     <scm>
@@ -55,6 +54,26 @@
         <module>package</module>
     </modules>
 
+    <build>
+        <pluginManagement>
+            <plugins>
+
+                <plugin>
+                    <groupId>org.apache.sling</groupId>
+                    <artifactId>maven-sling-plugin</artifactId>
+                    <configuration>
+                        <skip>false</skip>
+                        <slingUrl>${sling.scheme}://${sling.host}:${sling.port}${sling.context}</slingUrl>
+                        <slingUrlSuffix>${sling.install.path}</slingUrlSuffix>
+                        <deploymentMethod>WebDAV</deploymentMethod>
+                        <user>${sling.user}</user>
+                        <password>${sling.password}</password>
+                    </configuration>
+                </plugin>
+
+            </plugins>
+        </pluginManagement>
+    </build>
     <dependencyManagement>
         <dependencies>
 

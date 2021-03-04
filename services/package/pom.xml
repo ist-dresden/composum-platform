@@ -115,7 +115,7 @@
                             <root>/libs/composum/platform/services</root>
                         </filter>
                         <filter>
-                            <root>/libs/composum/platform/install</root>
+                            <root>${sling.install.path}</root>
                             <includes>
                                 <include>.*/org.apache.sling.tenant.*\.jar</include>
                                 <include>.*/composum-platform-security-bundle.*\.jar</include>
@@ -140,17 +140,17 @@
                         <embedded>
                             <groupId>org.apache.sling</groupId>
                             <artifactId>org.apache.sling.tenant</artifactId>
-                            <target>/libs/composum/platform/install</target>
+                            <target>${sling.install.path}</target>
                         </embedded>
                         <embedded>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>composum-platform-security-bundle</artifactId>
-                            <target>/libs/composum/platform/install</target>
+                            <target>${sling.install.path}</target>
                         </embedded>
                         <embedded>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>composum-platform-staging-bundle</artifactId>
-                            <target>/libs/composum/platform/install</target>
+                            <target>${sling.install.path}</target>
                         </embedded>
                     </embeddeds>
 
@@ -231,7 +231,6 @@
             </activation>
             <build>
                 <plugins>
-
                     <plugin>
                         <groupId>com.day.jcr.vault</groupId>
                         <artifactId>content-package-maven-plugin</artifactId>
@@ -245,7 +244,6 @@
                             </execution>
                         </executions>
                     </plugin>
-
                 </plugins>
             </build>
         </profile>

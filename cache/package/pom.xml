@@ -83,7 +83,7 @@
                             <root>/libs/composum/platform/cache</root>
                         </filter>
                         <filter>
-                            <root>/libs/composum/platform/install</root>
+                            <root>${sling.install.path}</root>
                             <includes>
                                 <include>.*/ehcache-bundle.*\.jar</include>
                                 <include>.*/composum-platform-cache-bundle.*\.jar</include>
@@ -95,12 +95,12 @@
                         <embedded>
                             <groupId>org.ehcache</groupId>
                             <artifactId>ehcache-bundle</artifactId>
-                            <target>/libs/composum/platform/install</target>
+                            <target>${sling.install.path}</target>
                         </embedded>
                         <embedded>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>composum-platform-cache-bundle</artifactId>
-                            <target>/libs/composum/platform/install</target>
+                            <target>${sling.install.path}</target>
                         </embedded>
                     </embeddeds>
 
@@ -152,7 +152,6 @@
             </activation>
             <build>
                 <plugins>
-
                     <plugin>
                         <groupId>com.day.jcr.vault</groupId>
                         <artifactId>content-package-maven-plugin</artifactId>
@@ -166,7 +165,6 @@
                             </execution>
                         </executions>
                     </plugin>
-
                 </plugins>
             </build>
         </profile>
