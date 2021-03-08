@@ -83,7 +83,7 @@
                             <root>/libs/composum/platform/cache</root>
                         </filter>
                         <filter>
-                            <root>${sling.install.path}</root>
+                            <root>${sling.upload.path}</root>
                             <includes>
                                 <include>.*/ehcache-bundle.*\.jar</include>
                                 <include>.*/composum-platform-cache-bundle.*\.jar</include>
@@ -95,12 +95,12 @@
                         <embedded>
                             <groupId>org.ehcache</groupId>
                             <artifactId>ehcache-bundle</artifactId>
-                            <target>${sling.install.path}</target>
+                            <target>${sling.upload.path}</target>
                         </embedded>
                         <embedded>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>composum-platform-cache-bundle</artifactId>
-                            <target>${sling.install.path}</target>
+                            <target>${sling.upload.path}</target>
                         </embedded>
                     </embeddeds>
 

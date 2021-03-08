@@ -164,10 +164,10 @@
     <profiles>
 
         <profile>
-            <id>installBundle</id>
+            <id>uploadBundle</id>
             <activation>
                 <property>
-                    <name>deploy.bundle</name>
+                    <name>upload.bundle</name>
                     <value>true</value>
                 </property>
             </activation>

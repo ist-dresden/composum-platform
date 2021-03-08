@@ -20,7 +20,7 @@
     <url>https://github.com/ist-dresden/composum</url>
 
     <properties>
-        <sling.install.path>/libs/composum/platform/install</sling.install.path>
+        <sling.upload.path>/libs/composum/platform/install</sling.upload.path>
         <package.group>com/composum/platform</package.group>
         <bundle.category>composum,platform</bundle.category>
         <composum.nodes.version>2.2.2</composum.nodes.version>
@@ -62,9 +62,6 @@
                     <groupId>org.apache.sling</groupId>
                     <artifactId>sling-maven-plugin</artifactId>
                     <configuration>
-                        <slingUrl>${sling.scheme}://${sling.host}:${sling.port}${sling.context}</slingUrl>
-                        <slingUrlSuffix>${sling.install.path}</slingUrlSuffix>
-                        <deploymentMethod>WebDAV</deploymentMethod>
                         <user>${sling.user}</user>
                         <password>${sling.password}</password>
                     </configuration>
@@ -73,6 +70,29 @@
             </plugins>
         </pluginManagement>
     </build>
+
+    <profiles>
+
+        <profile>
+            <!-- install bundles via upload (WebDAV) to 'install' path (/libs/composum/platform/install) -->
+            <id>uploadBundle</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.sling</groupId>
+                        <artifactId>sling-maven-plugin</artifactId>
+                        <configuration>
+                            <deploymentMethod>WebDAV</deploymentMethod>
+                            <slingUrl>${sling.scheme}://${sling.host}:${sling.port}${sling.context}</slingUrl>
+                            <slingUrlSuffix>${sling.upload.path}</slingUrlSuffix>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+    </profiles>
+
     <dependencyManagement>
         <dependencies>
 

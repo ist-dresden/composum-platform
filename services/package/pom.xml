@@ -115,7 +115,7 @@
                             <root>/libs/composum/platform/services</root>
                         </filter>
                         <filter>
-                            <root>${sling.install.path}</root>
+                            <root>${sling.upload.path}</root>
                             <includes>
                                 <include>.*/org.apache.sling.tenant.*\.jar</include>
                                 <include>.*/composum-platform-security-bundle.*\.jar</include>
@@ -140,17 +140,17 @@
                         <embedded>
                             <groupId>org.apache.sling</groupId>
                             <artifactId>org.apache.sling.tenant</artifactId>
-                            <target>${sling.install.path}</target>
+                            <target>${sling.upload.path}</target>
                         </embedded>
                         <embedded>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>composum-platform-security-bundle</artifactId>
-                            <target>${sling.install.path}</target>
+                            <target>${sling.upload.path}</target>
                         </embedded>
                         <embedded>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>composum-platform-staging-bundle</artifactId>
-                            <target>${sling.install.path}</target>
+                            <target>${sling.upload.path}</target>
                         </embedded>
                     </embeddeds>
 

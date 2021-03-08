@@ -83,7 +83,7 @@
                             <root>/libs/composum/platform/commons</root>
                         </filter>
                         <filter>
-                            <root>${sling.install.path}</root>
+                            <root>${sling.upload.path}</root>
                             <includes>
                                 <include>.*/composum-platform-commons-bundle.*\.jar</include>
                                 <include>.*/org.apache.sling.serviceusermapping.impl.ServiceUserMapperImpl.amended-platformcommons.config</include>
@@ -95,7 +95,7 @@
                         <embedded>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>composum-platform-commons-bundle</artifactId>
-                            <target>${sling.install.path}</target>
+                            <target>${sling.upload.path}</target>
                         </embedded>
                     </embeddeds>
 
