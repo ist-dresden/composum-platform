@@ -55,6 +55,87 @@
                 </configuration>
             </plugin>
 
+            <plugin>
+                <groupId>org.apache.sling</groupId>
+                <artifactId>sling-feature-converter-maven-plugin</artifactId>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <id>convert-cp</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>convert-cp</goal>
+                        </goals>
+                        <configuration>
+<!--                            <artifactIdOverride>${project.groupId}:${project.artifactId}:slingosgifeature:${{{filename}}}:${project.version}</artifactIdOverride>-->
+                            <installConvertedCP>true</installConvertedCP>
+                            <convertedCPOutput>${project.build.directory}/fm.out</convertedCPOutput>
+                            <fmOutput>${project.build.directory}/fm</fmOutput>
+                            <fmPrefix>composum-feature-</fmPrefix>
+                            <isContentPackage>true</isContentPackage>
+                            <contentPackages>
+                                <contentPackage>
+                                    <groupId>${project.groupId}</groupId>
+                                    <artifactId>${project.artifactId}</artifactId>
+                                </contentPackage>
+                            </contentPackages>
+                            <strictValidation>true</strictValidation>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.sling</groupId>
+                        <artifactId>org.apache.sling.feature.launcher</artifactId>
+                        <version>${org.apache.sling.feature.launcher.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.sling</groupId>
+                <artifactId>slingfeature-maven-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <features>target/fm</features>
+                    <generatedFeatures>${basedir}/target/fm</generatedFeatures>
+                </configuration>
+                <executions>
+<!--                    <execution>-->
+<!--                        <id>create-fm</id>-->
+<!--                        <phase>package</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>include-artifact</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <includeArtifactClassifier>artifact</includeArtifactClassifier>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+                    <execution>
+                        <id>aggregate</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>aggregate-features</goal>
+                        </goals>
+                        <configuration>
+                            <aggregates>
+                                <aggregate>
+<!--                                    <includeClassifier>artifact</includeClassifier>-->
+                                    <filesInclude>composum-feature-composum-platform-package.json</filesInclude>
+                                </aggregate>
+                            </aggregates>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>attach</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>attach-features</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
     <dependencies>
