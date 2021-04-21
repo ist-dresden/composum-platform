@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>composum-platform-feature</artifactId>
-    <packaging>pom</packaging>
+    <packaging>slingosgifeature</packaging>
 
     <name>Composum Platform Feature</name>
     <description>The composum platform package converted to a feature</description>
@@ -24,37 +24,29 @@
             <version>${project.version}</version>
             <type>zip</type>
         </dependency>
-
-        <!-- Unclear whether we need this; FIXME should probably be generally deployed. -->
-        <!-- https://mvnrepository.com/artifact/org.apache.sling/org.apache.sling.jcr.packageinit -->
-        <dependency>
-            <groupId>org.apache.sling</groupId>
-            <artifactId>org.apache.sling.jcr.packageinit</artifactId>
-            <version>1.0.2</version>
-        </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- Not a regular JAR build, so we need to copy that explicitly -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
-                <configuration>
-                    <outputDirectory>${project.build.directory}</outputDirectory>
-                    <resources>
-                        <resource>
-                            <directory>src/main/resources</directory>
-                        </resource>
-                    </resources>
-                </configuration>
                 <executions>
                     <execution>
+                        <!-- Not a regular JAR build, so we need to copy that explicitly -->
                         <id>copy-frm-resource</id>
                         <phase>process-resources</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/fm</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/features</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -62,7 +54,6 @@
             <plugin>
                 <groupId>org.apache.sling</groupId>
                 <artifactId>sling-feature-converter-maven-plugin</artifactId>
-                <extensions>true</extensions>
                 <executions>
                     <execution>
                         <id>convert-cp</id>
@@ -76,11 +67,14 @@
                             <artifactIdOverride>
                                 ${{project.groupId}}:${{project.artifactId}}:slingosgifeature:${{{filename}}}:${{project.version}}
                             </artifactIdOverride>
+                            <bundleStartOrder>20</bundleStartOrder>
+                            <!-- Needed since the features include all those cp2fm-converted packages : -->
                             <installConvertedCP>true</installConvertedCP>
                             <!-- Attention: because of the hack to deal with the overrides in the local Repo the generated files must be placed locally and not in the local Maven repo -->
                             <convertedCPOutput>${project.build.directory}/fm.out</convertedCPOutput>
                             <fmOutput>${project.build.directory}/fm</fmOutput>
-                            <fmPrefix>test-ui-apps-</fmPrefix>
+                            <fmPrefix>converted-</fmPrefix>
+                            <strictValidation>true</strictValidation>
                             <contentPackages>
                                 <contentPackage>
                                     <groupId>com.composum.platform</groupId>
@@ -92,62 +86,42 @@
                 </executions>
             </plugin>
 
-<!--            <plugin>-->
-<!--                <groupId>org.apache.sling</groupId>-->
-<!--                <artifactId>slingfeature-maven-plugin</artifactId>-->
-<!--                <version>1.1.12</version>-->
-<!--                <extensions>true</extensions>-->
-<!--                <configuration>-->
-<!--                    <features>target/fm</features>-->
-<!--                </configuration>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>aggregate-base-feature</id>-->
-<!--                        <phase>generate-test-sources</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>aggregate-features</goal>-->
-<!--                            <generatedFeatures>${basedir}/target/fm</generatedFeatures>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <aggregates>-->
-<!--                                <aggregate>-->
-<!--                                    <classifier>example-runtime</classifier>-->
-<!--                                    <filesInclude>**/*.json</filesInclude>-->
-<!--                                </aggregate>-->
-<!--                            </aggregates>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                    <execution>-->
-<!--                        <id>attach-base-feature</id>-->
-<!--                        <phase>process-test-sources</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>attach-features</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                    <execution>-->
-<!--                        <id>verify-analyze</id>-->
-<!--                        <phase>generate-test-resources</phase>-->
-<!--                        <goals>-->
-<!--                            <goal>analyse-features</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <framework>-->
-<!--                                <groupId>org.apache.felix</groupId>-->
-<!--                                <artifactId>org.apache.felix.framework</artifactId>-->
-<!--                                <version>6.0.1</version>-->
-<!--                            </framework>-->
-<!--                            <scans>-->
-<!--                                <scan>-->
-<!--                                    <includeClassifier>example-runtime</includeClassifier>-->
-<!--                                    <includeTasks>-->
-<!--                                        <includeTask>bundle-packages</includeTask>-->
-<!--                                    </includeTasks>-->
-<!--                                </scan>-->
-<!--                            </scans>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
+            <plugin>
+                <groupId>org.apache.sling</groupId>
+                <artifactId>slingfeature-maven-plugin</artifactId>
+                <version>1.1.12</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <features>target/fm</features>
+                    <testFeatures>src/test/features</testFeatures>
+                    <generatedFeatures>${basedir}/target/fm</generatedFeatures>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>aggregate-base-feature</id>
+                        <phase>generate-test-sources</phase>
+                        <goals>
+                            <goal>aggregate-features</goal>
+                        </goals>
+                        <configuration>
+                            <aggregates>
+                                <aggregate>
+                                    <filesInclude>**/*.json</filesInclude>
+                                </aggregate>
+                            </aggregates>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>attach-base-feature</id>
+                        <phase>process-test-sources</phase>
+                        <goals>
+                            <!-- <goal>analyse-features</goal>-->
+                            <goal>attach-features</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 

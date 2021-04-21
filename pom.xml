@@ -52,7 +52,7 @@
         <module>services</module>
         <module>testing</module>
         <module>package</module>
-        <!-- <module>feature</module> -->
+        <module>feature</module>
     </modules>
 
     <build>
