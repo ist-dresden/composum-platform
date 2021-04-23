@@ -21,15 +21,16 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -44,6 +45,7 @@ import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
 public class ArtifactDependencyDiagram {
 
     private final MultiValuedMap<String, String> deps = MultiMapUtils.newListValuedHashMap();
+    private final Set<String> artifacts = new TreeSet<>();
     private final Path outputFile;
     private final DocumentBuilder builder;
     private final XPath xpathEnvironment;
@@ -81,12 +83,14 @@ public class ArtifactDependencyDiagram {
             String name = getXpathAsString(doc, "/project/name");
             String packaging = defaultIfBlank(getXpathAsString(doc, "/project/packaging"), "jar");
             String artifactKey = groupId + ":" + artifactId;
-            if (deps.containsKey(artifactKey)) {
-                throw new IllegalArgumentException("Artifact already parsed: " + artifactKey);
+            if (deps.containsKey(artifactKey))
+                throw new IllegalArgumentException("Bug: Artifact already parsed: " + artifactKey);
+            System.out.println(pom + "\t" + artifactKey + "\n" + name + "\t" + packaging + "\t" + version);
+            if (!"pom".equals(packaging)) {
+                artifacts.add(artifactKey);
             }
-            System.out.println("\n" + pom + "\n" + artifactKey + ":" + packaging + ":" + version + "\n" + name);
 
-            XPathExpression dependencyExpr = xpathEnvironment.compile("/project/dependencies//artifactId|/project/build/plugins//artifactId");
+            XPathExpression dependencyExpr = xpathEnvironment.compile("/project/dependencies//artifactId|/project/build/plugins//artifactId|/project/build/plugins//dependencies/dependency/name");
             NodeList dependencyList = (NodeList) dependencyExpr.evaluate(doc, XPathConstants.NODESET);
             for (Node artifactIdNode : asIterable(new NodeListIterator(dependencyList))) {
                 String depId = artifactIdNode.getTextContent().trim();
@@ -96,9 +100,16 @@ public class ArtifactDependencyDiagram {
                     if ("groupId".equals(artifactIdSibling.getNodeName())) {
                         depGroup = artifactIdSibling.getTextContent().trim();
                     }
+                    if ("group".equals(artifactIdSibling.getNodeName()) && depGroup == null) { // package dependencies
+                        depGroup = artifactIdSibling.getTextContent().trim().replace("/", ".");
+                    }
                     if ("type".equals(artifactIdSibling.getNodeName())) {
                         type = artifactIdSibling.getTextContent().trim();
                     }
+                }
+                depGroup = depGroup.replaceAll(Pattern.quote("${project.groupId}"), groupId);
+                if (depGroup.contains("$")) {
+                    throw new IllegalArgumentException("Unknown group id: " + depGroup);
                 }
                 // System.out.println("\t" + depGroup + ":" + depId + ":" + type);
                 if (!StringUtils.isAnyBlank(artifactId, groupId, depId, depGroup)) {
@@ -108,8 +119,16 @@ public class ArtifactDependencyDiagram {
         }
     }
 
+    private Map<String, XPathExpression> exprCache = new HashMap<>();
+
     private String getXpathAsString(Document doc, String xpath) throws XPathExpressionException {
-        XPathExpression expr = xpathEnvironment.compile(xpath);
+        XPathExpression expr = exprCache.computeIfAbsent(xpath, (path) -> {
+            try {
+                return xpathEnvironment.compile(path);
+            } catch (XPathExpressionException e) {
+                throw new RuntimeException(e);
+            }
+        });
         return StringUtils.trim((String) expr.evaluate(doc, XPathConstants.STRING));
     }
 
@@ -120,8 +139,11 @@ public class ArtifactDependencyDiagram {
                 filteredEntries.add(entry);
             }
         }
-        Collections.sort(filteredEntries, Map.Entry.comparingByValue());
-        Collections.sort(filteredEntries, Map.Entry.comparingByKey());
+        filteredEntries = filteredEntries.stream()
+                .distinct()
+                .sorted(Map.Entry.comparingByValue())
+                .sorted(Map.Entry.comparingByKey())
+                .collect(Collectors.toList());
         Set<String> allKeys = Stream.concat(
                 filteredEntries.stream().map(Map.Entry::getKey),
                 filteredEntries.stream().map(Map.Entry::getValue)
@@ -132,25 +154,33 @@ public class ArtifactDependencyDiagram {
         // System.out.println("Common prefixes :  " + prefix + "\t" + artPrefix);
 
         System.out.println("\n\ndigraph componentree {");
+        System.out.println("node [shape=\"box\",style=\"rounded\"];");
         for (Map.Entry<String, String> entry : filteredEntries) {
             System.out.println('"' + entry.getKey() + "\" -> \"" + entry.getValue() + "\" ;");
         }
+        for (String artifact : artifacts) {
+            System.out.println('"' + artifact + "\" ;");
+        }
         System.out.println("}");
 
-        if (Files.exists(outputFile)) {
-            throw new IllegalArgumentException("Output file exists: " + outputFile.toAbsolutePath());
-        }
+//        if (Files.exists(outputFile)) {
+//            throw new IllegalArgumentException("Output file exists: " + outputFile.toAbsolutePath());
+//        }
         try (PrintWriter out = new PrintWriter(outputFile.toFile())) {
             out.println("digraph componentree {");
+            out.println("node [shape=\"box\",style=\"rounded\"];");
             for (Map.Entry<String, String> entry : filteredEntries) {
                 out.println('"' + entry.getKey() + "\" -> \"" + entry.getValue() + "\" ;");
+            }
+            for (String artifact : artifacts) {
+                out.println('"' + artifact + "\" ;");
             }
             out.println("}");
             System.out.println("Wrote diagram to " + outputFile.toAbsolutePath());
             System.out.println("Draw e.g. with:\n");
             String outName = outputFile.getFileName().toString();
             String outPng = outName.replaceAll("\\..*", ".png");
-            System.out.println("ccomps -x " + outName + " | dot | gvpack | neato -Tpng -n2 -o " + outPng + " ; open " + outPng);
+            System.out.println("ccomps -x " + outName + " | tred | dot | gvpack | neato -Tpng -n2 -o " + outPng + " ; open " + outPng);
         }
     }
 
