@@ -41,6 +41,10 @@ import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
 
 /**
  * Creates a diagram with a dependency of artefacts.
+ * Render e.g. with
+ * <code>
+ * tred special.dot | unflatten -f -l 4 -c 6 | dot | gvpack -array_t1 | neato -s -n2 -Tpng -o special.png ; open special.png
+ * </code>
  */
 public class ArtifactDependencyDiagram {
 
@@ -49,6 +53,9 @@ public class ArtifactDependencyDiagram {
     private final Path outputFile;
     private final DocumentBuilder builder;
     private final XPath xpathEnvironment;
+
+    private static final List<String> availableColors = new ArrayList<>(Arrays.asList("#8dd3c7,#ffffb3,#bebada,#fb8072,#80b1d3,#fdb462,#b3de69,#fccde5,#d9d9d9,#bc80bd,#ccebc5,#ffed6f".split(",")));
+    private static final Map<String, String> groupColors = new HashMap<>();
 
     public static void main(String[] args) throws Exception {
         ArtifactDependencyDiagram runner = new ArtifactDependencyDiagram(args);
@@ -153,35 +160,36 @@ public class ArtifactDependencyDiagram {
         // String artPrefix = StringUtils.getCommonPrefix(allKeys.stream().map(k -> StringUtils.substringAfter(k, ":")).toArray((l) -> new String[l]));
         // System.out.println("Common prefixes :  " + prefix + "\t" + artPrefix);
 
-        System.out.println("\n\ndigraph componentree {");
-        System.out.println("node [shape=\"box\",style=\"rounded\"];");
-        for (Map.Entry<String, String> entry : filteredEntries) {
-            System.out.println('"' + entry.getKey() + "\" -> \"" + entry.getValue() + "\" ;");
-        }
-        for (String artifact : artifacts) {
-            System.out.println('"' + artifact + "\" ;");
-        }
-        System.out.println("}");
+        writeEntries(filteredEntries, new PrintWriter(System.out, true));
 
 //        if (Files.exists(outputFile)) {
 //            throw new IllegalArgumentException("Output file exists: " + outputFile.toAbsolutePath());
 //        }
         try (PrintWriter out = new PrintWriter(outputFile.toFile())) {
-            out.println("digraph componentree {");
-            out.println("node [shape=\"box\",style=\"rounded\"];");
-            for (Map.Entry<String, String> entry : filteredEntries) {
-                out.println('"' + entry.getKey() + "\" -> \"" + entry.getValue() + "\" ;");
-            }
-            for (String artifact : artifacts) {
-                out.println('"' + artifact + "\" ;");
-            }
-            out.println("}");
+            writeEntries(filteredEntries, out);
             System.out.println("Wrote diagram to " + outputFile.toAbsolutePath());
             System.out.println("Draw e.g. with:\n");
             String outName = outputFile.getFileName().toString();
             String outPng = outName.replaceAll("\\..*", ".png");
             System.out.println("ccomps -x " + outName + " | tred | dot | gvpack | neato -Tpng -n2 -o " + outPng + " ; open " + outPng);
+            System.out.println("or");
+            System.out.println("unflatten -f -l 4 -c 6 " + outName + " | dot | gvpack -array_t6 | neato -s -n2 -Tpng -o " + outPng + ";  open " + outPng);
         }
+    }
+
+    private void writeEntries(List<Map.Entry<String, String>> filteredEntries, PrintWriter out) {
+        out.println("digraph componentree {");
+        out.println("rankdir=LR;");
+        out.println("node [shape=\"box\", style=\"rounded\"];");
+        for (Map.Entry<String, String> entry : filteredEntries) {
+            out.println('"' + entry.getKey() + "\" -> \"" + entry.getValue() + "\" ;");
+        }
+        for (String artifact : artifacts) {
+            String groupId = artifact.split(":")[0];
+            String groupColor = groupColors.computeIfAbsent(groupId, key -> availableColors.remove(0));
+            out.println('"' + artifact + "\" [style=filled, fillcolor=\"" + groupColor + "\"];");
+        }
+        out.println("}");
     }
 
 }
