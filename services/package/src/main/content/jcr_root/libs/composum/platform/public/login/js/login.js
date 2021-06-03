@@ -20,8 +20,8 @@
         login.UserLoginForm = Backbone.View.extend({
 
             initialize: function (options) {
-                var href = new RegExp('(https?://[^/]+)/.*[?&]target=([^&#]*)').exec(window.location.href);
-                this.targetUrl = href ? decodeURIComponent(href[2]) : '/';
+                var href = new RegExp('(https?://[^/]+)/.*[?&](resource|target)=([^&#]*)').exec(window.location.href);
+                this.targetUrl = href ? decodeURIComponent(href[3]) : '/';
                 this.$alert = this.$('.alert');
                 this.$submit = this.$('.buttons .login');
                 this.$submit.click(_.bind(this.login, this));
