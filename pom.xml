@@ -40,8 +40,8 @@
             <url>${release.repository.url}</url>
         </repository>
         <snapshotRepository>
-            <id>archiva</id>
-            <url>https://build.ist-software.com/nexus/repository/maven-snapshots</url>
+            <id>istrepo</id>
+            <url>https://repo.ist-software.com/repository/maven-snapshots</url>
         </snapshotRepository>
     </distributionManagement>
 
