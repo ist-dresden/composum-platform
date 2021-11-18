@@ -72,7 +72,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
         this.bundleContext = bundleContext;
     }
 
-    @Override
+    @Deprecated
     protected boolean isEnabled() {
         return true;
     }

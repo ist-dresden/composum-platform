@@ -70,7 +70,7 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
     @Reference
     ReleaseChangeEventPublisher releasePublisher;
 
-    @Override
+    @Deprecated
     protected boolean isEnabled() {
         return true;
     }
