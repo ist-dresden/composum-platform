@@ -4,6 +4,7 @@ import com.composum.platform.commons.util.ExceptionThrowingFunction;
 import com.composum.sling.core.AbstractSlingBean;
 import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.core.Restricted;
 import com.composum.sling.core.logging.Message;
 import com.composum.sling.core.util.I18N;
 import com.composum.sling.core.util.RequestUtil;
@@ -29,10 +30,19 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
-import static com.composum.sling.platform.staging.StagingConstants.*;
+import static com.composum.sling.platform.staging.StagingConstants.CURRENT_RELEASE;
+import static com.composum.sling.platform.staging.StagingConstants.TIMESTAMP_FORMAT;
+import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
+import static com.composum.sling.platform.staging.impl.PlatformStagingServlet.SERVICE_KEY;
 
+@Restricted(key = SERVICE_KEY)
 public class ReplicationStatus extends AbstractSlingBean {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReplicationStatus.class);

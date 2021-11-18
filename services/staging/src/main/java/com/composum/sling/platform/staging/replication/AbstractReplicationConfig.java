@@ -1,16 +1,20 @@
 package com.composum.sling.platform.staging.replication;
 
+import com.composum.platform.commons.request.AccessMode;
 import com.composum.sling.core.AbstractSlingBean;
 import com.composum.sling.core.BeanContext;
+import com.composum.sling.core.Restricted;
 import com.composum.sling.core.util.ResourceUtil;
-import com.composum.platform.commons.request.AccessMode;
 import org.apache.sling.api.resource.Resource;
 
 import javax.annotation.Nonnull;
 
+import static com.composum.sling.platform.staging.impl.PlatformStagingServlet.SERVICE_KEY;
+
 /**
  * Base class with common properties for replication configurations, be that inplace or remote.
  */
+@Restricted(key = SERVICE_KEY)
 public abstract class AbstractReplicationConfig extends AbstractSlingBean implements ReplicationConfig {
     /**
      * Property name for {@link #getUrl()}.
