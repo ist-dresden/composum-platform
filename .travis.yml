@@ -2,6 +2,9 @@
 language: java
 jdk: oraclejdk11
 dist: trusty
+env:
+  global:
+    - JAVA_TOOL_OPTIONS=-Dhttps.protocols=TLSv1.2
 branches:
   only:
     - develop
