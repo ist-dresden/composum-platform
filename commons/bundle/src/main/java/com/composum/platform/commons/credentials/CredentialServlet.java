@@ -43,7 +43,7 @@ public class CredentialServlet extends AbstractServiceServlet {
     @Reference
     protected CredentialService credentialService;
 
-    @Override
+    @Deprecated
     protected boolean isEnabled() {
         return credentialService.isEnabled();
     }

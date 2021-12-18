@@ -115,7 +115,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
 
         @AttributeDefinition(
                 name = "Authoring URIs",
-                description = "uri patterns which are always editing requests"
+                description = "uri patterns which are always considered editing requests and thus would need a login"
         )
         String[] author_uri_patterns() default {
                 "^/bin/(?!(public|cpm/platform/auth)/).*$"

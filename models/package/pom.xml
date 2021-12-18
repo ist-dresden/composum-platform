@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.composum.platform</groupId>
         <artifactId>composum-platform-models</artifactId>
-        <version>1.3.0</version>
+        <version>1.3.1</version>
     </parent>
 
     <artifactId>composum-platform-models-package</artifactId>
@@ -81,7 +81,7 @@
 
                     <filters>
                         <filter>
-                            <root>/libs/composum/platform/install</root>
+                            <root>${sling.upload.path}</root>
                             <includes>
                                 <include>.*/composum-platform-models-bundle.*\.jar</include>
                             </includes>
@@ -92,7 +92,7 @@
                         <embedded>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>composum-platform-models-bundle</artifactId>
-                            <target>/libs/composum/platform/install</target>
+                            <target>${sling.upload.path}</target>
                         </embedded>
                     </embeddeds>
 
@@ -139,7 +139,6 @@
             </activation>
             <build>
                 <plugins>
-
                     <plugin>
                         <groupId>com.day.jcr.vault</groupId>
                         <artifactId>content-package-maven-plugin</artifactId>
@@ -153,7 +152,6 @@
                             </execution>
                         </executions>
                     </plugin>
-
                 </plugins>
             </build>
         </profile>

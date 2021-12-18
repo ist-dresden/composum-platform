@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.composum.platform</groupId>
         <artifactId>composum-platform-services</artifactId>
-        <version>1.3.0</version>
+        <version>1.3.1</version>
     </parent>
 
     <artifactId>composum-platform-services-package</artifactId>
@@ -115,7 +115,7 @@
                             <root>/libs/composum/platform/services</root>
                         </filter>
                         <filter>
-                            <root>/libs/composum/platform/install</root>
+                            <root>${sling.upload.path}</root>
                             <includes>
                                 <include>.*/org.apache.sling.tenant.*\.jar</include>
                                 <include>.*/composum-platform-security-bundle.*\.jar</include>
@@ -140,19 +140,27 @@
                         <embedded>
                             <groupId>org.apache.sling</groupId>
                             <artifactId>org.apache.sling.tenant</artifactId>
-                            <target>/libs/composum/platform/install</target>
+                            <target>${sling.upload.path}</target>
                         </embedded>
                         <embedded>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>composum-platform-security-bundle</artifactId>
-                            <target>/libs/composum/platform/install</target>
+                            <target>${sling.upload.path}</target>
                         </embedded>
                         <embedded>
                             <groupId>${project.groupId}</groupId>
                             <artifactId>composum-platform-staging-bundle</artifactId>
-                            <target>/libs/composum/platform/install</target>
+                            <target>${sling.upload.path}</target>
                         </embedded>
                     </embeddeds>
+
+                    <dependencies>
+                        <dependency>
+                            <group>com/composum/platform</group>
+                            <name>composum-platform-commons-package</name>
+                            <!-- <version>[${project.version},2.0)</version> -->
+                        </dependency>
+                    </dependencies>
 
                 </configuration>
             </plugin>
@@ -231,7 +239,6 @@
             </activation>
             <build>
                 <plugins>
-
                     <plugin>
                         <groupId>com.day.jcr.vault</groupId>
                         <artifactId>content-package-maven-plugin</artifactId>
@@ -245,7 +252,6 @@
                             </execution>
                         </executions>
                     </plugin>
-
                 </plugins>
             </build>
         </profile>

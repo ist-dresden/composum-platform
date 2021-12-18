@@ -36,12 +36,12 @@
 
     <distributionManagement>
         <repository>
-            <id>archiva</id>
-            <url>https://build.ist-software.com/nexus/repository/maven-releases</url>
+            <id>istrepo</id>
+            <url>https://repo.ist-software.com/repository/maven-releases</url>
         </repository>
         <snapshotRepository>
-            <id>archiva</id>
-            <url>https://build.ist-software.com/nexus/repository/maven-snapshots</url>
+            <id>istrepo</id>
+            <url>https://repo.ist-software.com/repository/maven-snapshots</url>
         </snapshotRepository>
     </distributionManagement>
 
@@ -88,17 +88,6 @@
                 </configuration>
             </plugin>
 
-            <plugin>
-                <groupId>org.apache.sling</groupId>
-                <artifactId>maven-sling-plugin</artifactId>
-                <version>2.3.8</version>
-                <configuration>
-                    <slingUrl>${sling.scheme}://${sling.host}:${sling.port}${sling.context}/system/console/install</slingUrl>
-                    <user>${sling.user}</user>
-                    <password>${sling.password}</password>
-                </configuration>
-            </plugin>
-
         </plugins>
     </build>
     <dependencies>
@@ -136,4 +125,34 @@
         </dependency>
 
     </dependencies>
+    <profiles>
+
+        <profile>
+            <id>uploadBundle</id>
+            <activation>
+                <property>
+                    <name>upload.bundle</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.sling</groupId>
+                        <artifactId>sling-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>install-bundle</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>install</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+    </profiles>
 </project>

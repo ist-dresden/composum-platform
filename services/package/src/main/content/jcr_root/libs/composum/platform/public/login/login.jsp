@@ -6,11 +6,17 @@
     String userId = slingRequest.getResourceResolver().getUserID();
     if (userId != null && (userId = userId.trim()).length() > 0 && !"anonymous".equals(userId)
             && slingRequest.getParameter("login") == null) {
-        String suffix = XSS.filter(slingRequest.getRequestPathInfo().getSuffix());
-        if (suffix == null || (suffix = suffix.trim()).length() < 1) {
-            suffix = "/";
+        String redirect = XSS.filter(slingRequest.getParameter("resource"));
+        if (redirect == null) {
+            redirect = XSS.filter(slingRequest.getParameter("target"));
         }
-        slingResponse.sendRedirect(suffix);
+        if (redirect == null) {
+            redirect = XSS.filter(slingRequest.getRequestPathInfo().getSuffix());
+        }
+        if (redirect == null || (redirect = redirect.trim()).length() < 1) {
+            redirect = "/";
+        }
+        slingResponse.sendRedirect(redirect);
         return;
     }
 %>
