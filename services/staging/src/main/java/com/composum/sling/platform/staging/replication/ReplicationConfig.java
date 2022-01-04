@@ -2,8 +2,8 @@ package com.composum.sling.platform.staging.replication;
 
 import com.composum.sling.platform.staging.replication.ReplicationType;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * The configuration necessary to carry out a replication.
@@ -17,10 +17,10 @@ public interface ReplicationConfig {
     String PN_IS_ENABLED = "enabled";
     String PN_IS_EDITABLE = "editable";
 
-    @Nonnull
+    @NotNull
     String getStage();
 
-    @Nonnull
+    @NotNull
     String getTitle();
 
     @Nullable
@@ -34,7 +34,7 @@ public interface ReplicationConfig {
     /**
      * @return the path of the content affected by this configuration
      */
-    @Nonnull
+    @NotNull
     String getSourcePath();
 
     /**
@@ -46,13 +46,13 @@ public interface ReplicationConfig {
     /**
      * @return the replication service type (implementation type)
      */
-    @Nonnull
+    @NotNull
     ReplicationType getReplicationType();
 
     /**
      * @return the resource type of the component to view / edit the configuration
      */
-    @Nonnull
+    @NotNull
     String getConfigResourceType();
 
     /**

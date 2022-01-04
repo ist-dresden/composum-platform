@@ -18,8 +18,8 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -37,21 +37,21 @@ public class ReplicatorStrategy {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReplicatorStrategy.class);
 
-    @Nonnull
+    @NotNull
     protected final Set<String> changedPaths;
-    @Nonnull
+    @NotNull
     protected final Release release;
-    @Nonnull
+    @NotNull
     protected final ResourceResolver resolver;
-    @Nonnull
+    @NotNull
     protected final BeanContext context;
-    @Nonnull
+    @NotNull
     protected final ReplicationConfig replicationConfig;
-    @Nonnull
+    @NotNull
     protected final String originalSourceReleaseChangeNumber;
-    @Nonnull
+    @NotNull
     protected final PublicationReceiverFacade publisher;
-    @Nonnull
+    @NotNull
     protected final MessageContainer messages;
     /**
      * If true, ignore the releaseChangeNumber on the other side and always do compare contents.
@@ -66,9 +66,9 @@ public class ReplicatorStrategy {
     protected volatile boolean abortAtNextPossibility = false;
     protected volatile UpdateInfo cleanupUpdateInfo;
 
-    public ReplicatorStrategy(@Nonnull Set<String> changedPaths, @Nonnull Release release,
-                              @Nonnull BeanContext context, @Nonnull ReplicationConfig replicationConfig,
-                              @Nonnull MessageContainer messages, @Nonnull PublicationReceiverFacade publisher, boolean forceCheck) {
+    public ReplicatorStrategy(@NotNull Set<String> changedPaths, @NotNull Release release,
+                              @NotNull BeanContext context, @NotNull ReplicationConfig replicationConfig,
+                              @NotNull MessageContainer messages, @NotNull PublicationReceiverFacade publisher, boolean forceCheck) {
         this.changedPaths = changedPaths;
         this.release = release;
         this.originalSourceReleaseChangeNumber = release.getChangeNumber();
@@ -89,7 +89,7 @@ public class ReplicatorStrategy {
         abortAtNextPossibility = true;
     }
 
-    @Nonnull
+    @NotNull
     ReplicationPaths replicationPaths(@Nullable String contentPath) {
         return new ReplicationPaths(release.getReleaseRoot().getPath(), replicationConfig.getSourcePath(), replicationConfig.getTargetPath(), contentPath);
     }
@@ -210,8 +210,8 @@ public class ReplicatorStrategy {
      * That's a rare case which we could catch only if all node orderings are transmitted on each change, which
      * we hesitate to do for efficiency.)
      */
-    @Nonnull
-    protected Stream<ChildrenOrderInfo> relevantOrderings(@Nonnull Collection<String> pathsToTransmit, @Nonnull ReplicationPaths replicationPaths) {
+    @NotNull
+    protected Stream<ChildrenOrderInfo> relevantOrderings(@NotNull Collection<String> pathsToTransmit, @NotNull ReplicationPaths replicationPaths) {
         Stream<Resource> relevantNodes = relevantParentNodesOfVersionables(pathsToTransmit, replicationPaths);
         return relevantNodes
                 .map(ChildrenOrderInfo::of)
@@ -221,8 +221,8 @@ public class ReplicatorStrategy {
     /**
      * The attribute infos for all parent nodes of versionables within pathsToTransmit within the release root.
      */
-    @Nonnull
-    protected Stream<NodeAttributeComparisonInfo> parentAttributeInfos(@Nonnull Collection<String> pathsToTransmit, @Nonnull ReplicationPaths replicationPaths) {
+    @NotNull
+    protected Stream<NodeAttributeComparisonInfo> parentAttributeInfos(@NotNull Collection<String> pathsToTransmit, @NotNull ReplicationPaths replicationPaths) {
         return relevantParentNodesOfVersionables(pathsToTransmit, replicationPaths)
                 .map(resource -> NodeAttributeComparisonInfo.of(resource, null))
                 .filter(Objects::nonNull);
@@ -233,8 +233,8 @@ public class ReplicatorStrategy {
      * This consists of the parent nodes of pathsToTransmit and the children of pathsToTransmit (including
      * themselves) up to (and excluding) the versionables.
      */
-    @Nonnull
-    protected Stream<Resource> relevantParentNodesOfVersionables(@Nonnull Collection<String> pathsToTransmit, @Nonnull ReplicationPaths replicationPaths) {
+    @NotNull
+    protected Stream<Resource> relevantParentNodesOfVersionables(@NotNull Collection<String> pathsToTransmit, @NotNull ReplicationPaths replicationPaths) {
         Stream<Resource> parentsStream = pathsToTransmit.stream()
                 .map(replicationPaths::trimToOrigin)
                 .filter(Objects::nonNull)
@@ -252,8 +252,8 @@ public class ReplicatorStrategy {
         return Stream.concat(parentsStream, childrenStream);
     }
 
-    @Nonnull
-    protected Stream<String> parentsUpToOrigin(String path, @Nonnull ReplicationPaths replicationPaths) {
+    @NotNull
+    protected Stream<String> parentsUpToOrigin(String path, @NotNull ReplicationPaths replicationPaths) {
         List<String> result = new ArrayList<>();
         String parent = ResourceUtil.getParent(path);
         while (parent != null && isSameOrDescendant(replicationPaths.getOrigin(), parent)) {
@@ -263,7 +263,7 @@ public class ReplicatorStrategy {
         return result.stream();
     }
 
-    @Nonnull
+    @NotNull
     protected Stream<Resource> childrenExcludingVersionables(Resource resource) {
         if (resource == null || ResourceUtil.isNodeType(resource, ResourceUtil.TYPE_VERSIONABLE)) {
             return Stream.empty();
@@ -273,7 +273,7 @@ public class ReplicatorStrategy {
                         .flatMap(this::childrenExcludingVersionables));
     }
 
-    protected void abortIfNecessary(@Nonnull UpdateInfo updateInfo) throws ReplicationException {
+    protected void abortIfNecessary(@NotNull UpdateInfo updateInfo) throws ReplicationException {
         if (abortAtNextPossibility) {
             messages.add(Message.info("Aborting because that was requested: {}", updateInfo.updateId));
             abort(updateInfo);
@@ -288,7 +288,7 @@ public class ReplicatorStrategy {
         }
     }
 
-    protected void abort(@Nonnull UpdateInfo updateInfo) throws ReplicationException {
+    protected void abort(@NotNull UpdateInfo updateInfo) throws ReplicationException {
         Status status = publisher.abortUpdate(updateInfo);
         if (status == null || !status.isValid()) {
             messages.add(Message.error("Aborting replication failed for {} - " +

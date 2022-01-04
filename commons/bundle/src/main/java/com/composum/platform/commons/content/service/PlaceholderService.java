@@ -6,10 +6,9 @@
 package com.composum.platform.commons.content.service;
 
 import com.composum.sling.core.BeanContext;
-import org.apache.sling.api.resource.ValueMap;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
@@ -29,36 +28,35 @@ public interface PlaceholderService {
     interface ValueProvider {
 
         /**
-         * @return the value of the key of the provider can retrieve it otherwise 'null'
+         * @return the value of the key if the provider can retrieve it otherwise 'null'
          */
-        @Nullable
-        <T> T getValue(@Nonnull BeanContext context, @Nonnull String key, Class<T> type);
+        @Nullable <T> T getValue(@NotNull BeanContext context, @NotNull String key, Class<T> type);
     }
 
     /**
      * @return the dynamic map of all provided values
      */
-    @Nonnull
-    ValueMap getValueMap(@Nonnull BeanContext context, @Nullable Map<String, Object> base);
+    @NotNull
+    Map<String, Object> getValues(@NotNull BeanContext context, @Nullable Map<String, Object> base);
 
     /**
      * @return the text value with embedded placeholder values
      */
-    @Nonnull
-    String applyPlaceholders(@Nonnull BeanContext context,
-                             @Nonnull String text, @Nonnull Map<String, Object> values);
+    @NotNull
+    String applyPlaceholders(@NotNull BeanContext context,
+                             @NotNull String text, @NotNull Map<String, Object> values);
 
     /**
      * writes the text to the writer with replacing of all placeholders in the text
      */
-    void applyPlaceholders(@Nonnull BeanContext context, @Nonnull Writer writer,
-                           @Nonnull String text, @Nonnull Map<String, Object> values)
+    void applyPlaceholders(@NotNull BeanContext context, @NotNull Writer writer,
+                           @NotNull String text, @NotNull Map<String, Object> values)
             throws IOException;
 
     /**
      * @return a reader which is replacing all placeholders during read
      */
-    @Nonnull
-    Reader getEmbeddingReader(@Nonnull BeanContext context,
-                              @Nonnull Reader reader, @Nonnull Map<String, Object> values);
+    @NotNull
+    Reader getEmbeddingReader(@NotNull BeanContext context,
+                              @NotNull Reader reader, @NotNull Map<String, Object> values);
 }

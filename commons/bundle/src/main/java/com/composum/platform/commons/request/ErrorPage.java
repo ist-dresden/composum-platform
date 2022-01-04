@@ -9,7 +9,7 @@ import org.apache.sling.api.SlingHttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.security.Principal;
 
@@ -52,7 +52,7 @@ public class ErrorPage extends AbstractSlingBean {
      *
      * @see {@link CoreConfiguration#getLoginUrl()}
      */
-    @Nonnull
+    @NotNull
     public String getLoginUrl() {
         if (loginUrl == null) {
             loginUrl = getCoreConfiguration() != null ? getCoreConfiguration().getLoginUrl() : null;

@@ -13,8 +13,8 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
 import java.util.Iterator;
@@ -28,11 +28,11 @@ import java.util.Objects;
 public abstract class AbstractStagingResourceResolver implements ResourceResolver {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractStagingResourceResolver.class);
-    @Nonnull
+    @NotNull
     protected final ResourceResolver underlyingResolver;
     protected final boolean closeResolverOnClose;
 
-    public AbstractStagingResourceResolver(@Nonnull ResourceResolver underlyingResolver, boolean closeResolverOnClose) {
+    public AbstractStagingResourceResolver(@NotNull ResourceResolver underlyingResolver, boolean closeResolverOnClose) {
         this.underlyingResolver = Objects.requireNonNull(underlyingResolver);
         this.closeResolverOnClose = closeResolverOnClose;
     }
@@ -44,8 +44,8 @@ public abstract class AbstractStagingResourceResolver implements ResourceResolve
      * @param rawPath an absolute path (possibly not normalized)
      * @return the (possibly simulated) resource or a {@link NonExistingResource} if it isn't present
      */
-    @Nonnull
-    protected abstract Resource retrieveReleasedResource(@Nullable SlingHttpServletRequest request, @Nonnull String rawPath);
+    @NotNull
+    protected abstract Resource retrieveReleasedResource(@Nullable SlingHttpServletRequest request, @NotNull String rawPath);
 
 
     /**
@@ -54,7 +54,7 @@ public abstract class AbstractStagingResourceResolver implements ResourceResolve
      * @deprecated for staging-internal use only
      */
     @Deprecated
-    public Resource wrapIntoStagingResource(@Nonnull String path, @Nullable Resource underlyingResource, @Nullable HttpServletRequest request, boolean useNonExisting) {
+    public Resource wrapIntoStagingResource(@NotNull String path, @Nullable Resource underlyingResource, @Nullable HttpServletRequest request, boolean useNonExisting) {
         if (underlyingResource == null)
             return useNonExisting ? new NonExistingResource(this, path) : null;
 
@@ -70,7 +70,7 @@ public abstract class AbstractStagingResourceResolver implements ResourceResolve
 
     /** Returns additional wrapped children overlayed to the children of the underlying resource. */
     @Nullable
-    protected Iterator<Resource> overlayedChildren(@Nonnull Resource parent) {
+    protected Iterator<Resource> overlayedChildren(@NotNull Resource parent) {
         return null;
     }
 
@@ -80,8 +80,8 @@ public abstract class AbstractStagingResourceResolver implements ResourceResolve
     }
 
     @Override
-    @Nonnull
-    public Iterator<Resource> listChildren(@Nonnull Resource rawParent) {
+    @NotNull
+    public Iterator<Resource> listChildren(@NotNull Resource rawParent) {
         final Resource parent = ResourceUtil.unwrap(rawParent);
         StagingResource stagingResource = null;
         if (parent instanceof StagingResource && parent.getResourceResolver() == this) {
@@ -107,7 +107,7 @@ public abstract class AbstractStagingResourceResolver implements ResourceResolve
 
     @Override
     @Nullable
-    public Resource getResource(@Nonnull String path) {
+    public Resource getResource(@NotNull String path) {
         Resource result = null;
         if (path.startsWith("/")) {
             result = retrieveReleasedResource(null, path);
@@ -122,7 +122,7 @@ public abstract class AbstractStagingResourceResolver implements ResourceResolve
 
     @Override
     @Nullable
-    public Resource getResource(@Nullable Resource base, @Nonnull String path) {
+    public Resource getResource(@Nullable Resource base, @NotNull String path) {
         String fullPath = path;
         if (!fullPath.startsWith("/") && base != null) {
             base.getPath();
@@ -166,50 +166,50 @@ public abstract class AbstractStagingResourceResolver implements ResourceResolve
     }
 
     @Override
-    @Nonnull
-    public Iterable<Resource> getChildren(@Nonnull Resource parent) {
+    @NotNull
+    public Iterable<Resource> getChildren(@NotNull Resource parent) {
         return () -> listChildren(parent);
     }
 
     @Override
-    public boolean hasChildren(@Nonnull Resource resource) {
+    public boolean hasChildren(@NotNull Resource resource) {
         return listChildren(resource).hasNext();
     }
 
     @Override
     @Nullable
-    public Resource getParent(@Nonnull Resource child) {
+    public Resource getParent(@NotNull Resource child) {
         String parent = ResourceUtil.getParent(child.getPath());
         return parent != null ? getResource(parent) : null;
     }
 
     @Override
-    @Nonnull
-    public Resource resolve(@Nonnull String absPath) {
+    @NotNull
+    public Resource resolve(@NotNull String absPath) {
         return resolve(null, absPath);
     }
 
     @Override
-    @Nonnull
+    @NotNull
     @Deprecated
-    public Resource resolve(@Nonnull HttpServletRequest request) {
+    public Resource resolve(@NotNull HttpServletRequest request) {
         return resolve(request, request.getPathInfo());
     }
 
     @Override
-    @Nonnull
-    public String map(@Nonnull String resourcePath) {
+    @NotNull
+    public String map(@NotNull String resourcePath) {
         return underlyingResolver.map(resourcePath);
     }
 
     @Override
     @Nullable
-    public String map(@Nonnull HttpServletRequest request, @Nonnull String resourcePath) {
+    public String map(@NotNull HttpServletRequest request, @NotNull String resourcePath) {
         return underlyingResolver.map(request, resourcePath);
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String[] getSearchPath() {
         return underlyingResolver.getSearchPath();
     }
@@ -220,8 +220,8 @@ public abstract class AbstractStagingResourceResolver implements ResourceResolve
      * @see com.composum.sling.platform.staging.query.QueryBuilder
      */
     @Override
-    @Nonnull
-    public Iterator<Resource> findResources(@Nonnull String query, @Nullable String language) {
+    @NotNull
+    public Iterator<Resource> findResources(@NotNull String query, @Nullable String language) {
         throw new UnsupportedOperationException("findResources not supported / not yet implemented. Please use QueryBuilder.");
     }
 
@@ -231,8 +231,8 @@ public abstract class AbstractStagingResourceResolver implements ResourceResolve
      * @see com.composum.sling.platform.staging.query.QueryBuilder
      */
     @Override
-    @Nonnull
-    public Iterator<Map<String, Object>> queryResources(@Nonnull String query, @Nullable String language) {
+    @NotNull
+    public Iterator<Map<String, Object>> queryResources(@NotNull String query, @Nullable String language) {
         throw new UnsupportedOperationException("queryResources not supported / not yet implemented. Please use QueryBuilder.");
     }
 
@@ -254,27 +254,27 @@ public abstract class AbstractStagingResourceResolver implements ResourceResolve
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Iterator<String> getAttributeNames() {
         return underlyingResolver.getAttributeNames();
     }
 
     @Override
     @Nullable
-    public Object getAttribute(@Nonnull String name) {
+    public Object getAttribute(@NotNull String name) {
         return underlyingResolver.getAttribute(name);
     }
 
     /** Not implemented, since this resolver provides an readon view of things. */
     @Override
-    @Nonnull
-    public Resource create(@Nonnull Resource parent, @Nonnull String name, @Nullable Map<String, Object> properties) throws PersistenceException {
+    @NotNull
+    public Resource create(@NotNull Resource parent, @NotNull String name, @Nullable Map<String, Object> properties) throws PersistenceException {
         throw new PersistenceException("creating resources not implemented - readonly view.");
     }
 
     /** Not implemented, since this resolver provides an readon view of things. */
     @Override
-    public void delete(@Nonnull Resource resource) throws PersistenceException {
+    public void delete(@NotNull Resource resource) throws PersistenceException {
         throw new PersistenceException("deleting resources not implemented - readonly view.");
     }
 

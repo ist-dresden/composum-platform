@@ -9,8 +9,8 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.sling.api.SlingHttpServletRequest;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,7 +23,7 @@ import static com.composum.sling.platform.staging.replication.ReplicationConstan
  */
 public class ReplicationPaths {
 
-    @Nonnull
+    @NotNull
     private final String releaseRoot;
 
     @Nullable
@@ -37,7 +37,7 @@ public class ReplicationPaths {
 
     private transient MovePostprocessor movePostprocessor;
 
-    public ReplicationPaths(@Nonnull String releaseRoot, @Nullable String sourcePath, @Nullable String targetPath, @Nullable String contentPath) {
+    public ReplicationPaths(@NotNull String releaseRoot, @Nullable String sourcePath, @Nullable String targetPath, @Nullable String contentPath) {
         this.releaseRoot = Objects.requireNonNull(StringUtils.trimToNull(releaseRoot));
         this.sourcePath = StringUtils.trimToNull(sourcePath);
         this.targetPath = StringUtils.trimToNull(targetPath);
@@ -71,7 +71,7 @@ public class ReplicationPaths {
                 (String) params.get(PARAM_TARGETPATH), (String) params.get(PARAM_CONTENTPATH));
     }
 
-    public ReplicationPaths(@Nonnull SlingHttpServletRequest request) {
+    public ReplicationPaths(@NotNull SlingHttpServletRequest request) {
         this(XSS.filter(request.getParameter(PARAM_RELEASEROOT)),
                 XSS.filter(request.getParameter(PARAM_SOURCEPATH)),
                 XSS.filter(request.getParameter(PARAM_TARGETPATH)),
@@ -82,7 +82,7 @@ public class ReplicationPaths {
      * Only creates ReplicationPaths if the mandatory releaseRoot is set.
      */
     @Nullable
-    public static ReplicationPaths optional(@Nonnull SlingHttpServletRequest request) {
+    public static ReplicationPaths optional(@NotNull SlingHttpServletRequest request) {
         if (StringUtils.isNotBlank(request.getParameter(PARAM_RELEASEROOT))) {
             return new ReplicationPaths(request);
         }
@@ -92,7 +92,7 @@ public class ReplicationPaths {
     /**
      * The release root - normally the site that is replicated.
      */
-    @Nonnull
+    @NotNull
     public String getReleaseRoot() {
         return releaseRoot;
     }
@@ -130,7 +130,7 @@ public class ReplicationPaths {
         this.contentPath = trimToOrigin(contentPath);
     }
 
-    @Nonnull
+    @NotNull
     public MovePostprocessor getMovePostprocessor() {
         if (movePostprocessor == null) {
             movePostprocessor = new MovePostprocessor(getOrigin(), getTargetPath());
@@ -143,8 +143,8 @@ public class ReplicationPaths {
      *
      * @throws IllegalArgumentException if the path is not within {@link #getSourcePath()} / {@link #getReleaseRoot()}
      */
-    @Nonnull
-    public String translate(@Nonnull String path) {
+    @NotNull
+    public String translate(@NotNull String path) {
         String res = Objects.requireNonNull(path);
         String origin = getOrigin();
         if (!SlingResourceUtil.isSameOrDescendant(origin, path)) {
@@ -162,8 +162,8 @@ public class ReplicationPaths {
      *
      * @throws IllegalArgumentException if the path is not within {@link #getSourcePath()} / {@link #getReleaseRoot()}
      */
-    @Nonnull
-    public String inverseTranslate(@Nonnull String path) {
+    @NotNull
+    public String inverseTranslate(@NotNull String path) {
         String res = Objects.requireNonNull(path);
         String origin = getOrigin();
         if (getTargetPath() != null) {
@@ -179,7 +179,7 @@ public class ReplicationPaths {
     /**
      * Function that calls {@link #translate(String)} and adds an additional {offset} at the start, if that's given.
      */
-    @Nonnull
+    @NotNull
     public Function<String, String> translateMapping(@Nullable String offset) {
         return (path) -> {
             String translated = translate(path);
@@ -193,7 +193,7 @@ public class ReplicationPaths {
     /**
      * Function that removes an additional {offset} from the start, if that's given, and calls {@link #inverseTranslate(String)}.
      */
-    @Nonnull
+    @NotNull
     public Function<String, String> inverseTranslateMapping(@Nullable String offset) {
         return (path) -> {
             String offsetRemoved = path;
@@ -211,7 +211,7 @@ public class ReplicationPaths {
     /**
      * The origin: {@link #getSourcePath()} if not null, else {@link #getReleaseRoot()}.
      */
-    @Nonnull
+    @NotNull
     public String getOrigin() {
         return getSourcePath() != null ? getSourcePath() : getReleaseRoot();
     }
@@ -219,7 +219,7 @@ public class ReplicationPaths {
     /**
      * The destination: {@link #getTargetPath()} if not null, else the {@link #getOrigin()}.
      */
-    @Nonnull
+    @NotNull
     public String getDestination() {
         return getTargetPath() != null ? getTargetPath() : getReleaseRoot();
     }
@@ -247,8 +247,8 @@ public class ReplicationPaths {
     /**
      * Adds our values (except {@link #getContentPath()} which is usually transmitted as suffix) as parameter to an URI.
      */
-    @Nonnull
-    public URIBuilder addToUriBuilder(@Nonnull URIBuilder uriBuilder) {
+    @NotNull
+    public URIBuilder addToUriBuilder(@NotNull URIBuilder uriBuilder) {
         uriBuilder.addParameter(ReplicationConstants.PARAM_RELEASEROOT, getReleaseRoot());
         if (getSourcePath() != null) {
             uriBuilder.addParameter(ReplicationConstants.PARAM_SOURCEPATH, getSourcePath());

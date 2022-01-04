@@ -11,7 +11,7 @@ import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.servlet.ServletException;
 import java.io.IOException;
 
@@ -28,16 +28,16 @@ public class InternalRequestServiceImpl implements InternalRequestService {
     protected SlingRequestProcessor slingRequestProcessor;
 
     @Override
-    @Nonnull
-    public String getString(@Nonnull SlingHttpServletRequest contextRequest, @Nonnull PathInfo pathInfo)
+    @NotNull
+    public String getString(@NotNull SlingHttpServletRequest contextRequest, @NotNull PathInfo pathInfo)
             throws ServletException, IOException {
         MockSlingHttpServletResponse response = doGet(contextRequest, pathInfo);
         return response != null ? response.getOutputAsString() : "";
     }
 
     @Override
-    @Nonnull
-    public byte[] getBytes(@Nonnull SlingHttpServletRequest contextRequest, @Nonnull PathInfo pathInfo)
+    @NotNull
+    public byte[] getBytes(@NotNull SlingHttpServletRequest contextRequest, @NotNull PathInfo pathInfo)
             throws ServletException, IOException {
         MockSlingHttpServletResponse response = doGet(contextRequest, pathInfo);
         return response != null ? response.getOutput() : new byte[0];
@@ -49,7 +49,7 @@ public class InternalRequestServiceImpl implements InternalRequestService {
      * @param contextRequest the 'original' rendering request
      * @param pathInfo       the prepared path info object for the internal request
      */
-    protected SlingResponse doGet(@Nonnull SlingHttpServletRequest contextRequest, @Nonnull PathInfo pathInfo)
+    protected SlingResponse doGet(@NotNull SlingHttpServletRequest contextRequest, @NotNull PathInfo pathInfo)
             throws ServletException, IOException {
         SlingResponse response = null;
         String path = pathInfo.getResourcePath();

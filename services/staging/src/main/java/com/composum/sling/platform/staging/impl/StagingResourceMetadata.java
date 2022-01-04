@@ -1,9 +1,9 @@
 package com.composum.sling.platform.staging.impl;
 
 import org.apache.sling.api.resource.ResourceMetadata;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -15,12 +15,12 @@ import java.util.Set;
  */
 public class StagingResourceMetadata extends ResourceMetadata {
 
-    @Nonnull
+    @NotNull
     private final ResourceMetadata frozenMetaData;
     private final String calculatedResolutionPath;
     private final String calculatedResolutionPathInfo;
 
-    StagingResourceMetadata(final @Nonnull ResourceMetadata frozenMetaData,
+    StagingResourceMetadata(final @NotNull ResourceMetadata frozenMetaData,
                             final String calculatedResolutionPath,
                             final String calculatedResolutionPathInfo) {
         this.frozenMetaData = frozenMetaData;
@@ -29,7 +29,7 @@ public class StagingResourceMetadata extends ResourceMetadata {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Set<Map.Entry<String, Object>> entrySet() {
         final Set<Map.Entry<String, Object>> entries = frozenMetaData.entrySet();
         for (Map.Entry<String, Object> entry : entries) {
@@ -43,13 +43,13 @@ public class StagingResourceMetadata extends ResourceMetadata {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Set<String> keySet() {
         return frozenMetaData.keySet();
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Collection<Object> values() {
         final Collection<Object> results = new ArrayList<>();
         final Set<Map.Entry<String, Object>> entries = frozenMetaData.entrySet();

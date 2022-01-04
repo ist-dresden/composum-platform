@@ -6,8 +6,8 @@ import org.junit.runners.model.MultipleFailureException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -43,8 +43,8 @@ public class AroundActionsWrapper implements InvocationHandler {
      * @return the wrapped object
      */
     @SuppressWarnings("unchecked")
-    @Nonnull
-    public static <T> T of(@Nonnull T wrappedObject, @Nullable TestingRunnableWithException<? extends Throwable> before, @Nullable TestingRunnableWithException<? extends Throwable> after, TestingRunnableWithException<? extends Throwable> onError) {
+    @NotNull
+    public static <T> T of(@NotNull T wrappedObject, @Nullable TestingRunnableWithException<? extends Throwable> before, @Nullable TestingRunnableWithException<? extends Throwable> after, TestingRunnableWithException<? extends Throwable> onError) {
         Class[] interfaces = ClassUtils.getAllInterfaces(wrappedObject.getClass()).toArray(new Class[0]);
         return (T) Proxy.newProxyInstance(wrappedObject.getClass().getClassLoader(), interfaces, new AroundActionsWrapper(wrappedObject, before, after, onError));
     }

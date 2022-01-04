@@ -7,8 +7,8 @@ import com.google.gson.JsonParseException;
 import com.google.gson.stream.JsonReader;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Spliterator;
@@ -29,13 +29,13 @@ import static java.util.Objects.requireNonNull;
  */
 public class JsonArrayAsIterable<T> implements Iterable<T>, AutoCloseable {
 
-    @Nonnull
+    @NotNull
     protected final JsonReader jsonReader;
 
-    @Nonnull
+    @NotNull
     protected final Class<T> objectClass;
 
-    @Nonnull
+    @NotNull
     protected final Gson gson;
 
     @Nullable
@@ -54,7 +54,7 @@ public class JsonArrayAsIterable<T> implements Iterable<T>, AutoCloseable {
      * @param fieldName if given, we expect to read this as the {@link JsonReader#nextName()} before the
      *                  {@link JsonReader#beginArray()}.
      */
-    public JsonArrayAsIterable(@Nonnull JsonReader jsonReader, @Nonnull Class<T> objectClass, @Nonnull Gson gson,
+    public JsonArrayAsIterable(@NotNull JsonReader jsonReader, @NotNull Class<T> objectClass, @NotNull Gson gson,
                                @Nullable String fieldName) {
         this.jsonReader = jsonReader;
         this.objectClass = objectClass;
@@ -71,7 +71,7 @@ public class JsonArrayAsIterable<T> implements Iterable<T>, AutoCloseable {
      * @throws JsonParseException    if there was an {@link IOException} or if the JSON structure was wrong
      */
     @Override
-    @Nonnull
+    @NotNull
     public AutoCloseableIterator<T> iterator() throws IllegalStateException, JsonParseException {
         open();
         return new JsonArrayAsIterator();
@@ -79,7 +79,7 @@ public class JsonArrayAsIterable<T> implements Iterable<T>, AutoCloseable {
 
 
     /** Alternative to {@link #iterator()} that only accesses the JsonReader when the iterator is first called. */
-    @Nonnull
+    @NotNull
     public AutoCloseableIterator<T> delayedIterator() {
         // open is done later when the iterator is first called.
         return new JsonArrayDelayedIterator();
@@ -136,7 +136,7 @@ public class JsonArrayAsIterable<T> implements Iterable<T>, AutoCloseable {
      * Turns the this into a stream - one time use only. Caution: {@link JsonReader#endArray()} is only called if
      * the stream is consumed completely - beware of shortcut methods. Or call {@link #close()} afterwards.
      */
-    @Nonnull
+    @NotNull
     public Stream<T> stream() {
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator(),
                 Spliterator.ORDERED | Spliterator.NONNULL | Spliterator.IMMUTABLE),
@@ -161,7 +161,7 @@ public class JsonArrayAsIterable<T> implements Iterable<T>, AutoCloseable {
 
         /** Returns the next object. */
         @Override
-        @Nonnull
+        @NotNull
         public T next() {
             if (wasClosed) { throw new IllegalStateException("Iterable was already closed."); }
             T result = requireNonNull(gson.fromJson(jsonReader, objectClass));
@@ -186,7 +186,7 @@ public class JsonArrayAsIterable<T> implements Iterable<T>, AutoCloseable {
             JsonArrayAsIterable.this.close();
         }
 
-        @Nonnull
+        @NotNull
         protected Iterator<T> getIterator() {
             if (iterator == null) {
                 iterator = JsonArrayAsIterable.this.iterator();

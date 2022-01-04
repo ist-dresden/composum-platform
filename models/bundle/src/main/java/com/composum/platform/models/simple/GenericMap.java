@@ -3,8 +3,8 @@ package com.composum.platform.models.simple;
 import com.composum.sling.core.util.PropertyUtil;
 import org.apache.sling.api.resource.ValueMap;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -23,13 +23,13 @@ public abstract class GenericMap extends HashMap<String, Object> implements Valu
     }
 
     @Nullable
-    public <T> T get(@Nonnull String key, @Nonnull Class<T> type) {
+    public <T> T get(@NotNull String key, @NotNull Class<T> type) {
         //noinspection unchecked
         return (T) get(key);
     }
 
-    @Nonnull
-    public <T> T get(@Nonnull String key, @Nonnull T defaultValue) {
+    @NotNull
+    public <T> T get(@NotNull String key, @NotNull T defaultValue) {
         Class<T> type = PropertyUtil.getType(defaultValue);
         T value = get(key, type);
         return value != null ? value : defaultValue;

@@ -8,8 +8,8 @@ package com.composum.sling.platform.staging.search;
 import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.filter.ResourceFilter;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.RepositoryException;
 import java.util.List;
 
@@ -18,11 +18,11 @@ import java.util.List;
  */
 public interface SearchPlugin {
 
-    int rating(@Nonnull String selectors);
+    int rating(@NotNull String selectors);
 
-    @Nonnull
-    List<SearchService.Result> search(@Nonnull final BeanContext context, @Nonnull final String root,
-                                      @Nonnull final String searchExpression, @Nullable ResourceFilter filter,
+    @NotNull
+    List<SearchService.Result> search(@NotNull final BeanContext context, @NotNull final String root,
+                                      @NotNull final String searchExpression, @Nullable ResourceFilter filter,
                                       final int offset, @Nullable final Integer limit)
             throws RepositoryException, SearchTermParseException;
 

@@ -12,12 +12,12 @@ import org.apache.sling.api.resource.ResourceMetadata;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.resource.ValueMap;
 import org.apache.sling.api.wrappers.DeepReadValueMapDecorator;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import java.io.InputStream;
@@ -33,13 +33,13 @@ public class StagingResource extends AbstractResource implements JcrResource {
     private static final Logger LOG = LoggerFactory.getLogger(StagingResource.class);
 
     /** The simulated path - might be different from the real path. */
-    @Nonnull
+    @NotNull
     protected final String path;
 
-    @Nonnull
+    @NotNull
     protected final AbstractStagingResourceResolver resolver;
 
-    @Nonnull
+    @NotNull
     protected final Resource underlyingResource;
 
     @CheckForNull
@@ -53,7 +53,7 @@ public class StagingResource extends AbstractResource implements JcrResource {
      * @param underlyingResource the underlying resource
      * @param pathInfo           the path info from the request if the resource wraps a request resource
      */
-    protected StagingResource(@Nonnull String path, @Nonnull AbstractStagingResourceResolver resolver, @Nonnull Resource underlyingResource, @Nullable RequestPathInfo pathInfo) {
+    protected StagingResource(@NotNull String path, @NotNull AbstractStagingResourceResolver resolver, @NotNull Resource underlyingResource, @Nullable RequestPathInfo pathInfo) {
         this.path = path;
         this.resolver = resolver;
         this.underlyingResource = underlyingResource;
@@ -66,13 +66,13 @@ public class StagingResource extends AbstractResource implements JcrResource {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getPath() {
         return path;
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getResourceType() {
         if (StagingUtils.isPropertyResource(underlyingResource)) {
             return getParent().getResourceType() + "/" + getName();
@@ -107,7 +107,7 @@ public class StagingResource extends AbstractResource implements JcrResource {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public ResourceMetadata getResourceMetadata() {
         final ResourceMetadata resourceMetadata;
         if (pathInfo != null && pathInfo.getResourcePath().equals(path)) {
@@ -126,12 +126,12 @@ public class StagingResource extends AbstractResource implements JcrResource {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public ResourceResolver getResourceResolver() {
         return resolver;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public ValueMap getValueMap() {
         ValueMap valueMap = StagingUtils.isInStorage(underlyingResource) ?
@@ -163,7 +163,7 @@ public class StagingResource extends AbstractResource implements JcrResource {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String toString() {
         final StringBuilder sb = new StringBuilder("StagingResource{");
         sb.append("path='").append(path).append('\'');

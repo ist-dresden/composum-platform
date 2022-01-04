@@ -12,7 +12,7 @@ import org.osgi.framework.ServiceReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -65,7 +65,7 @@ public abstract class ServiceManager<ServiceType> {
         }
 
         @Override
-        public int compareTo(@Nonnull final ManagedReference other) {
+        public int compareTo(@NotNull final ManagedReference other) {
             CompareToBuilder builder = new CompareToBuilder();
             builder.append(other.getRanking(), getRanking()); // sort descending
             builder.append(getServiceId(), other.getServiceId());
@@ -87,14 +87,14 @@ public abstract class ServiceManager<ServiceType> {
         }
     }
 
-    protected void bindReference(@Nonnull final ServiceReference<ServiceType> serviceReference) {
+    protected void bindReference(@NotNull final ServiceReference<ServiceType> serviceReference) {
         final ManagedReference reference = new ManagedReference(serviceReference);
         LOG.info("bindReference: {}", reference);
         references.add(reference);
         Collections.sort(references);
     }
 
-    protected void unbindReference(@Nonnull final ServiceReference<ServiceType> serviceReference) {
+    protected void unbindReference(@NotNull final ServiceReference<ServiceType> serviceReference) {
         final ManagedReference reference = new ManagedReference(serviceReference);
         LOG.info("unbindReference: {}", reference);
         references.remove(reference);

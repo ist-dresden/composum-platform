@@ -23,8 +23,8 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.PathNotFoundException;
 import javax.jcr.RepositoryException;
 import javax.mail.Authenticator;
@@ -105,8 +105,8 @@ public class CredentialServiceImpl implements CredentialService {
     protected volatile String masterPassword;
 
     @Override
-    public void initHttpContextCredentials(@Nonnull HttpClientContext context, @Nonnull AuthScope authScope,
-                                           @Nonnull String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException {
+    public void initHttpContextCredentials(@NotNull HttpClientContext context, @NotNull AuthScope authScope,
+                                           @NotNull String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException {
         CredentialConfiguration credentials = getCredentialConfiguration(credentialIdOrToken, aclCheckResolver);
         verifyTypeAllowed(credentials, TYPE_HTTP);
 
@@ -130,7 +130,7 @@ public class CredentialServiceImpl implements CredentialService {
      * @throws IllegalStateException    if the service is not enabled
      */
     // currently only used for testing purposes
-    protected Authenticator getMailAuthenticator(@Nonnull String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException {
+    protected Authenticator getMailAuthenticator(@NotNull String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException {
         CredentialConfiguration credentials = getCredentialConfiguration(credentialIdOrToken, aclCheckResolver);
         verifyTypeAllowed(credentials, TYPE_EMAIL);
         PasswordAuthentication passwordAuthentication = new PasswordAuthentication(credentials.user, credentials.passwd);
@@ -144,7 +144,7 @@ public class CredentialServiceImpl implements CredentialService {
     }
 
     @Override
-    public String sendMail(@Nonnull MimeMessage message, @Nullable String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver)
+    public String sendMail(@NotNull MimeMessage message, @Nullable String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver)
             throws RepositoryException, IOException, MessagingException {
         if (StringUtils.isNotBlank(credentialIdOrToken)) {
             CredentialConfiguration credentials = getCredentialConfiguration(credentialIdOrToken, aclCheckResolver);
@@ -163,7 +163,7 @@ public class CredentialServiceImpl implements CredentialService {
      * time it was created and until which it is valid.
      */
     @Override
-    public String getAccessToken(@Nonnull String credentialId, @Nullable ResourceResolver aclCheckResolver, @Nonnull String type)
+    public String getAccessToken(@NotNull String credentialId, @Nullable ResourceResolver aclCheckResolver, @NotNull String type)
             throws RepositoryException, IllegalArgumentException, IllegalStateException {
         CredentialConfiguration credentials = getCredentialConfiguration(credentialId, aclCheckResolver);
         verifyTypeAllowed(credentials, type);
@@ -189,8 +189,8 @@ public class CredentialServiceImpl implements CredentialService {
      * Reads the credentials from a resource after checking that the service and credentials are enabled, and the
      * acl path is readable by aclCheckResolver.
      */
-    @Nonnull
-    protected CredentialConfiguration getCredentialConfiguration(@Nonnull String tokenOrCredentialId, @Nullable ResourceResolver aclCheckResolver)
+    @NotNull
+    protected CredentialConfiguration getCredentialConfiguration(@NotNull String tokenOrCredentialId, @Nullable ResourceResolver aclCheckResolver)
             throws RepositoryException {
         if (!isEnabled()) {
             throw new IllegalStateException("CredentialService is not enabled.");
@@ -265,12 +265,12 @@ public class CredentialServiceImpl implements CredentialService {
     }
 
     @Override
-    public String encodePassword(@Nonnull String password) {
+    public String encodePassword(@NotNull String password) {
         checkEnabled();
         return cryptoService.encrypt(password, getMasterPassword());
     }
 
-    @Nonnull
+    @NotNull
     protected String getMasterPassword() {
         if (isNotBlank(masterPassword)) {
             return masterPassword;
@@ -428,8 +428,8 @@ public class CredentialServiceImpl implements CredentialService {
         }
 
         @Nullable
-        protected CredentialConfiguration getCredentials(@Nonnull final ResourceResolver resolver,
-                                                         @Nonnull final String credentialsId) {
+        protected CredentialConfiguration getCredentials(@NotNull final ResourceResolver resolver,
+                                                         @NotNull final String credentialsId) {
             Resource resource = resolver.getResource(this.path);
             if (resource != null) {
                 resource = resource.getChild(credentialsId);
@@ -444,21 +444,21 @@ public class CredentialServiceImpl implements CredentialService {
          * @param credentialsId the tídentifier - the name of the credentials node
          * @param values        the values to store - each 'encrypted...' has to be stored as encrypted property
          */
-        protected void setCredentials(@Nonnull final ResourceResolver resolver,
-                                      @Nonnull final String credentialsId, @Nullable final ValueMap values) {
+        protected void setCredentials(@NotNull final ResourceResolver resolver,
+                                      @NotNull final String credentialsId, @Nullable final ValueMap values) {
         }
 
         /**
          * @param resolver the current user session (for access rule check)
          * @return the master password of the vault
          */
-        protected String getVaultPassword(@Nonnull final ResourceResolver resolver) {
+        protected String getVaultPassword(@NotNull final ResourceResolver resolver) {
             return vaultPassword;
         }
 
-        protected void setVaultPassword(@Nonnull final ResourceResolver resolver,
-                                        @Nonnull final String oldVaultOrMasterPassword,
-                                        @Nonnull final String newPassword) {
+        protected void setVaultPassword(@NotNull final ResourceResolver resolver,
+                                        @NotNull final String oldVaultOrMasterPassword,
+                                        @NotNull final String newPassword) {
         }
     }
 
@@ -466,8 +466,8 @@ public class CredentialServiceImpl implements CredentialService {
      * @param resolver the current user session (for access rule check)
      * @param vaultId  the internal name of the vault
      */
-    protected Vault getVault(@Nonnull final ResourceResolver resolver,
-                             @Nonnull final String vaultId) {
+    protected Vault getVault(@NotNull final ResourceResolver resolver,
+                             @NotNull final String vaultId) {
         Resource resource = resolver.getResource("/var/composum/platform/security/vault");
         if (resource != null) {
             resource = resource.getChild(vaultId);
@@ -480,17 +480,17 @@ public class CredentialServiceImpl implements CredentialService {
      * @param vaultId  the internal name of the vault - used also as repository node name
      * @param title    an optional - more readable - title of the vault
      */
-    public void createVault(@Nonnull final ResourceResolver resolver,
-                            @Nonnull final String vaultId, @Nullable final String title,
-                            @Nonnull final String referencePath) {
+    public void createVault(@NotNull final ResourceResolver resolver,
+                            @NotNull final String vaultId, @Nullable final String title,
+                            @NotNull final String referencePath) {
     }
 
     /**
      * @param resolver the current user session (for access rule check)
      * @param vaultId  the internal name of the vault
      */
-    public void deleteVault(@Nonnull final ResourceResolver resolver,
-                            @Nonnull final String vaultId,
-                            @Nonnull final String vaultOrMasterPassword) {
+    public void deleteVault(@NotNull final ResourceResolver resolver,
+                            @NotNull final String vaultId,
+                            @NotNull final String vaultOrMasterPassword) {
     }
 }

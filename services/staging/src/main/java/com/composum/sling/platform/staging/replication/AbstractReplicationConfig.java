@@ -7,7 +7,7 @@ import com.composum.sling.core.Restricted;
 import com.composum.sling.core.util.ResourceUtil;
 import org.apache.sling.api.resource.Resource;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 import static com.composum.sling.platform.staging.impl.PlatformStagingServlet.SERVICE_KEY;
 
@@ -59,7 +59,7 @@ public abstract class AbstractReplicationConfig extends AbstractSlingBean implem
      * {@link AccessMode#PREVIEW}) for which the release is replicated.
      * If empty, there is no replication.
      */
-    @Nonnull
+    @NotNull
     @Override
     public String getStage() {
         return stage;
@@ -81,7 +81,7 @@ public abstract class AbstractReplicationConfig extends AbstractSlingBean implem
     /**
      * Optional, the path we replicate - must be the site or a subpath of the site.
      */
-    @Nonnull
+    @NotNull
     @Override
     public String getSourcePath() {
         return sourcePath;
@@ -95,7 +95,7 @@ public abstract class AbstractReplicationConfig extends AbstractSlingBean implem
         return targetPath;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getConfigResourceType() {
         return configResourceType;

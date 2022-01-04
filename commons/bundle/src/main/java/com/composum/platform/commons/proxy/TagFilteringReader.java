@@ -2,7 +2,7 @@ package com.composum.platform.commons.proxy;
 
 import org.apache.commons.lang3.StringUtils;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.FilterReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -237,8 +237,8 @@ public class TagFilteringReader extends FilterReader {
      * @param toStrip  the set of tag names to 'stripe' - remove the tags around and keep the body of the tags
      * @param toDrop   the set of tag names to 'drop' - remove the tags including their body
      */
-    public TagFilteringReader(@Nonnull final Reader in, @Nonnull final String[] toRename,
-                              @Nonnull final String[] toStrip, @Nonnull final String[] toDrop) {
+    public TagFilteringReader(@NotNull final Reader in, @NotNull final String[] toRename,
+                              @NotNull final String[] toStrip, @NotNull final String[] toDrop) {
         super(in);
         this.toRename = new HashMap<>();
         for (String rule : toRename) {
@@ -251,16 +251,16 @@ public class TagFilteringReader extends FilterReader {
         this.toDrop = Arrays.asList(toDrop);
     }
 
-    public TagFilteringReader(@Nonnull final InputStream in, @Nonnull final String[] toRename,
-                              @Nonnull final String[] toStrip, @Nonnull String[] toDrop) {
+    public TagFilteringReader(@NotNull final InputStream in, @NotNull final String[] toRename,
+                              @NotNull final String[] toStrip, @NotNull String[] toDrop) {
         this(new InputStreamReader(in, StandardCharsets.UTF_8), toRename, toStrip, toDrop);
     }
 
-    public TagFilteringReader(@Nonnull final InputStream in) {
+    public TagFilteringReader(@NotNull final InputStream in) {
         this(in, DEFAULT_TO_RENAME, DEFAULT_TO_STRIP, DEFAULT_TO_DROP);
     }
 
-    public TagFilteringReader(@Nonnull final Reader in) {
+    public TagFilteringReader(@NotNull final Reader in) {
         this(in, DEFAULT_TO_RENAME, DEFAULT_TO_STRIP, DEFAULT_TO_DROP);
     }
 

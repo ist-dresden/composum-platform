@@ -3,7 +3,7 @@ package com.composum.platform.commons.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
@@ -32,11 +32,11 @@ public class LazyInputStream extends InputStream {
      *
      * @param inputStreamCreator is called at most once to create the stream.
      */
-    public LazyInputStream(@Nonnull Callable<InputStream> inputStreamCreator) {
+    public LazyInputStream(@NotNull Callable<InputStream> inputStreamCreator) {
         this.inputCreator = Objects.requireNonNull(inputStreamCreator);
     }
 
-    @Nonnull
+    @NotNull
     protected InputStream giveWrappedStream() throws IOException {
         if (accessProhibitedReason != null) {
             throw new IllegalStateException("Stream is in failed state", accessProhibitedReason);
@@ -104,7 +104,7 @@ public class LazyInputStream extends InputStream {
     }
 
     @Override
-    public int read(@Nonnull byte[] b, int off, int len) throws IOException {
+    public int read(@NotNull byte[] b, int off, int len) throws IOException {
         return giveWrappedStream().read(b, off, len);
     }
 

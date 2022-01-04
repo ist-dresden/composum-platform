@@ -4,8 +4,8 @@ import com.composum.platform.commons.request.AccessMode;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.servlet.ServletRequest;
 import java.io.Serializable;
 
@@ -52,11 +52,11 @@ public interface PlatformRequestLogger {
      * @return 'true' if the logger is able to handle the logging for the given request
      */
     boolean canHandle(@Nullable AccessMode accessMode,
-                      @Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response);
+                      @NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response);
 
     /**
      * does the logging for the given request
      */
     void logRequest(@Nullable AccessMode accessMode,
-                    @Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response);
+                    @NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response);
 }

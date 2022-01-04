@@ -17,8 +17,8 @@ import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.RepositoryException;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
@@ -72,7 +72,7 @@ public class CredentialServlet extends AbstractServiceServlet {
      */
     protected class EncryptPasswordOperation implements ServletOperation {
         @Override
-        public void doIt(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
+        public void doIt(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
             String passwd = IOUtils.toString(request.getInputStream(), request.getCharacterEncoding());
             String encoded = credentialService.encodePassword(passwd);
             response.setCharacterEncoding("UTF-8");

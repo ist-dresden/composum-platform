@@ -20,8 +20,8 @@ import org.osgi.service.component.annotations.Modified;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -58,16 +58,16 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
     protected volatile Gson gson;
 
     /** Returns the interface class that is implemented by the service. */
-    @Nonnull
+    @NotNull
     protected abstract Class<T> getInterfaceClass();
 
     /** Returns the URL to call for the service. Usually selector methodName and extension json. */
-    @Nonnull
-    protected abstract String makeUri(@Nonnull String methodName);
+    @NotNull
+    protected abstract String makeUri(@NotNull String methodName);
 
     /** A proxy whose calls are forwarded to the servlet. */
     @SuppressWarnings("unused")
-    @Nonnull
+    @NotNull
     public T getProxy() {
         verifyActive();
         return proxy;
@@ -130,14 +130,14 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
      * parameter names as keys and the actual arguments as values.
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
-    protected HttpEntity makeEntity(@Nonnull Method method, @Nonnull Object[] args) {
+    protected HttpEntity makeEntity(@NotNull Method method, @NotNull Object[] args) {
         Parameter[] parameters = method.getParameters();
         if (Arrays.stream(parameters).map(Parameter::getType).anyMatch(InputStream.class::isAssignableFrom)) {
             return new InputStreamEntity((InputStream) args[0]);
         }
         HttpEntity entity = new JsonHttpEntity(null, null) {
             @Override
-            protected void writeTo(@Nonnull JsonWriter jsonWriter) throws IOException {
+            protected void writeTo(@NotNull JsonWriter jsonWriter) throws IOException {
                 int parameterNum = -1;
                 try {
                     jsonWriter.beginObject();
@@ -178,7 +178,7 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
      * This implementation handles {@link Stream}, {@link java.util.Collection}, {@link Iterator} and {@link Map}s itself.
      */
     @SuppressWarnings({"unchecked", "rawtypes", "IfStatementWithTooManyBranches"})
-    protected void writeParameter(@Nullable Object arg, @Nonnull JsonWriter jsonWriter, @Nonnull Parameter parameter) throws IOException {
+    protected void writeParameter(@Nullable Object arg, @NotNull JsonWriter jsonWriter, @NotNull Parameter parameter) throws IOException {
         if (arg == null) { return;}
         jsonWriter.name(parameter.getName());
         if (arg instanceof Iterator) {
@@ -207,7 +207,7 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
     }
 
     @SuppressWarnings("resource")
-    protected void writeObject(@Nullable Object arg, @Nonnull JsonWriter jsonWriter) {
+    protected void writeObject(@Nullable Object arg, @NotNull JsonWriter jsonWriter) {
         try {
             if (arg == null) {
                 jsonWriter.nullValue();
@@ -224,13 +224,13 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
      * actually returned, so it's usually just {result}.
      */
     @SuppressWarnings({"RedundantThrows", "unused"})
-    @Nonnull
-    protected Object postprocessResult(@Nonnull Object result, @Nonnull StatusLine statusLine) throws Throwable {
+    @NotNull
+    protected Object postprocessResult(@NotNull Object result, @NotNull StatusLine statusLine) throws Throwable {
         return result;
     }
 
     /** Called to retrieve the {@link HttpClientContext}. */
-    @Nonnull
+    @NotNull
     protected HttpClientContext getHttpClientContext() {
         verifyActive();
         return HttpClientContext.create();
@@ -245,7 +245,7 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
      * Returns / creates the {@link Gson} instance to use in serializing / deserializing things. Override this
      * method if you want special settings.
      */
-    @Nonnull
+    @NotNull
     protected Gson getGson() {
         if (gson == null) {
             gson = new GsonBuilder().setPrettyPrinting().create();
@@ -253,7 +253,7 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
         return gson;
     }
 
-    @Nonnull
+    @NotNull
     protected CloseableHttpClient getHttpClient() {
         verifyActive();
         CloseableHttpClient httpClient = httpClientRef.get();
@@ -281,7 +281,7 @@ public abstract class AbstractJsonRpcClient<T extends JsonRpcInterface> implemen
      * Creates the httpClient - override this if you need special settings over {@link HttpClients#createDefault()}.
      * For retrieving the client is {@link #getHttpClient()}, not this method.
      */
-    @Nonnull
+    @NotNull
     protected CloseableHttpClient newHttpClient() {
         return HttpClients.createDefault();
     }

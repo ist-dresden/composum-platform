@@ -8,8 +8,8 @@ import org.apache.sling.api.resource.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Bean modeling a inplace publication configuration for use with the replication mechanism. The resource is a subnode below /conf/{sitepath}/{site}/replication/ .
@@ -19,7 +19,7 @@ public class InPlaceReplicationConfig extends AbstractReplicationConfig {
 
     public static final ReplicationType INPLACE_REPLICATION_TYPE = new InplaceReplicationType();
 
-    @Nonnull
+    @NotNull
     @Override
     public ReplicationType getReplicationType() {
         return INPLACE_REPLICATION_TYPE;
@@ -43,7 +43,7 @@ public class InPlaceReplicationConfig extends AbstractReplicationConfig {
         protected final String stage;
         protected final String targetPath;
 
-        public ImplicitInPlaceReplicationConfig(@Nonnull String path, @Nonnull String releaseRoot, @Nonnull String stage, @Nonnull String targetPath) {
+        public ImplicitInPlaceReplicationConfig(@NotNull String path, @NotNull String releaseRoot, @NotNull String stage, @NotNull String targetPath) {
             this.releaseRoot = releaseRoot;
             this.stage = stage;
             this.targetPath = targetPath;
@@ -55,13 +55,13 @@ public class InPlaceReplicationConfig extends AbstractReplicationConfig {
             // not initialized from a resource
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getStage() {
             return stage;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getTitle() {
             return "Implicit replication";
@@ -78,7 +78,7 @@ public class InPlaceReplicationConfig extends AbstractReplicationConfig {
             return path;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getSourcePath() {
             return releaseRoot;
@@ -105,7 +105,7 @@ public class InPlaceReplicationConfig extends AbstractReplicationConfig {
             return true;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getConfigResourceType() {
             return null;

@@ -15,7 +15,7 @@ import org.apache.sling.api.resource.ValueMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
@@ -49,7 +49,7 @@ public class NodeTreeSynchronizer {
      * @throws RepositoryException if we couldn't finish the operation
      * @see #ignoreAttribute(ResourceHandle, String, boolean)
      */
-    public void update(@Nonnull Resource from, @Nonnull Resource to) throws RepositoryException, PersistenceException {
+    public void update(@NotNull Resource from, @NotNull Resource to) throws RepositoryException, PersistenceException {
         updateSubtree(ResourceHandle.use(from), ResourceHandle.use(to));
     }
 
@@ -63,7 +63,7 @@ public class NodeTreeSynchronizer {
      * @throws RepositoryException if we couldn't finish the operation
      * @see #ignoreAttribute(ResourceHandle, String, boolean)
      */
-    protected void updateSubtree(@Nonnull ResourceHandle from, @Nonnull ResourceHandle to) throws RepositoryException, PersistenceException {
+    protected void updateSubtree(@NotNull ResourceHandle from, @NotNull ResourceHandle to) throws RepositoryException, PersistenceException {
         try {
             updateAttributes(from, to, ImmutableBiMap.of());
             updateChildren(from, to);
@@ -87,8 +87,8 @@ public class NodeTreeSynchronizer {
      * @see #ignoreAttribute(ResourceHandle, String, boolean)
      * @return true when there were any differences in the attributes
      */
-    public boolean updateAttributes(@Nonnull ResourceHandle from, @Nonnull ResourceHandle to,
-                                    @Nonnull BiMap<String, String> attributeNameTranslation) throws RepositoryException {
+    public boolean updateAttributes(@NotNull ResourceHandle from, @NotNull ResourceHandle to,
+                                    @NotNull BiMap<String, String> attributeNameTranslation) throws RepositoryException {
         boolean attributesChanged = false;
         ValueMap fromAttributes = ResourceUtil.getValueMap(from);
         ModifiableValueMap toAttributes = to.adaptTo(ModifiableValueMap.class);
@@ -193,8 +193,8 @@ public class NodeTreeSynchronizer {
      *
      * @return this for builder style
      */
-    @Nonnull
-    public NodeTreeSynchronizer addIgnoredAttributes(@Nonnull String... attributes) {
+    @NotNull
+    public NodeTreeSynchronizer addIgnoredAttributes(@NotNull String... attributes) {
         additionalIgnoredAttributes.addAll(Arrays.asList(attributes));
         return this;
     }
@@ -239,7 +239,7 @@ public class NodeTreeSynchronizer {
      *
      * @return true if the node shall be skipped.
      */
-    protected boolean skipNode(@Nonnull Resource from) {
+    protected boolean skipNode(@NotNull Resource from) {
         if ("rep:ACL".equals(from.getValueMap().get(CoreConstants.JCR_PRIMARYTYPE, String.class))) {
             LOG.warn("Not duplicating ACL in {}", SlingResourceUtil.getPath(from));
             return true;

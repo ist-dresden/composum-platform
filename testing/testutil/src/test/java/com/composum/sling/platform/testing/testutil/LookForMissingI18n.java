@@ -2,7 +2,7 @@ package com.composum.sling.platform.testing.testutil;
 
 import org.apache.commons.collections4.SetUtils;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -152,7 +152,7 @@ public class LookForMissingI18n {
         return res.stream();
     }
 
-    @Nonnull
+    @NotNull
     protected BufferedReader reader(File file) {
         try {
             return new BufferedReader(new FileReader(file, StandardCharsets.UTF_8));

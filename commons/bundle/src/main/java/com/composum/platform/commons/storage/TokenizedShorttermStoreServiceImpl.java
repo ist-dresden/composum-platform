@@ -7,8 +7,8 @@ import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Comparator;
@@ -61,9 +61,9 @@ public class TokenizedShorttermStoreServiceImpl implements TokenizedShorttermSto
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public <T> String checkin(@Nonnull T info, long timeoutms) {
+    public <T> String checkin(@NotNull T info, long timeoutms) {
         cleanup();
         long timeoutTime = System.currentTimeMillis() + timeoutms;
         String token;
@@ -79,17 +79,17 @@ public class TokenizedShorttermStoreServiceImpl implements TokenizedShorttermSto
 
     @Nullable
     @Override
-    public <T> T checkout(@Nonnull String token, Class<T> clazz) {
+    public <T> T checkout(@NotNull String token, Class<T> clazz) {
         return retrieve(token, clazz, true);
     }
 
     @Nullable
     @Override
-    public <T> T peek(@Nonnull String token, Class<T> clazz) {
+    public <T> T peek(@NotNull String token, Class<T> clazz) {
         return retrieve(token, clazz, false);
     }
 
-    protected <T> T retrieve(@Nonnull String token, Class<T> clazz, boolean delete) {
+    protected <T> T retrieve(@NotNull String token, Class<T> clazz, boolean delete) {
         cleanup();
         Pair<Long, Object> stored = store.get(token);
         if (stored == null) {

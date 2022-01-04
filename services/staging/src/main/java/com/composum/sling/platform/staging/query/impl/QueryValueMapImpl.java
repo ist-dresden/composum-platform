@@ -5,12 +5,17 @@ import com.composum.sling.platform.staging.query.Query;
 import com.composum.sling.platform.staging.query.QueryValueMap;
 import org.apache.commons.lang3.Validate;
 import org.apache.sling.api.resource.Resource;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.jcr.RepositoryException;
 import javax.jcr.query.Row;
-import java.util.*;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -71,7 +76,7 @@ public class QueryValueMapImpl extends AbstractMap<String, Object> implements Qu
      */
     @CheckForNull
     @Override
-    public <T> T get(@Nonnull String name, @Nonnull Class<T> type) throws IllegalArgumentException {
+    public <T> T get(@NotNull String name, @NotNull Class<T> type) throws IllegalArgumentException {
         if (!columns.contains(name))
             throw new IllegalArgumentException("Trying to access column " + name + " that was not selected.");
         String normalized = normalizeKey(name);
@@ -97,7 +102,7 @@ public class QueryValueMapImpl extends AbstractMap<String, Object> implements Qu
     }
 
     @Override
-    public <T> T get(@Nonnull String name, T defaultValue) {
+    public <T> T get(@NotNull String name, T defaultValue) {
         T realValue = get(name, PropertyUtil.getType(defaultValue));
         return null != realValue ? realValue : defaultValue;
     }

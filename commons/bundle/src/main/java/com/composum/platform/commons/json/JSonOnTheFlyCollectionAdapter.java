@@ -11,7 +11,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import org.apache.commons.lang3.reflect.TypeUtils;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -34,7 +34,7 @@ import java.util.function.Consumer;
 public class JSonOnTheFlyCollectionAdapter implements TypeAdapterFactory {
 
     @Override
-    @Nonnull
+    @NotNull
     public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
         if (Iterable.class.isAssignableFrom(type.getRawType()) ||
                 Consumer.class.isAssignableFrom(type.getRawType()) ||
@@ -118,7 +118,7 @@ public class JSonOnTheFlyCollectionAdapter implements TypeAdapterFactory {
         }
 
         @Override
-        @Nonnull
+        @NotNull
         public T read(JsonReader in) throws IOException {
             in.beginArray();
             T receiver;

@@ -7,8 +7,8 @@ import com.google.gson.stream.JsonWriter;
 import org.apache.http.HttpEntity;
 import org.apache.http.entity.AbstractHttpEntity;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -22,7 +22,7 @@ public class JsonHttpEntity<T> extends AbstractHttpEntity implements HttpEntity 
     @Nullable
     private final T object;
 
-    @Nonnull
+    @NotNull
     private final Gson gson;
 
     /** @param object the object to serialize */
@@ -42,7 +42,7 @@ public class JsonHttpEntity<T> extends AbstractHttpEntity implements HttpEntity 
     }
 
     /** Uses gson to write the object; possible hook for special serialization mechanisms. */
-    protected void writeTo(@Nonnull JsonWriter jsonWriter) throws IOException {
+    protected void writeTo(@NotNull JsonWriter jsonWriter) throws IOException {
         if (object != null) {
             gson.toJson(object, object.getClass(), jsonWriter);
         } else {

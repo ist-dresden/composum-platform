@@ -8,7 +8,7 @@ import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
@@ -24,12 +24,12 @@ import java.lang.reflect.InvocationTargetException;
 public interface JsonSelfSerializer {
 
     /** Writes the attributes of the object as JSON. Default: throws UnsupportedOperationException. */
-    default void toJson(@Nonnull JsonWriter out, @Nonnull Gson gson, TypeToken<?> type) throws IOException {
+    default void toJson(@NotNull JsonWriter out, @NotNull Gson gson, TypeToken<?> type) throws IOException {
         throw new UnsupportedOperationException("Serialization not supported for " + this.getClass().getName());
     }
 
     /** Initializes the attributes of the object from JSON. Default: throws UnsupportedOperationException. */
-    default void fromJson(@Nonnull JsonReader in, @Nonnull Gson gson, TypeToken<?> type) throws IOException {
+    default void fromJson(@NotNull JsonReader in, @NotNull Gson gson, TypeToken<?> type) throws IOException {
         throw new UnsupportedOperationException("Deserialization not supported for " + this.getClass().getName());
     }
 

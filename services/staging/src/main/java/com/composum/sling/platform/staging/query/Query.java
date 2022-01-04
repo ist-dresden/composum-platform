@@ -11,11 +11,11 @@ import org.apache.sling.api.SlingException;
 import org.apache.sling.api.resource.QuerySyntaxException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Spliterator;
@@ -127,7 +127,7 @@ public abstract class Query {
     /**
      * XPATH like 'element(name or '*',type)' condition - element(name) + type(type)
      */
-    @Nonnull
+    @NotNull
     public Query element(@Nullable final String name, @Nullable final String type) {
         if (StringUtils.isNotBlank(name) && !"*".equals(name)) {
             element(name);
@@ -288,7 +288,7 @@ public abstract class Query {
      * @throws QuerySyntaxException if the query is not syntactically correct. (Shouldn't rarely happen, because of
      *                              being a DSL and whatnot.)
      */
-    @Nonnull
+    @NotNull
     public abstract Iterable<Resource> execute() throws SlingException, QuerySyntaxException;
 
     /**
@@ -299,7 +299,7 @@ public abstract class Query {
      * @throws QuerySyntaxException if the query is not syntactically correct. (Shouldn't rarely happen, because of
      *                              being a DSL and whatnot.)
      */
-    @Nonnull
+    @NotNull
     public Stream<Resource> stream() throws SlingException, QuerySyntaxException {
         Iterable<Resource> resourceIterable = execute();
         Spliterator<Resource> spliterator = Spliterators.spliteratorUnknownSize(resourceIterable.iterator(),
@@ -319,7 +319,7 @@ public abstract class Query {
      * @see #COLUMN_SCORE
      * @see #COLUMN_EXCERPT
      */
-    @Nonnull
+    @NotNull
     public abstract Iterable<QueryValueMap> selectAndExecute(String... columns) throws SlingException, QuerySyntaxException;
 
     /**
@@ -329,7 +329,7 @@ public abstract class Query {
         Validate.notNull(path, "path is required");
     }
 
-    @Nonnull
+    @NotNull
     protected String propertyConstraint(QueryGenerationMode mode) {
         if (queryCondition != null) {
             String sql2 = QueryGenerationMode.NORMAL == mode ? queryCondition.getSQL2() : queryCondition.getVersionedSQL2();
@@ -339,7 +339,7 @@ public abstract class Query {
         }
     }
 
-    @Nonnull
+    @NotNull
     protected String elementConstraint(QueryGenerationMode mode) {
         if (isBlank(element)) return "";
         if (QueryGenerationMode.VERSIONSTORAGE == mode) return "AND (NAME(n) = '" + element + "' OR " +
@@ -347,7 +347,7 @@ public abstract class Query {
         else return "AND NAME(n) = '" + element + "' ";
     }
 
-    @Nonnull
+    @NotNull
     protected String orderByClause(QueryGenerationMode mode) {
         if (isBlank(orderBy)) return "";
         String direction = ascending ? "ASC" : "DESC";
@@ -357,12 +357,12 @@ public abstract class Query {
         return "ORDER BY n.[" + attr + "] " + direction + " \n";
     }
 
-    @Nonnull
+    @NotNull
     protected String orderBySelect() {
         return isBlank(orderBy) ? "" : ", n.[" + orderBy + "] AS [query:orderBy] ";
     }
 
-    @Nonnull
+    @NotNull
     protected String additionalSelect() {
         if (null == selectColumns) return "";
         StringBuilder buf = new StringBuilder();

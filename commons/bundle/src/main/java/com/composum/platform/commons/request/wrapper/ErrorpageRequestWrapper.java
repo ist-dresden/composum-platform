@@ -7,7 +7,7 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.HttpConstants;
 import org.apache.sling.api.wrappers.SlingHttpServletRequestWrapper;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * a wrapper to delegate any request of any type (any extension) to an error page HTML request
@@ -26,7 +26,7 @@ public class ErrorpageRequestWrapper extends SlingHttpServletRequestWrapper {
             return ((SlingHttpServletRequest) ErrorpageRequestWrapper.this.getRequest()).getRequestPathInfo();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getResourcePath() {
             return wrapped().getResourcePath();
@@ -45,7 +45,7 @@ public class ErrorpageRequestWrapper extends SlingHttpServletRequestWrapper {
             return wrapped().getSelectorString();
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String[] getSelectors() {
             return wrapped().getSelectors();
@@ -88,7 +88,7 @@ public class ErrorpageRequestWrapper extends SlingHttpServletRequestWrapper {
      * @return 'GET' as the method to deliver an error page
      */
     @Override
-    @Nonnull
+    @NotNull
     public String getMethod() {
         return HttpConstants.METHOD_GET;
     }
@@ -97,7 +97,7 @@ public class ErrorpageRequestWrapper extends SlingHttpServletRequestWrapper {
      * @return the extension adjusting request path info object
      */
     @Override
-    @Nonnull
+    @NotNull
     public RequestPathInfo getRequestPathInfo() {
         return pathInfo;
     }

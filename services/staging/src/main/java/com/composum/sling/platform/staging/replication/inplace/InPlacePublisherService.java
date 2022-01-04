@@ -27,7 +27,7 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -110,15 +110,15 @@ public class InPlacePublisherService
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     protected InPlaceReleasePublishingProcess makePublishingProcess(Resource releaseRoot, InPlaceReplicationConfig replicationConfig) {
         return new InPlaceReleasePublishingProcess(releaseRoot, replicationConfig);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    protected List<InPlaceReplicationConfig> getReplicationConfigs(@Nonnull Resource releaseRoot, @Nonnull BeanContext context) {
+    protected List<InPlaceReplicationConfig> getReplicationConfigs(@NotNull Resource releaseRoot, @NotNull BeanContext context) {
         Configuration theConfig = config;
         if (theConfig == null || !theConfig.enabled()) {
             return Collections.emptyList();
@@ -152,13 +152,13 @@ public class InPlacePublisherService
         return configs;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     protected Class<InPlaceReplicationConfig> getReplicationConfigClass() {
         return InPlaceReplicationConfig.class;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     protected ReplicationType getReplicationType() {
         return InPlaceReplicationConfig.INPLACE_REPLICATION_TYPE;
@@ -187,13 +187,13 @@ public class InPlacePublisherService
     protected class InPlaceReleasePublishingProcess extends AbstractReplicationProcess
             implements ReleaseChangeProcess {
 
-        protected InPlaceReleasePublishingProcess(@Nonnull Resource releaseRoot, InPlaceReplicationConfig replicationConfig) {
+        protected InPlaceReleasePublishingProcess(@NotNull Resource releaseRoot, InPlaceReplicationConfig replicationConfig) {
             super(releaseRoot, replicationConfig);
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        protected PublicationReceiverFacade createTargetFacade(@Nonnull AbstractReplicationConfig replicationConfig, @Nonnull BeanContext context) {
+        protected PublicationReceiverFacade createTargetFacade(@NotNull AbstractReplicationConfig replicationConfig, @NotNull BeanContext context) {
             return new InPlacePublicationReceiverFacade((InPlaceReplicationConfig) replicationConfig, context,
                     () -> config, backend, resolverFactory, nodesConfig, threadPool);
         }

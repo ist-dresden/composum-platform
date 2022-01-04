@@ -5,7 +5,7 @@ import com.composum.sling.core.InheritedValues;
 import org.apache.sling.models.annotations.injectorspecific.InjectionStrategy;
 import org.slf4j.Logger;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Member;
@@ -56,7 +56,7 @@ class PropertyJoinedWithDefaultsWrapper implements Property, PropertyDetermineRe
      * @param element the element
      * @return the with defaults, or null if there is no {@link Property} annotation
      */
-    public static PropertyJoinedWithDefaultsWrapper getWithDefaults(@Nonnull AnnotatedElement element) {
+    public static PropertyJoinedWithDefaultsWrapper getWithDefaults(@NotNull AnnotatedElement element) {
         Property propertyAnnotation = element.getAnnotation(Property.class);
         if (null == propertyAnnotation) return null;
         Class<?> declaringClass = null;

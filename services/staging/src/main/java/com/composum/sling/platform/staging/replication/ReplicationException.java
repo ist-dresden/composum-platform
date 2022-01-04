@@ -7,8 +7,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static javax.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
 
@@ -21,10 +21,10 @@ public class ReplicationException extends Exception {
 
     protected ReplicationException.RetryAdvice retryadvice = RetryAdvice.NO_AUTOMATIC_RETRY;
 
-    @Nonnull
+    @NotNull
     protected MessageContainer messages = new MessageContainer(LOG);
 
-    public ReplicationException(@Nonnull Message message, @Nullable Exception e) {
+    public ReplicationException(@NotNull Message message, @Nullable Exception e) {
         super(message.toFormattedMessage(), e);
         messages.add(message, e);
         if (e != null) {
@@ -44,7 +44,7 @@ public class ReplicationException extends Exception {
     /**
      * A collection of messages describing the failure.
      */
-    @Nonnull
+    @NotNull
     public MessageContainer getMessages() {
         return messages;
     }

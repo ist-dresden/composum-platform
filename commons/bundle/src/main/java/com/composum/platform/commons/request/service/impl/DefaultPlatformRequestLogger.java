@@ -21,7 +21,7 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -117,7 +117,7 @@ public class DefaultPlatformRequestLogger implements PlatformRequestLogger {
         modeLogs.clear();
     }
 
-    protected boolean matches(@Nonnull final List<Pattern> patternSet, @Nonnull final String uri) {
+    protected boolean matches(@NotNull final List<Pattern> patternSet, @NotNull final String uri) {
         for (Pattern pattern : patternSet) {
             if (pattern.matcher(uri).matches()) {
                 return true;
@@ -126,7 +126,7 @@ public class DefaultPlatformRequestLogger implements PlatformRequestLogger {
         return false;
     }
 
-    @Nonnull
+    @NotNull
     protected RequestLog getLog(@Nullable final AccessMode accessMode) throws IOException {
         String modeKey = accessMode != null ? accessMode.name().toLowerCase() : "other";
         RequestLog log = modeLogs.get(modeKey);
@@ -150,9 +150,9 @@ public class DefaultPlatformRequestLogger implements PlatformRequestLogger {
         return config.logfile_base() + modeKey + ".log";
     }
 
-    protected void logMessage(@Nonnull final StringBuilder builder,
-                              @Nonnull final SlingHttpServletRequest request,
-                              @Nonnull final SlingHttpServletResponse response) {
+    protected void logMessage(@NotNull final StringBuilder builder,
+                              @NotNull final SlingHttpServletRequest request,
+                              @NotNull final SlingHttpServletResponse response) {
         Data data = PlatformRequestLogger.data(request);
         long duration = data.getRequestEndTimeMs() - data.getRequestStartTimeMs();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd-HHmmss.SSS");
@@ -193,15 +193,15 @@ public class DefaultPlatformRequestLogger implements PlatformRequestLogger {
 
     @Override
     public boolean canHandle(@Nullable final AccessMode accessMode,
-                             @Nonnull final SlingHttpServletRequest request,
-                             @Nonnull final SlingHttpServletResponse response) {
+                             @NotNull final SlingHttpServletRequest request,
+                             @NotNull final SlingHttpServletResponse response) {
         return config.enabled() && matches(matchingUriSet, request.getRequestURI());
     }
 
     @Override
     public void logRequest(@Nullable final AccessMode accessMode,
-                           @Nonnull final SlingHttpServletRequest request,
-                           @Nonnull final SlingHttpServletResponse response) {
+                           @NotNull final SlingHttpServletRequest request,
+                           @NotNull final SlingHttpServletResponse response) {
         String uri = request.getRequestURI();
         if (!matches(ignoredUriSet, uri)) {
             try {

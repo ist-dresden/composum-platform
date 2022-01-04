@@ -27,7 +27,7 @@ import org.apache.sling.commons.threads.ThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.jcr.RepositoryException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -76,9 +76,9 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public StatusWithReleaseData startUpdate(@Nonnull ReplicationPaths replicationPaths) throws ReplicationException {
+    public StatusWithReleaseData startUpdate(@NotNull ReplicationPaths replicationPaths) throws ReplicationException {
         if (!replicationPaths.isMove()) {
             throw new ReplicationException(Message.error("An in-place replication must have a different target directory than source directory."), null);
         }
@@ -95,9 +95,9 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
         return status;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public StatusWithReleaseData releaseInfo(@Nonnull ReplicationPaths replicationPaths) throws ReplicationException {
+    public StatusWithReleaseData releaseInfo(@NotNull ReplicationPaths replicationPaths) throws ReplicationException {
         StatusWithReleaseData status = new StatusWithReleaseData(null, null, LOG);
         try {
             status.updateInfo = backend.releaseInfo(replicationPaths);
@@ -107,10 +107,10 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
         return status;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public ContentStateStatus contentState(@Nonnull UpdateInfo updateInfo, @Nonnull Collection<String> paths, @Nonnull ResourceResolver stagedResolver,
-                                           @Nonnull ReplicationPaths replicationPaths) throws ReplicationException {
+    public ContentStateStatus contentState(@NotNull UpdateInfo updateInfo, @NotNull Collection<String> paths, @NotNull ResourceResolver stagedResolver,
+                                           @NotNull ReplicationPaths replicationPaths) throws ReplicationException {
         ContentStateStatus status = new ContentStateStatus(LOG);
         VersionableTree backendResult = null;
         try (ResourceResolver resolver = makeResolver()) {
@@ -124,10 +124,10 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
         return status;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Status compareContent(@Nonnull UpdateInfo updateInfo, @Nonnull Collection<String> paths,
-                                 @Nonnull ResourceResolver resolver, @Nonnull ReplicationPaths replicationPaths)
+    public Status compareContent(@NotNull UpdateInfo updateInfo, @NotNull Collection<String> paths,
+                                 @NotNull ResourceResolver resolver, @NotNull ReplicationPaths replicationPaths)
             throws ReplicationException {
         Status status = new Status(null, null, LOG);
 
@@ -153,9 +153,9 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
      * For the implementation we create a package and unpack that, since this is easily compatible to the remote
      * replication process and an easy way to copy with existing means.
      */
-    @Nonnull
+    @NotNull
     @Override
-    public Status pathupload(@Nonnull UpdateInfo updateInfo, @Nonnull Resource resource) throws ReplicationException {
+    public Status pathupload(@NotNull UpdateInfo updateInfo, @NotNull Resource resource) throws ReplicationException {
         Status status = new Status(null, null, LOG);
         Resource writeResource = resource;
         if (com.composum.sling.core.util.ResourceUtil.isFile(resource) && ResourceUtil.CONTENT_NODE.equals(resource.getName())) {
@@ -184,9 +184,9 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
         return status;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Status commitUpdate(@Nonnull UpdateInfo updateInfo, @Nonnull String newReleaseChangeNumber, @Nonnull Set<String> deletedPaths, @Nonnull Supplier<Stream<ChildrenOrderInfo>> relevantOrderings, @Nonnull ExceptionThrowingRunnable<? extends Exception> checkForParallelModifications) throws ReplicationException {
+    public Status commitUpdate(@NotNull UpdateInfo updateInfo, @NotNull String newReleaseChangeNumber, @NotNull Set<String> deletedPaths, @NotNull Supplier<Stream<ChildrenOrderInfo>> relevantOrderings, @NotNull ExceptionThrowingRunnable<? extends Exception> checkForParallelModifications) throws ReplicationException {
         Status status = new Status(null, null, LOG);
         try {
             backend.commit(updateInfo.updateId, deletedPaths, () -> relevantOrderings.get().iterator(), newReleaseChangeNumber);
@@ -196,9 +196,9 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
         return status;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Status abortUpdate(@Nonnull UpdateInfo updateInfo) throws ReplicationException {
+    public Status abortUpdate(@NotNull UpdateInfo updateInfo) throws ReplicationException {
         Status status = new Status(null, null, LOG);
         try {
             backend.abort(updateInfo.updateId);
@@ -209,7 +209,7 @@ public class InPlacePublicationReceiverFacade implements PublicationReceiverFaca
     }
 
     @Override
-    public Status compareParents(@Nonnull ReplicationPaths replicationPaths, @Nonnull ResourceResolver resolver, @Nonnull Supplier<Stream<ChildrenOrderInfo>> relevantOrderings, @Nonnull Supplier<Stream<NodeAttributeComparisonInfo>> attributeInfos) throws ReplicationException {
+    public Status compareParents(@NotNull ReplicationPaths replicationPaths, @NotNull ResourceResolver resolver, @NotNull Supplier<Stream<ChildrenOrderInfo>> relevantOrderings, @NotNull Supplier<Stream<NodeAttributeComparisonInfo>> attributeInfos) throws ReplicationException {
         Status status = new Status(null, null, LOG);
         try {
             List<String> differentChildorderings = backend.compareChildorderings(replicationPaths, () -> relevantOrderings.get().iterator());

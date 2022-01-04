@@ -22,8 +22,8 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
 import org.slf4j.Logger;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,13 +64,13 @@ public abstract class AbstractSearchPlugin implements SearchPlugin {
     }
 
     /** Optional filter to find the resource we want to return as a parent of the actually found resources. Default: {@link ResourceFilter#ALL}. */
-    @Nonnull
+    @NotNull
     protected ResourceFilter getTargetFilter() {
         return ResourceFilter.ALL;
     }
 
     /** Optional filter that can discard some of the search results, if no explicit filter was given. Default: {@link ResourceFilter#ALL}. */
-    @Nonnull
+    @NotNull
     protected ResourceFilter getDefaultTargetAcceptFilter(BeanContext context) {
         return ResourceFilter.ALL;
     }
@@ -84,10 +84,10 @@ public abstract class AbstractSearchPlugin implements SearchPlugin {
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<SearchService.Result> search(@Nonnull final BeanContext context, @Nonnull final String root,
-                                             @Nonnull final String searchExpression, @Nullable final ResourceFilter filter,
+    public List<SearchService.Result> search(@NotNull final BeanContext context, @NotNull final String root,
+                                             @NotNull final String searchExpression, @Nullable final ResourceFilter filter,
                                              final int offset, @Nullable final Integer limit)
             throws SearchTermParseException {
         if (isBlank(searchExpression)) throw new SearchTermParseException(Empty,
@@ -151,26 +151,26 @@ public abstract class AbstractSearchPlugin implements SearchPlugin {
             this.positiveTerms = positiveTerms;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Resource getTarget() {
             return target;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Resource getTargetContent() {
             Resource content = target.getChild(JcrConstants.JCR_CONTENT);
             return content != null ? content : target;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getTargetUrl() {
             return createTargetUrl(target.getPath(), context.getRequest(), positiveTerms);
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getTitle() {
             if (null == title) {
@@ -184,7 +184,7 @@ public abstract class AbstractSearchPlugin implements SearchPlugin {
             return score;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getExcerpt() throws SearchTermParseException {
             if (null == excerpt) {
@@ -193,13 +193,13 @@ public abstract class AbstractSearchPlugin implements SearchPlugin {
             return excerpt;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public List<Resource> getMatches() {
             return matches;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String getSearchExpression() {
             return searchExpression;
