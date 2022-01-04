@@ -3,7 +3,7 @@ package com.composum.platform.commons.resource;
 import org.apache.sling.api.resource.ResourceMetadata;
 import org.apache.sling.api.resource.ValueMap;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -22,7 +22,7 @@ public class OverridingMetadata extends ResourceMetadata {
      * @param base      the 'original' value map
      * @param overrides the values to override the 'original'
      */
-    public OverridingMetadata(@Nonnull ResourceMetadata base, @Nonnull ValueMap overrides) {
+    public OverridingMetadata(@NotNull ResourceMetadata base, @NotNull ValueMap overrides) {
         this.metadata = base;
         this.overrides = overrides;
     }
@@ -38,12 +38,12 @@ public class OverridingMetadata extends ResourceMetadata {
     }
 
     @Override
-    public boolean containsKey(@Nonnull Object key) {
+    public boolean containsKey(@NotNull Object key) {
         return overrides.containsKey(key) || metadata.containsKey(key);
     }
 
     @Override
-    public boolean containsValue(@Nonnull Object value) {
+    public boolean containsValue(@NotNull Object value) {
         return values().contains(value);
     }
 
@@ -54,7 +54,7 @@ public class OverridingMetadata extends ResourceMetadata {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Set<String> keySet() {
         Set<String> keys = overrides.keySet();
         keys.addAll(metadata.keySet());
@@ -62,7 +62,7 @@ public class OverridingMetadata extends ResourceMetadata {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Collection<Object> values() {
         List<Object> values = new ArrayList<>();
         for (String key : keySet()) {
@@ -72,7 +72,7 @@ public class OverridingMetadata extends ResourceMetadata {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Set<Map.Entry<String, Object>> entrySet() {
         Set<Map.Entry<String, Object>> entries = overrides.entrySet();
         entries.addAll(metadata.entrySet());

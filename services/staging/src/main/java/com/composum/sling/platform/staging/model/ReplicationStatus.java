@@ -4,6 +4,7 @@ import com.composum.platform.commons.util.ExceptionThrowingFunction;
 import com.composum.sling.core.AbstractSlingBean;
 import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.core.Restricted;
 import com.composum.sling.core.logging.Message;
 import com.composum.sling.core.util.I18N;
 import com.composum.sling.core.util.RequestUtil;
@@ -23,16 +24,25 @@ import org.apache.sling.api.resource.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
-import static com.composum.sling.platform.staging.StagingConstants.*;
+import static com.composum.sling.platform.staging.StagingConstants.CURRENT_RELEASE;
+import static com.composum.sling.platform.staging.StagingConstants.TIMESTAMP_FORMAT;
+import static com.composum.sling.platform.staging.StagingConstants.TYPE_MIX_RELEASE_ROOT;
+import static com.composum.sling.platform.staging.impl.PlatformStagingServlet.SERVICE_KEY;
 
+@Restricted(key = SERVICE_KEY)
 public class ReplicationStatus extends AbstractSlingBean {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReplicationStatus.class);
@@ -146,12 +156,12 @@ public class ReplicationStatus extends AbstractSlingBean {
             return state.messages != null ? state.messages.getMessages() : Collections.emptyList();
         }
 
-        @Nonnull
+        @NotNull
         protected String getTimestamp(@Nullable Long time) {
             return time != null ? new SimpleDateFormat(TIMESTAMP_FORMAT).format(time) : "";
         }
 
-        @Nonnull
+        @NotNull
         public String getJson() {
             StringWriter buffer = new StringWriter();
             try (JsonWriter writer = new JsonWriter(buffer)) {
@@ -185,7 +195,7 @@ public class ReplicationStatus extends AbstractSlingBean {
         }
 
         @Override
-        public int compareTo(@Nonnull ReplicationStatus.ReplicationProcessState other) {
+        public int compareTo(@NotNull ReplicationStatus.ReplicationProcessState other) {
             return getComparationKey().compareTo(other.getComparationKey());
         }
     }
@@ -252,7 +262,7 @@ public class ReplicationStatus extends AbstractSlingBean {
             return progress;
         }
 
-        @Nonnull
+        @NotNull
         public String getJson() {
             return getJson(this::toJson);
         }
@@ -270,7 +280,7 @@ public class ReplicationStatus extends AbstractSlingBean {
             return null;
         }
 
-        @Nonnull
+        @NotNull
         public String getJsonSummary() {
             return getJson(this::toJsonSummary);
         }
@@ -370,7 +380,7 @@ public class ReplicationStatus extends AbstractSlingBean {
     private transient ReleaseChangeEventPublisher releasePublisher;
 
     @Override
-    public void initialize(@Nonnull BeanContext context, @Nonnull Resource resource) {
+    public void initialize(@NotNull BeanContext context, @NotNull Resource resource) {
         super.initialize(context, getReleaseRoot(resource));
     }
 

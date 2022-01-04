@@ -42,8 +42,8 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -124,7 +124,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     }
 
     @Override
-    public UpdateInfo startUpdate(@Nonnull ReplicationPaths replicationPaths)
+    public UpdateInfo startUpdate(@NotNull ReplicationPaths replicationPaths)
             throws ReplicationException {
         LOG.info("Start update called for {}", replicationPaths);
         try (ResourceResolver resolver = makeResolver()) {
@@ -156,7 +156,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         }
     }
 
-    protected void ensureMetaResourceAndPath(@Nonnull ReplicationPaths replicationPaths, ResourceResolver resolver) throws ReplicationException {
+    protected void ensureMetaResourceAndPath(@NotNull ReplicationPaths replicationPaths, ResourceResolver resolver) throws ReplicationException {
         // make sure the meta resource and target can be created
         Resource meta = Objects.requireNonNull(getMetaResource(resolver, replicationPaths, true));
         String destinationPath = appendPaths(config.changeRoot(), replicationPaths.getDestination());
@@ -200,7 +200,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
 
     @Nullable
     @Override
-    public UpdateInfo releaseInfo(@Nonnull ReplicationPaths replicationPaths) throws ReplicationException {
+    public UpdateInfo releaseInfo(@NotNull ReplicationPaths replicationPaths) throws ReplicationException {
         UpdateInfo result;
         if (LOG.isDebugEnabled()) {
             LOG.debug("ReleaseInfo called for {}", replicationPaths);
@@ -212,10 +212,10 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         return result;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<String> compareContent(@Nullable ReplicationPaths replicationPaths, @Nullable String updateId,
-                                       @Nonnull Stream<VersionableInfo> versionableInfos)
+                                       @NotNull Stream<VersionableInfo> versionableInfos)
             throws ReplicationException {
         LOG.info("Compare content {} - {}", updateId, replicationPaths);
         try (ResourceResolver resolver = makeResolver()) {
@@ -239,7 +239,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
 
     // The packages are made for the untranslated paths. We have to consider the targetPath later.
     @Override
-    public void pathUpload(@Nullable String updateId, @Nonnull String packageRootPath, @Nonnull InputStream inputStream)
+    public void pathUpload(@Nullable String updateId, @NotNull String packageRootPath, @NotNull InputStream inputStream)
             throws ReplicationException {
         LOG.info("Pathupload called for {} : {}", updateId, packageRootPath);
         try (ResourceResolver resolver = makeResolver()) {
@@ -313,8 +313,8 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     }
 
     @Override
-    public void commit(@Nonnull String updateId, @Nonnull Set<String> deletedPaths,
-                       @Nonnull Iterable<ChildrenOrderInfo> childOrderings, String newReleaseChangeId)
+    public void commit(@NotNull String updateId, @NotNull Set<String> deletedPaths,
+                       @NotNull Iterable<ChildrenOrderInfo> childOrderings, String newReleaseChangeId)
             throws ReplicationException {
         LOG.info("Commit called for {} : {}", updateId, deletedPaths);
         try (ResourceResolver resolver = makeResolver()) {
@@ -340,7 +340,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
                 deletePath(resolver, tmpLocation, deletedPath, replicationPaths, chRoot);
             }
 
-            @Nonnull String targetRootPath = appendPaths(chRoot, replicationPaths.getDestination());
+            @NotNull String targetRootPath = appendPaths(chRoot, replicationPaths.getDestination());
             try {
                 Resource ignored = ResourceUtil.getOrCreateResource(resolver, targetRootPath);
             } catch (RepositoryException e) {
@@ -410,7 +410,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         }
     }
 
-    protected void adjustChildrenOrder(@Nonnull Resource resource, @Nonnull List<String> childNames) throws RepositoryException {
+    protected void adjustChildrenOrder(@NotNull Resource resource, @NotNull List<String> childNames) throws RepositoryException {
         LOG.debug("Checking children order for {}", getPath(resource));
         List<String> currentChildNames = StreamSupport.stream(resource.getChildren().spliterator(), false)
                 .map(Resource::getName)
@@ -464,8 +464,8 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
      * We rely on that the paths have been checked by the caller to not go outside of the release, and that
      * the release in the target has been created.
      */
-    protected void moveVersionable(@Nonnull ResourceResolver resolver, @Nonnull Resource tmpLocation,
-                                   @Nonnull String updatedPath, @Nonnull ReplicationPaths replicationPaths, @Nonnull String chRoot)
+    protected void moveVersionable(@NotNull ResourceResolver resolver, @NotNull Resource tmpLocation,
+                                   @NotNull String updatedPath, @NotNull ReplicationPaths replicationPaths, @NotNull String chRoot)
             throws RepositoryException, PersistenceException, ReplicationException {
         NodeTreeSynchronizer synchronizer = new NodeTreeSynchronizer();
         Resource source = tmpLocation.getChild(SlingResourceUtil.relativePath("/", replicationPaths.getOrigin()));
@@ -513,8 +513,8 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         LOG.info("Moved {} to {}", getPath(source), getPath(destinationParent) + "/" + nodename);
     }
 
-    protected void deletePath(@Nonnull ResourceResolver resolver, @Nonnull Resource tmpLocation,
-                              @Nonnull String deletedPath, ReplicationPaths replicationPaths, @Nonnull String chRoot) throws ReplicationException {
+    protected void deletePath(@NotNull ResourceResolver resolver, @NotNull Resource tmpLocation,
+                              @NotNull String deletedPath, ReplicationPaths replicationPaths, @NotNull String chRoot) throws ReplicationException {
         NodeTreeSynchronizer synchronizer = new NodeTreeSynchronizer();
         Resource source = tmpLocation.getChild(SlingResourceUtil.relativePath("/", replicationPaths.getOrigin()));
         Resource destination = requireNonNull(resolver.getResource(SlingResourceUtil.appendPaths(chRoot, replicationPaths.getDestination())));
@@ -549,7 +549,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         }
     }
 
-    protected void updateAttributes(@Nonnull NodeTreeSynchronizer synchronizer, @Nonnull Resource source, @Nonnull Resource destination) throws ReplicationException {
+    protected void updateAttributes(@NotNull NodeTreeSynchronizer synchronizer, @NotNull Resource source, @NotNull Resource destination) throws ReplicationException {
         try {
             synchronizer.updateAttributes(ResourceHandle.use(source), ResourceHandle.use(destination), ImmutableBiMap.of());
             //adjustLastModified(source, destination);
@@ -561,7 +561,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     /**
      * copies the jcr:lastModified or the jcr:created date of the source to the destination as jcr:lastModified
      *
-    protected void adjustLastModified(@Nonnull Resource source, @Nonnull Resource destination) {
+    protected void adjustLastModified(@NotNull Resource source, @NotNull Resource destination) {
         if (ResourceUtil.isNodeType(destination, "mix:lastModified")) {
             Calendar modificationDate = getModificationDate(source);
             if (modificationDate != null) {
@@ -592,8 +592,8 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     /**
      * Removes parent nodes of the deleted nodes that do not have any (versionable) children now.
      */
-    protected void removeOrphans(@Nonnull ResourceResolver resolver, @Nonnull String chRoot,
-                                 @Nonnull String deletedPath, @Nonnull String targetRootPath) throws PersistenceException {
+    protected void removeOrphans(@NotNull ResourceResolver resolver, @NotNull String chRoot,
+                                 @NotNull String deletedPath, @NotNull String targetRootPath) throws PersistenceException {
         String originalPath = appendPaths(chRoot, deletedPath);
         Resource candidate = SlingResourceUtil.getFirstExistingParent(resolver, originalPath);
         while (candidate != null && SlingResourceUtil.isSameOrDescendant(targetRootPath, candidate.getPath())
@@ -606,8 +606,8 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     }
 
 
-    @Nonnull
-    protected Resource getTmpLocation(@Nonnull ResourceResolver resolver, @Nullable String updateId, boolean create, boolean checkReleaseId)
+    @NotNull
+    protected Resource getTmpLocation(@NotNull ResourceResolver resolver, @Nullable String updateId, boolean create, boolean checkReleaseId)
             throws ReplicationException {
         cleanup(resolver);
 
@@ -678,9 +678,9 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<String> compareChildorderings(@Nonnull ReplicationPaths replicationPaths, @Nonnull Iterable<ChildrenOrderInfo> childOrderings)
+    public List<String> compareChildorderings(@NotNull ReplicationPaths replicationPaths, @NotNull Iterable<ChildrenOrderInfo> childOrderings)
             throws ReplicationException {
         LOG.info("Compare child orderings for {}", replicationPaths);
         List<String> result = new ArrayList<>();
@@ -705,7 +705,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         return result;
     }
 
-    protected boolean equalChildrenOrder(@Nonnull Resource resource, @Nonnull List<String> childNames) {
+    protected boolean equalChildrenOrder(@NotNull Resource resource, @NotNull List<String> childNames) {
         LOG.debug("compare: {}, {}", getPath(resource), childNames);
         List<String> currentChildNames = StreamSupport.stream(resource.getChildren().spliterator(), false)
                 .map(Resource::getName)
@@ -717,9 +717,9 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
         return result;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<String> compareAttributes(@Nonnull ReplicationPaths replicationPaths, @Nonnull Iterable<NodeAttributeComparisonInfo> attributeInfos)
+    public List<String> compareAttributes(@NotNull ReplicationPaths replicationPaths, @NotNull Iterable<NodeAttributeComparisonInfo> attributeInfos)
             throws ReplicationException {
         LOG.info("Compare parent attributes for {}", replicationPaths);
         List<String> result = new ArrayList<>();
@@ -753,8 +753,8 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     }
 
     @Override
-    public VersionableTree contentStatus(@Nonnull ReplicationPaths replicationPaths,
-                                         @Nonnull Collection<String> paths, @Nonnull ResourceResolver resolver) {
+    public VersionableTree contentStatus(@NotNull ReplicationPaths replicationPaths,
+                                         @NotNull Collection<String> paths, @NotNull ResourceResolver resolver) {
         List<Resource> resources = paths.stream()
                 .map(replicationPaths::trimToOrigin)
                 .filter(Objects::nonNull)
@@ -770,7 +770,7 @@ public class PublicationReceiverBackendService implements PublicationReceiverBac
     /**
      * Creates the service resolver used to update the content.
      */
-    @Nonnull
+    @NotNull
     protected ResourceResolver makeResolver() throws ReplicationException {
         try {
             return resolverFactory.getServiceResourceResolver(null);

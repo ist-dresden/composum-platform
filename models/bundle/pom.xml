@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.composum.platform</groupId>
         <artifactId>composum-platform-models</artifactId>
-        <version>1.3.2-SNAPSHOT</version>
+        <version>1.4.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>composum-platform-models-bundle</artifactId>

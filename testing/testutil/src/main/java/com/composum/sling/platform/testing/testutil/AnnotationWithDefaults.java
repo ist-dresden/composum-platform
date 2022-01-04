@@ -2,7 +2,7 @@ package com.composum.sling.platform.testing.testutil;
 
 import com.google.common.base.Defaults;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -20,8 +20,8 @@ public class AnnotationWithDefaults implements InvocationHandler {
      * @param annotation the class for the annotation
      * @return an instance of the annotation
      */
-    @Nonnull
-    public static <A extends Annotation> A of(@Nonnull Class<A> annotation) {
+    @NotNull
+    public static <A extends Annotation> A of(@NotNull Class<A> annotation) {
         return annotation.cast(
                 Proxy.newProxyInstance(annotation.getClassLoader(), new Class[]{annotation}, new AnnotationWithDefaults()));
     }

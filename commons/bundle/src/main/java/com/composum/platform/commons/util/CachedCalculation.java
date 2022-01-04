@@ -2,8 +2,8 @@ package com.composum.platform.commons.util;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
 /**
@@ -95,7 +95,7 @@ public class CachedCalculation<T, EXCEPTION extends Throwable> {
     }
 
     protected T calculateValue(@Nullable ExceptionThrowingSupplier<T, EXCEPTION> currentSupplier) throws EXCEPTION {
-        @Nonnull
+        @NotNull
         ExceptionThrowingSupplier<T, EXCEPTION> usedSupplier;
         if (currentSupplier != null) {
             usedSupplier = currentSupplier;

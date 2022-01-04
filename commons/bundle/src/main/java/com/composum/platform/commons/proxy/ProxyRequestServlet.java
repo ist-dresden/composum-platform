@@ -1,5 +1,6 @@
 package com.composum.platform.commons.proxy;
 
+import com.composum.sling.core.Restricted;
 import com.composum.sling.core.util.XSS;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -16,7 +17,7 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -24,6 +25,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
+
+import static com.composum.platform.commons.proxy.ProxyRequestServlet.SERVICE_KEY;
 
 /**
  * the proxy servlet delegates proxy requests to the collected proxy service implementations
@@ -35,9 +38,12 @@ import java.util.regex.Pattern;
                 ServletResolverConstants.SLING_SERVLET_EXTENSIONS + "=fwd",
                 ServletResolverConstants.SLING_SERVLET_METHODS + "=" + HttpConstants.METHOD_GET
         })
+@Restricted(key = SERVICE_KEY)
 public class ProxyRequestServlet extends SlingSafeMethodsServlet {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProxyRequestServlet.class);
+
+    public static final String SERVICE_KEY = "platform/network/proxy";
 
     public static final Pattern EXTERNAL_SUFFIX = Pattern.compile("^/https?://", Pattern.CASE_INSENSITIVE);
 
@@ -45,19 +51,19 @@ public class ProxyRequestServlet extends SlingSafeMethodsServlet {
 
     @Reference(service = ProxyRequestService.class, policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.MULTIPLE)
-    protected void addProxyService(@Nonnull final ProxyRequestService service) {
+    protected void addProxyService(@NotNull final ProxyRequestService service) {
         LOG.info("addProxyService: {}", service.getName());
         instances.add(service);
     }
 
-    protected void removeProxyService(@Nonnull final ProxyRequestService service) {
+    protected void removeProxyService(@NotNull final ProxyRequestService service) {
         LOG.info("removeProxyService: {}", service.getName());
         instances.remove(service);
     }
 
     @Override
-    protected void doGet(@Nonnull final SlingHttpServletRequest request,
-                         @Nonnull final SlingHttpServletResponse response)
+    protected void doGet(@NotNull final SlingHttpServletRequest request,
+                         @NotNull final SlingHttpServletResponse response)
             throws IOException {
         RequestPathInfo pathInfo = request.getRequestPathInfo();
         String targetSuffix = XSS.filter(pathInfo.getSuffix());

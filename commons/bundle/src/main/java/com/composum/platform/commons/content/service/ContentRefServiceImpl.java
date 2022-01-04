@@ -14,8 +14,8 @@ import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.Binary;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
@@ -40,8 +40,8 @@ public class ContentRefServiceImpl implements ContentRefService {
     protected volatile HtmlImageRenderer htmlImageRenderer;
 
     @Override
-    @Nonnull
-    public String getReferencedContent(@Nonnull ResourceResolver resolver, String path) {
+    @NotNull
+    public String getReferencedContent(@NotNull ResourceResolver resolver, String path) {
         String content = "";
         if (StringUtils.isNotBlank(path) && !SERVLET_URI.matcher(path).matches()) {
             Resource resource = resolver.getResource(path);
@@ -62,8 +62,8 @@ public class ContentRefServiceImpl implements ContentRefService {
     }
 
     @Override
-    @Nonnull
-    public String getRenderedContent(@Nonnull SlingHttpServletRequest contextRequest, String url, boolean emptyLines) {
+    @NotNull
+    public String getRenderedContent(@NotNull SlingHttpServletRequest contextRequest, String url, boolean emptyLines) {
         String content = "";
         if (StringUtils.isNotBlank(url)) {
             try {
@@ -82,8 +82,8 @@ public class ContentRefServiceImpl implements ContentRefService {
 
     @Override
     @Nullable
-    public BufferedImage getRenderedImage(@Nonnull final SlingHttpServletRequest contextRequest,
-                                          @Nonnull final String url, int width, @Nullable final Integer height,
+    public BufferedImage getRenderedImage(@NotNull final SlingHttpServletRequest contextRequest,
+                                          @NotNull final String url, int width, @Nullable final Integer height,
                                           @Nullable final Double scale) {
         BufferedImage image = null;
         if (htmlImageRenderer != null) {

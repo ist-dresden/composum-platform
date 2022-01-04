@@ -1,13 +1,14 @@
 package com.composum.sling.platform.staging.impl;
 
+import com.composum.platform.commons.request.AccessMode;
 import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.core.Restricted;
 import com.composum.sling.core.servlet.AbstractServiceServlet;
 import com.composum.sling.core.servlet.ServletOperation;
 import com.composum.sling.core.servlet.ServletOperationSet;
 import com.composum.sling.core.servlet.Status;
 import com.composum.sling.core.util.RequestUtil;
 import com.composum.sling.core.util.XSS;
-import com.composum.platform.commons.request.AccessMode;
 import com.composum.sling.platform.staging.Release;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher;
 import com.composum.sling.platform.staging.ReleaseChangeEventPublisher.AggregatedReplicationStateInfo;
@@ -22,20 +23,21 @@ import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.servlets.HttpConstants;
 import org.apache.sling.api.servlets.ServletResolverConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.jcr.RepositoryException;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.Map;
 import java.util.regex.Matcher;
+
+import static com.composum.sling.platform.staging.impl.PlatformStagingServlet.SERVICE_KEY;
 
 /**
  * Servlet that provides operations to publish releases and retrieve the replication state.
@@ -47,20 +49,15 @@ import java.util.regex.Matcher;
                 ServletResolverConstants.SLING_SERVLET_METHODS + "=" + HttpConstants.METHOD_GET,
                 ServletResolverConstants.SLING_SERVLET_METHODS + "=" + HttpConstants.METHOD_POST
         })
+@Restricted(key = SERVICE_KEY)
 public class PlatformStagingServlet extends AbstractServiceServlet {
 
     private static final Logger LOG = LoggerFactory.getLogger(PlatformStagingServlet.class);
 
+    public static final String SERVICE_KEY = "platform/staging/replication";
+
     public static final String PARAM_RELEASE_KEY = "releaseKey";
     public static final String PARAM_FULL_SYNC = "fullSync";
-
-    protected ServletOperationSet<Extension, Operation> operations;
-
-    public enum Operation {
-        stageRelease, abortReplication,
-        replicationState, aggregatedReplicationState,
-        compareContent
-    }
 
     public enum Extension {json}
 
@@ -70,12 +67,16 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
     @Reference
     ReleaseChangeEventPublisher releasePublisher;
 
-    @Deprecated
-    protected boolean isEnabled() {
-        return true;
+    protected ServletOperationSet<Extension, Operation> operations;
+
+    public enum Operation {
+        stageRelease, abortReplication,
+        replicationState, aggregatedReplicationState,
+        compareContent
     }
 
     @Override
+    @NotNull
     protected ServletOperationSet<Extension, Operation> getOperations() {
         return operations;
     }
@@ -101,8 +102,8 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
                 new AbortReplicationOperation());
     }
 
-    public static String getReleaseKey(@Nonnull final SlingHttpServletRequest request,
-                                       @Nullable final Resource resource, @Nonnull final Status status) {
+    public static String getReleaseKey(@NotNull final SlingHttpServletRequest request,
+                                       @Nullable final Resource resource, @NotNull final Status status) {
         String releaseKey = RequestUtil.getParameter(request, PARAM_RELEASE_KEY, "");
         if (StringUtils.isBlank(releaseKey) && resource != null) {
             final String path = resource.getPath();
@@ -120,8 +121,8 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
     protected class StageReleaseOperation implements ServletOperation {
 
         @Override
-        public void doIt(@Nonnull final SlingHttpServletRequest request,
-                         @Nonnull final SlingHttpServletResponse response,
+        public void doIt(@NotNull final SlingHttpServletRequest request,
+                         @NotNull final SlingHttpServletResponse response,
                          @Nullable final ResourceHandle resource)
                 throws IOException {
             Status status = new Status(request, response);
@@ -164,15 +165,16 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
         public static final String PARAM_STAGE = "stage";
 
         @Override
-        public void doIt(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
+        public void doIt(@NotNull SlingHttpServletRequest request,
+                         @NotNull SlingHttpServletResponse response,
+                         @Nullable ResourceHandle resource)
+                throws IOException {
             Status status = new Status(request, response, LOG);
             try {
                 String stageParam = RequestUtil.getParameter(request, PARAM_STAGE, (String) null);
                 Map<String, ReplicationStateInfo> result = releasePublisher.replicationState(resource, stageParam);
                 Map<String, Object> map = status.data("replicationStates");
-                for (Map.Entry<String, ReplicationStateInfo> entry : result.entrySet()) {
-                    map.put(entry.getKey(), entry.getValue());
-                }
+                map.putAll(result);
             } catch (Exception e) {
                 status.error("Internal error", e);
             } finally {
@@ -192,7 +194,10 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
         public static final String PARAM_STAGE = "stage";
 
         @Override
-        public void doIt(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
+        public void doIt(@NotNull SlingHttpServletRequest request,
+                         @NotNull SlingHttpServletResponse response,
+                         @Nullable ResourceHandle resource)
+                throws IOException {
             Status status = new Status(request, response, LOG);
             try {
                 String stageParam = RequestUtil.getParameter(request, PARAM_STAGE, (String) null);
@@ -217,7 +222,10 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
         public static final String PARAM_STAGE = "stage";
 
         @Override
-        public void doIt(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
+        public void doIt(@NotNull SlingHttpServletRequest request,
+                         @NotNull SlingHttpServletResponse response,
+                         @Nullable ResourceHandle resource)
+                throws IOException {
             Status status = new Status(request, response, LOG);
             try {
                 String stageParam = RequestUtil.getParameter(request, PARAM_STAGE, (String) null);
@@ -251,7 +259,10 @@ public class PlatformStagingServlet extends AbstractServiceServlet {
         public static final String RESULT_COMPARETREE = "compareTree";
 
         @Override
-        public void doIt(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response, @Nullable ResourceHandle resource) throws RepositoryException, IOException, ServletException {
+        public void doIt(@NotNull SlingHttpServletRequest request,
+                         @NotNull SlingHttpServletResponse response,
+                         @Nullable ResourceHandle resource)
+                throws IOException {
             Status status = new Status(request, response, LOG);
             try {
                 if (resource != null) {

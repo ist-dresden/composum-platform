@@ -15,8 +15,8 @@ import org.osgi.service.component.annotations.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
@@ -71,14 +71,14 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
             policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.MULTIPLE
     )
-    protected void addReleaseChangeEventListener(@Nonnull ReleaseChangeEventListener listener) {
+    protected void addReleaseChangeEventListener(@NotNull ReleaseChangeEventListener listener) {
         LOG.info("Adding listener {}@{}", listener.getClass().getName(), System.identityHashCode(listener));
         //noinspection ObjectEquality : equality for services not defined
         releaseChangeEventListeners.removeIf(releaseChangeEventListener -> releaseChangeEventListener == listener);
         releaseChangeEventListeners.add(listener);
     }
 
-    protected void removeReleaseChangeEventListener(@Nonnull ReleaseChangeEventListener listener) {
+    protected void removeReleaseChangeEventListener(@NotNull ReleaseChangeEventListener listener) {
         LOG.info("Removing listener {}@{}", listener.getClass().getName(), System.identityHashCode(listener));
         //noinspection ObjectEquality : equality for services not defined
         releaseChangeEventListeners.removeIf(releaseChangeEventListener -> releaseChangeEventListener == listener);
@@ -139,7 +139,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
      * it'll run after the current run is finished - compare {@link RescheduleWrapper#run()}. We rather call run once
      * too many - it is contractually obliged to do nothing if it hasn't anything to do.
      */
-    protected void deployProcess(@Nonnull ReleaseChangeProcess process) throws InterruptedException {
+    protected void deployProcess(@NotNull ReleaseChangeProcess process) throws InterruptedException {
         synchronized (lock) {
             Future<?> future = runningProcesses.get(process);
             if (future != null && future.isDone()) {
@@ -190,7 +190,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Collection<ReleaseChangeProcess> processesFor(@Nullable Release release, @Nullable String stage) {
         List<ReleaseChangeProcess> result = new ArrayList<>();
@@ -207,7 +207,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         return result;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Collection<ReleaseChangeProcess> processesFor(@Nullable Resource releaseRoot, @Nullable String stage) {
         List<ReleaseChangeProcess> result = new ArrayList<>();
@@ -226,8 +226,8 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
      * If there is at least an explicit (i.e., not {@link ReleaseChangeProcess#isImplicit()} configuration, any implicit configurations are removed;
      * if there are no explicit configurations the implicit configurations are returned.
      */
-    @Nonnull
-    protected List<ReleaseChangeProcess> filterImplicits(@Nonnull List<ReleaseChangeProcess> result) {
+    @NotNull
+    protected List<ReleaseChangeProcess> filterImplicits(@NotNull List<ReleaseChangeProcess> result) {
         boolean haveExplicit = result.stream().anyMatch((p) -> !p.isImplicit());
         if (haveExplicit) { // remove implicit configurations
             return result.stream().filter((p) -> !p.isImplicit()).collect(Collectors.toList());
@@ -236,7 +236,7 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Map<String, ReplicationStateInfo> replicationState(@Nullable Resource releaseRoot, @Nullable String stage) {
         Map<String, ReplicationStateInfo> result = new LinkedHashMap<>();
@@ -337,8 +337,8 @@ public class ReleaseChangeEventPublisherImpl implements ReleaseChangeEventPublis
     }
 
     @Override
-    public void compareTree(@Nonnull ResourceHandle resource, int details, @Nullable String[] processIdParams,
-                            @Nonnull Map<String, ? super CompareResult> output) throws ReplicationException {
+    public void compareTree(@NotNull ResourceHandle resource, int details, @Nullable String[] processIdParams,
+                            @NotNull Map<String, ? super CompareResult> output) throws ReplicationException {
         for (ReleaseChangeProcess process : processesFor(resource, null)) {
             if (processIdParams != null && !Arrays.asList(processIdParams).contains(process.getId())) {
                 continue;

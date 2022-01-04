@@ -20,8 +20,8 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.RepositoryException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -73,10 +73,10 @@ public class PlatformSearchService implements SearchService {
         this.config = config;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public List<Result> search(final @Nonnull BeanContext context, @Nonnull String selectors,
-                               final @Nonnull String root, final @Nonnull String searchExpression,
+    public List<Result> search(final @NotNull BeanContext context, @NotNull String selectors,
+                               final @NotNull String root, final @NotNull String searchExpression,
                                final @Nullable ResourceFilter searchFilter,
                                final int offset, final Integer limit)
             throws RepositoryException, SearchTermParseException {
@@ -97,13 +97,13 @@ public class PlatformSearchService implements SearchService {
             policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.MULTIPLE
     )
-    protected void addSearchPlugin(@Nonnull final SearchPlugin plugin) {
+    protected void addSearchPlugin(@NotNull final SearchPlugin plugin) {
         LOG.info("addSearchPlugin: {}", plugin.getClass().getSimpleName());
         plugin.setService(this);
         searchPlugins.add(plugin);
     }
 
-    protected void removeSearchPlugin(@Nonnull final SearchPlugin plugin) {
+    protected void removeSearchPlugin(@NotNull final SearchPlugin plugin) {
         LOG.info("removeSearchPlugin: {}", plugin.getClass().getSimpleName());
         searchPlugins.remove(plugin);
         plugin.setService(null);
@@ -136,7 +136,7 @@ public class PlatformSearchService implements SearchService {
      *
      * @return up to limit elements of the result list with the offset first elements skipped.
      */
-    @Nonnull
+    @NotNull
     @Override
     public List<Result> executeQueryWithRaisingLimits(LimitedQuery limitedQuery, int offset, Integer limit) {
         Pair<Boolean, List<Result>> result;

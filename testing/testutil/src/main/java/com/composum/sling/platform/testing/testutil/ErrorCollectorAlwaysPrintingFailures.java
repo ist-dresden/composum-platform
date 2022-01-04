@@ -8,7 +8,7 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.MultipleFailureException;
 import org.junit.runners.model.Statement;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  */
 public class ErrorCollectorAlwaysPrintingFailures implements MethodRule {
 
-    @Nonnull
+    @NotNull
     protected List<TestingRunnableWithException> onFailureActions = new ArrayList<>();
 
     protected final InternalErrorCollector errorCollector = new InternalErrorCollector();

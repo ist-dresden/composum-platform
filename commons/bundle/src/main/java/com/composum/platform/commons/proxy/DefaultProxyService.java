@@ -19,8 +19,8 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.RepositoryException;
 
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
@@ -63,13 +63,13 @@ public class DefaultProxyService implements ProxyService {
         return cfg != null && cfg.enabled();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getProxyKey() {
         return proxyKey;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getTitle() {
         Configuration cfg = config;
@@ -84,7 +84,7 @@ public class DefaultProxyService implements ProxyService {
     }
 
     @Override
-    public void initHttpContext(@Nonnull HttpClientContext context, @Nullable ResourceResolver resolver) throws RepositoryException {
+    public void initHttpContext(@NotNull HttpClientContext context, @Nullable ResourceResolver resolver) throws RepositoryException {
         Configuration cfg = config;
         if (cfg == null || !isEnabled()) { return; }
 

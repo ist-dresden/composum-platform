@@ -15,8 +15,8 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
@@ -42,13 +42,13 @@ public class CacheManagerImpl implements CacheManager {
     @SuppressWarnings("unchecked")
     @Override
     @Nullable
-    public <T extends Serializable> CacheService<T> getCache(@Nonnull String name, @Nonnull Class<T> type) {
+    public <T extends Serializable> CacheService<T> getCache(@NotNull String name, @NotNull Class<T> type) {
         return instances.get(name);
     }
 
     @Override
-    @Nonnull
-    public Cache useCache(@Nonnull String name, @Nonnull CacheConfiguration config) {
+    @NotNull
+    public Cache useCache(@NotNull String name, @NotNull CacheConfiguration config) {
         Cache cache = ehCacheManager.getCache(name, config.getKeyType(), config.getValueType());
         if (cache == null) {
             cache = ehCacheManager.createCache(name, config);
@@ -57,17 +57,17 @@ public class CacheManagerImpl implements CacheManager {
     }
 
     @Override
-    public void removeCache(@Nonnull String name) {
+    public void removeCache(@NotNull String name) {
         ehCacheManager.removeCache(name);
     }
 
     @Reference(service = CacheService.class, policy = ReferencePolicy.DYNAMIC, cardinality = ReferenceCardinality.MULTIPLE)
-    protected void addCacheService(@Nonnull final CacheService service) {
+    protected void addCacheService(@NotNull final CacheService service) {
         LOG.info("addCacheService: {}", service.getName());
         instances.put(service.getName(), service);
     }
 
-    protected void removeCacheService(@Nonnull final CacheService service) {
+    protected void removeCacheService(@NotNull final CacheService service) {
         LOG.info("removeCacheService: {}", service.getName());
         instances.remove(service.getName());
     }

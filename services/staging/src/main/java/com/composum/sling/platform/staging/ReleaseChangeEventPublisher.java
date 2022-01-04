@@ -5,8 +5,8 @@ import com.composum.sling.core.logging.MessageContainer;
 import com.composum.sling.platform.staging.replication.ReplicationException;
 import org.apache.sling.api.resource.Resource;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
@@ -30,7 +30,7 @@ public interface ReleaseChangeEventPublisher {
      * @param releaseRoot the root of a release - if null we return an empty collection.
      * @param stage       if set, this filters the result after {@link ReleaseChangeProcess#getStage()}.
      */
-    @Nonnull
+    @NotNull
     Collection<ReleaseChangeProcess> processesFor(@Nullable Release release, @Nullable String stage);
 
     /**
@@ -39,7 +39,7 @@ public interface ReleaseChangeEventPublisher {
      * @param releaseRoot the root of a release - if null we return an empty collection.
      * @param stage       if set, this filters the result after {@link ReleaseChangeProcess#getStage()}.
      */
-    @Nonnull
+    @NotNull
     Collection<ReleaseChangeProcess> processesFor(@Nullable Resource releaseRoot, @Nullable String stage);
 
     /**
@@ -48,7 +48,7 @@ public interface ReleaseChangeEventPublisher {
      * @param releaseRoot the root of a release - if null we return an empty map.
      * @param stage       if set, this filters the result after {@link ReleaseChangeProcess#getStage()}.
      */
-    @Nonnull
+    @NotNull
     Map<String, ReplicationStateInfo> replicationState(@Nullable Resource releaseRoot, @Nullable String stage);
 
     /**
@@ -86,8 +86,8 @@ public interface ReleaseChangeEventPublisher {
      * @param output          the result is added here: the {@link ReleaseChangeProcess#getId()} is mapped to the
      *                        corresponding {@link CompareResult}.
      */
-    void compareTree(@Nonnull ResourceHandle resource, int details, @Nullable String[] processIdParams,
-                     @Nonnull Map<String, ? super CompareResult> output) throws ReplicationException;
+    void compareTree(@NotNull ResourceHandle resource, int details, @Nullable String[] processIdParams,
+                     @NotNull Map<String, ? super CompareResult> output) throws ReplicationException;
 
     /**
      * Information about one {@link ReleaseChangeProcess} used for JSON serialization.
@@ -147,7 +147,7 @@ public interface ReleaseChangeEventPublisher {
         public Long lastReplicationTimestamp;
         public MessageContainer messages;
 
-        @Nonnull
+        @NotNull
         public final Map<ReleaseChangeProcess.ReleaseChangeProcessorState, ReleaseChangeProcess.ReplicationHistoryEntry> history =
                 new EnumMap<>(ReleaseChangeProcess.ReleaseChangeProcessorState.class);
     }

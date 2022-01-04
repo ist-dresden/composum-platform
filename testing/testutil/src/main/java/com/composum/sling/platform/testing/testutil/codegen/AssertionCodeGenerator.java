@@ -8,8 +8,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.commons.lang3.reflect.TypeUtils;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -30,7 +30,7 @@ public class AssertionCodeGenerator {
 
     protected Set<String> ignoredPropertySet = new HashSet<>();
 
-    public AssertionCodeGenerator(@Nonnull String variableName, @Nullable Object object) {
+    public AssertionCodeGenerator(@NotNull String variableName, @Nullable Object object) {
         this.variableName = variableName;
         this.object = object;
     }
@@ -53,7 +53,7 @@ public class AssertionCodeGenerator {
     /**
      * Uses the ErrorCollectorAlwaysPrintingFailures rule to catch all errors at the same time.
      */
-    @Nonnull
+    @NotNull
     public AssertionCodeGenerator useErrorCollector(String errorCollector) {
         this.errorCollector = errorCollector;
         return this;
@@ -62,7 +62,7 @@ public class AssertionCodeGenerator {
     /**
      * Uses the ErrorCollectorAlwaysPrintingFailures rule to catch all errors at the same time.
      */
-    @Nonnull
+    @NotNull
     public AssertionCodeGenerator useErrorCollector() {
         return useErrorCollector("errorCollector");
     }
@@ -71,7 +71,7 @@ public class AssertionCodeGenerator {
     /**
      * Specifies a message to log.
      */
-    @Nonnull
+    @NotNull
     public AssertionCodeGenerator withMessage(String message) {
         this.message = message;
         return this;
@@ -80,7 +80,7 @@ public class AssertionCodeGenerator {
     /**
      * Spezifies some properties to ignore.
      */
-    @Nonnull
+    @NotNull
     public AssertionCodeGenerator ignoreProperties(String... ignoredProperties) {
         ignoredPropertySet.addAll(Arrays.asList(ignoredProperties));
         return this;
@@ -92,7 +92,7 @@ public class AssertionCodeGenerator {
      * You can employ this in your unitest temporarily instead of the assertions,
      * manually check whether it is as expected, and copy the printed code into the test once it was run.
      */
-    @Nonnull
+    @NotNull
     public AssertionCodeGenerator printAssertions() {
         allAssertionsBuf.append("\n");
         Set<String> checkedMethods = new HashSet<>();
@@ -143,7 +143,7 @@ public class AssertionCodeGenerator {
     /**
      * Generate assertions for a map - all elements and the size.
      */
-    @Nonnull
+    @NotNull
     public AssertionCodeGenerator printMapAssertions() {
         try {
             Map<String, Object> map = (Map<String, Object>) object;
@@ -252,7 +252,7 @@ public class AssertionCodeGenerator {
     /**
      * Creates a matcher for a Map. Difficult. We just compare toStrings for a start.
      */
-    protected void createMatcherForMap(@Nonnull Map<?, ?> map) {
+    protected void createMatcherForMap(@NotNull Map<?, ?> map) {
         /* assertionBuf.append("mappedMatches(SlingMatchers::sortedToString, is(");
         appendQuotedString(sortedToString(map));
         assertionBuf.append(")"); */
@@ -275,7 +275,7 @@ public class AssertionCodeGenerator {
     /**
      * Creates a matcher for a Map. Difficult. We just compare toStrings for a start.
      */
-    protected void createMatcherForList(@Nonnull Collection<?> collection) {
+    protected void createMatcherForList(@NotNull Collection<?> collection) {
         assertionBuf.append("mappedMatches(Object::toString, is(");
         appendQuotedString(collection.toString());
         assertionBuf.append(")");
@@ -285,7 +285,7 @@ public class AssertionCodeGenerator {
      * Room for extensions: should append a matcher to buf that matches if a value is just like {value}.
      * If nothing was appended to {@link AssertionCodeGenerator#assertionBuf}, we assume it was not handled.
      */
-    protected void createMatcherHook(@Nonnull Object value) {
+    protected void createMatcherHook(@NotNull Object value) {
         // do nothing.
     }
 

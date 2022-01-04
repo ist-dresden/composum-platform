@@ -6,13 +6,14 @@
 package com.composum.sling.platform.staging.versions;
 
 import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.core.Restricted;
 import com.composum.sling.core.servlet.AbstractServiceServlet;
 import com.composum.sling.core.servlet.ServletOperation;
 import com.composum.sling.core.servlet.ServletOperationSet;
+import com.composum.sling.core.servlet.Status;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
 import com.composum.sling.platform.staging.VersionReference;
-import com.composum.sling.core.servlet.Status;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -21,6 +22,8 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.HttpConstants;
 import org.apache.sling.api.servlets.ServletResolverConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
@@ -29,8 +32,6 @@ import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import java.io.IOException;
@@ -42,7 +43,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** This is a thin servlet making the {@link PlatformVersionsService} accessible - see there for description of the operations. */
+import static com.composum.sling.platform.staging.versions.PlatformVersionsServlet.SERVICE_KEY;
+
+/**
+ * This is a thin servlet making the {@link PlatformVersionsService} accessible - see there for description of the operations.
+ */
 // FIXME(hps,2019-05-27) i18n of error messages?
 @Component(service = Servlet.class,
         property = {
@@ -51,15 +56,24 @@ import java.util.Set;
                 ServletResolverConstants.SLING_SERVLET_METHODS + "=" + HttpConstants.METHOD_GET,
                 ServletResolverConstants.SLING_SERVLET_METHODS + "=" + HttpConstants.METHOD_POST
         })
+@Restricted(key = SERVICE_KEY)
 public class PlatformVersionsServlet extends AbstractServiceServlet {
 
     private static final Logger LOG = LoggerFactory.getLogger(PlatformVersionsServlet.class);
 
-    /** the parameter name for explicit (multi valued) target resources */
+    public static final String SERVICE_KEY = "platform/staging/versions";
+
+    /**
+     * the parameter name for explicit (multi valued) target resources
+     */
     public static final String PARAM_TARGET = "target[]";
-    /** An array of page references or referrers which should simultaneously be activated / deactivated. */
+    /**
+     * An array of page references or referrers which should simultaneously be activated / deactivated.
+     */
     public static final String PARAM_PAGE_REFS = "pageRef[]";
-    /** An array of assets which should simultaneously be activated / deactivated. */
+    /**
+     * An array of assets which should simultaneously be activated / deactivated.
+     */
     public static final String PARAM_ASSET_REFS = "assetRef[]";
 
     @Reference
@@ -70,11 +84,6 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
     @Activate
     private void activate(final BundleContext bundleContext) {
         this.bundleContext = bundleContext;
-    }
-
-    @Deprecated
-    protected boolean isEnabled() {
-        return true;
     }
 
     //
@@ -94,11 +103,14 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
     protected VersionsOperationSet operations = new VersionsOperationSet();
 
     @Override
-    protected ServletOperationSet getOperations() {
+    @NotNull
+    protected ServletOperationSet<Extension, Operation> getOperations() {
         return operations;
     }
 
-    /** setup of the servlet operation set for this servlet instance */
+    /**
+     * setup of the servlet operation set for this servlet instance
+     */
     @Override
     @SuppressWarnings("Duplicates")
     public void init() throws ServletException {
@@ -133,14 +145,15 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
 
     protected abstract class VersionableOperation implements ServletOperation {
 
-        abstract void performIt(@Nonnull final SlingHttpServletRequest request,
-                                @Nonnull final SlingHttpServletResponse response,
-                                @Nonnull final Status status,
-                                @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey);
+        abstract void performIt(@NotNull final SlingHttpServletRequest request,
+                                @NotNull final SlingHttpServletResponse response,
+                                @NotNull final Status status,
+                                @NotNull final Collection<Resource> versionable, @Nullable final String releaseKey);
 
         @Override
-        public void doIt(SlingHttpServletRequest request, SlingHttpServletResponse response,
-                         ResourceHandle resource)
+        public void doIt(@NotNull final SlingHttpServletRequest request,
+                         @NotNull final SlingHttpServletResponse response,
+                         @Nullable ResourceHandle resource)
                 throws IOException {
             Status status = new Status(request, response, LOG);
             Collection<Resource> versionable = new ArrayList<>();
@@ -184,7 +197,7 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
             status.sendJson();
         }
 
-        @Nonnull
+        @NotNull
         protected Set<String> addParameter(Set<String> set, SlingHttpServletRequest request, String name) {
             String[] values = request.getParameterValues(name);
             if (values != null) {
@@ -204,9 +217,9 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
     protected class GetVersionableStatus extends VersionableOperation {
 
         @Override
-        public void performIt(@Nonnull final SlingHttpServletRequest request,
-                              @Nonnull final SlingHttpServletResponse response, @Nonnull final Status requestStatus,
-                              @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey) {
+        public void performIt(@NotNull final SlingHttpServletRequest request,
+                              @NotNull final SlingHttpServletResponse response, @NotNull final Status requestStatus,
+                              @NotNull final Collection<Resource> versionable, @Nullable final String releaseKey) {
             try {
                 Resource target = versionable.iterator().next();
                 PlatformVersionsService.Status status = versionsService.getStatus(target, releaseKey);
@@ -243,9 +256,9 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
     protected class ActivateVersionable extends VersionableOperation {
 
         @Override
-        public void performIt(@Nonnull final SlingHttpServletRequest request,
-                              @Nonnull final SlingHttpServletResponse response, @Nonnull final Status status,
-                              @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey) {
+        public void performIt(@NotNull final SlingHttpServletRequest request,
+                              @NotNull final SlingHttpServletResponse response, @NotNull final Status status,
+                              @NotNull final Collection<Resource> versionable, @Nullable final String releaseKey) {
             String versionUuid = StringUtils.defaultIfBlank(request.getParameter("versionUuid"), null);
             Set<String> references = addParameter(addParameter(new HashSet<>(), request, PARAM_PAGE_REFS), request, PARAM_ASSET_REFS);
             if (StringUtils.isNotBlank(versionUuid)) {
@@ -294,9 +307,9 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
     protected class DeactivateVersionable extends VersionableOperation {
 
         @Override
-        public void performIt(@Nonnull final SlingHttpServletRequest request,
-                              @Nonnull final SlingHttpServletResponse response, @Nonnull final Status status,
-                              @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey) {
+        public void performIt(@NotNull final SlingHttpServletRequest request,
+                              @NotNull final SlingHttpServletResponse response, @NotNull final Status status,
+                              @NotNull final Collection<Resource> versionable, @Nullable final String releaseKey) {
             Set<String> referrers = addParameter(new HashSet<>(), request, PARAM_PAGE_REFS);
             List<Resource> toDeactivate = new ArrayList<>(versionable);
             for (String referrerPath : referrers) {
@@ -322,9 +335,9 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
     protected class RevertVersionable extends VersionableOperation {
 
         @Override
-        public void performIt(@Nonnull final SlingHttpServletRequest request,
-                              @Nonnull final SlingHttpServletResponse response, @Nonnull final Status status,
-                              @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey) {
+        public void performIt(@NotNull final SlingHttpServletRequest request,
+                              @NotNull final SlingHttpServletResponse response, @NotNull final Status status,
+                              @NotNull final Collection<Resource> versionable, @Nullable final String releaseKey) {
             Set<String> referrers = addParameter(new HashSet<>(), request, PARAM_PAGE_REFS);
             List<String> toRevert = new ArrayList<>();
             versionable.forEach((r) -> toRevert.add(r.getPath()));
@@ -346,9 +359,9 @@ public class PlatformVersionsServlet extends AbstractServiceServlet {
     protected class PurgeVersions extends VersionableOperation {
 
         @Override
-        public void performIt(@Nonnull final SlingHttpServletRequest request,
-                              @Nonnull final SlingHttpServletResponse response, @Nonnull final Status status,
-                              @Nonnull final Collection<Resource> versionable, @Nullable final String releaseKey) {
+        public void performIt(@NotNull final SlingHttpServletRequest request,
+                              @NotNull final SlingHttpServletResponse response, @NotNull final Status status,
+                              @NotNull final Collection<Resource> versionable, @Nullable final String releaseKey) {
             try {
                 Resource target = versionable.iterator().next();
                 versionsService.purgeVersions(target);

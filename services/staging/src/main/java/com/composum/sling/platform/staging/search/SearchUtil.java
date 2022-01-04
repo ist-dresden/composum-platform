@@ -9,16 +9,16 @@ import com.composum.sling.platform.staging.query.QueryConditionDsl.QueryConditio
 import com.composum.sling.platform.staging.query.QueryConditionDsl.QueryConditionBuilder;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class SearchUtil {
 
     /**
      * @return the search expression transformed for a node name query
      */
-    @Nonnull
-    public static String namePattern(@Nonnull String searchExpression) {
+    @NotNull
+    public static String namePattern(@NotNull String searchExpression) {
         String namePattern = searchExpression.replace('*', '%');
         if (!namePattern.startsWith("%")) {
             namePattern = "%" + namePattern;
@@ -34,7 +34,7 @@ public class SearchUtil {
      */
     @Nullable
     public static QueryCondition nameAndTextCondition(
-            @Nonnull final QueryConditionBuilder conditionBuilder, @Nullable final String searchTerm) {
+            @NotNull final QueryConditionBuilder conditionBuilder, @Nullable final String searchTerm) {
         return StringUtils.isNotBlank(searchTerm)
                 ? conditionBuilder.name().like().val(namePattern(searchTerm)).or().contains(searchTerm)
                 : null;
@@ -43,9 +43,9 @@ public class SearchUtil {
     /**
      * @return the query condition extended with a text search condition including the node name
      */
-    @Nonnull
+    @NotNull
     public static QueryCondition andNameAndTextCondition(
-            @Nonnull QueryCondition condition, @Nullable String searchTerm) {
+            @NotNull QueryCondition condition, @Nullable String searchTerm) {
         return StringUtils.isNotBlank(searchTerm)
                 ? condition.and().startGroup().name().like().val(namePattern(searchTerm)).or().contains(searchTerm).endGroup()
                 : condition;

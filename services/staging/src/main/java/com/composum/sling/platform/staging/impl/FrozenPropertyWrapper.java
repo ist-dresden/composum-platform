@@ -1,7 +1,7 @@
 package com.composum.sling.platform.staging.impl;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.*;
 import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -22,7 +22,7 @@ import java.util.Calendar;
 @SuppressWarnings({"DuplicateThrows", "RedundantThrows", "deprecation"})
 public class FrozenPropertyWrapper extends AbstractFrozenItem<Property> implements Property {
 
-    FrozenPropertyWrapper(@Nonnull Property wrapped, @Nullable String path) {
+    FrozenPropertyWrapper(@NotNull Property wrapped, @Nullable String path) {
         super(wrapped, path);
     }
 

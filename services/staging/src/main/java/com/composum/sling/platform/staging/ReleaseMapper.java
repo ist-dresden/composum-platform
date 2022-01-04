@@ -1,6 +1,6 @@
 package com.composum.sling.platform.staging;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Controls when a {@link com.composum.sling.platform.staging.StagingResourceResolver} applies the release mapping,
@@ -21,7 +21,7 @@ public interface ReleaseMapper {
      * If it returns false for a path inside a release, it must return false for all subpaths. Otherwise
      * the behaviour of {@link com.composum.sling.platform.staging.impl.StagingResourceResolver} etc. is undefined.
      */
-    boolean releaseMappingAllowed(@Nonnull String path);
+    boolean releaseMappingAllowed(@NotNull String path);
 
     public static final ReleaseMapper ALLPERMISSIVE = new ReleaseMapper() {
         @Override
@@ -30,7 +30,7 @@ public interface ReleaseMapper {
         }
 
         @Override
-        public boolean releaseMappingAllowed(@Nonnull String path) {
+        public boolean releaseMappingAllowed(@NotNull String path) {
             return true;
         }
     };

@@ -3,7 +3,7 @@ package com.composum.sling.platform.staging.impl;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.sling.api.resource.ResourceUtil;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.jcr.Binary;
 import javax.jcr.Item;
 import javax.jcr.ItemVisitor;
@@ -28,16 +28,16 @@ import java.util.List;
  */
 class SimulatedMixinProperty implements Property {
 
-    @Nonnull
+    @NotNull
     protected final String path;
 
-    @Nonnull
+    @NotNull
     protected final Session session;
 
-    @Nonnull
+    @NotNull
     protected final Value[] values;
 
-    SimulatedMixinProperty(@Nonnull String path, @Nonnull Session session, @Nonnull List<String> mixins) {
+    SimulatedMixinProperty(@NotNull String path, @NotNull Session session, @NotNull List<String> mixins) {
         this.path = path;
         this.session = session;
         values = mixins.stream().map(StringValue::new).toArray(Value[]::new);
@@ -60,7 +60,7 @@ class SimulatedMixinProperty implements Property {
         throw new ValueFormatException("This is a multiple String property: " + path);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public final String getPath() throws RepositoryException {
         return path;
@@ -71,7 +71,7 @@ class SimulatedMixinProperty implements Property {
         return ResourceUtil.getName(path);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public final Session getSession() throws RepositoryException {
         return session;

@@ -8,8 +8,8 @@ import org.apache.sling.api.resource.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -46,7 +46,7 @@ public class MovePostprocessor {
     /**
      * Scans the resource and its children for properties that contain the site's path and replaces them.
      */
-    public void postprocess(@Nonnull Resource resource) {
+    public void postprocess(@NotNull Resource resource) {
         if (isNotBlank(srcPath) && isNotBlank(targetPath) && !StringUtils.equals(srcPath, targetPath)) {
             new MovePropertyReplacer(srcPath, targetPath).processResource(resource);
         }

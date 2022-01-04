@@ -11,8 +11,8 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.RepositoryException;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -38,7 +38,7 @@ public class ProxyManagerServiceImpl implements ProxyManagerService {
 
     @Nullable
     @Override
-    public ProxyService findProxyService(@Nonnull String proxyKey) {
+    public ProxyService findProxyService(@NotNull String proxyKey) {
         ProxyService proxyService;
         synchronized (lockObject) {
             WeakReference<ProxyService> ref = proxyServices.get(proxyKey);
@@ -47,7 +47,7 @@ public class ProxyManagerServiceImpl implements ProxyManagerService {
         return proxyService;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<String> getProxyKeys() {
         synchronized (lockObject) {
@@ -56,7 +56,7 @@ public class ProxyManagerServiceImpl implements ProxyManagerService {
     }
 
     @Override
-    public void initHttpContext(@Nonnull String proxyKey, @Nonnull HttpClientContext context,
+    public void initHttpContext(@NotNull String proxyKey, @NotNull HttpClientContext context,
                                 @Nullable ResourceResolver resolver) throws IllegalArgumentException, RepositoryException {
         ProxyService proxyService = findProxyService(proxyKey);
         if (null == proxyService) {
@@ -70,7 +70,7 @@ public class ProxyManagerServiceImpl implements ProxyManagerService {
             policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.MULTIPLE
     )
-    protected void addProxyService(@Nonnull ProxyService service) {
+    protected void addProxyService(@NotNull ProxyService service) {
         LOG.info("Adding service {} : {}", service.getProxyKey(),
                 service.getClass().getName() + "@" + System.identityHashCode(service));
         synchronized (lockObject) {
@@ -83,7 +83,7 @@ public class ProxyManagerServiceImpl implements ProxyManagerService {
         }
     }
 
-    protected void removeProxyService(@Nonnull ProxyService service) {
+    protected void removeProxyService(@NotNull ProxyService service) {
         LOG.info("Removing service {} : {}", service.getProxyKey(),
                 service.getClass().getName() + "@" + System.identityHashCode(service));
         synchronized (lockObject) {

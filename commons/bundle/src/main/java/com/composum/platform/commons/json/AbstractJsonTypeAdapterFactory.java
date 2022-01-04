@@ -8,8 +8,8 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
@@ -20,10 +20,10 @@ import java.lang.reflect.InvocationTargetException;
  */
 public abstract class AbstractJsonTypeAdapterFactory<T> implements TypeAdapterFactory {
 
-    @Nonnull
+    @NotNull
     protected final TypeToken<T> type;
 
-    protected AbstractJsonTypeAdapterFactory(@Nonnull TypeToken<T> type) {
+    protected AbstractJsonTypeAdapterFactory(@NotNull TypeToken<T> type) {
         this.type = type;
     }
 
@@ -33,8 +33,8 @@ public abstract class AbstractJsonTypeAdapterFactory<T> implements TypeAdapterFa
      * @param requestedType the type for which GSon requested a type adapter; for the default implementation of
      *                      {@link #isResponsible(TypeToken)} this will be {@link #type} or a subtype.
      */
-    protected <TR> void write(@Nonnull JsonWriter out, @Nonnull T value, @Nonnull Gson gson,
-                              @Nonnull TypeToken<TR> requestedType) throws IOException {
+    protected <TR> void write(@NotNull JsonWriter out, @NotNull T value, @NotNull Gson gson,
+                              @NotNull TypeToken<TR> requestedType) throws IOException {
         throw new UnsupportedOperationException("Serialization not implemented. " +
                 "requestedType = " + requestedType + " , type = " + type);
     }
@@ -48,7 +48,7 @@ public abstract class AbstractJsonTypeAdapterFactory<T> implements TypeAdapterFa
      * @return the deserialized value; must be compatible to {requestedType}
      */
     @Nullable
-    protected <TR extends T> T read(@Nonnull JsonReader in, @Nonnull Gson gson, @Nonnull TypeToken<TR> requestedType) throws IOException {
+    protected <TR extends T> T read(@NotNull JsonReader in, @NotNull Gson gson, @NotNull TypeToken<TR> requestedType) throws IOException {
         throw new UnsupportedOperationException("Deserialization not implemented. " +
                 "requestedType = " + requestedType + " , type = " + type);
     }
@@ -58,7 +58,7 @@ public abstract class AbstractJsonTypeAdapterFactory<T> implements TypeAdapterFa
      * {@link TypeToken#getRawType()} is assignable to our type, which might be wrong for deserialization
      * and derived classes. Must not return true if TR is not T or a subtype of T.
      */
-    protected <TR> boolean isResponsible(@Nonnull TypeToken<TR> requestedType) {
+    protected <TR> boolean isResponsible(@NotNull TypeToken<TR> requestedType) {
         return type.getRawType().isAssignableFrom(requestedType.getRawType());
     }
 
@@ -68,8 +68,8 @@ public abstract class AbstractJsonTypeAdapterFactory<T> implements TypeAdapterFa
      * @throws IllegalStateException if this wasn't possible due to some bug.
      */
     @SuppressWarnings("unchecked")
-    @Nonnull
-    protected <TR extends T> TR makeInstance(@Nonnull TypeToken<TR> requestedType) throws IllegalStateException {
+    @NotNull
+    protected <TR extends T> TR makeInstance(@NotNull TypeToken<TR> requestedType) throws IllegalStateException {
         try {
             return (TR) type.getRawType().cast(requestedType.getRawType().getConstructor().newInstance());
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {

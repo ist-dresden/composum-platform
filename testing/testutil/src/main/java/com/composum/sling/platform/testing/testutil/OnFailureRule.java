@@ -6,7 +6,7 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.MultipleFailureException;
 import org.junit.runners.model.Statement;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +17,7 @@ import java.util.List;
  */
 public class OnFailureRule implements MethodRule {
 
-    @Nonnull
+    @NotNull
     protected List<ErrorCollectorAlwaysPrintingFailures.TestingRunnableWithException> onFailureActions = new ArrayList<>();
 
     /** Register something that should be done on failure - e.g. printing additional debugging information. */

@@ -15,8 +15,8 @@ import org.apache.sling.api.resource.ValueMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.RepositoryException;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
@@ -39,7 +39,7 @@ public class VersionSelectResourceResolver extends AbstractStagingResourceResolv
 
     private static final Logger LOG = LoggerFactory.getLogger(VersionSelectResourceResolver.class);
 
-    @Nonnull
+    @NotNull
     private final Map<String, String> historyToVersion;
 
     /**
@@ -50,14 +50,14 @@ public class VersionSelectResourceResolver extends AbstractStagingResourceResolv
      * @param versionUuids         the {@value org.apache.jackrabbit.JcrConstants#JCR_BASEVERSION} of one ore more replaced
      *                             {@value org.apache.jackrabbit.JcrConstants#MIX_VERSIONABLE}s
      */
-    public VersionSelectResourceResolver(@Nonnull ResourceResolver underlyingResolver,
-                                         boolean closeResolverOnClose, @Nonnull String... versionUuids) throws RepositoryException {
+    public VersionSelectResourceResolver(@NotNull ResourceResolver underlyingResolver,
+                                         boolean closeResolverOnClose, @NotNull String... versionUuids) throws RepositoryException {
         super(underlyingResolver, closeResolverOnClose);
         this.historyToVersion = makeHistoryToVersionMap(underlyingResolver, versionUuids);
     }
 
-    protected VersionSelectResourceResolver(@Nonnull ResourceResolver underlyingResolver,
-                                            boolean closeResolverOnClose, @Nonnull Map<String, String> historyToVersion) {
+    protected VersionSelectResourceResolver(@NotNull ResourceResolver underlyingResolver,
+                                            boolean closeResolverOnClose, @NotNull Map<String, String> historyToVersion) {
         super(underlyingResolver, closeResolverOnClose);
         this.historyToVersion = historyToVersion;
     }
@@ -65,7 +65,7 @@ public class VersionSelectResourceResolver extends AbstractStagingResourceResolv
     /**
      * Creates a map usable for {@link #VersionSelectResourceResolver(ResourceResolver, boolean, Map)} from a number of versions, retrieving their version history uuids.
      */
-    protected static Map<String, String> makeHistoryToVersionMap(@Nonnull ResourceResolver resolver, @Nonnull String... versions) throws RepositoryException {
+    protected static Map<String, String> makeHistoryToVersionMap(@NotNull ResourceResolver resolver, @NotNull String... versions) throws RepositoryException {
         ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
         for (String version : versions) {
             Validate.notNull(version);
@@ -81,9 +81,9 @@ public class VersionSelectResourceResolver extends AbstractStagingResourceResolv
         return result;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    protected Resource retrieveReleasedResource(@Nullable SlingHttpServletRequest request, @Nonnull String rawPath) {
+    protected Resource retrieveReleasedResource(@Nullable SlingHttpServletRequest request, @NotNull String rawPath) {
         Validate.isTrue(rawPath.startsWith("/"), "Absolute path required, but got %s", rawPath);
         String path = ResourceUtil.normalize(rawPath);
         if (path == null) // weird path like /../.. or explicitly removed
@@ -122,8 +122,8 @@ public class VersionSelectResourceResolver extends AbstractStagingResourceResolv
     }
 
     @Override
-    @Nonnull
-    public Resource resolve(@Nonnull HttpServletRequest request, @Nonnull String rawAbsPath) {
+    @NotNull
+    public Resource resolve(@NotNull HttpServletRequest request, @NotNull String rawAbsPath) {
         String absPath = ResourceUtil.normalize(rawAbsPath);
         if (absPath == null) return new NonExistingResource(this, rawAbsPath);
         Resource resource = request != null ? underlyingResolver.resolve(request, absPath) : underlyingResolver.resolve(absPath);
@@ -161,9 +161,9 @@ public class VersionSelectResourceResolver extends AbstractStagingResourceResolv
         return resource;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Iterator<Resource> listChildren(@Nonnull Resource rawParent) {
+    public Iterator<Resource> listChildren(@NotNull Resource rawParent) {
         final Resource parent = ResourceUtil.unwrap(rawParent);
         StagingResource stagingResource = null;
         if (parent instanceof StagingResource) {
@@ -189,7 +189,7 @@ public class VersionSelectResourceResolver extends AbstractStagingResourceResolv
     }
 
     @Override
-    public @Nonnull
+    public @NotNull
     ResourceResolver clone(Map<String, Object> authenticationInfo) throws LoginException {
         ResourceResolver resolver = underlyingResolver.clone(authenticationInfo);
         return new VersionSelectResourceResolver(underlyingResolver, closeResolverOnClose, historyToVersion);

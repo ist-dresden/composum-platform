@@ -6,8 +6,8 @@ import com.google.gson.stream.JsonWriter;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.RepositoryException;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -73,12 +73,12 @@ public class JcrTestUtils {
      * Uses the varargs mechanism to easily construct an array - shorter than e.g. new String[]{objects...}.
      */
     @SafeVarargs
-    @Nonnull
-    public static <T> T[] array(@Nonnull T... objects) {
+    @NotNull
+    public static <T> T[] array(@NotNull T... objects) {
         return objects;
     }
 
-    @Nonnull
+    @NotNull
     public static List<Resource> ancestorsAndSelf(@Nullable Resource r) {
         List<Resource> list = new ArrayList<>();
         while (r != null) {

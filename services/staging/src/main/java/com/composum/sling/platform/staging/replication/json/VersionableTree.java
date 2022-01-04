@@ -14,8 +14,8 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -62,7 +62,7 @@ public class VersionableTree {
     /**
      * A list of VersionableInfo for which we weren't able to find the resource - deleted or moved away.
      */
-    @Nonnull
+    @NotNull
     public List<VersionableInfo> getDeleted() {
         if (deleted == null) {
             throw new IllegalStateException("Object was not deserialized.");
@@ -73,7 +73,7 @@ public class VersionableTree {
     /**
      * A list of paths for which we weren't able to find the resource - deleted or moved away.
      */
-    @Nonnull
+    @NotNull
     public List<String> getDeletedPaths() {
         return getDeleted().stream()
                 .map(VersionableInfo::getPath)
@@ -84,7 +84,7 @@ public class VersionableTree {
      * A list of VersionableInfo for which the resource was changed - it is there but the
      * {@link com.composum.sling.platform.staging.StagingConstants#PROP_REPLICATED_VERSION} is different.
      */
-    @Nonnull
+    @NotNull
     public List<VersionableInfo> getChanged() {
         if (changed == null) {
             throw new IllegalStateException("Object was not deserialized.");
@@ -96,7 +96,7 @@ public class VersionableTree {
      * A list of paths for which the resource was changed - it is there but the
      * {@link com.composum.sling.platform.staging.StagingConstants#PROP_REPLICATED_VERSION} is different.
      */
-    @Nonnull
+    @NotNull
     public List<String> getChangedPaths() {
         return getChanged().stream()
                 .map(VersionableInfo::getPath)
@@ -147,7 +147,7 @@ public class VersionableTree {
     /**
      * Collects the {@link VersionableInfo#of(Resource, Function)} of the search tree roots set with {@link #setSearchtreeRoots(Collection)}.
      */
-    @Nonnull
+    @NotNull
     public Stream<VersionableInfo> versionableInfos(@Nullable Function<String, String> pathMapping) {
         Stream<VersionableInfo> versionableInfoStream = searchTreeRoots.stream().filter(Objects::nonNull)
                 .flatMap((root) -> SlingResourceUtil.descendantsStream(root, VersionableTree::isVersionableLeaf))
@@ -181,7 +181,7 @@ public class VersionableTree {
         }
 
         @Override
-        protected <TR> void write(@Nonnull JsonWriter out, @Nonnull VersionableTree value, @Nonnull Gson gson, @Nonnull TypeToken<TR> requestedType) throws IOException {
+        protected <TR> void write(@NotNull JsonWriter out, @NotNull VersionableTree value, @NotNull Gson gson, @NotNull TypeToken<TR> requestedType) throws IOException {
             out.beginArray();
             value.versionableInfos(pathMapping)
                     .forEach((info) -> gson.toJson(info, VersionableInfo.class, out));
@@ -193,7 +193,7 @@ public class VersionableTree {
     public static class VersionableTreeDeserializer extends AbstractJsonTypeAdapterFactory<VersionableTree> {
         @Nullable
         protected final Function<String, String> pathMapping;
-        @Nonnull
+        @NotNull
         protected final ResourceResolver resolver;
         @Nullable
         protected final String checkSubpath;
@@ -206,7 +206,7 @@ public class VersionableTree {
          *                     this path or a subpath.
          * @param pathMapping  if given, the path is passed through this mapping
          */
-        public VersionableTreeDeserializer(@Nullable Function<String, String> pathMapping, @Nonnull ResourceResolver resolver,
+        public VersionableTreeDeserializer(@Nullable Function<String, String> pathMapping, @NotNull ResourceResolver resolver,
                                            @Nullable String checkSubpath) {
             super(TypeToken.get(VersionableTree.class));
             this.pathMapping = pathMapping;
@@ -216,8 +216,8 @@ public class VersionableTree {
 
         @Nullable
         @Override
-        protected <TR extends VersionableTree> VersionableTree read(@Nonnull JsonReader in, @Nonnull Gson gson,
-                                                                    @Nonnull TypeToken<TR> requestedType) throws IOException {
+        protected <TR extends VersionableTree> VersionableTree read(@NotNull JsonReader in, @NotNull Gson gson,
+                                                                    @NotNull TypeToken<TR> requestedType) throws IOException {
             VersionableTree result = makeInstance(requestedType);
             try (
                     JsonArrayAsIterable<VersionableInfo> iterable =

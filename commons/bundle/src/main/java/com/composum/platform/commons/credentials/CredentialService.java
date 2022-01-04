@@ -4,8 +4,8 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.sling.api.resource.ResourceResolver;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.RepositoryException;
 import javax.mail.Authenticator;
 import javax.mail.MessagingException;
@@ -42,13 +42,13 @@ public interface CredentialService {
      * @throws IllegalArgumentException if the credentials do not exist or are of the wrong type
      * @throws IllegalStateException    if the service is not enabled
      */
-    void initHttpContextCredentials(@Nonnull HttpClientContext context, @Nonnull AuthScope authScope,
-                                    @Nonnull String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException, IllegalArgumentException, IllegalStateException;
+    void initHttpContextCredentials(@NotNull HttpClientContext context, @NotNull AuthScope authScope,
+                                    @NotNull String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver) throws RepositoryException, IllegalArgumentException, IllegalStateException;
 
     /**
      * Encodes a password with the master password.
      */
-    String encodePassword(@Nonnull String password);
+    String encodePassword(@NotNull String password);
 
     boolean isEnabled();
 
@@ -65,7 +65,7 @@ public interface CredentialService {
      * @throws IllegalArgumentException if the credentials do not exist or are of the wrong type
      * @throws IllegalStateException    if the service is not enabled
      */
-    String sendMail(@Nonnull MimeMessage message, @Nonnull String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver)
+    String sendMail(@NotNull MimeMessage message, @NotNull String credentialIdOrToken, @Nullable ResourceResolver aclCheckResolver)
             throws RepositoryException, IOException, MessagingException;
     /**
      * Returns a token that can be used in place of a credentialId to access a credential for some time.
@@ -77,6 +77,6 @@ public interface CredentialService {
      * @throws IllegalArgumentException if the credentials do not exist or are of the wrong type
      * @throws IllegalStateException    if the service is not enabled
      */
-    String getAccessToken(@Nonnull String credentialId, @Nullable ResourceResolver aclCheckResolver, @Nonnull String type) throws RepositoryException, IllegalArgumentException, IllegalStateException;
+    String getAccessToken(@NotNull String credentialId, @Nullable ResourceResolver aclCheckResolver, @NotNull String type) throws RepositoryException, IllegalArgumentException, IllegalStateException;
 
 }

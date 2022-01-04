@@ -4,8 +4,8 @@ import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 import static com.composum.sling.core.util.SlingResourceUtil.isSameOrDescendant;
@@ -16,7 +16,7 @@ import static org.apache.commons.lang3.StringUtils.isNotBlank;
  */
 public final class ReleaseChangeEvent {
 
-    @Nonnull
+    @NotNull
     private final Release release;
     private final Set<String> newResources = new LinkedHashSet<>();
     private final Set<String> updatedResources = new LinkedHashSet<>();
@@ -28,7 +28,7 @@ public final class ReleaseChangeEvent {
     private boolean forceCheck;
     private boolean finalized;
 
-    public ReleaseChangeEvent(@Nonnull Release release) {
+    public ReleaseChangeEvent(@NotNull Release release) {
         this.release = release;
     }
 
@@ -39,7 +39,7 @@ public final class ReleaseChangeEvent {
     /**
      * Gives an activation event that says "update to release root" - that is, everything has to be checked.
      */
-    public static ReleaseChangeEvent fullUpdate(@Nonnull Release release) {
+    public static ReleaseChangeEvent fullUpdate(@NotNull Release release) {
         ReleaseChangeEvent res = new ReleaseChangeEvent(release);
         res.updatedResources.add(release.getReleaseRoot().getPath());
         return res;
@@ -48,7 +48,7 @@ public final class ReleaseChangeEvent {
     /**
      * The release in which the items have been activated or deactivated.
      */
-    @Nonnull
+    @NotNull
     public Release release() {
         return release;
     }
@@ -58,7 +58,7 @@ public final class ReleaseChangeEvent {
      * This excludes resources that are in {@link #movedResources()} - you can use {@link #newOrMovedResources()} for that.
      * For all resources we have that {@link Release#appliesToPath(String)}.
      */
-    @Nonnull
+    @NotNull
     public Set<String> newResources() {
         return Collections.unmodifiableSet(newResources);
     }
@@ -78,7 +78,7 @@ public final class ReleaseChangeEvent {
      * of a whole site should be done, an {@link ReleaseChangeEvent} can be sent with an update for the site root.
      * For all resources we have that {@link Release#appliesToPath(String)}.
      */
-    @Nonnull
+    @NotNull
     public Set<String> updatedResources() {
         return Collections.unmodifiableSet(updatedResources);
     }
@@ -88,7 +88,7 @@ public final class ReleaseChangeEvent {
      * This excludes resources that are in {@link #movedResources()} - you can use {@link #newOrMovedResources()} for that.
      * For all resources we have that {@link Release#appliesToPath(String)}.
      */
-    @Nonnull
+    @NotNull
     public Set<String> removedResources() {
         return Collections.unmodifiableSet(removedResources);
     }

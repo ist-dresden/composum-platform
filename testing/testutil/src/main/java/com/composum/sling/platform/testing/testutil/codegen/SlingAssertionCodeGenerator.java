@@ -5,19 +5,19 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.hamcrest.Matchers;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /** Extends the {@link AssertionCodeGenerator} with some Sling specific stuff. */
 public class SlingAssertionCodeGenerator extends AssertionCodeGenerator {
 
-    public SlingAssertionCodeGenerator(@Nonnull String variableName, @Nullable Object object) {
+    public SlingAssertionCodeGenerator(@NotNull String variableName, @Nullable Object object) {
         super(variableName, object);
     }
 
     @Override
-    protected void createMatcherHook(@Nonnull Object value) {
+    protected void createMatcherHook(@NotNull Object value) {
         if (value instanceof Resource) {
             assertionBuf.append("hasResourcePath(");
             appendQuotedString(((Resource) value).getPath());

@@ -12,7 +12,7 @@ import org.apache.sling.testing.mock.sling.junit.SlingContext;
 import org.junit.Rule;
 import org.junit.Test;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.jcr.Session;
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
@@ -79,7 +79,7 @@ public class NodeAttributeComparisonInfoTest {
 
     }
 
-    @Nonnull
+    @NotNull
     protected Map<String, Object> makeProperties(Calendar calendar) {
         Map<String, Object> res = new LinkedHashMap<>();
         res.put(PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED);

@@ -4,7 +4,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -21,7 +21,7 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
 
     private static final Logger LOG = LoggerFactory.getLogger(ScheduledExecutorServiceFromExecutorService.class);
 
-    @Nonnull
+    @NotNull
     protected final ExecutorService executorService;
 
     /**
@@ -36,7 +36,7 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
      *
      * @param executorService the underlying {@link ExecutorService}; will be shutdown if this is shutdown, too.
      */
-    public ScheduledExecutorServiceFromExecutorService(@Nonnull ExecutorService executorService) {
+    public ScheduledExecutorServiceFromExecutorService(@NotNull ExecutorService executorService) {
         this.executorService = executorService;
         executorService.submit(this::processQueue);
     }
@@ -91,7 +91,7 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
      * Stores the necessary data for one (scheduled) task to be executed.
      */
     protected static class DelayedTask<V> implements Runnable, Comparable<DelayedTask<V>> {
-        @Nonnull
+        @NotNull
         protected final Callable<V> callable;
         /**
          * The future that saves the data from the callable, if appropriate.
@@ -121,12 +121,12 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
          */
         protected ScheduledFuture<V> scheduledFuture = new AbstractDelegatedScheduledFuture<>(future) {
             @Override
-            public long getDelay(@Nonnull TimeUnit unit) {
+            public long getDelay(@NotNull TimeUnit unit) {
                 return TimeUnit.MILLISECONDS.convert(System.currentTimeMillis() - nextExecutionTime.get(), unit);
             }
         };
 
-        public DelayedTask(@Nonnull Callable<V> callable, boolean repeated) {
+        public DelayedTask(@NotNull Callable<V> callable, boolean repeated) {
             this.callable = callable;
             this.repeated = repeated;
         }
@@ -147,7 +147,7 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
         }
 
         @Override
-        public int compareTo(@Nonnull DelayedTask<V> o) {
+        public int compareTo(@NotNull DelayedTask<V> o) {
             return Long.compare(nextExecutionTime.get(), o.nextExecutionTime.get());
         }
 
@@ -168,9 +168,9 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
         }
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public ScheduledFuture<?> schedule(@Nonnull Runnable command, long delay, @Nonnull TimeUnit unit) {
+    public ScheduledFuture<?> schedule(@NotNull Runnable command, long delay, @NotNull TimeUnit unit) {
         Callable<Void> callable = () -> {
             command.run();
             return null;
@@ -178,15 +178,15 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
         return schedule(callable, delay, unit);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public <V> ScheduledFuture<V> schedule(@Nonnull Callable<V> callable, long delay, @Nonnull TimeUnit unit) {
+    public <V> ScheduledFuture<V> schedule(@NotNull Callable<V> callable, long delay, @NotNull TimeUnit unit) {
         DelayedTask<V> task = new DelayedTask<>(callable, false);
         task.nextExecutionTime.set(System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(delay, unit));
         return queue(task);
     }
 
-    @Nonnull
+    @NotNull
     protected <V> ScheduledFuture<V> queue(DelayedTask<V> task) {
         if (task.isLive()) {
             synchronized (queueLockObject) {
@@ -197,9 +197,9 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
         return task.scheduledFuture;
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public ScheduledFuture<?> scheduleAtFixedRate(@Nonnull Runnable command, long initialDelay, long period, @Nonnull TimeUnit unit) {
+    public ScheduledFuture<?> scheduleAtFixedRate(@NotNull Runnable command, long initialDelay, long period, @NotNull TimeUnit unit) {
         DelayedTask<Void> task = new DelayedTask<>(() -> {
             command.run();
             return null;
@@ -215,9 +215,9 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
         return queue(task);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public ScheduledFuture<?> scheduleWithFixedDelay(@Nonnull Runnable command, long initialDelay, long delay, @Nonnull TimeUnit unit) {
+    public ScheduledFuture<?> scheduleWithFixedDelay(@NotNull Runnable command, long initialDelay, long delay, @NotNull TimeUnit unit) {
         DelayedTask<Void> task = new DelayedTask<>(() -> {
             command.run();
             return null;
@@ -240,7 +240,7 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
         executorService.shutdown();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public List<Runnable> shutdownNow() {
         return executorService.shutdownNow();
@@ -257,53 +257,53 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
     }
 
     @Override
-    public boolean awaitTermination(long timeout, @Nonnull TimeUnit unit) throws InterruptedException {
+    public boolean awaitTermination(long timeout, @NotNull TimeUnit unit) throws InterruptedException {
         return executorService.awaitTermination(timeout, unit);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public <T> Future<T> submit(@Nonnull Callable<T> task) {
+    public <T> Future<T> submit(@NotNull Callable<T> task) {
         return executorService.submit(task);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public <T> Future<T> submit(@Nonnull Runnable task, T result) {
+    public <T> Future<T> submit(@NotNull Runnable task, T result) {
         return executorService.submit(task, result);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public Future<?> submit(@Nonnull Runnable task) {
+    public Future<?> submit(@NotNull Runnable task) {
         return executorService.submit(task);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public <T> List<Future<T>> invokeAll(@Nonnull Collection<? extends Callable<T>> tasks) throws InterruptedException {
+    public <T> List<Future<T>> invokeAll(@NotNull Collection<? extends Callable<T>> tasks) throws InterruptedException {
         return executorService.invokeAll(tasks);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public <T> List<Future<T>> invokeAll(@Nonnull Collection<? extends Callable<T>> tasks, long timeout, @Nonnull TimeUnit unit) throws InterruptedException {
+    public <T> List<Future<T>> invokeAll(@NotNull Collection<? extends Callable<T>> tasks, long timeout, @NotNull TimeUnit unit) throws InterruptedException {
         return executorService.invokeAll(tasks, timeout, unit);
     }
 
-    @Nonnull
+    @NotNull
     @Override
-    public <T> T invokeAny(@Nonnull Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
+    public <T> T invokeAny(@NotNull Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
         return executorService.invokeAny(tasks);
     }
 
     @Override
-    public <T> T invokeAny(@Nonnull Collection<? extends Callable<T>> tasks, long timeout, @Nonnull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public <T> T invokeAny(@NotNull Collection<? extends Callable<T>> tasks, long timeout, @NotNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return executorService.invokeAny(tasks, timeout, unit);
     }
 
     @Override
-    public void execute(@Nonnull Runnable command) {
+    public void execute(@NotNull Runnable command) {
         executorService.execute(command);
     }
 
@@ -340,12 +340,12 @@ public class ScheduledExecutorServiceFromExecutorService implements ScheduledExe
         }
 
         @Override
-        public V get(long timeout, @Nonnull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+        public V get(long timeout, @NotNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
             return future.get(timeout, unit);
         }
 
         @Override
-        public int compareTo(@Nonnull Delayed o) {
+        public int compareTo(@NotNull Delayed o) {
             return Long.compare(getDelay(TimeUnit.MILLISECONDS), o.getDelay(TimeUnit.MILLISECONDS));
         }
 

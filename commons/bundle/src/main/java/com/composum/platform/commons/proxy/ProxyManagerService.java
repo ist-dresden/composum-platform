@@ -3,8 +3,8 @@ package com.composum.platform.commons.proxy;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.sling.api.resource.ResourceResolver;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.RepositoryException;
 import java.util.List;
 
@@ -16,10 +16,10 @@ public interface ProxyManagerService {
 
     /** Returns the {@link ProxyService} with the given key as {@link ProxyService#getProxyKey()}. */
     @Nullable
-    ProxyService findProxyService(@Nonnull String proxyKey);
+    ProxyService findProxyService(@NotNull String proxyKey);
 
     /** Returns a list of the {@link ProxyService#getProxyKey()}s of all configured proxies. */
-    @Nonnull
+    @NotNull
     List<String> getProxyKeys();
 
     /**
@@ -31,7 +31,7 @@ public interface ProxyManagerService {
      * @throws IllegalArgumentException if there was no proxy with the given proxyKey or there was a problem with it's
      *                                  credential configuration
      */
-    void initHttpContext(@Nonnull String proxyKey, @Nonnull HttpClientContext context,
+    void initHttpContext(@NotNull String proxyKey, @NotNull HttpClientContext context,
                          @Nullable ResourceResolver resolver) throws IllegalArgumentException, RepositoryException;
 
 }

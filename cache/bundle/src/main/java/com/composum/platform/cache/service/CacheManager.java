@@ -2,8 +2,8 @@ package com.composum.platform.cache.service;
 
 import org.ehcache.Cache;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.Serializable;
 
 /**
@@ -15,16 +15,16 @@ public interface CacheManager {
      * get a registered cache service; services are collected; returns 'null' if service not yet registered
      */
     @Nullable
-    <T extends Serializable> CacheService<T> getCache(@Nonnull String name, @Nonnull Class<T> type);
+    <T extends Serializable> CacheService<T> getCache(@NotNull String name, @NotNull Class<T> type);
 
     /**
      * use (if available) or set up the cache instance
      */
-    @Nonnull
-    Cache useCache(@Nonnull String name, @Nonnull org.ehcache.config.CacheConfiguration config);
+    @NotNull
+    Cache useCache(@NotNull String name, @NotNull org.ehcache.config.CacheConfiguration config);
 
     /**
      * drop the cache instance
      */
-    void removeCache(@Nonnull String name);
+    void removeCache(@NotNull String name);
 }

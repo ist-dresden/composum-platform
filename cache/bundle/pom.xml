@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.composum.platform</groupId>
         <artifactId>composum-platform-cache</artifactId>
-        <version>1.3.2-SNAPSHOT</version>
+        <version>1.4.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>composum-platform-cache-bundle</artifactId>
@@ -42,14 +42,13 @@
                             com.composum.platform.cache.*
                         </Export-Package>
                         <Import-Package>
-                            com.composum.sling.core.*;version="[2.2,4)",
-                            com.composum.sling.nodes.*;version="[2.2,4)",
-                            com.composum.sling.cpnl.*;version="[2.2,4)",
+                            com.composum.sling.core.*;version="[3,4)",
+                            com.composum.sling.nodes.*;version="[3,4)",
+                            com.composum.sling.cpnl.*;version="[3,4)",
                             org.apache.sling.api.request.*;version="[2.4.1,3)",
                             org.apache.sling.api.resource.*;version="[2.8.0,3)",
                             org.apache.sling.api.servlets.*;version="[2.1.1,3)",
                             org.apache.sling.api.*;version="[2.2.2,3)",
-                            javax.annotation.*;version="[0,4)",
                             *
                         </Import-Package>
                         <Embed-Dependency>
@@ -150,8 +149,8 @@
 
         <!-- Java Annotations -->
         <dependency>
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>jsr305</artifactId>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
         </dependency>
 
         <!-- JUnit -->

@@ -3,7 +3,7 @@ package com.composum.platform.commons.proxy;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 
 /**
@@ -14,7 +14,7 @@ public interface ProxyRequestService {
     /**
      * return the key of the service
      */
-    @Nonnull
+    @NotNull
     String getName();
 
     /**
@@ -25,8 +25,8 @@ public interface ProxyRequestService {
      * @param targetUrl the url of the request which is addressing the target
      * @return 'true' if the request is supported by the service, allowed for the user and handle by the service
      */
-    boolean doProxy(@Nonnull SlingHttpServletRequest request,
-                    @Nonnull SlingHttpServletResponse response,
-                    @Nonnull String targetUrl)
+    boolean doProxy(@NotNull SlingHttpServletRequest request,
+                    @NotNull SlingHttpServletResponse response,
+                    @NotNull String targetUrl)
             throws IOException;
 }

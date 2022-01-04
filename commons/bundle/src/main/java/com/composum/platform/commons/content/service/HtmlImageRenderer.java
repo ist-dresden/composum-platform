@@ -2,8 +2,8 @@ package com.composum.platform.commons.content.service;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.Reader;
@@ -13,10 +13,10 @@ import java.io.Reader;
  */
 public interface HtmlImageRenderer {
 
-    @Nonnull
-    BufferedImage htmlToImage(@Nonnull SlingHttpServletRequest contextRequest,
-                              @Nonnull String contextUrl, @Nonnull Reader htmlSnippet,
+    @NotNull
+    BufferedImage htmlToImage(@NotNull SlingHttpServletRequest contextRequest,
+                              @NotNull String contextUrl, @NotNull Reader htmlSnippet,
                               int width, @Nullable final Integer height,
-                              @Nullable final Double scale, @Nonnull Color background)
+                              @Nullable final Double scale, @NotNull Color background)
             throws Exception;
 }

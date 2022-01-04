@@ -2,7 +2,7 @@ package com.composum.sling.platform.staging.query;
 
 import org.apache.sling.api.resource.ResourceResolver;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.jcr.Session;
 
 /**
@@ -12,11 +12,11 @@ import javax.jcr.Session;
 public interface QueryBuilder {
 
     /** Creates a new {@link Query}. */
-    @Nonnull
+    @NotNull
     Query createQuery();
 
     /** Creates a new {@link Query}. */
-    @Nonnull
+    @NotNull
     static Query makeQuery(ResourceResolver resourceResolver) {
         QueryBuilder builder = resourceResolver.adaptTo(QueryBuilder.class);
         if (builder == null) // can't normally happen

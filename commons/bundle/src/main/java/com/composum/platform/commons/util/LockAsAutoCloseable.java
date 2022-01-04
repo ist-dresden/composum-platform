@@ -1,6 +1,6 @@
 package com.composum.platform.commons.util;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 
@@ -24,8 +24,8 @@ public class LockAsAutoCloseable implements AutoCloseable {
      * <code> try (LockAsAutoCloseable locked = LockAsAutoCloseable.lock(lock)) { ... } </code> .
      * Always use in try-with-resource statement.
      */
-    @Nonnull
-    public static LockAsAutoCloseable lock(@Nonnull Lock lock) {
+    @NotNull
+    public static LockAsAutoCloseable lock(@NotNull Lock lock) {
         return new LockAsAutoCloseable(lock);
     }
 

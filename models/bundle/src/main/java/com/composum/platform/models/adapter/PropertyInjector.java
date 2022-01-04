@@ -18,12 +18,12 @@ import org.apache.sling.models.spi.ValuePreparer;
 import org.apache.sling.models.spi.injectorspecific.AbstractInjectAnnotationProcessor2;
 import org.apache.sling.models.spi.injectorspecific.InjectAnnotationProcessor2;
 import org.apache.sling.models.spi.injectorspecific.StaticInjectAnnotationProcessorFactory;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Type;
 import java.util.HashMap;
@@ -53,14 +53,14 @@ public class PropertyInjector implements Injector, StaticInjectAnnotationProcess
     private static final Logger LOG = getLogger(PropertyInjector.class);
 
     @Override
-    public @Nonnull
+    public @NotNull
     String getName() {
         return Property.INJECTORNAME;
     }
 
     @Override
-    public Object getValue(@Nonnull Object adaptable, String name, @Nonnull Type type,
-                           @Nonnull AnnotatedElement element, @Nonnull DisposalCallbackRegistry callbackRegistry) {
+    public Object getValue(@NotNull Object adaptable, String name, @NotNull Type type,
+                           @NotNull AnnotatedElement element, @NotNull DisposalCallbackRegistry callbackRegistry) {
 
         PropertyJoinedWithDefaultsWrapper annotation = PropertyJoinedWithDefaultsWrapper.getWithDefaults(element);
         if (null == annotation) return null;
@@ -122,7 +122,7 @@ public class PropertyInjector implements Injector, StaticInjectAnnotationProcess
             return res;
         }
 
-        public ResourceHandle determineResource(@Nonnull Class<? extends DetermineResourceStategy> strategy) {
+        public ResourceHandle determineResource(@NotNull Class<? extends DetermineResourceStategy> strategy) {
             ResourceHandle res = determinedResources.get(strategy);
             if (null == res) {
                 if (null == strategy || DetermineResourceStategy.OriginalResourceStrategy.class == strategy) {

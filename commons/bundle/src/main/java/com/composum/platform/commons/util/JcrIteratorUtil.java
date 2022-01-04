@@ -1,7 +1,7 @@
 package com.composum.platform.commons.util;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.query.Row;
@@ -17,7 +17,7 @@ import java.util.stream.StreamSupport;
 public class JcrIteratorUtil {
 
     /** Turns a VersionIterator into a onetime iterable usable with for-each loops. */
-    @Nonnull
+    @NotNull
     public static final Iterable<Version> asIterable(@Nullable VersionIterator iterator) {
         if (iterator == null) return Collections.emptyList();
         return new Iterable<Version>() {
@@ -29,7 +29,7 @@ public class JcrIteratorUtil {
     }
 
     /** Turns a NodeIterator into a onetime iterable usable with for-each loops. */
-    @Nonnull
+    @NotNull
     public static final Iterable<Node> asIterable(@Nullable NodeIterator iterator) {
         if (iterator == null) return Collections.emptyList();
         return new Iterable<Node>() {
@@ -41,7 +41,7 @@ public class JcrIteratorUtil {
     }
 
     /** Turns a NodeIterator into a onetime iterable usable with for-each loops. */
-    @Nonnull
+    @NotNull
     public static final Iterable<Row> asIterable(@Nullable RowIterator iterator) {
         if (iterator == null) return Collections.emptyList();
         return new Iterable<Row>() {

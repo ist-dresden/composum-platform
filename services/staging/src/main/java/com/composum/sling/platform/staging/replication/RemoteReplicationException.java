@@ -5,8 +5,8 @@ import com.composum.sling.core.servlet.Status;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.StatusLine;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A {@link ReplicationException} that occurred on a remote system - e.g. the publisher host.
@@ -20,7 +20,7 @@ public class RemoteReplicationException extends ReplicationException {
     @Nullable
     protected String reasonPhrase;
 
-    public RemoteReplicationException(@Nonnull Message message, @Nullable Exception e,
+    public RemoteReplicationException(@NotNull Message message, @Nullable Exception e,
                                       @Nullable Status status, @Nullable StatusLine statusLine
     ) {
         super(message, e);

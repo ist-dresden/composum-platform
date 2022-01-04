@@ -2,8 +2,8 @@ package com.composum.sling.platform.staging;
 
 import org.apache.sling.api.resource.Resource;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.RepositoryException;
 import java.util.List;
 
@@ -16,14 +16,14 @@ public interface Release {
      * The UUID of the top node with the release data. You can store this as property type {@link javax.jcr.PropertyType#REFERENCE}
      * somewhere to make sure a published release is not deleted.
      */
-    @Nonnull
+    @NotNull
     String getUuid();
 
     /**
      * Release number (JCR compatible) of the release: this is automatically created with {@link ReleaseNumberCreator}
      * and will be something like r4 or r2.4.5 . The current release is called {@value StagingConstants#CURRENT_RELEASE}.
      */
-    @Nonnull
+    @NotNull
     String getNumber();
 
     /**
@@ -32,7 +32,7 @@ public interface Release {
      * release where it's called {@value StagingConstants#RELEASE_LABEL_PREFIX}current,
      * since a label must not contain a colon.
      */
-    @Nonnull
+    @NotNull
     default String getReleaseLabel() {
         return StagingConstants.RELEASE_LABEL_PREFIX + getNumber();
     }
@@ -41,13 +41,13 @@ public interface Release {
      * Path to internal release node. This is an unique identifier for the release, but use sparingly since this
      * is implementation dependent.
      */
-    @Nonnull
+    @NotNull
     String getPath();
 
     /**
      * The resource that is the top of the working tree - a {@value StagingConstants#TYPE_MIX_RELEASE_ROOT}.
      */
-    @Nonnull
+    @NotNull
     Resource getReleaseRoot();
 
     /**
@@ -55,7 +55,7 @@ public interface Release {
      * and can be freely used to store additional metadata. If you want to change it, just retrieve the Release object
      * and write on the resource returned here - the {@link StagingReleaseManager} does not care about its contents.
      */
-    @Nonnull
+    @NotNull
     Resource getMetaDataNode();
 
     /**
@@ -63,13 +63,13 @@ public interface Release {
      * being the same. (Unless for changes not using the {@link StagingReleaseManager}, which you shouldn't do,
      * of course. At least not without calling {@link #bumpReleaseChangeNumber(Release)}, too.)
      */
-    @Nonnull
+    @NotNull
     String getChangeNumber();
 
     /**
      * The marks that point to this release. Each mark can only point to exactly one release.
      */
-    @Nonnull
+    @NotNull
     List<String> getMarks();
 
     /**
@@ -98,7 +98,7 @@ public interface Release {
      * If it does not belong to the release at all, an {@link IllegalArgumentException} is thrown. For an empty
      * path, the release root is returned.
      */
-    @Nonnull
+    @NotNull
     String absolutePath(@Nullable String path) throws IllegalArgumentException;
 
     /**
