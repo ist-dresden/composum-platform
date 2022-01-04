@@ -9,8 +9,8 @@ import com.composum.sling.platform.staging.replication.json.VersionableInfo;
 import com.composum.sling.platform.staging.replication.json.VersionableTree;
 import org.apache.sling.api.resource.ResourceResolver;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.List;
@@ -33,30 +33,30 @@ public interface PublicationReceiverBackend {
     /**
      * Prepares the temporary directory for an update operation. Take care to remove it later!
      */
-    UpdateInfo startUpdate(@Nonnull ReplicationPaths replicationPaths)
+    UpdateInfo startUpdate(@NotNull ReplicationPaths replicationPaths)
             throws ReplicationException;
 
     /**
      * Uploads one package into the temporary directory, taking note of the root path for later moving to content.
      */
-    void pathUpload(@Nullable String updateId, @Nonnull String packageRootPath, @Nonnull InputStream inputStream)
+    void pathUpload(@Nullable String updateId, @NotNull String packageRootPath, @NotNull InputStream inputStream)
             throws ReplicationException;
 
     /**
      * Moves the content to the content directory and deletes the given paths, thus finalizing the update. The
      * temporary directory is then deleted.
      */
-    void commit(@Nonnull String updateId, @Nonnull Set<String> deletedPaths,
-                @Nonnull Iterable<ChildrenOrderInfo> childOrderings, String newReleaseChangeId)
+    void commit(@NotNull String updateId, @NotNull Set<String> deletedPaths,
+                @NotNull Iterable<ChildrenOrderInfo> childOrderings, String newReleaseChangeId)
             throws ReplicationException;
 
     /**
      * Retrieves a list of {@link VersionableInfo} from the {jsonInputStream}, checks these against the content and
      * returns the paths where differences in the version number exist / paths that do not exist.
      */
-    @Nonnull
+    @NotNull
     List<String> compareContent(@Nullable ReplicationPaths replicationPaths, @Nullable String updateId,
-                                @Nonnull Stream<VersionableInfo> versionableInfos)
+                                @NotNull Stream<VersionableInfo> versionableInfos)
             throws ReplicationException;
 
     /**
@@ -69,24 +69,24 @@ public interface PublicationReceiverBackend {
      * Gets general info about a release without starting an update.
      */
     @Nullable
-    UpdateInfo releaseInfo(@Nonnull ReplicationPaths replicationPaths) throws ReplicationException;
+    UpdateInfo releaseInfo(@NotNull ReplicationPaths replicationPaths) throws ReplicationException;
 
     /**
      * Reads childorderings as {@link ChildrenOrderInfo} and compares these to whatever we have in our repository,
      * and returns the paths where it's different.
      */
-    @Nonnull
-    List<String> compareChildorderings(@Nonnull ReplicationPaths replicationPaths,
-                                       @Nonnull Iterable<ChildrenOrderInfo> childOrderings)
+    @NotNull
+    List<String> compareChildorderings(@NotNull ReplicationPaths replicationPaths,
+                                       @NotNull Iterable<ChildrenOrderInfo> childOrderings)
             throws ReplicationException;
 
     /**
      * Reads node attribute information {@link NodeAttributeComparisonInfo}  and compares these to whatever we have
      * in our repository, and returns the paths where it's different.
      */
-    @Nonnull
-    List<String> compareAttributes(@Nonnull ReplicationPaths replicationPaths,
-                                   @Nonnull Iterable<NodeAttributeComparisonInfo> attributeInfos) throws ReplicationException;
+    @NotNull
+    List<String> compareAttributes(@NotNull ReplicationPaths replicationPaths,
+                                   @NotNull Iterable<NodeAttributeComparisonInfo> attributeInfos) throws ReplicationException;
 
     /**
      * Generates a {@link VersionableTree} from which one can retrieve the {@link VersionableInfo}s below a set of paths.
@@ -94,6 +94,6 @@ public interface PublicationReceiverBackend {
      * @param resolver the resolver used; it's necessary to route that in since it canot be closed within the method since
      *                 VersionableTree contains resources from this resolver
      */
-    VersionableTree contentStatus(@Nonnull ReplicationPaths replicationPaths, @Nonnull Collection<String> paths, @Nonnull ResourceResolver resolver);
+    VersionableTree contentStatus(@NotNull ReplicationPaths replicationPaths, @NotNull Collection<String> paths, @NotNull ResourceResolver resolver);
 
 }

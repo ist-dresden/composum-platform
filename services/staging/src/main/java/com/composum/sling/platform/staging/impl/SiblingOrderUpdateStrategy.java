@@ -9,8 +9,8 @@ import org.apache.sling.api.resource.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import java.util.*;
@@ -113,7 +113,7 @@ public class SiblingOrderUpdateStrategy {
      * @param originalDestinationOrdering the original destination ordering, for logging purposes
      * @throws RepositoryException if there are problems to move stuff
      */
-    public void adaptSiblingOrder(ResourceHandle destinationNode, @Nonnull List<String> ordering, @Nullable List<String> originalDestinationOrdering) throws RepositoryException {
+    public void adaptSiblingOrder(ResourceHandle destinationNode, @NotNull List<String> ordering, @Nullable List<String> originalDestinationOrdering) throws RepositoryException {
         if (!ordering.equals(originalDestinationOrdering)) {
             LOG.info("Adjusting order of {} from {} to {}", destinationNode.getPath(), originalDestinationOrdering, ordering);
             Node parent = destinationNode.getParent().adaptTo(Node.class);
@@ -168,17 +168,17 @@ public class SiblingOrderUpdateStrategy {
 
     protected static class Orderer {
 
-        @Nonnull
+        @NotNull
         final List<String> sourceOrdering;
-        @Nonnull
+        @NotNull
         final List<String> originalDestinationOrdering;
-        @Nonnull
+        @NotNull
         final String node;
-        @Nonnull
+        @NotNull
         List<String> ordering;
         Result result;
 
-        public Orderer(@Nonnull List<String> sourceOrdering, @Nonnull List<String> destinationOrdering, @Nonnull String node) {
+        public Orderer(@NotNull List<String> sourceOrdering, @NotNull List<String> destinationOrdering, @NotNull String node) {
             if (!sourceOrdering.contains(node) || !destinationOrdering.contains(node))
                 throw new IllegalArgumentException(node + " not in " + sourceOrdering + " or " + destinationOrdering);
             this.sourceOrdering = Collections.unmodifiableList(sourceOrdering);

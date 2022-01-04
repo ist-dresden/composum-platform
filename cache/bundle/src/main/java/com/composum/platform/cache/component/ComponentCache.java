@@ -4,8 +4,8 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import java.io.Serializable;
@@ -103,7 +103,7 @@ public interface ComponentCache {
     /**
      * makes the configuration accessible for service consumers
      */
-    @Nonnull
+    @NotNull
     Config getConfig();
 
     /**
@@ -125,7 +125,7 @@ public interface ComponentCache {
     /**
      * returns the caching rule for the requested resource in the current context
      */
-    @Nonnull
+    @NotNull
     CachePolicy getCachePolicy(SlingHttpServletRequest request);
 
     /**

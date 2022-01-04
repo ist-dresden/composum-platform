@@ -4,8 +4,8 @@ import org.apache.sling.commons.threads.ThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.*;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
@@ -40,9 +40,9 @@ public class OutputStreamInputStreamAdapter {
      * @param executor            an {@link ExecutorService} which is used to execute {writeToOutputStream}
      * @return the stream
      */
-    @Nonnull
-    public static InputStream of(@Nonnull ExceptionThrowingConsumer<OutputStream, IOException> writeToOutputStream,
-                                 @Nonnull ExecutorService executor) {
+    @NotNull
+    public static InputStream of(@NotNull ExceptionThrowingConsumer<OutputStream, IOException> writeToOutputStream,
+                                 @NotNull ExecutorService executor) {
         return new OutputStreamInputStreamAdapter(writeToOutputStream, executor, null).getInputStream();
     }
 
@@ -57,13 +57,13 @@ public class OutputStreamInputStreamAdapter {
      * @param threadPool          an {@link ThreadPool} which is used to execute {writeToOutputStream}
      * @return the stream
      */
-    @Nonnull
-    public static InputStream of(@Nonnull ExceptionThrowingConsumer<OutputStream, IOException> writeToOutputStream,
-                                 @Nonnull ThreadPool threadPool) {
+    @NotNull
+    public static InputStream of(@NotNull ExceptionThrowingConsumer<OutputStream, IOException> writeToOutputStream,
+                                 @NotNull ThreadPool threadPool) {
         return new OutputStreamInputStreamAdapter(writeToOutputStream, null, threadPool).getInputStream();
     }
 
-    protected OutputStreamInputStreamAdapter(@Nonnull ExceptionThrowingConsumer<OutputStream, IOException> writeToOutputStream,
+    protected OutputStreamInputStreamAdapter(@NotNull ExceptionThrowingConsumer<OutputStream, IOException> writeToOutputStream,
                                              @Nullable ExecutorService executor, @Nullable ThreadPool threadPool) {
         this.writeToOutputStream = Objects.requireNonNull(writeToOutputStream);
         this.threadPool = threadPool;
@@ -116,7 +116,7 @@ public class OutputStreamInputStreamAdapter {
      * {@link #writeToOutputStream} runs in a separate thread - if there was an exception we try to throw it
      * on the next call to this inputstream.
      */
-    @Nonnull
+    @NotNull
     public InputStream getInputStream() {
         return new LazyInputStream(this::createPipedStream) {
 
@@ -129,7 +129,7 @@ public class OutputStreamInputStreamAdapter {
             }
 
             @Override
-            public int read(@Nonnull byte[] b, int off, int len) throws IOException {
+            public int read(@NotNull byte[] b, int off, int len) throws IOException {
                 possiblyThrow();
                 int read = super.read(b, off, len);
                 possiblyThrow();

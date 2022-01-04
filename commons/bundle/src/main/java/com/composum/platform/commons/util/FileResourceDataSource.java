@@ -4,8 +4,8 @@ import com.composum.sling.clientlibs.handle.FileHandle;
 import org.apache.sling.api.resource.Resource;
 
 import javax.activation.DataSource;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.*;
 
 /**
@@ -13,20 +13,20 @@ import java.io.*;
  */
 public class FileResourceDataSource implements DataSource {
 
-    @Nonnull
+    @NotNull
     protected final FileHandle fileHandle;
 
     /**
      * Creates a {@link com.composum.sling.clientlibs.handle.FileHandle} as a javax.activation.{@link DataSource}, primarily for reading it.
      */
-    public FileResourceDataSource(@Nonnull FileHandle fileHandle) {
+    public FileResourceDataSource(@NotNull FileHandle fileHandle) {
         this.fileHandle = fileHandle;
     }
 
     /**
      * Wraps a file resource as a javax.activation.{@link DataSource}, primarily for reading it.
      */
-    public FileResourceDataSource(@Nonnull Resource fileResource) {
+    public FileResourceDataSource(@NotNull Resource fileResource) {
         this.fileHandle = new FileHandle(fileResource);
     }
 
@@ -40,7 +40,7 @@ public class FileResourceDataSource implements DataSource {
      * This sets the content on {@link OutputStream#close()}, not before. Caution: this stores everything in memory first.
      */
     @Override
-    @Nonnull
+    @NotNull
     public OutputStream getOutputStream() throws IOException {
         return new ByteArrayOutputStream() {
             @Override

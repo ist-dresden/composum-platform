@@ -3,8 +3,8 @@ package com.composum.platform.commons.content.service;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.ResourceResolver;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.awt.image.BufferedImage;
 
 /**
@@ -18,8 +18,8 @@ public interface ContentRefService {
      * returns the content of a referenced file resource as string
      * (e.g. to embed the source code during component rendering)
      */
-    @Nonnull
-    String getReferencedContent(@Nonnull ResourceResolver resolver, String path);
+    @NotNull
+    String getReferencedContent(@NotNull ResourceResolver resolver, String path);
 
     /**
      * returns the result of the rendering of a resource by sending an internal request;
@@ -30,11 +30,11 @@ public interface ContentRefService {
      *                       the url is used to determine the resource path ans simulate a request to a real URL
      * @param emptyLines     remove multiple empty lines if this is not 'true'
      */
-    @Nonnull
-    String getRenderedContent(@Nonnull SlingHttpServletRequest contextRequest, String url, boolean emptyLines);
+    @NotNull
+    String getRenderedContent(@NotNull SlingHttpServletRequest contextRequest, String url, boolean emptyLines);
 
     @Nullable
-    BufferedImage getRenderedImage(@Nonnull final SlingHttpServletRequest contextRequest,
-                                   @Nonnull final String url, int width, @Nullable Integer height,
+    BufferedImage getRenderedImage(@NotNull final SlingHttpServletRequest contextRequest,
+                                   @NotNull final String url, int width, @Nullable Integer height,
                                    @Nullable Double scale);
 }

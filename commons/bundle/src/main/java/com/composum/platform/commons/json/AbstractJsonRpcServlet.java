@@ -12,8 +12,8 @@ import org.apache.sling.api.servlets.SlingAllMethodsServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,14 +38,14 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
     private final Logger LOG = LoggerFactory.getLogger(getClass());
 
     /** Returns the interface class that is implemented by the service. */
-    @Nonnull
+    @NotNull
     protected abstract Class<T> getInterfaceClass();
 
     /**
      * Returns the actual implementation of the service interface {@link #getInterfaceClass()} which is called on
      * receiving a request.
      */
-    @Nonnull
+    @NotNull
     protected abstract T getService();
 
     /**
@@ -59,7 +59,7 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
     /** The actual implementation, reading the request and serializing the response. */
     @SuppressWarnings("RedundantThrows")
     @Override
-    protected void doPut(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response)
+    protected void doPut(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response)
             throws ServletException, IOException {
         Status status = null;
         try {
@@ -83,12 +83,12 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
     }
 
     /** Creates a status object of the default class - {@link Status}. */
-    @Nonnull
-    protected Status makeDefaultStatus(@Nonnull SlingHttpServletRequest request, @Nonnull SlingHttpServletResponse response) {
+    @NotNull
+    protected Status makeDefaultStatus(@NotNull SlingHttpServletRequest request, @NotNull SlingHttpServletResponse response) {
         return new Status(createGsonBuilder(), request, response, LoggerFactory.getLogger(getClass()));
     }
 
-    @Nonnull
+    @NotNull
     protected Method getOperation(SlingHttpServletRequest request) throws JsonRpcInternalServletException {
         String[] selectors = request.getRequestPathInfo().getSelectors();
         String methodname = selectors[0];
@@ -185,7 +185,7 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
             }
         }
 
-        @Nonnull
+        @NotNull
         protected InputStream getInputStream() throws JsonRpcInternalServletException, IOException {
             if (null != jsonReader) {
                 throw new JsonRpcInternalServletException("Both an InputStream parameter and Json-Parameter present.");
@@ -194,7 +194,7 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
             return inputStream;
         }
 
-        @Nonnull
+        @NotNull
         protected JsonReader getJsonReader() throws JsonRpcInternalServletException, IOException {
             if (null != inputStream) {
                 throw new JsonRpcInternalServletException("Both an InputStream parameter and Json-Parameter present.");
@@ -256,7 +256,7 @@ public abstract class AbstractJsonRpcServlet<T extends JsonRpcInterface> extends
             iterable.skipAndClose();
         }
 
-        @Nonnull
+        @NotNull
         protected AutoCloseableIterator<T> getWrappedIterator() {
             closeLastParameter();
             if (iterator == null) {

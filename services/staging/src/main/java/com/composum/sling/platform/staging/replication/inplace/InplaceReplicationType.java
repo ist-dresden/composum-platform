@@ -2,20 +2,20 @@ package com.composum.sling.platform.staging.replication.inplace;
 
 import com.composum.sling.platform.staging.replication.ReplicationType;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class InplaceReplicationType implements ReplicationType {
 
     public static final String SERVICE_ID = "inplace";
 
-    @Nonnull
+    @NotNull
     @Override
     public String getServiceId() {
         return SERVICE_ID;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getTitle() {
         return "In-Place";
@@ -27,7 +27,7 @@ public class InplaceReplicationType implements ReplicationType {
         return "the 'on system' in place replication";
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public String getResourceType() {
         return "composum/platform/replication/inplace";

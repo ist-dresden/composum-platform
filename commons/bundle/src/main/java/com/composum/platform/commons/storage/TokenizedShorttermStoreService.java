@@ -1,7 +1,7 @@
 package com.composum.platform.commons.storage;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A service to store arbitrary pojos for a short time, generating secure random tokens to retrieve them later.
@@ -19,8 +19,8 @@ public interface TokenizedShorttermStoreService {
      * @param timeoutms timeout in milliseconds after which the information will be deleted.
      * @return an alpanumeric token to access the information later
      */
-    @Nonnull
-    <T> String checkin(@Nonnull T info, long timeoutms);
+    @NotNull
+    <T> String checkin(@NotNull T info, long timeoutms);
 
     /**
      * Retrieves the information stored at the token. The stored information is deleted and cannot be retrieved
@@ -32,7 +32,7 @@ public interface TokenizedShorttermStoreService {
      * @return the stored information if it hasn't timed out yet and if it conforms to {clazz}, otherwise null
      */
     @Nullable
-    <T> T checkout(@Nonnull String token, Class<T> clazz);
+    <T> T checkout(@NotNull String token, Class<T> clazz);
 
     /**
      * Gives a peek at the information stored at the token - it is not deleted.
@@ -43,6 +43,6 @@ public interface TokenizedShorttermStoreService {
      * @return the stored information if it hasn't timed out yet and if it conforms to {clazz}, otherwise null
      */
     @Nullable
-    <T> T peek(@Nonnull String token, Class<T> clazz);
+    <T> T peek(@NotNull String token, Class<T> clazz);
 
 }

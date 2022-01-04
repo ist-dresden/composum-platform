@@ -7,7 +7,7 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.ValueFactory;
@@ -150,7 +150,7 @@ public class QueryConditionDsl {
     /**
      * Appends a string value, applying quoting.
      */
-    protected QueryConditionDsl appendString(@Nonnull String value) {
+    protected QueryConditionDsl appendString(@NotNull String value) {
         if (null == value) append("'' ");
         else append("'").append(value.replaceAll("'", "''")).append("' ");
         return this;
@@ -299,7 +299,7 @@ public class QueryConditionDsl {
         /**
          * The selected node is exactly the node with the given path.
          */
-        public QueryCondition isSameNodeAs(@Nonnull String path) {
+        public QueryCondition isSameNodeAs(@NotNull String path) {
             append("ISSAMENODE(" + nextSelector + ",").appendString(path).append(") ");
             nextSelector = null;
             return queryCondition;
@@ -308,7 +308,7 @@ public class QueryConditionDsl {
         /**
          * The selected node is the child of the node with the given path.
          */
-        public QueryCondition isChildOf(@Nonnull String path) {
+        public QueryCondition isChildOf(@NotNull String path) {
             append("ISCHILDNODE(" + nextSelector + ",").appendString(path).append(") ");
             nextSelector = null;
             return queryCondition;
@@ -317,7 +317,7 @@ public class QueryConditionDsl {
         /**
          * The selected node is the child of the node with the given path.
          */
-        public QueryCondition isDescendantOf(@Nonnull String path) {
+        public QueryCondition isDescendantOf(@NotNull String path) {
             append("ISDESCENDANTNODE(" + nextSelector + ",").appendString(path).append(") ");
             nextSelector = null;
             return queryCondition;
@@ -508,7 +508,7 @@ public class QueryConditionDsl {
         /**
          * Compares with the given String.
          */
-        public QueryCondition val(@Nonnull String val) {
+        public QueryCondition val(@NotNull String val) {
             appendValue(val);
             return queryCondition;
         }
@@ -516,7 +516,7 @@ public class QueryConditionDsl {
         /**
          * Compares with the given Number.
          */
-        public QueryCondition val(@Nonnull Number i) {
+        public QueryCondition val(@NotNull Number i) {
             appendValue(i);
             return queryCondition;
         }
@@ -524,7 +524,7 @@ public class QueryConditionDsl {
         /**
          * Compares with the given Calendar.
          */
-        public QueryCondition val(@Nonnull Calendar d) {
+        public QueryCondition val(@NotNull Calendar d) {
             appendValue(d);
             return queryCondition;
         }
@@ -532,7 +532,7 @@ public class QueryConditionDsl {
         /**
          * Compares with the path of the given resource.
          */
-        public QueryCondition pathOf(@Nonnull Resource resource) {
+        public QueryCondition pathOf(@NotNull Resource resource) {
             appendValue(resource.getPath());
             return queryCondition;
         }
@@ -540,7 +540,7 @@ public class QueryConditionDsl {
         /**
          * Compares with the {@link ResourceUtil#PROP_UUID} of the given resource.
          */
-        public QueryCondition uuidOf(@Nonnull Resource resource) {
+        public QueryCondition uuidOf(@NotNull Resource resource) {
             String uuid = resource.getValueMap().get(PROP_UUID, String.class);
             Validate.notNull(uuid, "Resource has no " + PROP_UUID + ": %s", resource.getPath());
             appendValue(uuid);
@@ -550,7 +550,7 @@ public class QueryConditionDsl {
         /**
          * Compares with the given Boolean.
          */
-        public QueryCondition val(@Nonnull Boolean i) {
+        public QueryCondition val(@NotNull Boolean i) {
             appendValue(i);
             return queryCondition;
         }
@@ -558,7 +558,7 @@ public class QueryConditionDsl {
         /**
          * Compares with the given URI (in {@link URI#toString()} representation).
          */
-        public QueryCondition val(@Nonnull URI uri) {
+        public QueryCondition val(@NotNull URI uri) {
             appendValue(uri.toString());
             return queryCondition;
         }
@@ -566,8 +566,8 @@ public class QueryConditionDsl {
         /**
          * Compares with the given literal transformed to the designated type.
          */
-        @Nonnull
-        public QueryCondition cast(@Nonnull final String literal, @Nonnull final String type) {
+        @NotNull
+        public QueryCondition cast(@NotNull final String literal, @NotNull final String type) {
             append("CAST('").append(literal).append("' as ").append(type).append(") ");
             return queryCondition;
         }
@@ -591,7 +591,7 @@ public class QueryConditionDsl {
         /**
          * Finishes a group of conditions with a closing parenthesis.
          */
-        public @Nonnull
+        public @NotNull
         QueryCondition endGroup() {
             if (parenthesesNestingLevel <= 0) throw new IllegalStateException("There is no group to close left.");
             append(") ");

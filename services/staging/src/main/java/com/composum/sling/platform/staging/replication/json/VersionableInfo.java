@@ -9,8 +9,8 @@ import org.apache.sling.api.resource.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.function.Function;
 
 import static com.composum.sling.platform.staging.StagingConstants.PROP_REPLICATED_VERSION;
@@ -47,7 +47,7 @@ public class VersionableInfo {
      * @param pathMapping if this is set, we pass the resource paths through this function
      */
     @Nullable
-    public static VersionableInfo of(@Nonnull Resource resource, @Nullable Function<String, String> pathMapping) {
+    public static VersionableInfo of(@NotNull Resource resource, @Nullable Function<String, String> pathMapping) {
         if (ResourceUtil.isNodeType(resource, ResourceUtil.TYPE_VERSIONABLE)) {
             String version = resource.getValueMap().get(StagingConstants.PROP_REPLICATED_VERSION, String.class);
             if (StringUtils.isNotBlank(version)) {

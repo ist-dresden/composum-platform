@@ -27,8 +27,8 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.Session;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -237,33 +237,33 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
         public final SlingHttpServletResponse response;
         public final ResourceResolver resolver;
 
-        private PlatformAccessContext(@Nonnull final SlingHttpServletRequest request,
-                                      @Nonnull final SlingHttpServletResponse response) {
+        private PlatformAccessContext(@NotNull final SlingHttpServletRequest request,
+                                      @NotNull final SlingHttpServletResponse response) {
             this(request, response, request.getResourceResolver());
         }
 
-        private PlatformAccessContext(@Nonnull final SlingHttpServletRequest request,
-                                      @Nonnull final SlingHttpServletResponse response,
-                                      @Nonnull final ResourceResolver resolver) {
+        private PlatformAccessContext(@NotNull final SlingHttpServletRequest request,
+                                      @NotNull final SlingHttpServletResponse response,
+                                      @NotNull final ResourceResolver resolver) {
             this.request = request;
             this.response = response;
             this.resolver = resolver;
         }
 
         @Override
-        @Nonnull
+        @NotNull
         public final SlingHttpServletRequest getRequest() {
             return request;
         }
 
         @Override
-        @Nonnull
+        @NotNull
         public final SlingHttpServletResponse getResponse() {
             return response;
         }
 
         @Override
-        @Nonnull
+        @NotNull
         public final ResourceResolver getResolver() {
             return resolver;
         }

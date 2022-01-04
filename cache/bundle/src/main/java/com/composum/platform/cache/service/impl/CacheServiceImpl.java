@@ -18,8 +18,8 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 
@@ -80,7 +80,7 @@ public class CacheServiceImpl<T> implements CacheService<T> {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getName() {
         return config.name();
     }
@@ -88,13 +88,13 @@ public class CacheServiceImpl<T> implements CacheService<T> {
     @SuppressWarnings("unchecked")
     @Override
     @Nullable
-    public T get(@Nonnull Serializable key) {
+    public T get(@NotNull Serializable key) {
         return (T) cache.get(key);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public void put(@Nonnull Serializable key, @Nullable T value) {
+    public void put(@NotNull Serializable key, @Nullable T value) {
         if (value != null) {
             cache.put(key, value);
         } else {

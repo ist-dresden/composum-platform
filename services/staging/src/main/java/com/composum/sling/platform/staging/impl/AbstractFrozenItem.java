@@ -3,8 +3,8 @@ package com.composum.sling.platform.staging.impl;
 import com.composum.sling.core.util.ResourceUtil;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.*;
 import javax.jcr.lock.LockException;
 import javax.jcr.nodetype.ConstraintViolationException;
@@ -16,19 +16,19 @@ import javax.jcr.version.VersionException;
 public abstract class AbstractFrozenItem<T extends Item> implements Item {
 
 
-    @Nonnull
+    @NotNull
     protected final T wrapped;
 
     /** If non null, we override the path since we might wrap frozen nodes. */
     @Nullable
     protected final String pathOverride;
 
-    protected AbstractFrozenItem(@Nonnull T wrapped, @Nullable String pathOverride) {
+    protected AbstractFrozenItem(@NotNull T wrapped, @Nullable String pathOverride) {
         this.wrapped = wrapped;
         this.pathOverride = pathOverride;
     }
 
-    @Nonnull
+    @NotNull
     final T getWrapped() {
         return wrapped;
     }

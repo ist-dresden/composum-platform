@@ -2,8 +2,8 @@ package com.composum.sling.platform.staging;
 
 import org.apache.sling.api.resource.Resource;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 import static com.composum.sling.core.util.SlingResourceUtil.isSameOrDescendant;
@@ -49,15 +49,15 @@ public interface ReleaseChangeEventListener {
      * than a request should take. If this returns some processes, they are {@link ReleaseChangeProcess#triggerProcessing(ReleaseChangeEvent)}
      * with the events and then {@link ReleaseChangeProcess#run()}.
      */
-    @Nonnull
-    default Collection<? extends ReleaseChangeProcess> processesFor(@Nonnull Release release) {
+    @NotNull
+    default Collection<? extends ReleaseChangeProcess> processesFor(@NotNull Release release) {
         return Collections.emptyList();
     }
 
     /**
      * Collection of {@link ReleaseChangeProcess}es for any of the releases at the release root containing resource.
      */
-    @Nonnull
+    @NotNull
     default Collection<? extends ReleaseChangeProcess> processesFor(@Nullable Resource resource) {
         return Collections.emptyList();
     }

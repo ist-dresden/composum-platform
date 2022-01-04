@@ -2,8 +2,8 @@ package com.composum.platform.commons.util;
 
 import org.slf4j.Logger;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 
@@ -37,7 +37,7 @@ public class ExceptionUtil {
      * @param exception the exception to throw
      * @return does never return - just for coding clarit
      */
-    public static RuntimeException sneakyThrowException(@Nonnull Exception exception) {
+    public static RuntimeException sneakyThrowException(@NotNull Exception exception) {
         throw ExceptionUtil.sneakyThrowExceptionImpl(exception);
     }
 
@@ -53,9 +53,9 @@ public class ExceptionUtil {
      * @param function the function to call
      * @return the result of calling the callable
      */
-    @Nonnull
+    @NotNull
     public static <ARG, VALUE>
-    Function<ARG, VALUE> sneakExceptions(@Nonnull final ExceptionThrowingFunction<ARG, VALUE, Exception> function) {
+    Function<ARG, VALUE> sneakExceptions(@NotNull final ExceptionThrowingFunction<ARG, VALUE, Exception> function) {
         return t -> {
             try {
                 return function.apply(t);
@@ -78,7 +78,7 @@ public class ExceptionUtil {
      * @see #sneakExceptions(ExceptionThrowingFunction)
      */
     @Nullable
-    public static <T> T callAndSneakExceptions(@Nonnull Callable<T> callable) {
+    public static <T> T callAndSneakExceptions(@NotNull Callable<T> callable) {
         try {
             return callable.call();
         } catch (Exception e) {

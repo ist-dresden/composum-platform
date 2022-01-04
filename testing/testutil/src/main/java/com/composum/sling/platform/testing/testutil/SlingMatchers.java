@@ -8,8 +8,8 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.hamcrest.ResourceMatchers;
 import org.hamcrest.*;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.*;
@@ -31,7 +31,7 @@ public class SlingMatchers extends org.hamcrest.Matchers {
      * For example:
      * <pre>assertThat("myValue", allOf(startsWith("my"), containsString("Val")))</pre>
      */
-    @Nonnull
+    @NotNull
     public static Matcher<Resource> hasResourcePath(@Nullable String path) {
         return ResourceMatchers.path(path);
     }
@@ -39,8 +39,8 @@ public class SlingMatchers extends org.hamcrest.Matchers {
     /**
      * Matcher that passes the item through a function {mapper} and then does the matching with {matcher}.
      */
-    @Nonnull
-    public static <U, V> Matcher<V> mappedMatches(@Nullable String funcname, @Nonnull final Function<V, U> mapper, @Nonnull final Matcher<U> matcher) {
+    @NotNull
+    public static <U, V> Matcher<V> mappedMatches(@Nullable String funcname, @NotNull final Function<V, U> mapper, @NotNull final Matcher<U> matcher) {
         return new BaseMatcher<V>() {
             @Override
             public boolean matches(Object item) {
@@ -65,7 +65,7 @@ public class SlingMatchers extends org.hamcrest.Matchers {
     /**
      * Matches when a resource is a nonexisting resource.
      */
-    @Nonnull
+    @NotNull
     public static Matcher<Resource> nonExistingResource() {
         return new BaseMatcher<Resource>() {
             @Override
@@ -83,25 +83,25 @@ public class SlingMatchers extends org.hamcrest.Matchers {
     /**
      * Matches when a resource is a nonexisting resource with the given path.
      */
-    @Nonnull
-    public static Matcher<Resource> nonExistingResource(@Nonnull String path) {
+    @NotNull
+    public static Matcher<Resource> nonExistingResource(@NotNull String path) {
         return Matchers.allOf(ResourceMatchers.resourceType(Resource.RESOURCE_TYPE_NON_EXISTING), hasResourcePath(path));
     }
 
     /**
      * Matcher that passes the item through a function {mapper} and then does the matching with {matcher}.
      */
-    @Nonnull
-    public static <U, V> Matcher<V> mappedMatches(@Nonnull final Function<V, U> mapper, @Nonnull final Matcher<U> matcher) {
+    @NotNull
+    public static <U, V> Matcher<V> mappedMatches(@NotNull final Function<V, U> mapper, @NotNull final Matcher<U> matcher) {
         return mappedMatches(null, mapper, matcher);
     }
 
-    @Nonnull
+    @NotNull
     public static <T> Matcher<Iterator<T>> iteratorWithSize(int size) {
         return SlingMatchers.mappedMatches("size", IteratorUtils::toList, Matchers.iterableWithSize(size));
     }
 
-    @Nonnull
+    @NotNull
     public static <U, V> Matcher<Map<U, V>> hasMapSize(int size) {
         // return mappedMatches("size", Map::size, is(size));
         return new BaseMatcher<Map<U, V>>() {
@@ -129,12 +129,12 @@ public class SlingMatchers extends org.hamcrest.Matchers {
      * Introduced to disambiguate between {@link Matchers#hasEntry(Object, Object)} and {@link Matchers#hasEntry(Matcher, Matcher)},
      * which is troublesome if you have a plain Map with various types as entries.
      */
-    @Nonnull
+    @NotNull
     public static <K, V> Matcher<java.util.Map> hasEntryMatching(Matcher<? super K> keyMatcher, Matcher<? super V> valueMatcher) {
         return (Matcher) org.hamcrest.collection.IsMapContaining.<K, V>hasEntry(keyMatcher, valueMatcher);
     }
 
-    @Nonnull
+    @NotNull
     public static <T> Matcher<T> stringMatchingPattern(String regex) {
         Pattern pattern = Pattern.compile(regex);
         return new BaseMatcher<T>() {
@@ -150,13 +150,13 @@ public class SlingMatchers extends org.hamcrest.Matchers {
         };
     }
 
-    @Nonnull
-    public static <T> Matcher<T> satisfies(@Nonnull Predicate<T> predicate) {
+    @NotNull
+    public static <T> Matcher<T> satisfies(@NotNull Predicate<T> predicate) {
         return satisfies("predicate " + predicate, predicate);
     }
 
-    @Nonnull
-    public static <T> Matcher<T> satisfies(@Nullable String message, @Nonnull Predicate<T> predicate) {
+    @NotNull
+    public static <T> Matcher<T> satisfies(@Nullable String message, @NotNull Predicate<T> predicate) {
         return mappedMatches(message, predicate::test, Matchers.is(true));
     }
 
@@ -196,7 +196,7 @@ public class SlingMatchers extends org.hamcrest.Matchers {
     /**
      * The list of paths of the resources in the list. If a resource is null, we insert a null.
      */
-    @Nonnull
+    @NotNull
     public static List<String> resourcePaths(@Nullable Iterable<Resource> resourceList) {
         return resourceList != null ?
                 IterableUtils.toList(resourceList).stream().map(SlingResourceUtil::getPath).collect(Collectors.toList())
@@ -208,7 +208,7 @@ public class SlingMatchers extends org.hamcrest.Matchers {
      * Use e.g.
      * <code>SlingMatchers.mappedMatches(SlingMatchers::sortedToString, is("bla=xxx, blu=yyy"));</code>
      */
-    @Nonnull
+    @NotNull
     public static String sortedToString(Map<?, ?> map) {
         SortedMap<String, String> sorted = new TreeMap<>();
         for (Map.Entry<?, ?> entry : map.entrySet()) {

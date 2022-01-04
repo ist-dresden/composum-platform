@@ -9,20 +9,20 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.ResourceResolver;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface PlatformAccessService {
 
     interface AccessContext {
 
-        @Nonnull
+        @NotNull
         SlingHttpServletRequest getRequest();
 
-        @Nonnull
+        @NotNull
         SlingHttpServletResponse getResponse();
 
-        @Nonnull
+        @NotNull
         ResourceResolver getResolver();
     }
 

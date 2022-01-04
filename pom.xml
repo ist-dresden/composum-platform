@@ -6,13 +6,13 @@
     <parent>
         <groupId>com.composum.meta.ist</groupId>
         <artifactId>parent-2-public</artifactId>
-        <version>1.3</version>
+        <version>1.6</version>
         <relativePath/>
     </parent>
 
     <groupId>com.composum.platform</groupId>
     <artifactId>composum-platform</artifactId>
-    <version>1.3.1</version>
+    <version>1.4.0</version>
     <packaging>pom</packaging>
 
     <name>Composum Platform</name>
@@ -23,7 +23,7 @@
         <sling.upload.path>/libs/composum/platform/install</sling.upload.path>
         <package.group>com/composum/platform</package.group>
         <bundle.category>composum,platform</bundle.category>
-        <composum.nodes.version>2.6.5</composum.nodes.version>
+        <composum.nodes.version>3.2.0</composum.nodes.version>
         <release.repository.id>ossrh</release.repository.id>
         <release.repository.url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</release.repository.url>
     </properties>
@@ -121,6 +121,14 @@
                 <groupId>com.composum.nodes.setup</groupId>
                 <artifactId>composum-nodes-setup-util</artifactId>
                 <version>${composum.nodes.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!-- Java Annotations -->
+            <dependency>
+                <groupId>org.jetbrains</groupId>
+                <artifactId>annotations</artifactId>
+                <version>16.0.2</version>
                 <scope>provided</scope>
             </dependency>
 

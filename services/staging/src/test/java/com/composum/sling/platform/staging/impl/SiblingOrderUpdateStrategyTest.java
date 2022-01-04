@@ -5,7 +5,7 @@ import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrinting
 import org.junit.Rule;
 import org.junit.Test;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.Arrays;
 import java.util.List;
 
@@ -88,7 +88,7 @@ public class SiblingOrderUpdateStrategyTest {
     }
 
 
-    @Nonnull
+    @NotNull
     private CheckBuilder src(String... srcNodes) {
         return new CheckBuilder(Arrays.asList(srcNodes));
     }
@@ -102,13 +102,13 @@ public class SiblingOrderUpdateStrategyTest {
             this.src = src;
         }
 
-        @Nonnull
+        @NotNull
         public CheckBuilder dest(String... destNodes) {
             this.dest = Arrays.asList(destNodes);
             return this;
         }
 
-        @Nonnull
+        @NotNull
         public CheckBuilder node(String node) {
             this.node = node;
             return this;

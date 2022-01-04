@@ -7,8 +7,8 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ValueMap;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
@@ -45,19 +45,19 @@ public class LoadedModel implements SlingBean {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getName() {
         return resource.getName();
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getPath() {
         return resource.getPath();
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getType() {
         return resource.getResourceType();
     }
@@ -70,16 +70,16 @@ public class LoadedModel implements SlingBean {
     }
 
     @Nullable
-    public <T> T getProperty(@Nonnull String key, Class<T> type) {
+    public <T> T getProperty(@NotNull String key, Class<T> type) {
         return getValues().get(key, type);
     }
 
-    @Nonnull
-    public <T> T getProperty(@Nonnull String key, @Nonnull T defaultValue) {
+    @NotNull
+    public <T> T getProperty(@NotNull String key, @NotNull T defaultValue) {
         return getValues().get(key, defaultValue);
     }
 
-    public String getDate(@Nonnull String... keyChain) {
+    public String getDate(@NotNull String... keyChain) {
         Calendar date = null;
         for (String key : keyChain) {
             if ((date = getProperty(key, Calendar.class)) != null) {
@@ -89,7 +89,7 @@ public class LoadedModel implements SlingBean {
         return date != null ? new SimpleDateFormat("yyyy-MM-dd HH:mm").format(date.getTime()) : "";
     }
 
-    @Nonnull
+    @NotNull
     public GenericProperties i18n() {
         if (properties == null) {
             properties = new GenericProperties();
@@ -109,7 +109,7 @@ public class LoadedModel implements SlingBean {
         }
     }
 
-    @Nonnull
+    @NotNull
     public Resource getResource() {
         return resource;
     }

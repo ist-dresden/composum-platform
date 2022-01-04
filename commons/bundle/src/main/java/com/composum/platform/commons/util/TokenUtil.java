@@ -6,8 +6,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -24,8 +24,8 @@ public class TokenUtil {
     /**
      * Joins some parts into a token. We take the {@link String#valueOf(Object)} of each part.
      */
-    @Nonnull
-    public static String join(@Nonnull Object... parts) {
+    @NotNull
+    public static String join(@NotNull Object... parts) {
         StringBuilder token = new StringBuilder().append(parts.length).append("|");
         boolean notFirst = false;
         for (Object part : parts) {
@@ -50,7 +50,7 @@ public class TokenUtil {
      * @return a list of the parts, some may be null
      * @throws IllegalArgumentException if there was something wrong with the token
      */
-    @Nonnull
+    @NotNull
     public static List<String> extract(@Nullable String token) throws IllegalArgumentException {
         try {
             List<String> res = new ArrayList<>();
@@ -97,7 +97,7 @@ public class TokenUtil {
      * @return a list of the parts, has size {expectedLength}, some may be null
      * @throws IllegalArgumentException if there was something wrong with the token, including not having the {expectedLength}.
      */
-    @Nonnull
+    @NotNull
     public static List<String> extract(@Nullable String token, int expectedLength) throws IllegalArgumentException {
         List<String> extracted = extract(token);
         if (extracted.size() != expectedLength) {
@@ -111,8 +111,8 @@ public class TokenUtil {
      * If the result of this is also encrypted, this results in some kind of digital signature
      * (which, of course can be done by all sides having the encryption key).
      */
-    @Nonnull
-    public static String addHash(@Nonnull String token) {
+    @NotNull
+    public static String addHash(@NotNull String token) {
         String salt = RandomStringUtils.randomAlphanumeric(8);
         String hash = Base64.getUrlEncoder().encodeToString(DigestUtils.sha256(salt + token));
         return "#" + salt + "|" + hash + "|" + token;
@@ -121,7 +121,7 @@ public class TokenUtil {
     /**
      * Removes a hash added with {@link #addHash(String)}. Does not check it - you need to {@link #checkHash(String)} before!
      */
-    public static String removeHash(@Nonnull String tokenWithHash) {
+    public static String removeHash(@NotNull String tokenWithHash) {
         int firstBar = StringUtils.indexOf(tokenWithHash, '|');
         int secondBar = StringUtils.indexOf(tokenWithHash, '|', firstBar + 1);
         if (!StringUtils.startsWith(tokenWithHash, "#") || firstBar < 0 || secondBar < 0) {
@@ -134,8 +134,8 @@ public class TokenUtil {
     /**
      * Checks whether something corresponds to {@link #addHash(String)}.
      */
-    @Nonnull
-    public static boolean checkHash(@Nonnull String tokenWithHash) {
+    @NotNull
+    public static boolean checkHash(@NotNull String tokenWithHash) {
         if (tokenWithHash == null || !tokenWithHash.startsWith("#")) {
             return false;
         }

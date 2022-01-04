@@ -9,7 +9,6 @@ import com.composum.platform.commons.osgi.ServiceManager;
 import com.composum.sling.core.BeanContext;
 import com.composum.sling.core.util.ValueEmbeddingReader;
 import org.apache.commons.io.IOUtils;
-import org.apache.sling.api.resource.ValueMap;
 import org.apache.sling.api.wrappers.ValueMapDecorator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
@@ -22,8 +21,8 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
@@ -56,11 +55,11 @@ public class PlaceholderServiceImpl extends ServiceManager<PlaceholderService.Va
             policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.MULTIPLE
     )
-    protected void bindValueProvider(@Nonnull final ServiceReference<ValueProvider> serviceReference) {
+    protected void bindValueProvider(@NotNull final ServiceReference<ValueProvider> serviceReference) {
         bindReference(serviceReference);
     }
 
-    protected void unbindValueProvider(@Nonnull final ServiceReference<ValueProvider> serviceReference) {
+    protected void unbindValueProvider(@NotNull final ServiceReference<ValueProvider> serviceReference) {
         unbindReference(serviceReference);
     }
 
@@ -69,8 +68,8 @@ public class PlaceholderServiceImpl extends ServiceManager<PlaceholderService.Va
         super.activate(bundleContext);
     }
 
-    protected <T> T getProviderValue(@Nonnull final BeanContext context,
-                                     @Nonnull final String key, @Nonnull final Class<T> type) {
+    protected <T> T getProviderValue(@NotNull final BeanContext context,
+                                     @NotNull final String key, @NotNull final Class<T> type) {
         T value;
         for (ManagedReference reference : references) {
             if ((value = reference.getService().getValue(context, key, type)) != null) {
@@ -88,7 +87,7 @@ public class PlaceholderServiceImpl extends ServiceManager<PlaceholderService.Va
         protected final BeanContext context;
         protected final Map<String, Object> cache;
 
-        public ProviderValueMap(@Nonnull final BeanContext context, Map<String, Object> base) {
+        public ProviderValueMap(@NotNull final BeanContext context, Map<String, Object> base) {
             super(base);
             this.context = context;
             cache = new HashMap<>();
@@ -97,7 +96,7 @@ public class PlaceholderServiceImpl extends ServiceManager<PlaceholderService.Va
         @Nullable
         @Override
         @SuppressWarnings("unchecked")
-        public <T> T get(@Nonnull final String name, @Nonnull final Class<T> type) {
+        public <T> T get(@NotNull final String name, @NotNull final Class<T> type) {
             T value = (T) cache.get(name);
             if (value == null) {
                 value = super.get(name, type);
@@ -109,10 +108,10 @@ public class PlaceholderServiceImpl extends ServiceManager<PlaceholderService.Va
             return value == NULL ? null : value;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         @SuppressWarnings("unchecked")
-        public <T> T get(@Nonnull final String name, @Nonnull final T defaultValue) {
+        public <T> T get(@NotNull final String name, @NotNull final T defaultValue) {
             Class<?> type = defaultValue.getClass();
             T value = get(name, (Class<T>) type);
             return value != null ? value : defaultValue;
@@ -120,15 +119,15 @@ public class PlaceholderServiceImpl extends ServiceManager<PlaceholderService.Va
     }
 
     @Override
-    @Nonnull
-    public ValueMap getValueMap(@Nonnull final BeanContext context, @Nullable final Map<String, Object> base) {
+    @NotNull
+    public Map<String, Object> getValues(@NotNull final BeanContext context, @Nullable final Map<String, Object> base) {
         return new ProviderValueMap(context, base != null ? base : Collections.emptyMap());
     }
 
     @Override
-    @Nonnull
-    public String applyPlaceholders(@Nonnull final BeanContext context,
-                                    @Nonnull final String text, @Nonnull final Map<String, Object> values) {
+    @NotNull
+    public String applyPlaceholders(@NotNull final BeanContext context,
+                                    @NotNull final String text, @NotNull final Map<String, Object> values) {
         try (StringWriter writer = new StringWriter()) {
             applyPlaceholders(context, writer, text, values);
             return writer.toString();
@@ -139,8 +138,8 @@ public class PlaceholderServiceImpl extends ServiceManager<PlaceholderService.Va
     }
 
     @Override
-    public void applyPlaceholders(@Nonnull final BeanContext context, @Nonnull final Writer writer,
-                                  @Nonnull final String text, @Nonnull final Map<String, Object> values)
+    public void applyPlaceholders(@NotNull final BeanContext context, @NotNull final Writer writer,
+                                  @NotNull final String text, @NotNull final Map<String, Object> values)
             throws IOException {
         try (Reader textReader = getEmbeddingReader(context, new StringReader(text), values)) {
             IOUtils.copy(textReader, writer);
@@ -152,9 +151,9 @@ public class PlaceholderServiceImpl extends ServiceManager<PlaceholderService.Va
      * @see com.composum.sling.core.util.ValueEmbeddingReader
      */
     @Override
-    @Nonnull
-    public Reader getEmbeddingReader(@Nonnull final BeanContext context,
-                                     @Nonnull final Reader reader, @Nonnull final Map<String, Object> values) {
-        return new ValueEmbeddingReader(reader, getValueMap(context, values), context.getLocale(), getClass());
+    @NotNull
+    public Reader getEmbeddingReader(@NotNull final BeanContext context,
+                                     @NotNull final Reader reader, @NotNull final Map<String, Object> values) {
+        return new ValueEmbeddingReader(reader, getValues(context, values), context.getLocale(), getClass());
     }
 }

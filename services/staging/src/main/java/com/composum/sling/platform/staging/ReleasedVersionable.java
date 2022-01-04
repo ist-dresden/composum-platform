@@ -11,8 +11,8 @@ import org.apache.sling.api.resource.ValueMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 import javax.jcr.version.Version;
@@ -33,13 +33,13 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     /**
      * @see #getRelativePath()
      */
-    @Nonnull
+    @NotNull
     private String relativePath;
 
     /**
      * @see #getVersionableUuid()
      */
-    @Nonnull
+    @NotNull
     private String versionableUuid;
 
     /**
@@ -51,7 +51,7 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     /**
      * @see #getVersionHistory()
      */
-    @Nonnull
+    @NotNull
     private String versionHistory;
 
     /**
@@ -67,7 +67,7 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     /**
      * Creates a {@link ReleasedVersionable} that corresponds to the base version of the given versionable.
      */
-    public static ReleasedVersionable forBaseVersion(@Nonnull Resource resource) {
+    public static ReleasedVersionable forBaseVersion(@NotNull Resource resource) {
         if (!ResourceUtil.isResourceType(Objects.requireNonNull(resource), ResourceUtil.TYPE_VERSIONABLE))
             throw new IllegalArgumentException("resource is not versionable: " + getPath(resource));
         ReleasedVersionable result = new ReleasedVersionable();
@@ -93,7 +93,7 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     /**
      * Releasemanager internal: creates a {@link ReleasedVersionable} that corresponds to a {@link StagingConstants#TYPE_VERSIONREFERENCE}.
      */
-    public static ReleasedVersionable fromVersionReference(@Nonnull Resource releaseWorkspaceCopyRoot, @Nonnull Resource resource) {
+    public static ReleasedVersionable fromVersionReference(@NotNull Resource releaseWorkspaceCopyRoot, @NotNull Resource resource) {
         if (!ResourceUtil.isResourceType(resource, StagingConstants.TYPE_VERSIONREFERENCE)) {
             throw new IllegalArgumentException("resource is not version reference: " + getPath(resource));
         }
@@ -120,7 +120,7 @@ public class ReleasedVersionable implements Serializable, Cloneable {
      * @deprecated only for ReleaseManager internal use, public for technical reasons.
      */
     @Deprecated
-    public void writeToVersionReference(@Nonnull Resource workspaceCopyRoot, @Nonnull Resource versionReference) throws RepositoryException {
+    public void writeToVersionReference(@NotNull Resource workspaceCopyRoot, @NotNull Resource versionReference) throws RepositoryException {
         ResourceHandle rh = ResourceHandle.use(versionReference);
         if (!StagingConstants.TYPE_VERSIONREFERENCE.equals(rh.getPrimaryType())) {
             throw new IllegalArgumentException("Not a version reference: " + SlingResourceUtil.getPath(versionReference));
@@ -147,7 +147,7 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     /**
      * Path relative to release root.
      */
-    @Nonnull
+    @NotNull
     public String getRelativePath() {
         return relativePath;
     }
@@ -155,14 +155,14 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     /**
      * @see #getRelativePath()
      */
-    public void setRelativePath(@Nonnull String relativePath) {
+    public void setRelativePath(@NotNull String relativePath) {
         this.relativePath = relativePath;
     }
 
     /**
      * {@value com.composum.sling.core.util.ResourceUtil#PROP_UUID} of the versionable that was put into the release.
      */
-    @Nonnull
+    @NotNull
     public String getVersionableUuid() {
         return versionableUuid;
     }
@@ -170,7 +170,7 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     /**
      * @see #getVersionableUuid()
      */
-    public ReleasedVersionable setVersionableUuid(@Nonnull String versionableUuid) {
+    public ReleasedVersionable setVersionableUuid(@NotNull String versionableUuid) {
         this.versionableUuid = versionableUuid;
         return this;
     }
@@ -195,7 +195,7 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     /**
      * The UUID of the version history, as unchangeable identifier.
      */
-    @Nonnull
+    @NotNull
     public String getVersionHistory() {
         return versionHistory;
     }
@@ -203,7 +203,7 @@ public class ReleasedVersionable implements Serializable, Cloneable {
     /**
      * @see #getVersionHistory()
      */
-    public ReleasedVersionable setVersionHistory(@Nonnull String versionHistory) {
+    public ReleasedVersionable setVersionHistory(@NotNull String versionHistory) {
         this.versionHistory = versionHistory;
         return this;
     }

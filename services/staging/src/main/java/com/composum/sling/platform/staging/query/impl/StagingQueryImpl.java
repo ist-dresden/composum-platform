@@ -23,8 +23,8 @@ import org.apache.sling.api.resource.QuerySyntaxException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
@@ -68,9 +68,9 @@ public class StagingQueryImpl extends Query {
 
     @Nullable
     protected final DefaultStagingReleaseManager.ReleaseImpl release;
-    @Nonnull
+    @NotNull
     protected final ReleaseMapper releaseMapper;
-    @Nonnull
+    @NotNull
     protected final ResourceResolver resourceResolver;
 
     /** Caches whether a type matches the requested type constraint. */
@@ -104,7 +104,7 @@ public class StagingQueryImpl extends Query {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Iterable<Resource> execute() throws SlingException, QuerySyntaxException {
         selectColumns = null;
         try {
@@ -115,7 +115,7 @@ public class StagingQueryImpl extends Query {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Iterable<QueryValueMap> selectAndExecute(String... columns) throws SlingException, QuerySyntaxException {
         this.selectColumns = columns;
         try {
@@ -224,7 +224,7 @@ public class StagingQueryImpl extends Query {
         return rows;
     }
 
-    @Nonnull
+    @NotNull
     protected Iterator<Row> mergeResults(Iterator<Row> rowsFromVersionStorage, Iterator<Row> rowsInsideReleasetree) {
         Iterator<Row> rows;
         if (null == orderBy) rows = chainedIterator(rowsInsideReleasetree, rowsFromVersionStorage);
@@ -438,7 +438,7 @@ public class StagingQueryImpl extends Query {
      * Outside the release tree we add a condition that the query does not reach into the release tree.
      * @param mode {@link QueryGenerationMode#NORMAL} for queries outside the release tree, {@link QueryGenerationMode#WORKSPACECOPY} within the release tree.
      */
-    @Nonnull
+    @NotNull
     protected String buildSQL2(QueryGenerationMode mode) {
         if (VERSIONSTORAGE == mode) throw new IllegalArgumentException("Illegal mode " + mode);
         String notReleaseTree = "";
@@ -477,7 +477,7 @@ public class StagingQueryImpl extends Query {
      * afterwards. But we rely on the default path attribute at the version history pointing somewhere into the release tree,
      * and that the version is labelled with the release number.
      */
-    @Nonnull
+    @NotNull
     protected String buildSQL2Version() {
         return "SELECT n.[jcr:path], version.[jcr:uuid] AS [query:versionUuid], " +
                 "n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] " +
@@ -501,7 +501,7 @@ public class StagingQueryImpl extends Query {
      * clause if orderBy is requested, paths to calculate the location of the original resource and type information.
      * Being in version storage, this has the same limitations like {@link #buildSQL2Version()}.
      */
-    @Nonnull
+    @NotNull
     protected String buildSQL24SingleVersion(String pathInsideVersionStorage) {
         return "SELECT n.[jcr:path], version.[jcr:uuid] AS [query:versionUuid], " +
                 "n.[jcr:frozenPrimaryType] AS [query:type], n.[jcr:frozenMixinTypes] AS [query:mixin] " +

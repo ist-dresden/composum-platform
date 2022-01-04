@@ -21,8 +21,8 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.RepositoryException;
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
@@ -45,13 +45,13 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
 
     private static final Logger LOG = LoggerFactory.getLogger(StagingResourceResolver.class);
 
-    @Nonnull
+    @NotNull
     protected final Release release;
 
-    @Nonnull
+    @NotNull
     protected final ReleaseMapper releaseMapper;
 
-    @Nonnull
+    @NotNull
     protected final DefaultStagingReleaseManager.Configuration configuration;
 
     /**
@@ -63,7 +63,7 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
      * @param configuration        the configuration
      * @param closeResolverOnClose if true, the underlyingResolver is closed when this resolver is closed
      */
-    protected StagingResourceResolver(@Nonnull Release release, @Nonnull ResourceResolver underlyingResolver, @Nonnull ReleaseMapper releaseMapper, @Nonnull DefaultStagingReleaseManager.Configuration configuration, boolean closeResolverOnClose) {
+    protected StagingResourceResolver(@NotNull Release release, @NotNull ResourceResolver underlyingResolver, @NotNull ReleaseMapper releaseMapper, @NotNull DefaultStagingReleaseManager.Configuration configuration, boolean closeResolverOnClose) {
         super(underlyingResolver, closeResolverOnClose);
         this.release = release;
         this.releaseMapper = releaseMapper;
@@ -73,13 +73,13 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
     /**
      * The release that is presented by this resolver.
      */
-    @Nonnull
+    @NotNull
     public Release getRelease() {
         return release;
     }
 
     /** The {@link ReleaseMapper} we're applying. */
-    @Nonnull
+    @NotNull
     public ReleaseMapper getReleaseMapper() {
         return releaseMapper;
     }
@@ -89,7 +89,7 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
      *
      * @deprecated that should go somehow through resolver methods.
      */
-    @Nonnull
+    @NotNull
     @Deprecated
     public ResourceResolver getUnderlyingResolver() {
         return underlyingResolver;
@@ -127,7 +127,7 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
     /** Returns additional wrapped children overlayed into the release - primarily for {@link #isDirectlyMappedPath(String)}. */
     @Override
     @Nullable
-    protected Iterator<Resource> overlayedChildren(@Nonnull Resource parent) {
+    protected Iterator<Resource> overlayedChildren(@NotNull Resource parent) {
         if (release.getReleaseRoot().getPath().equals(parent.getPath())) {
             List<Resource> overlayedNodes =
                     Arrays.stream(configuration.overlayed_nodes())
@@ -149,8 +149,8 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
      * @return the resource or a {@link NonExistingResource} if it isn't present somewhere or in the release
      */
     @Override
-    @Nonnull
-    protected Resource retrieveReleasedResource(@Nullable SlingHttpServletRequest request, @Nonnull String rawPath) {
+    @NotNull
+    protected Resource retrieveReleasedResource(@Nullable SlingHttpServletRequest request, @NotNull String rawPath) {
         Validate.isTrue(rawPath.startsWith("/"), "Absolute path required, but got %s", rawPath);
         String path = ResourceUtil.normalize(rawPath);
         if (path == null || isFilteredPath(path)) // weird path like /../.. or explicitly removed
@@ -213,8 +213,8 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
     }
 
     @Override
-    @Nonnull
-    public Resource resolve(@Nullable HttpServletRequest request, @Nonnull String rawAbsPath) {
+    @NotNull
+    public Resource resolve(@Nullable HttpServletRequest request, @NotNull String rawAbsPath) {
         String absPath = ResourceUtil.normalize(rawAbsPath);
         if (absPath == null) return new NonExistingResource(this, rawAbsPath);
         Resource resource = request != null ? underlyingResolver.resolve(request, absPath) : underlyingResolver.resolve(absPath);
@@ -228,7 +228,7 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
     // or can just be implemented in terms of other methods.
 
     @Override
-    @Nonnull
+    @NotNull
     public ResourceResolver clone(@Nullable Map<String, Object> authenticationInfo) throws LoginException {
         ResourceResolver resolver = underlyingResolver.clone(authenticationInfo);
         return new StagingResourceResolver(release, resolver, releaseMapper, configuration, true);
@@ -241,7 +241,7 @@ public class StagingResourceResolver extends AbstractStagingResourceResolver imp
      */
     @Override
     @Nullable
-    public <AdapterType> AdapterType adaptTo(@Nonnull Class<AdapterType> type) {
+    public <AdapterType> AdapterType adaptTo(@NotNull Class<AdapterType> type) {
         if (QueryBuilder.class.equals(type)) { return type.cast(new QueryBuilderImpl(this)); }
         return super.adaptTo(type);
     }

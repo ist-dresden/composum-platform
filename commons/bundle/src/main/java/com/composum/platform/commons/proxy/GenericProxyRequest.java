@@ -27,8 +27,8 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLFilter;
 import org.xml.sax.XMLReader;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -80,7 +80,7 @@ public class GenericProxyRequest implements ProxyRequestService {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getName() {
         return config.name();
     }
@@ -95,9 +95,9 @@ public class GenericProxyRequest implements ProxyRequestService {
      * @return 'true' if the request is supported by the service, allowed for the user and handle by the service
      */
     @Override
-    public boolean doProxy(@Nonnull final SlingHttpServletRequest request,
-                           @Nonnull final SlingHttpServletResponse response,
-                           @Nonnull final String targetUrl)
+    public boolean doProxy(@NotNull final SlingHttpServletRequest request,
+                           @NotNull final SlingHttpServletResponse response,
+                           @NotNull final String targetUrl)
             throws IOException {
         if (config.enabled()) {
             Matcher matcher = targetPattern.matcher(targetUrl);
@@ -129,10 +129,10 @@ public class GenericProxyRequest implements ProxyRequestService {
      * @param targetRef the URL derived from the request to the proxy servlet
      * @param matcher   the prepared matcher used to determine this proxy service implementation as the right one
      */
-    protected void doRequest(@Nonnull final SlingHttpServletRequest request,
-                             @Nonnull final SlingHttpServletResponse response,
-                             @Nonnull final String targetRef,
-                             @Nonnull final Matcher matcher)
+    protected void doRequest(@NotNull final SlingHttpServletRequest request,
+                             @NotNull final SlingHttpServletResponse response,
+                             @NotNull final String targetRef,
+                             @NotNull final Matcher matcher)
             throws Exception {
         String targetUrl = getTargetUrl(request, targetRef, matcher);
         if (StringUtils.isNotBlank(targetUrl)) {
@@ -160,10 +160,10 @@ public class GenericProxyRequest implements ProxyRequestService {
      * @param targetUrl the URL used to request the entity
      * @param entity    the content received from the target
      */
-    protected void doResponse(@Nonnull final SlingHttpServletRequest request,
-                              @Nonnull final SlingHttpServletResponse response,
-                              @Nonnull final String targetUrl,
-                              @Nonnull final HttpEntity entity)
+    protected void doResponse(@NotNull final SlingHttpServletRequest request,
+                              @NotNull final SlingHttpServletResponse response,
+                              @NotNull final String targetUrl,
+                              @NotNull final HttpEntity entity)
             throws IOException {
         try (InputStream inputStream = entity.getContent()) {
             String contentType = getContentType(targetUrl, entity);
@@ -219,7 +219,7 @@ public class GenericProxyRequest implements ProxyRequestService {
      * @return the type of the requested content determined from the entity or the requested URL
      */
     @Nullable
-    protected String getContentType(@Nonnull final String targetUrl, @Nonnull final HttpEntity entity) {
+    protected String getContentType(@NotNull final String targetUrl, @NotNull final HttpEntity entity) {
         Header type = entity.getContentType();
         if (type != null) {
             Header encoding = entity.getContentEncoding();
@@ -237,9 +237,9 @@ public class GenericProxyRequest implements ProxyRequestService {
      * @param entityContent the received content as stream
      * @return the reader to use to receive the content
      */
-    @Nonnull
-    protected Reader getContentReader(@Nonnull final String targetUrl,
-                                      @Nonnull final InputStream entityContent) {
+    @NotNull
+    protected Reader getContentReader(@NotNull final String targetUrl,
+                                      @NotNull final InputStream entityContent) {
         String[] toRename = config.tags_to_rename();
         String[] toStrip = config.tags_to_strip();
         String[] toDrop = config.tags_to_drop();
@@ -261,8 +261,8 @@ public class GenericProxyRequest implements ProxyRequestService {
      * @return the URL for the HTTP request to the target
      */
     @Nullable
-    protected String getTargetUrl(@Nonnull final SlingHttpServletRequest request,
-                                  @Nonnull final String targetRef, @Nonnull final Matcher matcher) {
+    protected String getTargetUrl(@NotNull final SlingHttpServletRequest request,
+                                  @NotNull final String targetRef, @NotNull final Matcher matcher) {
         String targetUrl = config.targetUrl();
         if (StringUtils.isNotBlank(targetUrl)) {
             // if a targetURL is configured use the configured pattern to build the final URL based on the requested
@@ -295,9 +295,9 @@ public class GenericProxyRequest implements ProxyRequestService {
      * @return a chain of XML filters initialized with the XSLT resources resolved from the given path list
      */
     @Nullable
-    protected XMLFilter getXsltFilter(@Nonnull final SAXTransformerFactory stf,
-                                      @Nonnull final ResourceResolver resolver,
-                                      @Nonnull final String[] xsltChainPaths) {
+    protected XMLFilter getXsltFilter(@NotNull final SAXTransformerFactory stf,
+                                      @NotNull final ResourceResolver resolver,
+                                      @NotNull final String[] xsltChainPaths) {
         XMLFilter xmlFilter = null;
         try {
             for (String xsltPath : xsltChainPaths) {
@@ -322,7 +322,7 @@ public class GenericProxyRequest implements ProxyRequestService {
         return xmlFilter;
     }
 
-    public static XMLFilter getXmlFilter(@Nonnull final SAXTransformerFactory stf,
+    public static XMLFilter getXmlFilter(@NotNull final SAXTransformerFactory stf,
                                          @Nullable final Resource xsltResource) {
         XMLFilter filter = null;
         InputStream inputStream = getFileContent(xsltResource);

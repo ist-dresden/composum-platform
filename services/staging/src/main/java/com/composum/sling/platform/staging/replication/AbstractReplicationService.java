@@ -15,8 +15,8 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.RepositoryException;
 import java.io.IOException;
 import java.util.*;
@@ -47,7 +47,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
      */
     protected final Map<String, PROCESS> processesCache = Collections.synchronizedMap(new HashMap<>());
 
-    @Nonnull
+    @NotNull
     @Override
     public Collection<PROCESS> processesFor(@Nullable Release release) {
         if (release == null || !isEnabled()) {
@@ -65,9 +65,9 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
     /**
      * Gives the replication configurations for our configuration type for the release at releaseRoot.
      */
-    @Nonnull
-    protected List<CONFIG> getReplicationConfigs(@Nonnull Resource releaseRoot,
-                                                 @Nonnull BeanContext context) {
+    @NotNull
+    protected List<CONFIG> getReplicationConfigs(@NotNull Resource releaseRoot,
+                                                 @NotNull BeanContext context) {
         String releasePath = releaseRoot.getPath();
         String configparent = getConfigParent(releasePath);
 
@@ -90,12 +90,12 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
     /**
      * Returns the directory where replication configurations are stored.
      */
-    @Nonnull
+    @NotNull
     protected String getConfigParent(String releasePath) {
         return PATH_CONFIGROOT + releasePath + DIR_REPLICATION;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Collection<PROCESS> processesFor(@Nullable Resource resource) {
         if (resource == null || !isEnabled()) {
@@ -123,25 +123,25 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         return processes;
     }
 
-    @Nonnull
+    @NotNull
     protected abstract PROCESS makePublishingProcess(Resource releaseRoot, CONFIG replicationConfig);
 
     /**
      * Returns CONFIG.class .
      */
-    @Nonnull
+    @NotNull
     protected abstract Class<CONFIG> getReplicationConfigClass();
 
     /**
      * The replication type this service works on.
      */
-    @Nonnull
+    @NotNull
     protected abstract ReplicationType getReplicationType();
 
     /**
      * Creates the service resolver used to update the content.
      */
-    @Nonnull
+    @NotNull
     protected ResourceResolver makeResolver() throws ReplicationException {
         try {
             return getResolverFactory().getServiceResourceResolver(null);
@@ -189,7 +189,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
          * Reads the configuration from this. The actual type of {replicationConfig} is CONFIG, but we cannot
          * do that because the type parameters would be getting out of hand.
          */
-        void readConfig(@Nonnull AbstractReplicationConfig replicationConfig, @Nonnull Resource releaseRoot);
+        void readConfig(@NotNull AbstractReplicationConfig replicationConfig, @NotNull Resource releaseRoot);
 
         boolean appliesTo(Release release);
     }
@@ -199,7 +199,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         protected final Object changedPathsChangeLock = new Object();
         protected volatile MessageContainer messages = new MessageContainer(/*LoggerFactory.getLogger(getClass())*/);
         // we deliberately save nothing that refers to resolvers, since this is an object that lives long
-        @Nonnull
+        @NotNull
         protected volatile String configPath;
         protected volatile String title;
         protected volatile String description;
@@ -214,16 +214,16 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
          * Forces content comparison instead of quick check.
          */
         protected volatile boolean forceCheck;
-        @Nonnull
+        @NotNull
         protected volatile Set<String> changedPaths = new LinkedHashSet<>();
-        @Nonnull
+        @NotNull
         protected volatile String releaseRootPath;
         protected volatile Boolean active;
         protected volatile Boolean hasRelease;
         protected volatile String releaseUuid;
         protected volatile ReplicationConfig cachedConfig;
 
-        protected AbstractReplicationProcess(@Nonnull Resource releaseRoot, @Nonnull CONFIG config) {
+        protected AbstractReplicationProcess(@NotNull Resource releaseRoot, @NotNull CONFIG config) {
             releaseRootPath = releaseRoot.getPath();
             readConfig(config, releaseRoot);
         }
@@ -266,7 +266,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             return isNotRunning;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public MessageContainer getMessages() {
             return messages;
@@ -308,7 +308,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             }
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public ReleaseChangeProcessorState getState() {
             return state;
@@ -320,7 +320,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         }
 
         @Override
-        @Nonnull
+        @NotNull
         public String getReleaseRootPath() {
             return releaseRootPath;
         }
@@ -328,8 +328,8 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         /**
          * Removes paths that are contained in other paths.
          */
-        @Nonnull
-        protected Set<String> cleanupPaths(@Nonnull Iterable<String> paths) {
+        @NotNull
+        protected Set<String> cleanupPaths(@NotNull Iterable<String> paths) {
             Set<String> cleanedPaths = new LinkedHashSet<>();
             for (String path : paths) {
                 if (cleanedPaths.stream().anyMatch((p) -> isSameOrDescendant(p, path))) {
@@ -346,7 +346,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
          *
          * @param forceCheckSwapped
          */
-        @Nonnull
+        @NotNull
         protected Set<String> swapOutChangedPaths(boolean[] forceCheckSwapped) {
             Set<String> processedChangedPaths;
             synchronized (changedPathsChangeLock) {
@@ -400,7 +400,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
          * Called as often as possible to adapt to config changes.
          */
         @Override
-        public void readConfig(@Nonnull AbstractReplicationConfig replicationConfig, @Nonnull Resource releaseRoot) {
+        public void readConfig(@NotNull AbstractReplicationConfig replicationConfig, @NotNull Resource releaseRoot) {
             configPath = requireNonNull(replicationConfig.getPath());
             title = replicationConfig.getTitle();
             description = replicationConfig.getDescription();
@@ -440,7 +440,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         }
 
         @Override
-        public void triggerProcessing(@Nonnull ReleaseChangeEvent event) {
+        public void triggerProcessing(@NotNull ReleaseChangeEvent event) {
             if (!isEnabled()) {
                 return;
             }
@@ -544,7 +544,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
         @Override
         @Nullable
         public ReleaseChangeEventPublisher.CompareResult compareTree(
-                @Nonnull ResourceHandle resource, int details) throws ReplicationException {
+                @NotNull ResourceHandle resource, int details) throws ReplicationException {
             if (!isEnabled()) {
                 return null;
             }
@@ -555,7 +555,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             return strategy.compareTree(details);
         }
 
-        @Nonnull
+        @NotNull
         protected ReplicatorStrategy makeReplicatorStrategy(ResourceResolver serviceResolver, Set<String> processedChangedPaths, boolean forceCheck)
                 throws ReplicationException {
             CONFIG replicationConfig = getRefreshedConfig(serviceResolver);
@@ -596,8 +596,8 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
          * The {replicationConfig} is actually of type CONFIG, but strangely this leads into trouble with the compiler if
          * we use this type.
          */
-        @Nonnull
-        protected abstract PublicationReceiverFacade createTargetFacade(@Nonnull AbstractReplicationConfig replicationConfig, @Nonnull BeanContext context);
+        @NotNull
+        protected abstract PublicationReceiverFacade createTargetFacade(@NotNull AbstractReplicationConfig replicationConfig, @NotNull BeanContext context);
 
         @Override
         public abstract String getType();
@@ -631,7 +631,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             abort(false);
         }
 
-        protected Release getRelease(@Nonnull ResourceResolver resolver) {
+        protected Release getRelease(@NotNull ResourceResolver resolver) {
             Resource releaseRoot = resolver.getResource(this.releaseRootPath);
             if (releaseRoot == null) { // safety check - strange case. Site removed? Inaccessible?
                 LOG.warn("Cannot find release root {}", this.releaseRootPath);
@@ -648,7 +648,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
 
         @Nullable
         @Override
-        public Boolean isSynchronized(@Nonnull ResourceResolver resolver) {
+        public Boolean isSynchronized(@NotNull ResourceResolver resolver) {
             UpdateInfo updateInfo = getTargetReleaseInfo();
             Boolean result = null;
             if (updateInfo != null && isNotBlank(updateInfo.originalPublisherReleaseChangeId)) {
@@ -700,7 +700,7 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             return this.cachedConfig;
         }
 
-        @Nonnull
+        @NotNull
         protected Resource getHistoryMetaResource(ResourceResolver resolver, String path, boolean createIfNecessary)
                 throws ReplicationException {
             String metapath = appendPaths(ReplicationConstants.PATH_METADATA, path) + ReplicationConstants.NODE_METADATA_HISTORY;
@@ -805,13 +805,13 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             }
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public ReleaseChangeProcess.ReleaseChangeProcessorState getState() {
             return historyState;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public Long getTimestamp() {
             return timestamp;

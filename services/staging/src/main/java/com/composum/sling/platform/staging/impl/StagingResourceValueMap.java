@@ -5,12 +5,20 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ValueMap;
 import org.apache.sling.api.wrappers.ValueMapDecorator;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import static com.composum.sling.platform.staging.StagingConstants.FROZEN_PROP_NAMES_TO_REAL_NAMES;
@@ -93,7 +101,7 @@ public class StagingResourceValueMap extends ValueMapDecorator {
     }
 
     @SuppressWarnings("unchecked")
-    @Nonnull
+    @NotNull
     @Override
     public <T> T get(String name, T defaultValue) {
         if (JCR_UUID.equals(name) && haveToRemoveUuid()) { return defaultValue; }
@@ -114,7 +122,7 @@ public class StagingResourceValueMap extends ValueMapDecorator {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Set<String> keySet() {
         final Set<String> keys = new LinkedHashSet<>(super.keySet());
         for (Entry<String, String> entry : FROZEN_PROP_NAMES_TO_REAL_NAMES.entrySet()) {
@@ -129,7 +137,7 @@ public class StagingResourceValueMap extends ValueMapDecorator {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Set<Entry<String, Object>> entrySet() {
         final Set<Entry<String, Object>> entries = super.entrySet();
         final Set<Entry<String, Object>> result = new TreeSet<>(Entry.comparingByKey());
@@ -160,7 +168,7 @@ public class StagingResourceValueMap extends ValueMapDecorator {
         return keySet().size();
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Collection<Object> values() {
         //noinspection SimplifyStreamApiCallChains - we deliberately use entrySet()
@@ -203,13 +211,13 @@ public class StagingResourceValueMap extends ValueMapDecorator {
          * @param key   the key for the entry, may be null
          * @param value the value for the entry, may be null
          */
-        PrivateEntry(@Nonnull String key, Object value) {
+        PrivateEntry(@NotNull String key, Object value) {
             this.key = key;
             this.value = value;
         }
 
         @Override
-        @Nonnull
+        @NotNull
         public String getKey() {
             return key;
         }
@@ -244,7 +252,7 @@ public class StagingResourceValueMap extends ValueMapDecorator {
         }
 
         @Override
-        @Nonnull
+        @NotNull
         public String toString() {
             return key + "=" + value;
         }

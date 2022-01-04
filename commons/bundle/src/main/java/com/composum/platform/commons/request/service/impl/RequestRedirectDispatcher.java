@@ -12,7 +12,7 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -32,7 +32,7 @@ public class RequestRedirectDispatcher implements RequestRedirectService {
     @Reference(service = RequestRedirectProvider.class,
             policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.MULTIPLE)
-    protected void bindRequestRedirectProvider(@Nonnull final RequestRedirectProvider service) {
+    protected void bindRequestRedirectProvider(@NotNull final RequestRedirectProvider service) {
         LOG.info("bindRequestRedirectProvider({}:{})", service.getName(), service);
         RequestRedirectProvider unbind = providers.put(service.getName(), service);
         if (unbind != null) {
@@ -40,14 +40,14 @@ public class RequestRedirectDispatcher implements RequestRedirectService {
         }
     }
 
-    protected void unbindRequestRedirectProvider(@Nonnull final RequestRedirectProvider service) {
+    protected void unbindRequestRedirectProvider(@NotNull final RequestRedirectProvider service) {
         LOG.info("unbindRequestRedirectProvider({}:{})", service.getName(), service);
         providers.remove(service.getName());
     }
 
     @Override
-    public boolean redirectRequest(@Nonnull final SlingHttpServletRequest request,
-                                   @Nonnull final SlingHttpServletResponse response) {
+    public boolean redirectRequest(@NotNull final SlingHttpServletRequest request,
+                                   @NotNull final SlingHttpServletResponse response) {
         for (RequestRedirectProvider provider : providers.values()) {
             if (provider.canHandle(request) && provider.redirectRequest(request, response)) {
                 if (LOG.isDebugEnabled()) {

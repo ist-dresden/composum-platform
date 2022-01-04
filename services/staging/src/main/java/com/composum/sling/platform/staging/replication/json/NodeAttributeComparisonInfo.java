@@ -20,8 +20,8 @@ import org.apache.sling.api.resource.ValueMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.Binary;
 import javax.jcr.Node;
 import javax.jcr.Property;
@@ -125,8 +125,8 @@ public class NodeAttributeComparisonInfo {
      * @param pathMapping if given, we pass the path through this mapping
      * @throws IllegalArgumentException if the path of the resource does not start with the given pathOffset
      */
-    @Nonnull
-    public static NodeAttributeComparisonInfo of(@Nonnull Resource resource, @Nullable Function<String, String> pathMapping) {
+    @NotNull
+    public static NodeAttributeComparisonInfo of(@NotNull Resource resource, @Nullable Function<String, String> pathMapping) {
         try {
             HashFunction hash = Hashing.sipHash24();
             NodeAttributeComparisonInfo result = new NodeAttributeComparisonInfo();
@@ -221,7 +221,7 @@ public class NodeAttributeComparisonInfo {
      * A string representation of the property - generated depending on the type. Given the type, it should be
      * unique to the value.
      */
-    protected static String valueRep(@Nonnull Value value, int type, HashFunction hash) throws RepositoryException, IOException {
+    protected static String valueRep(@NotNull Value value, int type, HashFunction hash) throws RepositoryException, IOException {
         switch (type) {
             case DATE:
                 Calendar date = value.getDate();
@@ -333,7 +333,7 @@ public class NodeAttributeComparisonInfo {
      * Human readable description of the difference between two attributeInfo - for logging / debugging purposes
      * only.
      */
-    public String difference(@Nonnull NodeAttributeComparisonInfo other) {
+    public String difference(@NotNull NodeAttributeComparisonInfo other) {
         StringBuilder buf = new StringBuilder();
         if (!StringUtils.equals(path, other.path)) {
             buf.append("Paths different. ");

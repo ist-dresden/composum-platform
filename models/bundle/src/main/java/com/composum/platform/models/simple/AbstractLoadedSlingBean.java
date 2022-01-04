@@ -8,7 +8,7 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ValueMap;
 import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * A lightweight {@link SlingBean} that is fully initialized from a resource and discards
@@ -37,7 +37,7 @@ public class AbstractLoadedSlingBean implements SlingBean {
      * Initializes the model. Do not keep the context or the resource, as this is meant to exceed their lifetime!
      */
     @Override
-    public void initialize(BeanContext beanContext, @Nonnull Resource resource) {
+    public void initialize(BeanContext beanContext, @NotNull Resource resource) {
         this.name = resource.getName();
         this.path = resource.getPath();
         this.type = resource.getResourceType();

@@ -5,8 +5,8 @@ import org.apache.sling.api.resource.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import java.util.ArrayList;
@@ -26,7 +26,7 @@ public class ChildrenOrderInfo {
     /**
      * The path of a node whose children order is relevant.
      */
-    @Nonnull
+    @NotNull
     public String getPath() {
         return path;
     }
@@ -35,7 +35,7 @@ public class ChildrenOrderInfo {
      * The names of the children of node {@link #getPath()}, in the ordering they appear in the resource tree. We only
      * transmit this if they are orderable and if there is more than one.
      */
-    @Nonnull
+    @NotNull
     public List<String> getChildNames() {
         return childNames;
     }

@@ -2,7 +2,7 @@ package com.composum.sling.platform.staging;
 
 import org.apache.commons.lang3.StringUtils;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -34,19 +34,19 @@ public interface ReleaseNumberCreator {
      */
     ReleaseNumberCreator BUGFIX = new DefaultReleaseNumberCreator("BUGFIX", 2);
 
-    @Nonnull
+    @NotNull
     String name();
 
     /**
      * Creates a new release key from the last one - e.g. r1.6.0 from r1.5.3 for {@link #MINOR} .
      */
-    @Nonnull
-    String bumpRelease(@Nonnull String oldname);
+    @NotNull
+    String bumpRelease(@NotNull String oldname);
 
     /**
      * Returns the comparator to use when sorting release numbers.
      */
-    @Nonnull
+    @NotNull
     default Comparator<String> releaseComparator() {
         return COMPARATOR_RELEASES;
     }
@@ -85,7 +85,7 @@ public interface ReleaseNumberCreator {
         final String DIGITNONDIGIT_BOUNDARY = "(?<=\\d)(?=\\D)|(?<=\\D)(?=\\d)";
 
         @Override
-        public int compare(@Nonnull String r1, @Nonnull String r2) {
+        public int compare(@NotNull String r1, @NotNull String r2) {
             if (CURRENT_RELEASE.equals(r1))
                 return CURRENT_RELEASE.equals(r2) ? 0 : 1;
             if (CURRENT_RELEASE.equals(r2))
@@ -122,15 +122,15 @@ public interface ReleaseNumberCreator {
             this.increasePosition = increasePosition;
         }
 
-        @Nonnull
+        @NotNull
         @Override
         public String name() {
             return name;
         }
 
-        @Nonnull
+        @NotNull
         @Override
-        public String bumpRelease(@Nonnull String oldname) {
+        public String bumpRelease(@NotNull String oldname) {
             String[] numbers = StringUtils.defaultIfBlank(oldname, "r0").split("\\D+");
             List<Integer> rnum = Arrays.asList(numbers).stream()
                     .filter(StringUtils::isNotBlank)

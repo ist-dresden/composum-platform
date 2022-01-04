@@ -6,8 +6,8 @@ import com.composum.sling.platform.staging.replication.ReplicationConfig;
 import com.composum.sling.platform.staging.replication.ReplicationException;
 import org.apache.sling.api.resource.ResourceResolver;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.Map;
 
 /**
@@ -24,13 +24,13 @@ public interface ReleaseChangeProcess {
      * A string (such as a configuration resource path) that identifies this process uniquely. Not for human
      * consumption.
      */
-    @Nonnull
+    @NotNull
     String getId();
 
     /**
      * Human-readable name / title for the process.
      */
-    @Nonnull
+    @NotNull
     String getName();
 
     /**
@@ -48,13 +48,13 @@ public interface ReleaseChangeProcess {
     /**
      * An identifier for the type of the process - e.g. "Remote" or "In-Place".
      */
-    @Nonnull
+    @NotNull
     String getType();
 
     /**
      * The release root this applies to.
      */
-    @Nonnull
+    @NotNull
     String getReleaseRootPath();
 
     /**
@@ -123,9 +123,9 @@ public interface ReleaseChangeProcess {
      * If there is anything to do and run should be triggered, the {@link #getState()} should be switched to
      * {@link ReleaseChangeProcessorState#awaiting}. The caller guarantees that {@link #run()} is called soon.
      */
-    void triggerProcessing(@Nonnull ReleaseChangeEvent event);
+    void triggerProcessing(@NotNull ReleaseChangeEvent event);
 
-    @Nonnull
+    @NotNull
     ReleaseChangeProcessorState getState();
 
     /**
@@ -164,7 +164,7 @@ public interface ReleaseChangeProcess {
     /**
      * Can contain some human readable messages about the last run, e.g. errors.
      */
-    @Nonnull
+    @NotNull
     MessageContainer getMessages();
 
     @Nullable
@@ -177,7 +177,7 @@ public interface ReleaseChangeProcess {
      * called on each request of an editor.
      */
     @Nullable
-    Boolean isSynchronized(@Nonnull ResourceResolver resolver);
+    Boolean isSynchronized(@NotNull ResourceResolver resolver);
 
     /**
      * Forces an update of {@link #isSynchronized()} and {@link #getLastReplicationTimestamp()}.
@@ -206,7 +206,7 @@ public interface ReleaseChangeProcess {
      * @return the differences, or null if not enabled
      */
     @Nullable
-    ReleaseChangeEventPublisher.CompareResult compareTree(@Nonnull ResourceHandle resource, int details) throws ReplicationException;
+    ReleaseChangeEventPublisher.CompareResult compareTree(@NotNull ResourceHandle resource, int details) throws ReplicationException;
 
     /**
      * Information about the last runs of the replication for each end state (error, success, abort).
@@ -220,10 +220,10 @@ public interface ReleaseChangeProcess {
         /**
          * The state this history entry is about.
          */
-        @Nonnull
+        @NotNull
         ReleaseChangeProcess.ReleaseChangeProcessorState getState();
 
-        @Nonnull
+        @NotNull
         public Long getTimestamp();
 
         /**

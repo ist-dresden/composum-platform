@@ -11,8 +11,8 @@ import com.composum.sling.platform.staging.query.QueryConditionDsl;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.sling.api.resource.Resource;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.RepositoryException;
 import java.util.List;
 
@@ -36,19 +36,19 @@ public interface SearchService {
     interface Result {
 
         /** The page which contains matches. */
-        @Nonnull
+        @NotNull
         Resource getTarget();
 
         /** The content child of the page which contains matches. */
-        @Nonnull
+        @NotNull
         Resource getTargetContent();
 
         /** A link that shows the target, including search terms with {@link #PARAMETER_SEARCHTERM} */
-        @Nonnull
+        @NotNull
         String getTargetUrl();
 
         /** The title of the search result. */
-        @Nonnull
+        @NotNull
         String getTitle();
 
         /** The score of the search result. */
@@ -58,11 +58,11 @@ public interface SearchService {
          * One or more descendants of {@link #getTarget()} that potentially match the search expression. Mostly useful
          * for generating excerpts; can contain false positives in some search algorithms.
          */
-        @Nonnull
+        @NotNull
         List<Resource> getMatches();
 
         /** The fulltext search expression for which this result was found. */
-        @Nonnull
+        @NotNull
         String getSearchExpression();
 
         /**
@@ -73,7 +73,7 @@ public interface SearchService {
          *
          * @return a text with the occurrences of the words marked with HTML tag em .
          */
-        @Nonnull
+        @NotNull
         String getExcerpt() throws SearchTermParseException;
     }
 
@@ -96,9 +96,9 @@ public interface SearchService {
      * @return possibly empty list of results
      * @see com.composum.sling.core.mapping.jcr.ResourceFilterMapping
      */
-    @Nonnull
-    List<Result> search(@Nonnull BeanContext context, @Nonnull String selectors,
-                        @Nonnull String root, @Nonnull String searchExpression, @Nullable ResourceFilter searchFilter,
+    @NotNull
+    List<Result> search(@NotNull BeanContext context, @NotNull String selectors,
+                        @NotNull String root, @NotNull String searchExpression, @Nullable ResourceFilter searchFilter,
                         int offset, @Nullable Integer limit)
             throws RepositoryException, SearchTermParseException;
 
@@ -120,6 +120,6 @@ public interface SearchService {
      *
      * @return up to limit elements of the result list with the offset first elements skipped.
      */
-    @Nonnull
+    @NotNull
     List<Result> executeQueryWithRaisingLimits(LimitedQuery limitedQuery, int offset, Integer limit);
 }

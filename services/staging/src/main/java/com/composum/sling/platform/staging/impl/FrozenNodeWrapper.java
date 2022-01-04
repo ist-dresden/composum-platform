@@ -10,8 +10,8 @@ import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.PropertyIteratorAdapter;
 import org.apache.sling.api.resource.Resource;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.InvalidItemStateException;
@@ -72,18 +72,18 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
      */
     protected static final String TOP_FROZENNODE_PROP_REPLICATEDVERSION = "../" + ResourceUtil.JCR_UUID;
 
-    @Nonnull
+    @NotNull
     private final Resource resource;
     private transient Boolean storedVersionTopNode;
     private transient Boolean inStorage;
 
-    FrozenNodeWrapper(@Nonnull Node wrapped, @Nonnull Resource resource) {
+    FrozenNodeWrapper(@NotNull Node wrapped, @NotNull Resource resource) {
         super(wrapped, resource.getPath());
         this.resource = resource;
     }
 
     @Nullable
-    public static FrozenNodeWrapper wrap(@Nullable Node wrapped, @Nonnull Resource resource) {
+    public static FrozenNodeWrapper wrap(@Nullable Node wrapped, @NotNull Resource resource) {
         if (wrapped == null) { return null; }
         if (wrapped instanceof FrozenNodeWrapper) {
             Node unwrapped = ((FrozenNodeWrapper) wrapped).getWrapped();
@@ -138,7 +138,7 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
 
     /** We go through the resolver since the simulated children for staging might be in version space or something. */
     @SuppressWarnings("unchecked")
-    @Nonnull
+    @NotNull
     protected NodeIterator rewrapByPath(NodeIterator nodes) throws RepositoryException {
         return new NodeIteratorAdapter(
                 IteratorUtils.transformedIterator(nodes,
@@ -204,7 +204,7 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
         return new SimulatedMixinProperty(path, wrapped.getSession(), values);
     }
 
-    @Nonnull
+    @NotNull
     protected PropertyIterator addCplReplicatedVersionProperty(PropertyIterator propertyIterator) throws RepositoryException {
         FrozenPropertyWrapper replproperty = FrozenPropertyWrapper.wrap(wrapped.getProperty(TOP_FROZENNODE_PROP_REPLICATEDVERSION),
                 resource.getPath() + "/" + PROP_REPLICATED_VERSION);
@@ -224,7 +224,7 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
     }
 
     @SuppressWarnings({"unchecked", "ConstantConditions"})
-    @Nonnull
+    @NotNull
     protected PropertyIterator rewrapIntoWrappedProperty(PropertyIterator properties) throws RepositoryException {
         Iterator filteredproperties = properties;
         if (isInStorage()) {
@@ -352,7 +352,7 @@ public class FrozenNodeWrapper extends AbstractFrozenItem<Node> implements Node 
         return false;
     }
 
-    @Nonnull
+    @NotNull
     protected NodeTypeManager getNodeTypeManager() throws RepositoryException {
         try {
             Session session = this.wrapped.getSession();

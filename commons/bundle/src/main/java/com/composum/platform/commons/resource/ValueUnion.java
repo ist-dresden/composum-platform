@@ -2,7 +2,7 @@ package com.composum.platform.commons.resource;
 
 import org.apache.sling.api.resource.ValueMap;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -24,22 +24,22 @@ public class ValueUnion extends ValueSource {
         super(new HashMap<>()); // construction with its own cache
     }
 
-    public ValueUnion(@Nonnull final ValueMap... cascade) {
+    public ValueUnion(@NotNull final ValueMap... cascade) {
         this();
         for (ValueMap map : cascade) {
             add(map);
         }
     }
 
-    public void add(int index, @Nonnull final ValueMap map) {
+    public void add(int index, @NotNull final ValueMap map) {
         cascade.add(index, map);
     }
 
-    public void add(@Nonnull final ValueMap map) {
+    public void add(@NotNull final ValueMap map) {
         cascade.add(map);
     }
 
-    public void remove(@Nonnull final ValueMap map) {
+    public void remove(@NotNull final ValueMap map) {
         cascade.remove(map);
     }
 
@@ -66,7 +66,7 @@ public class ValueUnion extends ValueSource {
     }
 
     @Override
-    public boolean containsKey(@Nonnull final Object key) {
+    public boolean containsKey(@NotNull final Object key) {
         for (ValueMap map : cascade) {
             if (map.containsKey(key)) {
                 return true;
@@ -76,7 +76,7 @@ public class ValueUnion extends ValueSource {
     }
 
     @Override
-    public boolean containsValue(@Nonnull final Object value) {
+    public boolean containsValue(@NotNull final Object value) {
         return values().contains(value);
     }
 
@@ -84,7 +84,7 @@ public class ValueUnion extends ValueSource {
      * the merging and caching 'get'...
      */
     @Override
-    public Object get(@Nonnull Object key) {
+    public Object get(@NotNull Object key) {
         Object value = super.get(key);
         if (value == null) {
             for (ValueMap map : cascade) {
@@ -102,7 +102,7 @@ public class ValueUnion extends ValueSource {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Set<String> keySet() {
         Set<String> keys = new HashSet<>(super.keySet());
         for (ValueMap map : cascade) {
@@ -112,14 +112,14 @@ public class ValueUnion extends ValueSource {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Collection<Object> values() {
         cacheAll();
         return super.values();
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Set<Map.Entry<String, Object>> entrySet() {
         cacheAll();
         return super.entrySet();

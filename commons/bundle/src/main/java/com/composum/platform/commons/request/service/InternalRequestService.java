@@ -14,7 +14,7 @@ import org.apache.sling.servlethelpers.MockRequestPathInfo;
 import org.apache.sling.servlethelpers.MockSlingHttpServletRequest;
 import org.apache.sling.servlethelpers.MockSlingHttpServletResponse;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.security.Principal;
@@ -194,7 +194,7 @@ public interface InternalRequestService {
 
         // wrapped context request
 
-        @Nonnull
+        @NotNull
         @Override
         public RequestProgressTracker getRequestProgressTracker() {
             return contextRequest.getRequestProgressTracker();
@@ -310,8 +310,8 @@ public interface InternalRequestService {
      * @param contextRequest the 'original' rendering request
      * @param pathInfo       the prepared path info object for the internal request
      */
-    @Nonnull
-    String getString(@Nonnull SlingHttpServletRequest contextRequest, @Nonnull PathInfo pathInfo)
+    @NotNull
+    String getString(@NotNull SlingHttpServletRequest contextRequest, @NotNull PathInfo pathInfo)
             throws ServletException, IOException;
 
     /**
@@ -320,7 +320,7 @@ public interface InternalRequestService {
      * @param contextRequest the 'original' rendering request
      * @param pathInfo       the prepared path info object for the internal request
      */
-    @Nonnull
-    byte[] getBytes(@Nonnull SlingHttpServletRequest contextRequest, @Nonnull PathInfo pathInfo)
+    @NotNull
+    byte[] getBytes(@NotNull SlingHttpServletRequest contextRequest, @NotNull PathInfo pathInfo)
             throws ServletException, IOException;
 }

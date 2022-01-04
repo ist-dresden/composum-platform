@@ -6,7 +6,7 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
@@ -134,7 +134,7 @@ public class CryptoServiceImplTest {
         ec.checkThat(cipher.getBlockSize(), is(CryptoServiceImpl.IVLEN));
     }
 
-    @Nonnull
+    @NotNull
     protected Cipher getCipher(String key, byte[] salt, byte[] iv, int mode) throws Exception {
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
         ec.checkThat(cipher.getBlockSize(), is(16));

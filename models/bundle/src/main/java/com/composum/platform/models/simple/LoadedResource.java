@@ -5,8 +5,8 @@ import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceWrapper;
 import org.apache.sling.api.resource.ValueMap;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -29,7 +29,7 @@ public class LoadedResource extends ResourceWrapper {
     public class LoadedValueMap extends HashMap<String, Object> implements ValueMap {
 
         @Nullable
-        public <T> T get(@Nonnull String key, @Nonnull Class<T> type) {
+        public <T> T get(@NotNull String key, @NotNull Class<T> type) {
             int lastSlash = key.lastIndexOf('/');
             LoadedResource owner = lastSlash > 0
                     ? (LoadedResource) getChild(key.substring(0, lastSlash))
@@ -38,13 +38,13 @@ public class LoadedResource extends ResourceWrapper {
         }
 
         @Override
-        @Nonnull
-        public <T> T get(@Nonnull String key, @Nonnull T defaultValue) {
+        @NotNull
+        public <T> T get(@NotNull String key, @NotNull T defaultValue) {
             T value = (T) get(key, defaultValue.getClass());
             return value != null ? value : defaultValue;
         }
 
-        protected LoadedResource getResource(@Nonnull String key) {
+        protected LoadedResource getResource(@NotNull String key) {
             String[] path = StringUtils.split(key, "/");
             LoadedResource resource = LoadedResource.this;
             for (int i = 0; resource != null && i < path.length - 1; i++) {
@@ -54,7 +54,7 @@ public class LoadedResource extends ResourceWrapper {
         }
     }
 
-    public LoadedResource(@Nonnull Resource resource) {
+    public LoadedResource(@NotNull Resource resource) {
         super(resource);
         ValueMap valueMap = resource.getValueMap();
         name = resource.getName();
@@ -67,7 +67,7 @@ public class LoadedResource extends ResourceWrapper {
         load(resource);
     }
 
-    protected void load(@Nonnull Resource resource) {
+    protected void load(@NotNull Resource resource) {
         ValueMap valueMap = resource.getValueMap();
         for (String key : valueMap.keySet()) {
             properties.put(key, valueMap.get(key));
@@ -78,19 +78,19 @@ public class LoadedResource extends ResourceWrapper {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getName() {
         return name;
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getPath() {
         return path;
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String getResourceType() {
         return resourceType;
     }
@@ -106,25 +106,25 @@ public class LoadedResource extends ResourceWrapper {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public ValueMap getValueMap() {
         return properties;
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Iterator<Resource> listChildren() {
         return children.values().iterator();
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Iterable<Resource> getChildren() {
         return children.values();
     }
 
     @Override
-    public Resource getChild(@Nonnull String relPath) {
+    public Resource getChild(@NotNull String relPath) {
         int firstSlash = relPath.indexOf('/');
         if (firstSlash > 0) {
             Resource child = children.get(relPath.substring(0, firstSlash));

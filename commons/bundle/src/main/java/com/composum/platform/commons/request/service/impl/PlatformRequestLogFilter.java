@@ -12,8 +12,8 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -43,7 +43,7 @@ public class PlatformRequestLogFilter implements Filter {
     @Reference(service = PlatformRequestLogger.class,
             policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.MULTIPLE)
-    protected void bindPlatformRequestLogger(@Nonnull final PlatformRequestLogger service) {
+    protected void bindPlatformRequestLogger(@NotNull final PlatformRequestLogger service) {
         LOG.info("bindPlatformRequestLogger({}:{})", service.getName(), service);
         PlatformRequestLogger unbind = loggers.put(service.getName(), service);
         if (unbind != null) {
@@ -51,15 +51,15 @@ public class PlatformRequestLogFilter implements Filter {
         }
     }
 
-    protected void unbindPlatformRequestLogger(@Nonnull final PlatformRequestLogger service) {
+    protected void unbindPlatformRequestLogger(@NotNull final PlatformRequestLogger service) {
         LOG.info("unbindPlatformRequestLogger({}:{})", service.getName(), service);
         loggers.remove(service.getName());
     }
 
     @Nullable
     public PlatformRequestLogger getLogger(@Nullable final AccessMode accessMode,
-                                           @Nonnull final SlingHttpServletRequest request,
-                                           @Nonnull final SlingHttpServletResponse response) {
+                                           @NotNull final SlingHttpServletRequest request,
+                                           @NotNull final SlingHttpServletResponse response) {
         for (PlatformRequestLogger logger : loggers.values()) {
             if (logger.canHandle(accessMode, request, response)) {
                 if (LOG.isDebugEnabled()) {

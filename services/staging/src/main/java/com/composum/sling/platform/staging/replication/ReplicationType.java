@@ -1,7 +1,7 @@
 package com.composum.sling.platform.staging.replication;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Provides metadata including a description for a particular replication implementation.
@@ -11,13 +11,13 @@ public interface ReplicationType {
     /**
      * @return a unique key of the replication implementation
      */
-    @Nonnull
+    @NotNull
     String getServiceId();
 
     /**
      * @return a short readable identifier of the replication implementation (i18n)
      */
-    @Nonnull
+    @NotNull
     String getTitle();
 
     /**
@@ -29,6 +29,6 @@ public interface ReplicationType {
     /**
      * @return the resource type of the replication implementation configuration component
      */
-    @Nonnull
+    @NotNull
     String getResourceType();
 }

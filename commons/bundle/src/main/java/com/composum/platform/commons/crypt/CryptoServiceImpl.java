@@ -8,8 +8,8 @@ import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
@@ -87,7 +87,7 @@ public class CryptoServiceImpl implements CryptoService {
         }
     }
 
-    @Nonnull
+    @NotNull
     protected Cipher makeCipher(String key, byte[] salt, byte[] iv, int mode) throws NoSuchAlgorithmException,
             NoSuchPaddingException, InvalidKeySpecException, InvalidKeyException, InvalidAlgorithmParameterException {
         Cipher cipher = Cipher.getInstance(ALGORITHM);
@@ -108,7 +108,7 @@ public class CryptoServiceImpl implements CryptoService {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public String makeKey() {
         String key = RandomStringUtils.random(43, 0, 0, true, true, null, secureRandom);
         return key;
@@ -121,7 +121,7 @@ public class CryptoServiceImpl implements CryptoService {
 
     @Nullable
     @Override
-    public String encrypt(@Nullable CharSequence text, @Nonnull String key) {
+    public String encrypt(@Nullable CharSequence text, @NotNull String key) {
         Objects.requireNonNull(key);
         if (text == null) { return null; }
         byte[] ciphered = encrypt(text.toString().getBytes(StandardCharsets.UTF_8), key);
@@ -131,7 +131,7 @@ public class CryptoServiceImpl implements CryptoService {
 
     @Nullable
     @Override
-    public String decrypt(@Nullable CharSequence ciphertext, @Nonnull String key) {
+    public String decrypt(@Nullable CharSequence ciphertext, @NotNull String key) {
         Objects.requireNonNull(key);
         if (ciphertext == null) { return null; }
         byte[] ciphered = Base64.getUrlDecoder().decode(ciphertext.toString().getBytes(StandardCharsets.UTF_8));
@@ -141,7 +141,7 @@ public class CryptoServiceImpl implements CryptoService {
 
     @Nullable
     @Override
-    public byte[] encrypt(@Nullable byte[] message, @Nonnull String key) {
+    public byte[] encrypt(@Nullable byte[] message, @NotNull String key) {
         if (message == null) { return null; }
         ByteArrayOutputStream cipherStream = new ByteArrayOutputStream();
         try {
@@ -154,7 +154,7 @@ public class CryptoServiceImpl implements CryptoService {
 
     @Nullable
     @Override
-    public byte[] decrypt(@Nullable byte[] ciphertext, @Nonnull String key) throws IllegalArgumentException {
+    public byte[] decrypt(@Nullable byte[] ciphertext, @NotNull String key) throws IllegalArgumentException {
         if (ciphertext == null) { return null; }
         ByteArrayOutputStream messageStream = new ByteArrayOutputStream();
         try {
@@ -166,7 +166,7 @@ public class CryptoServiceImpl implements CryptoService {
     }
 
     @Override
-    public boolean encrypt(@Nullable InputStream messageStream, @Nonnull OutputStream cipherStream, @Nonnull String key) throws IOException {
+    public boolean encrypt(@Nullable InputStream messageStream, @NotNull OutputStream cipherStream, @NotNull String key) throws IOException {
         Objects.requireNonNull(key);
         if (messageStream == null) { return false; }
         byte[] salt = new byte[SALTLEN];
@@ -199,7 +199,7 @@ public class CryptoServiceImpl implements CryptoService {
     }
 
     @Override
-    public boolean decrypt(@Nullable InputStream cipherStream, @Nonnull OutputStream messageStream, @Nonnull String key) throws IllegalArgumentException, IOException {
+    public boolean decrypt(@Nullable InputStream cipherStream, @NotNull OutputStream messageStream, @NotNull String key) throws IllegalArgumentException, IOException {
         Objects.requireNonNull(key);
         if (cipherStream == null) { return false; }
         byte[] salt = null;

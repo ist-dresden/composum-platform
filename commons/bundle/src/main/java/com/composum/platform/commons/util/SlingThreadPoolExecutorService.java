@@ -6,7 +6,7 @@ import org.apache.sling.commons.threads.ThreadPoolManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
+import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -21,7 +21,7 @@ public class SlingThreadPoolExecutorService extends AbstractExecutorService {
 
     protected final String name;
 
-    @Nonnull
+    @NotNull
     protected ThreadPoolManager threadPoolManager;
 
     protected volatile ThreadPool threadPool;
@@ -29,7 +29,7 @@ public class SlingThreadPoolExecutorService extends AbstractExecutorService {
     /**
      * Retrieves the threadpool with the given name. Remember to {@link #shutdown()}!
      */
-    public SlingThreadPoolExecutorService(@Nonnull ThreadPoolManager threadPoolManager, @Nonnull String name) {
+    public SlingThreadPoolExecutorService(@NotNull ThreadPoolManager threadPoolManager, @NotNull String name) {
         this.threadPoolManager = threadPoolManager;
         threadPool = threadPoolManager.get(name);
         this.name = name;
@@ -70,7 +70,7 @@ public class SlingThreadPoolExecutorService extends AbstractExecutorService {
      * @see #shutdown()
      */
     @Deprecated
-    @Nonnull
+    @NotNull
     @Override
     public List<Runnable> shutdownNow() {
         throw new UnsupportedOperationException("Not implemented: SlingThreadPoolExecutorService.shutdownNow");
@@ -100,16 +100,16 @@ public class SlingThreadPoolExecutorService extends AbstractExecutorService {
      */
     @Deprecated
     @Override
-    public boolean awaitTermination(long timeout, @Nonnull TimeUnit unit) throws InterruptedException {
+    public boolean awaitTermination(long timeout, @NotNull TimeUnit unit) throws InterruptedException {
         throw new UnsupportedOperationException("Not implemented yet: SlingThreadPoolExecutorService.awaitTermination");
     }
 
     @Override
-    public void execute(@Nonnull Runnable command) throws RejectedExecutionException {
+    public void execute(@NotNull Runnable command) throws RejectedExecutionException {
         getSlingThreadpool().execute(command);
     }
 
-    @Nonnull
+    @NotNull
     protected ThreadPool getSlingThreadpool() throws RejectedExecutionException {
         ThreadPool theThreadpool = threadPool;
         if (isShutdown() || theThreadpool == null) {
@@ -118,13 +118,13 @@ public class SlingThreadPoolExecutorService extends AbstractExecutorService {
         return theThreadpool;
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public Future<?> submit(Runnable task) throws RejectedExecutionException {
         return getSlingThreadpool().submit(task);
     }
 
-    @Nonnull
+    @NotNull
     @Override
     public <T> Future<T> submit(Callable<T> task) throws RejectedExecutionException {
         return getSlingThreadpool().submit(task);

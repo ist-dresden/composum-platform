@@ -12,8 +12,8 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import java.io.Serializable;
@@ -66,7 +66,7 @@ public class ComponentCacheService implements ComponentCache {
     }
 
     @Override
-    @Nonnull
+    @NotNull
     public Config getConfig() {
         return config;
     }
@@ -98,7 +98,7 @@ public class ComponentCacheService implements ComponentCache {
      * returns the cache rule for the resource to include currently
      */
     @Override
-    @Nonnull
+    @NotNull
     public CachePolicy getCachePolicy(SlingHttpServletRequest request) {
         CachePolicy embedState;
         if ((embedState = (CachePolicy) request.getAttribute(ATTR_IS_EMBEDDING)) != null) {
@@ -130,13 +130,13 @@ public class ComponentCacheService implements ComponentCache {
     @SuppressWarnings("ConstantConditions")
     @Override
     @Nullable
-    public String getIncludeCacheContent(@Nonnull Serializable key) {
+    public String getIncludeCacheContent(@NotNull Serializable key) {
         return getIncludeCacheService().get(key);
     }
 
     @SuppressWarnings("ConstantConditions")
     @Override
-    public void setIncludeCacheContent(@Nonnull Serializable key, @Nullable String content) {
+    public void setIncludeCacheContent(@NotNull Serializable key, @Nullable String content) {
         getIncludeCacheService().put(key, content);
     }
 
