@@ -12,7 +12,7 @@
 
     <groupId>com.composum.platform</groupId>
     <artifactId>composum-platform</artifactId>
-    <version>1.4.0</version>
+    <version>1.5.0</version>
     <packaging>pom</packaging>
 
     <name>Composum Platform</name>
@@ -23,7 +23,7 @@
         <sling.upload.path>/libs/composum/platform/install</sling.upload.path>
         <package.group>com/composum/platform</package.group>
         <bundle.category>composum,platform</bundle.category>
-        <composum.nodes.version>3.2.0</composum.nodes.version>
+        <composum.nodes.version>3.3.0</composum.nodes.version>
         <release.repository.id>ossrh</release.repository.id>
         <release.repository.url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</release.repository.url>
     </properties>
