@@ -1,24 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
-	<modelVersion>4.0.0</modelVersion>
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
+    <modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<groupId>com.composum.platform</groupId>
-		<artifactId>composum-platform</artifactId>
-		<version>1.4.1-SNAPSHOT</version>
-	</parent>
+    <parent>
+        <groupId>com.composum.platform</groupId>
+        <artifactId>composum-platform</artifactId>
+        <version>1.5.0</version>
+    </parent>
 
     <artifactId>composum-platform-cache</artifactId>
-	<packaging>pom</packaging>
+    <packaging>pom</packaging>
 
     <name>Composum Platform Cache Feature</name>
     <description>Maven parent for the Composum Platform Cache module</description>
 
-	<modules>
-		<module>ehcache</module>
-		<module>bundle</module>
-		<module>package</module>
-	</modules>
+    <properties>
+        <ehcache.version>3.9.9</ehcache.version>
+    </properties>
+
+    <modules>
+        <module>ehcache</module>
+        <module>bundle</module>
+        <module>package</module>
+    </modules>
 
 </project>

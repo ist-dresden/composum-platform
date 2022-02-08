@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.composum.platform</groupId>
         <artifactId>composum-platform-cache</artifactId>
-        <version>1.4.1-SNAPSHOT</version>
+        <version>1.5.0</version>
     </parent>
 
     <artifactId>composum-platform-cache-bundle</artifactId>
@@ -73,7 +73,7 @@
         <dependency>
             <groupId>org.ehcache</groupId>
             <artifactId>ehcache-bundle</artifactId>
-            <version>3.6.3</version>
+            <version>${ehcache.version}</version>
             <scope>provided</scope>
         </dependency>
 
