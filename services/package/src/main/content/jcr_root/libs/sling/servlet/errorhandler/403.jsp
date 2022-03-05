@@ -8,13 +8,9 @@
         // send the raw status code in the case of an Ajax request
         slingResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
     } else {
-        // try to login if no user is signed in currently
-        CoreConfiguration configuration = model.getCoreConfiguration();
-        if (configuration == null ||
-                // try to forward to a custom error page
-                !configuration.forwardToErrorpage(slingRequest, slingResponse, HttpServletResponse.SC_FORBIDDEN)) {
-            if (!model.loginIfAnonymous(slingRequest, slingResponse)) {
-                slingResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        // try to forward to a custom error page
+        if (!model.forwardToErrorpage(slingRequest, slingResponse, HttpServletResponse.SC_FORBIDDEN)) {
+            slingResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
 %>
 <html>
 <head>
@@ -33,7 +29,6 @@
 </body>
 </html>
 <%
-            }
         }
     }
 %>

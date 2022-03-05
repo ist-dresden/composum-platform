@@ -120,18 +120,14 @@
                                 <include>.*/org.apache.sling.tenant.*\.jar</include>
                                 <include>.*/composum-platform-security-bundle.*\.jar</include>
                                 <include>.*/composum-platform-staging-bundle.*\.jar</include>
-                                <include>.*/org.apache.sling.jcr.oak.server.internal.OakSlingRepositoryManager.config</include>
-                                <include>.*/org.apache.sling.auth.form.FormAuthenticationHandler.config</include>
-                                <include>.*/org.apache.sling.engine.impl.auth.SlingAuthenticator.config</include>
-                                <include>.*/org.apache.sling.servlets.get.DefaultGetServlet.config</include>
-                                <include>.*/org.apache.sling.serviceusermapping.impl.ServiceUserMapperImpl.amended-platformservices.config</include>
                                 <include>.*/com.composum.sling.core.CoreConfigImpl.config</include>
                             </includes>
                         </filter>
                         <filter>
                             <root>/libs/composum/platform/config</root>
                             <includes>
-                                <include>.*/com.composum.sling.core.CoreConfigImpl.config</include>
+                                <include>.*/org.apache.sling.jcr.oak.server.internal.OakSlingRepositoryManager.config</include>
+                                <include>.*/org.apache.sling.serviceusermapping.impl.ServiceUserMapperImpl.amended-platformservices.config</include>
                             </includes>
                         </filter>
                     </filters>

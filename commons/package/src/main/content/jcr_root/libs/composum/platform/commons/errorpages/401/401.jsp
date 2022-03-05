@@ -2,14 +2,9 @@
 <%@taglib prefix="sling" uri="http://sling.apache.org/taglibs/sling/1.2" %>
 <%@taglib prefix="cpn" uri="http://sling.composum.com/cpnl/1.0" %>
 <sling:defineObjects/>
-<cpn:component var="model" type="com.composum.platform.commons.request.ErrorPage">
-    <%
-        if (model.redirectToLogin(slingRequest, slingResponse)) {
-            return;
-        }
-        slingResponse.setStatus((Integer) slingRequest.getAttribute("errorpage.status"));
-    %>
-</cpn:component>
+<%
+    slingResponse.setStatus((Integer) slingRequest.getAttribute("errorpage.status"));
+%>
 <html>
 <head>
     <sling:call script="../head.jsp"/>

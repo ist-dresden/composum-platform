@@ -86,6 +86,11 @@
                             <root>${sling.upload.path}</root>
                             <includes>
                                 <include>.*/composum-platform-commons-bundle.*\.jar</include>
+                            </includes>
+                        </filter>
+                        <filter>
+                            <root>/libs/composum/platform/config</root>
+                            <includes>
                                 <include>.*/org.apache.sling.serviceusermapping.impl.ServiceUserMapperImpl.amended-platformcommons.config</include>
                             </includes>
                         </filter>
