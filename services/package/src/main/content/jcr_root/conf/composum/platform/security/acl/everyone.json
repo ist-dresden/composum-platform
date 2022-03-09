@@ -25,6 +25,18 @@
     }
   },
   {
+    "description": "allows the redirect to the system home for 'everyone'",
+    "path": [
+      "/"
+    ],
+    "acl": {
+      "principal": "everyone",
+      "rule": {
+        "grant": "rep:readProperties"
+      }
+    }
+  },
+  {
     "description": "removes each rule for 'everyone' from the given paths",
     "path": "/content",
     "jcr:primaryType": "sling:Folder",
