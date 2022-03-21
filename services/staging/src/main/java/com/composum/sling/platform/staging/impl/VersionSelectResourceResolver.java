@@ -143,17 +143,17 @@ public class VersionSelectResourceResolver extends AbstractStagingResourceResolv
                 try {
                     Resource version = ResourceUtil.getByUuid(underlyingResolver, requiredVersionUuid);
                     if (version == null) {
-                        LOG.error("Version {} does not found for {}", requiredVersionUuid, versionHistoryUuid);
+                        LOG.error("Version {} not found for {} , resource {}", requiredVersionUuid, versionHistoryUuid, resource.getPath());
                         return null;
                     }
                     String actualVersionHistoryUuid = version.getParent().getValueMap().get(JCR_UUID, String.class);
                     if (!versionHistoryUuid.equals(actualVersionHistoryUuid)) {
-                        LOG.error("Version {} does not belong to {} but to {}", requiredVersionUuid, versionHistoryUuid, actualVersionHistoryUuid);
+                        LOG.error("Version {} does not belong to {} but to {} , resource {}", requiredVersionUuid, versionHistoryUuid, actualVersionHistoryUuid, resource.getPath());
                         return null;
                     }
                     return version.getChild(JCR_FROZENNODE);
                 } catch (RepositoryException e) {
-                    LOG.error("Cannot get version {} for {}", requiredVersionUuid, versionHistoryUuid, e);
+                    LOG.error("Cannot get version {} for {} , resource {}", requiredVersionUuid, versionHistoryUuid, resource.getPath(), e);
                     return null;
                 }
             }

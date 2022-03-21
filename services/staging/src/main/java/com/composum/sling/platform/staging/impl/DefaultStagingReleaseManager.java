@@ -1238,8 +1238,13 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
 
         ResourceHandle releasesNode = getReleasesNode(root);
         if (!releasesNode.isValid()) {
-            releasesNode = ResourceHandle.use(
-                    ResourceUtil.getOrCreateResource(root.getResourceResolver(), getReleasesNodePath(root), TYPE_UNSTRUCTURED));
+            try {
+                releasesNode = ResourceHandle.use(
+                        ResourceUtil.getOrCreateResource(root.getResourceResolver(), getReleasesNodePath(root), TYPE_UNSTRUCTURED));
+            } catch (IllegalArgumentException | RepositoryException e) {
+                LOG.error("Could not create {}", getReleasesNodePath(root));
+                throw e;
+            }
         }
 
         Resource releaseNode = ResourceUtil.getOrCreateChild(releasesNode, releaseLabel, TYPE_UNSTRUCTURED);
