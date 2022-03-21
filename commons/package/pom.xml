@@ -103,14 +103,6 @@
                             <target>${sling.upload.path}</target>
                         </embedded>
                     </embeddeds>
-
-                    <dependencies>
-                        <dependency>
-                            <group>com/composum/nodes</group>
-                            <name>composum-nodes-sling-package</name>
-                            <!-- <version>[${project.version},2.0)</version> -->
-                        </dependency>
-                    </dependencies>
                 </configuration>
             </plugin>
 
