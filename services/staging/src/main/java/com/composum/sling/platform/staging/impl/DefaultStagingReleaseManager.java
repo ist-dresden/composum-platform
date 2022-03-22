@@ -1641,7 +1641,7 @@ public class DefaultStagingReleaseManager implements StagingReleaseManager {
                 ResourceHandle versionResource = ResourceHandle.use(getVersionResource());
                 type = versionResource.isValid() ? versionResource.getProperty(JCR_FROZENNODE+"/" + JCR_FROZENPRIMARYTYPE, String.class) : null;
             }
-            return Objects.requireNonNull(type, "Bug: could not determine primary type of reference"); // can't happen
+            return Objects.requireNonNull(type, "Bug: could not determine primary type of reference " + versionReference.getPath()); // can't happen
         }
 
         @Override
