@@ -14,6 +14,7 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import javax.jcr.InvalidItemStateException;
 import javax.jcr.ItemExistsException;
+import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.version.Version;
@@ -75,7 +76,7 @@ public class TryVersionManagerRestorePOCTest {
         childUuid = child.getValueMap().get(JCR_UUID, String.class);
         JcrTestUtils.printResourceRecursivelyAsJson(document);
         ec.checkThat(child, notNullValue());
-        System.out.printf("Original child uuid: " + childUuid);
+        System.out.println("Original child uuid: " + childUuid);
     }
 
     @Test
@@ -84,6 +85,19 @@ public class TryVersionManagerRestorePOCTest {
         resolver.commit();
         String newpath = context.uniqueRoot().content() + "/restored";
         versionManager.restore(newpath, documentVersion, false);
+        JcrTestUtils.printResourceRecursivelyAsJson(resolver, newpath);
+        ec.checkThat(resolver.getResource(newpath + "/child").getValueMap().get(JCR_UUID), is(childUuid));
+    }
+
+    @Test
+    public void deleteAndRestore2() throws RepositoryException, PersistenceException {
+        resolver.delete(document);
+        resolver.commit();
+        String newpath = context.uniqueRoot().content() + "/restored";
+        Node versionNode = resolver.adaptTo(Session.class).getNodeByIdentifier(documentVersion.getIdentifier());
+        // Strangely, restore works differently when it gets the version name as version argument: it expects the path to exist.
+        // So we have to retrieve the version first.
+        versionManager.restore(newpath, (Version) versionNode, false);
         JcrTestUtils.printResourceRecursivelyAsJson(resolver, newpath);
         ec.checkThat(resolver.getResource(newpath + "/child").getValueMap().get(JCR_UUID), is(childUuid));
     }
