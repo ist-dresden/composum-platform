@@ -46,6 +46,7 @@
                             com.composum.sling.core.*;version="[3,5)",
                             com.composum.sling.nodes.*;version="[3,5)",
                             com.composum.sling.cpnl.*;version="[3,5)",
+                            org.apache.sling.api.auth.*;version="[1.0,3)",
                             org.apache.sling.api.request.*;version="[2.4.1,3)",
                             org.apache.sling.api.resource.*;version="[2.8.0,3)",
                             org.apache.sling.api.servlets.*;version="[2.1.1,3)",

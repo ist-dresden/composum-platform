@@ -11,6 +11,7 @@ import com.composum.sling.core.util.LinkUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.auth.Authenticator;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.commons.osgi.PropertiesUtil;
@@ -21,6 +22,7 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
@@ -29,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
 import javax.jcr.Session;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -53,8 +56,7 @@ import static com.composum.platform.commons.request.AccessMode.RA_ACCESS_MODE;
         service = {Filter.class, PlatformAccessService.class},
         property = {
                 Constants.SERVICE_DESCRIPTION + "=Composum Platform Access Filter",
-                "sling.filter.scope=REQUEST",
-                "service.ranking:Integer=" + 5090
+                "sling.filter.scope=REQUEST"
         },
         immediate = true
 )
@@ -202,12 +204,21 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
                 "^/(jcr:system|oak:index)(/.*)?$",
                 "^.*/(rep:policy)(/.*)?$"
         };
+
+        @AttributeDefinition(
+                name = "Service Ranking",
+                description = "the ranking of the service to place the servlet filter at the right place in the filter chain"
+        )
+        int service_ranking() default 5090;
     }
 
     @Reference
     private SlingSettingsService slingSettings;
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL)
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
+    private volatile Authenticator slingAuthenticator;
+
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     private volatile PlatformAccessFilterAuthPlugin authPlugin;
 
     /**
@@ -271,17 +282,26 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
 
     private static final ThreadLocal<AccessContext> PLATFORM_REQUEST_THREAD_LOCAL = new ThreadLocal<>();
 
-    private boolean handleUnauthorized(SlingHttpServletRequest request, SlingHttpServletResponse response,
-                                       FilterChain chain, String reason, Object... args)
+    private boolean triggerAuthentication(SlingHttpServletRequest request, SlingHttpServletResponse response,
+                                          FilterChain chain, String reason, Object... args)
             throws ServletException, IOException {
+        final String path = request.getResource().getPath();
         if (authPlugin != null) {
             if (LOG.isDebugEnabled()) {
-                LOG.debug("AUTH plugin.triggerAuthentication... (" + reason + ")", args);
+                LOG.debug("authPlugin.triggerAuthentication[" + path + "] (" + reason + ")", args);
             }
             return authPlugin.triggerAuthentication(request, response, chain);
         } else {
-            LOG.warn(reason, args);
-            sendError(response, SlingHttpServletResponse.SC_UNAUTHORIZED);
+            if (slingAuthenticator != null) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("slingAuthenticator.login[" + path + "] (" + reason + ")", args);
+                }
+                request.setAttribute(Authenticator.LOGIN_RESOURCE, path);
+                slingAuthenticator.login(request, response);
+            } else {
+                LOG.warn(reason, args);
+                sendError(response, SlingHttpServletResponse.SC_UNAUTHORIZED);
+            }
             return true;
         }
     }
@@ -298,11 +318,11 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
 
         if (authPlugin != null) {
             if (LOG.isDebugEnabled()) {
-                LOG.debug("AUTH plugin.examineRequest...");
+                LOG.debug("authPlugin.examineRequest...");
             }
             if (authPlugin.examineRequest(slingRequest, slingResponse, chain)) {
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug("AUTH plugin.examineRequest: chain ends.");
+                    LOG.debug("authPlugin.examineRequest: chain ends.");
                 }
                 return;
             }
@@ -381,7 +401,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
                     if (userId == null || "anonymous".equalsIgnoreCase(userId)) {
 
                         if (isAccessDenied(uri, false, authorAllowAnonUriPatterns, null)) {
-                            if (handleUnauthorized(slingRequest, slingResponse, chain,
+                            if (triggerAuthentication(slingRequest, slingResponse, chain,
                                     "REJECT(anon): '{}' by anonymous URI patterns!", uri)) {
                                 return;
                             }
@@ -389,7 +409,7 @@ public class PlatformAccessFilter implements Filter, PlatformAccessService {
                     }
 
                 } else {
-                    if (handleUnauthorized(slingRequest, slingResponse, chain,
+                    if (triggerAuthentication(slingRequest, slingResponse, chain,
                             "REJECT(fault): '{}' - not adaptable to a session!", uri)) {
                         return;
                     }
