@@ -45,4 +45,13 @@ public interface TokenizedShorttermStoreService {
     @Nullable
     <T> T peek(@NotNull String token, Class<T> clazz);
 
+    /**
+     * Replaces some information in the token store.
+     *
+     * @param <T>       the type of {info}
+     * @param token the token
+     * @param info      the information to store at the token
+     * @param timeoutms timeout in milliseconds after which the information will be deleted.
+     */
+    <T> void push(@NotNull String token, @NotNull T info, long timeoutms);
 }
