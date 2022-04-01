@@ -2,18 +2,19 @@ package com.composum.platform.commons.storage;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Random;
@@ -105,6 +106,18 @@ public class TokenizedShorttermStoreServiceImpl implements TokenizedShorttermSto
         if (stored != null) {
             final long timeoutTime = System.currentTimeMillis() + timeoutms;
             store.put(token, Pair.of(timeoutTime, info));
+            synchronized (tokenToDeleteQueue) {
+                final List<Pair<Long, String>> found = new ArrayList<>();
+                tokenToDeleteQueue.forEach(pair -> {
+                    if (token.equals(pair.getRight())) {
+                        found.add(pair);
+                    }
+                });
+                for (Pair<Long, String> entry : found) {
+                    tokenToDeleteQueue.remove(entry);
+                }
+                tokenToDeleteQueue.add(Pair.of(timeoutTime, token));
+            }
         }
     }
 
