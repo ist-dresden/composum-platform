@@ -76,7 +76,7 @@ public class DefaultPlatformRequestLogger implements PlatformRequestLogger {
 
         @AttributeDefinition(name = "service ranking",
                 description = "The ranking to cascade the various loggers.")
-        int service_ranking() default 1500;
+        int service_ranking() default 6000;
 
         @AttributeDefinition()
         String webconsole_configurationFactory_nameHint() default
