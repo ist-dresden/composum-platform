@@ -69,13 +69,14 @@ public class DefaultPlatformRequestLogger implements PlatformRequestLogger {
         @AttributeDefinition(name = "Ignored URIs",
                 description = "A regex pattern set of URIs to ignore.")
         String[] pattern_uri_ignore() default {
-                "/bin/cpm/.*",
-                "/libs/composum/.*"
+                "/bin/(public|private|cpm)/.*",
+                "/libs/(composum)/.*",
+                "/system/.*"
         };
 
         @AttributeDefinition(name = "service ranking",
                 description = "The ranking to cascade the various loggers.")
-        int service_ranking() default 9000;
+        int service_ranking() default 1500;
 
         @AttributeDefinition()
         String webconsole_configurationFactory_nameHint() default
