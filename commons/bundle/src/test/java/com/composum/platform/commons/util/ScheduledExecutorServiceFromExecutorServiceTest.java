@@ -97,24 +97,24 @@ public class ScheduledExecutorServiceFromExecutorServiceTest {
     public void checkPeriodicScheduling() throws Exception {
         ScheduledFuture<?> future;
         if (fixedDelay) {
-            future = service.scheduleWithFixedDelay(this::execute3Times, 150, 100, TimeUnit.MILLISECONDS);
+            future = service.scheduleWithFixedDelay(this::execute3Times, 300, 200, TimeUnit.MILLISECONDS);
         } else {
-            future = service.scheduleAtFixedRate(this::execute3Times, 150, 100, TimeUnit.MILLISECONDS);
+            future = service.scheduleAtFixedRate(this::execute3Times, 300, 200, TimeUnit.MILLISECONDS);
         }
         ec.checkThat(future.isDone(), is(false));
         ec.checkThat(timesExecuted.get(), is(0));
-        Thread.sleep(100);
+        Thread.sleep(200);
         ec.checkThat(future.isDone(), is(false));
         ec.checkThat(timesExecuted.get(), is(0));
         System.out.println(future.isDone());
-        Thread.sleep(100);
+        Thread.sleep(200);
         ec.checkThat(timesExecuted.get(), is(1));
         System.out.println(future.isDone());
-        Thread.sleep(100);
+        Thread.sleep(200);
         System.out.println(future.isDone());
-        Thread.sleep(100);
+        Thread.sleep(200);
         System.out.println(future.isDone());
-        Thread.sleep(100);
+        Thread.sleep(200);
         System.out.println(future.isDone());
         ec.checkThat(future.isDone(), is(true));
         ec.checkThat(service.shutdownNow().size(), is(0));

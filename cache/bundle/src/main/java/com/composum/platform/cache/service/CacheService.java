@@ -25,4 +25,9 @@ public interface CacheService<T> {
 	 * sets a cache value; removes a cache entry if value is 'null'
 	 */
 	void put(@NotNull Serializable key, @Nullable T value);
+
+	/**
+	 * cleares the cache, all entries are removed
+	 */
+	void clear();
 }

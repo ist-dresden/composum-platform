@@ -4,16 +4,21 @@ import com.composum.platform.commons.request.AccessMode;
 import com.composum.platform.commons.request.service.PlatformRequestLogger;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.osgi.framework.Constants;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -29,12 +34,33 @@ import java.util.Map;
         service = {Filter.class},
         property = {
                 Constants.SERVICE_DESCRIPTION + "=Composum Request Tracking Filter",
-                "sling.filter.scope=REQUEST",
-                "service.ranking:Integer=" + 9000
+                "sling.filter.scope=REQUEST"
         },
+        configurationPolicy = ConfigurationPolicy.REQUIRE,
         immediate = true
 )
+@Designate(ocd = PlatformRequestLogFilter.Config.class)
 public class PlatformRequestLogFilter implements Filter {
+
+    @ObjectClassDefinition(name = "Composum Request Tracking Filter"
+    )
+    @interface Config {
+
+        @AttributeDefinition(name = "enabled",
+                description = "The on/off switch for the logging filter")
+        boolean enabled() default true;
+
+        @AttributeDefinition(name = "service ranking",
+                description = "The ranking to cascade the various loggers.")
+        int service_ranking() default 1500;
+    }
+
+    protected PlatformRequestLogFilter.Config config;
+
+    @Activate
+    protected void activate(final PlatformRequestLogFilter.Config config) {
+        this.config = config;
+    }
 
     private static final Logger LOG = LoggerFactory.getLogger(PlatformRequestLogFilter.class);
 
@@ -74,19 +100,23 @@ public class PlatformRequestLogFilter implements Filter {
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain chain)
             throws IOException, ServletException {
-        PlatformRequestLogger.data(servletRequest); // store the request start time
-        chain.doFilter(servletRequest, servletResponse);
-        if (servletRequest instanceof SlingHttpServletRequest) {
-            SlingHttpServletRequest request = (SlingHttpServletRequest) servletRequest;
-            SlingHttpServletResponse response = (SlingHttpServletResponse) servletResponse;
-            AccessMode accessMode = AccessMode.requestMode(request);
-            PlatformRequestLogger logger = getLogger(accessMode, request, response);
-            if (logger != null) {
-                logger.logRequest(accessMode, request, response);
-            } else {
-                LOG.warn("no logger available for '{}':'{}'", accessMode, request.getRequestURI());
+        if (config.enabled()) {
+            PlatformRequestLogger.data(servletRequest); // store the request start time
+            chain.doFilter(servletRequest, servletResponse);
+            if (servletRequest instanceof SlingHttpServletRequest) {
+                SlingHttpServletRequest request = (SlingHttpServletRequest) servletRequest;
+                SlingHttpServletResponse response = (SlingHttpServletResponse) servletResponse;
+                AccessMode accessMode = AccessMode.requestMode(request);
+                PlatformRequestLogger logger = getLogger(accessMode, request, response);
+                if (logger != null) {
+                    logger.logRequest(accessMode, request, response);
+                } else {
+                    LOG.warn("no logger available for '{}':'{}'", accessMode, request.getRequestURI());
+                }
             }
+            return;
         }
+        chain.doFilter(servletRequest, servletResponse);
     }
 
     @Override

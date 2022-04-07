@@ -10,17 +10,6 @@ import java.io.IOException;
 public interface PlatformAccessFilterAuthPlugin {
 
     /**
-     * examines a request handled by the access filter to check for authentication actions to handle by the plugin
-     * @param request the current request (of the filter chain)
-     * @param response the current response (of the filter chain)
-     * @param chain the filter chain which has triggered this method
-     * @return 'true' if the filter chain execution should end
-     */
-    boolean examineRequest(SlingHttpServletRequest request, SlingHttpServletResponse response,
-                           FilterChain chain)
-            throws ServletException, IOException;
-
-    /**
      * initiates the authentication for a requests which needs authentication and authorization
      * @param request the current request (of the filter chain)
      * @param response the current response (of the filter chain)
@@ -29,5 +18,16 @@ public interface PlatformAccessFilterAuthPlugin {
      */
     boolean triggerAuthentication(SlingHttpServletRequest request, SlingHttpServletResponse response,
                                   FilterChain chain)
+            throws ServletException, IOException;
+
+    /**
+     * examines a request handled by the access filter to check for authentication actions to handle by the plugin
+     * @param request the current request (of the filter chain)
+     * @param response the current response (of the filter chain)
+     * @param chain the filter chain which has triggered this method
+     * @return 'true' if the filter chain execution should end
+     */
+    boolean examineRequest(SlingHttpServletRequest request, SlingHttpServletResponse response,
+                           FilterChain chain)
             throws ServletException, IOException;
 }

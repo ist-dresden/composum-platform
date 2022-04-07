@@ -101,4 +101,12 @@ public class CacheServiceImpl<T> implements CacheService<T> {
             cache.remove(key);
         }
     }
+
+    /**
+     * cleares the cache, all entries are removed
+     */
+    @Override
+    public void clear() {
+        cache.clear();
+    }
 }
