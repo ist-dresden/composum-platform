@@ -23,9 +23,17 @@ public class TokenizedShorttermStoreServiceImplTest {
 
     protected Map<String, Pair<Long, Object>> storealias;
 
-    TokenizedShorttermStoreServiceImpl store = new TokenizedShorttermStoreServiceImpl() {{
-        storealias = store;
-    }};
+    /** For quick time simulation. */
+    private long currentTime = System.currentTimeMillis();
+
+    TokenizedShorttermStoreServiceImpl store = new TokenizedShorttermStoreServiceImpl() {
+        {storealias = store;}
+
+        @Override
+        protected long getCurrentTimeMillis() {
+            return currentTime;
+        }
+    };
 
     @Test
     public void storeAndRetrieve() {
@@ -57,11 +65,11 @@ public class TokenizedShorttermStoreServiceImplTest {
     public void timeout() throws InterruptedException {
         Object stored = new Object();
         String token = store.checkin(stored, 200);
-        Thread.sleep(100);
+        currentTime += 100;
         ec.checkThat(store.checkout(token, stored.getClass()), Matchers.sameInstance(stored));
 
         token = store.checkin(stored, 200);
-        Thread.sleep(300);
+        currentTime += 300;
         ec.checkThat(store.checkout(token, stored.getClass()), Matchers.nullValue());
     }
 
@@ -73,19 +81,19 @@ public class TokenizedShorttermStoreServiceImplTest {
         }
         ec.checkThat(storealias.size(), Matchers.is(10));
 
-        Thread.sleep(100);
+        currentTime += 100;
         // at 100ms, other items have 100ms to time out
         for (int i = 0; i < 20; ++i) {
             store.checkin(stored, 200);
         }
         ec.checkThat(storealias.size(), Matchers.is(30));
 
-        Thread.sleep(150);
+        currentTime += 150;
         // at 250ms the first items have timed out, but the others not
         store.checkout("bla", Object.class); // calls cleanup
         ec.checkThat(storealias.size(), Matchers.is(20));
 
-        Thread.sleep(100);
+        currentTime += 100;
         // at 350ms all items have timed out
         store.checkout("bla", Object.class); // calls cleanup
         ec.checkThat(storealias.size(), Matchers.is(0));

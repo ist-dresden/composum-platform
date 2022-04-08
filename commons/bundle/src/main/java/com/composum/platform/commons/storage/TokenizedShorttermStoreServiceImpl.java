@@ -52,7 +52,7 @@ public class TokenizedShorttermStoreServiceImpl implements TokenizedShorttermSto
      */
     protected void cleanup() {
         synchronized (tokenToDeleteQueue) {
-            long now = System.currentTimeMillis();
+            long now = getCurrentTimeMillis();
             Pair<Long, String> item = tokenToDeleteQueue.peek();
             if (item == null || item.getLeft() > now) {
                 return;
@@ -75,7 +75,7 @@ public class TokenizedShorttermStoreServiceImpl implements TokenizedShorttermSto
     @Override
     public <T> String checkin(@NotNull T info, long timeoutms) {
         cleanup();
-        long timeoutTime = System.currentTimeMillis() + timeoutms;
+        long timeoutTime = getCurrentTimeMillis() + timeoutms;
         String token;
         do {
             token = RandomStringUtils.random(32, 0, 0, true, true, null, tokenGenerator);
@@ -104,7 +104,7 @@ public class TokenizedShorttermStoreServiceImpl implements TokenizedShorttermSto
         cleanup();
         final Pair<Long, Object> stored = store.get(token);
         if (stored != null) {
-            final long timeoutTime = System.currentTimeMillis() + timeoutms;
+            final long timeoutTime = getCurrentTimeMillis() + timeoutms;
             store.put(token, Pair.of(timeoutTime, info));
             synchronized (tokenToDeleteQueue) {
                 final List<Pair<Long, String>> found = new ArrayList<>();
@@ -138,7 +138,7 @@ public class TokenizedShorttermStoreServiceImpl implements TokenizedShorttermSto
                     clazz.getName());
             return null;
         }
-        if (stored.getLeft() < System.currentTimeMillis()) {
+        if (stored.getLeft() < getCurrentTimeMillis()) {
             LOG.debug("Token timed out: {}", token);
             return null;
         }
@@ -146,4 +146,9 @@ public class TokenizedShorttermStoreServiceImpl implements TokenizedShorttermSto
         cleanup();
         return clazz.cast(value);
     }
+
+    protected long getCurrentTimeMillis() {
+        return System.currentTimeMillis();
+    }
+
 }
