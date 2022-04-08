@@ -41,8 +41,8 @@ public class TokenizedShorttermStoreServiceImplTest {
         String token = store.checkin(stored, 1000);
         ec.checkThat(token, Matchers.notNullValue());
         ec.checkThat(token.length(), Matchers.is(32));
-        ec.checkThat(store.peek(token, stored.getClass()), Matchers.sameInstance(stored));
-        ec.checkThat(store.checkout(token, stored.getClass()), Matchers.sameInstance(stored));
+        ec.checkThat(store.peek(token, stored.getClass()), sameInstance(stored));
+        ec.checkThat(store.checkout(token, stored.getClass()), sameInstance(stored));
         ec.checkThat(store.checkout(token, stored.getClass()), Matchers.nullValue());
 
         String token2 = store.checkin(stored, 100);
@@ -66,7 +66,7 @@ public class TokenizedShorttermStoreServiceImplTest {
         Object stored = new Object();
         String token = store.checkin(stored, 200);
         currentTime += 100;
-        ec.checkThat(store.checkout(token, stored.getClass()), Matchers.sameInstance(stored));
+        ec.checkThat(store.checkout(token, stored.getClass()), sameInstance(stored));
 
         token = store.checkin(stored, 200);
         currentTime += 300;
@@ -97,6 +97,26 @@ public class TokenizedShorttermStoreServiceImplTest {
         // at 350ms all items have timed out
         store.checkout("bla", Object.class); // calls cleanup
         ec.checkThat(storealias.size(), Matchers.is(0));
+    }
+
+    @Test
+    public void push() throws InterruptedException {
+        Object stored = new Object();
+        String token = store.checkin(stored, 200);
+        currentTime += 100;
+        ec.checkThat(store.peek(token, stored.getClass()), sameInstance(stored));
+
+        // store something that should be valid for 300 more milliseconds
+        Object replacement = new Object();
+        store.push(token, replacement, 300);
+
+        // now check after 200 milliseconds that the replacement is there - the original would have been timed out.
+        currentTime += 200;
+        ec.checkThat(store.peek(token, stored.getClass()), sameInstance(replacement));
+
+        // after 100 more milliseconds the replacement should have been timed out.
+        currentTime += 100;
+        ec.checkThat(store.checkout(token, stored.getClass()), Matchers.nullValue());
     }
 
 }

@@ -1,6 +1,7 @@
 package com.composum.platform.commons.storage;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -12,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +43,7 @@ public class TokenizedShorttermStoreServiceImpl implements TokenizedShorttermSto
      * the key. Synchronize over it when writing / reading!
      */
     protected final PriorityQueue<Pair<Long, String>> tokenToDeleteQueue = new PriorityQueue<>(128,
-            Comparator.comparing(Pair::getKey));
+            Map.Entry.comparingByKey());
 
     protected final Random tokenGenerator = new SecureRandom();
 
@@ -107,17 +107,12 @@ public class TokenizedShorttermStoreServiceImpl implements TokenizedShorttermSto
             final long timeoutTime = getCurrentTimeMillis() + timeoutms;
             store.put(token, Pair.of(timeoutTime, info));
             synchronized (tokenToDeleteQueue) {
-                final List<Pair<Long, String>> found = new ArrayList<>();
-                tokenToDeleteQueue.forEach(pair -> {
-                    if (token.equals(pair.getRight())) {
-                        found.add(pair);
-                    }
-                });
-                for (Pair<Long, String> entry : found) {
-                    tokenToDeleteQueue.remove(entry);
-                }
+                tokenToDeleteQueue.removeIf(p -> StringUtils.equals(token, p.getRight()));
                 tokenToDeleteQueue.add(Pair.of(timeoutTime, token));
             }
+        } else {
+            LOG.warn("Refused to replace data for timed out token on push.");
+            LOG.debug("Token was: {}", token);
         }
     }
 
