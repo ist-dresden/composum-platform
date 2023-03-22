@@ -16,11 +16,10 @@
     <description>Maven parent for the Composum Platform Cache module</description>
 
     <properties>
-        <ehcache.version>3.9.9</ehcache.version>
+        <ehcache.version>3.9.11</ehcache.version>
     </properties>
 
     <modules>
-        <module>ehcache</module>
         <module>bundle</module>
         <module>package</module>
     </modules>

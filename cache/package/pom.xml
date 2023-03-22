@@ -85,7 +85,7 @@
                         <filter>
                             <root>${sling.upload.path}</root>
                             <includes>
-                                <include>.*/ehcache-bundle.*\.jar</include>
+                                <include>.*/ehcache.*\.jar</include>
                                 <include>.*/composum-platform-cache-bundle.*\.jar</include>
                             </includes>
                         </filter>
@@ -94,7 +94,7 @@
                     <embeddeds>
                         <embedded>
                             <groupId>org.ehcache</groupId>
-                            <artifactId>ehcache-bundle</artifactId>
+                            <artifactId>ehcache</artifactId>
                             <target>${sling.upload.path}</target>
                         </embedded>
                         <embedded>
@@ -126,7 +126,7 @@
         </dependency>
         <dependency>
             <groupId>org.ehcache</groupId>
-            <artifactId>ehcache-bundle</artifactId>
+            <artifactId>ehcache</artifactId>
             <version>${ehcache.version}</version>
         </dependency>
 
