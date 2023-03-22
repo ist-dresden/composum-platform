@@ -1,6 +1,7 @@
 package com.composum.platform.commons.storage;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -12,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +43,7 @@ public class TokenizedShorttermStoreServiceImpl implements TokenizedShorttermSto
      * the key. Synchronize over it when writing / reading!
      */
     protected final PriorityQueue<Pair<Long, String>> tokenToDeleteQueue = new PriorityQueue<>(128,
-            Comparator.comparing(Pair::getKey));
+            Map.Entry.comparingByKey());
 
     protected final Random tokenGenerator = new SecureRandom();
 
@@ -52,7 +52,7 @@ public class TokenizedShorttermStoreServiceImpl implements TokenizedShorttermSto
      */
     protected void cleanup() {
         synchronized (tokenToDeleteQueue) {
-            long now = System.currentTimeMillis();
+            long now = getCurrentTimeMillis();
             Pair<Long, String> item = tokenToDeleteQueue.peek();
             if (item == null || item.getLeft() > now) {
                 return;
@@ -75,7 +75,7 @@ public class TokenizedShorttermStoreServiceImpl implements TokenizedShorttermSto
     @Override
     public <T> String checkin(@NotNull T info, long timeoutms) {
         cleanup();
-        long timeoutTime = System.currentTimeMillis() + timeoutms;
+        long timeoutTime = getCurrentTimeMillis() + timeoutms;
         String token;
         do {
             token = RandomStringUtils.random(32, 0, 0, true, true, null, tokenGenerator);
@@ -104,20 +104,15 @@ public class TokenizedShorttermStoreServiceImpl implements TokenizedShorttermSto
         cleanup();
         final Pair<Long, Object> stored = store.get(token);
         if (stored != null) {
-            final long timeoutTime = System.currentTimeMillis() + timeoutms;
+            final long timeoutTime = getCurrentTimeMillis() + timeoutms;
             store.put(token, Pair.of(timeoutTime, info));
             synchronized (tokenToDeleteQueue) {
-                final List<Pair<Long, String>> found = new ArrayList<>();
-                tokenToDeleteQueue.forEach(pair -> {
-                    if (token.equals(pair.getRight())) {
-                        found.add(pair);
-                    }
-                });
-                for (Pair<Long, String> entry : found) {
-                    tokenToDeleteQueue.remove(entry);
-                }
+                tokenToDeleteQueue.removeIf(p -> StringUtils.equals(token, p.getRight()));
                 tokenToDeleteQueue.add(Pair.of(timeoutTime, token));
             }
+        } else {
+            LOG.warn("Refused to replace data for timed out token on push.");
+            LOG.debug("Token was: {}", token);
         }
     }
 
@@ -138,7 +133,7 @@ public class TokenizedShorttermStoreServiceImpl implements TokenizedShorttermSto
                     clazz.getName());
             return null;
         }
-        if (stored.getLeft() < System.currentTimeMillis()) {
+        if (stored.getLeft() < getCurrentTimeMillis()) {
             LOG.debug("Token timed out: {}", token);
             return null;
         }
@@ -146,4 +141,9 @@ public class TokenizedShorttermStoreServiceImpl implements TokenizedShorttermSto
         cleanup();
         return clazz.cast(value);
     }
+
+    protected long getCurrentTimeMillis() {
+        return System.currentTimeMillis();
+    }
+
 }

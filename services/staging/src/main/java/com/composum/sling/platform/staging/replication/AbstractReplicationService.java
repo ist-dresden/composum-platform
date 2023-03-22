@@ -163,7 +163,8 @@ public abstract class AbstractReplicationService<CONFIG extends AbstractReplicat
             try { // wait a little to hopefully allow safe shutdown with resource cleanup, removing remote stuff
                 Thread.sleep(5000);
             } catch (InterruptedException e) {
-                // shouldn't happen
+                // Someone wants us to hurry up - the rest is fast; just continue.
+                Thread.currentThread().interrupt();
             }
             for (PROCESS process : processes) {
                 process.abort(true);
