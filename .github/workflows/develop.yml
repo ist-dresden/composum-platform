@@ -28,6 +28,19 @@ jobs:
         cache: maven
         maven-version: 3.8.7
 
+    - name: Dump event context for debugging
+      continue-on-error: true  # Debugging output only, and this annoyingly fails when the commit messge has a (
+      run: |
+        echo '${{ github.event_name }} for ${{ github.ref_type }} ${{ github.ref_name }} or ${{ github.event.ref }}'
+        # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#push
+        echo 'github.event:'
+        echo '${{ toJSON(github.event) }}'
+
+    - name: Dump github context
+      continue-on-error: true  # Debugging output only, and this annoyingly fails when the commit message has a (
+      run: |
+          echo '${{ toJSON(github) }}'
+
     - name: Git & Maven Status
       run: |
         git status --untracked-files --ignored
@@ -42,7 +55,7 @@ jobs:
 
     - name: Build with Maven
       # When parent-2:1.7 is active, -P ensureSnapshots will do a sanity check of the version number
-      run: $MVNCMD -P ensureSnapshots -B verify
+      run: $MVNCMD -P ensureSnapshots,test -B verify
 
     - name: Sanitycheck version before deploying
       run: |
