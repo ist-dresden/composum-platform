@@ -167,8 +167,9 @@ public class NodeTreeSynchronizer {
      * TODO either extend or handle differently.
      */
     protected static final Collection<String> protectedMetadataAttributes =
-            Collections.unmodifiableSet(new HashSet<>(Arrays.asList("jcr:uuid", "jcr:lastModified",
-                    "jcr:lastModifiedBy", "jcr:created", "jcr:createdBy", "jcr:isCheckedOut", "jcr:baseVersion",
+            Collections.unmodifiableSet(new HashSet<>(Arrays.asList("jcr:uuid",
+                    // "jcr:lastModified", "jcr:lastModifiedBy", are transferred since used at sitemap.xml
+                    "jcr:created", "jcr:createdBy", "jcr:isCheckedOut", "jcr:baseVersion",
                     "jcr:versionHistory", "jcr:predecessors", "jcr:mergeFailed", "jcr:configuration",
                     JcrConstants.JCR_PRIMARYTYPE, JcrConstants.JCR_MIXINTYPES)));
 
