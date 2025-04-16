@@ -39,10 +39,6 @@
             <id>${release.repository.id}</id>
             <url>${release.repository.url}</url>
         </repository>
-        <snapshotRepository>
-            <id>istrepo</id>
-            <url>https://repo.ist-software.com/repository/maven-snapshots</url>
-        </snapshotRepository>
     </distributionManagement>
 
     <modules>
