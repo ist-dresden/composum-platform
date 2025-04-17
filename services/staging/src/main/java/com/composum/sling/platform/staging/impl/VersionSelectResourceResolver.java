@@ -3,7 +3,7 @@ package com.composum.sling.platform.staging.impl;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.platform.staging.VersionReference;
 import com.composum.sling.platform.staging.versions.PlatformVersionsService;
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.sling.api.SlingHttpServletRequest;

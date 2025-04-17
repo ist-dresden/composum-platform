@@ -32,8 +32,8 @@ import com.composum.sling.core.ResourceHandle;
 import com.composum.sling.core.util.CoreConstants;
 import com.composum.sling.core.util.ResourceUtil;
 import com.composum.sling.core.util.SlingResourceUtil;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.ImmutableBiMap;
+import org.apache.jackrabbit.guava.common.collect.BiMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableBiMap;
 
 /**
  * Helper to copy / update a resource tree into another resource tree while some attributes are omitted and some nodes can be transformed.

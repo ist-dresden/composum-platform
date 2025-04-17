@@ -14,7 +14,7 @@ import com.composum.sling.platform.staging.replication.json.ChildrenOrderInfo;
 import com.composum.sling.platform.staging.replication.json.NodeAttributeComparisonInfo;
 import com.composum.sling.platform.staging.replication.json.VersionableInfo;
 import com.composum.sling.platform.staging.replication.json.VersionableTree;
-import com.google.common.collect.ImmutableBiMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableBiMap;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.vault.fs.api.ProgressTrackerListener;

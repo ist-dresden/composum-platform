@@ -1,6 +1,6 @@
 package com.composum.sling.platform.staging;
 
-import com.google.common.collect.ImmutableBiMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableBiMap;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENMIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_FROZENPRIMARYTYPE;

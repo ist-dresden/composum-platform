@@ -1,7 +1,7 @@
 package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.util.ResourceUtil;
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;

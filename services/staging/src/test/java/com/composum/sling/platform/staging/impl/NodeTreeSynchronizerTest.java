@@ -1,8 +1,8 @@
 package com.composum.sling.platform.staging.impl;
 
 import com.composum.sling.core.ResourceHandle;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.ImmutableBiMap;
+import org.apache.jackrabbit.guava.common.collect.BiMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableBiMap;
 import org.apache.sling.api.resource.PersistenceException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.resourcebuilder.api.ResourceBuilder;
