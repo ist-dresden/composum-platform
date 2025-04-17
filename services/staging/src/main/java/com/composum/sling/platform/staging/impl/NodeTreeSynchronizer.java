@@ -1,26 +1,8 @@
 package com.composum.sling.platform.staging.impl;
 
-import com.composum.sling.core.ResourceHandle;
-import com.composum.sling.core.util.CoreConstants;
-import com.composum.sling.core.util.ResourceUtil;
-import com.composum.sling.core.util.SlingResourceUtil;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.ImmutableBiMap;
-import org.apache.commons.collections4.IteratorUtils;
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.sling.api.resource.ModifiableValueMap;
-import org.apache.sling.api.resource.PersistenceException;
-import org.apache.sling.api.resource.Resource;
-import org.apache.sling.api.resource.ValueMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.composum.sling.core.util.ResourceUtil.PROP_MIXINTYPES;
+import static com.composum.sling.core.util.ResourceUtil.PROP_PRIMARY_TYPE;
 
-import org.jetbrains.annotations.NotNull;
-import javax.jcr.Node;
-import javax.jcr.Property;
-import javax.jcr.PropertyIterator;
-import javax.jcr.RepositoryException;
-import javax.jcr.Value;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,8 +12,28 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.composum.sling.core.util.ResourceUtil.PROP_MIXINTYPES;
-import static com.composum.sling.core.util.ResourceUtil.PROP_PRIMARY_TYPE;
+import javax.jcr.Node;
+import javax.jcr.Property;
+import javax.jcr.PropertyIterator;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
+
+import org.apache.commons.collections4.IteratorUtils;
+import org.apache.jackrabbit.JcrConstants;
+import org.apache.sling.api.resource.ModifiableValueMap;
+import org.apache.sling.api.resource.PersistenceException;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ValueMap;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.composum.sling.core.ResourceHandle;
+import com.composum.sling.core.util.CoreConstants;
+import com.composum.sling.core.util.ResourceUtil;
+import com.composum.sling.core.util.SlingResourceUtil;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
 
 /**
  * Helper to copy / update a resource tree into another resource tree while some attributes are omitted and some nodes can be transformed.
@@ -78,14 +80,14 @@ public class NodeTreeSynchronizer {
      * Protected attributes are ignored (e.g. jcr:uuid can't be set) - see {@link #ignoreAttribute(ResourceHandle, String, boolean)}.
      * We implement this using JCR directly, since {@link ModifiableValueMap#put(Object, Object)} breaks on references.
      *
-     * @param from the source
-     * @param to   the destination which we update
+     * @param from                     the source
+     * @param to                       the destination which we update
      * @param attributeNameTranslation any attribute contained in this map will be written to the attribute according to the value in the destination.
      *                                 The primary type or mixin types of the destination will only be touched if it's not translated
      *                                 or translated from a (different) attribute.
+     * @return true when there were any differences in the attributes
      * @throws RepositoryException if we couldn't finish the operation
      * @see #ignoreAttribute(ResourceHandle, String, boolean)
-     * @return true when there were any differences in the attributes
      */
     public boolean updateAttributes(@NotNull ResourceHandle from, @NotNull ResourceHandle to,
                                     @NotNull BiMap<String, String> attributeNameTranslation) throws RepositoryException {
@@ -105,6 +107,9 @@ public class NodeTreeSynchronizer {
         if (mixinsRelevant) {
             String[] newValue = fromAttributes.get(attributeNameTranslation.inverse().getOrDefault(PROP_MIXINTYPES, PROP_MIXINTYPES), new String[0]);
             Object origValue = toAttributes.put(PROP_MIXINTYPES, newValue);
+            if (newValue != null && newValue.length == 0 && origValue == null) {
+                origValue = new String[0]; // semantically equivalent.
+            }
             attributesChanged = attributesChanged || !Objects.deepEquals(newValue, origValue);
         }
 
@@ -123,19 +128,33 @@ public class NodeTreeSynchronizer {
                 if (prop.isMultiple()) {
                     Value[] values = prop.getValues();
                     attributesChanged = attributesChanged || !toNode.hasProperty(toname);
-                    attributesChanged = attributesChanged || !Objects.deepEquals(values, toNode.getProperty(toname).getValues());
+                    attributesChanged = attributesChanged || !toNode.getProperty(toname).isMultiple()
+                            || !Objects.deepEquals(values, toNode.getProperty(toname).getValues());
+                    try { // remove it in case it has different multiplicity
+                        toNode.getProperty(toname).remove();
+                    } catch (IllegalArgumentException | RepositoryException e) {
+                        // ignore, protected property
+                    }
                     try {
                         toNode.setProperty(toname, values);
-                    } catch (IllegalArgumentException | RepositoryException e) { // probably extend protectedMetadataAttributes
+                    } catch (IllegalArgumentException |
+                             RepositoryException e) { // probably extend protectedMetadataAttributes
                         LOG.info("Could not copy to probably protected multiple attribute {} - {}", toname, e.toString());
                     }
                 } else {
                     Value value = prop.getValue();
                     attributesChanged = attributesChanged || !toNode.hasProperty(toname);
-                    attributesChanged = attributesChanged || !Objects.deepEquals(value, toNode.getProperty(toname).getValue());
+                    attributesChanged = attributesChanged || toNode.getProperty(toname).isMultiple() ||
+                            !Objects.deepEquals(value, toNode.getProperty(toname).getValue());
+                    try { // remove it in case it has different multiplicity
+                        toNode.getProperty(toname).remove();
+                    } catch (IllegalArgumentException | RepositoryException e) {
+                        // ignore, protected property
+                    }
                     try {
                         toNode.setProperty(toname, value);
-                    } catch (IllegalArgumentException | RepositoryException e) { // probably extend protectedMetadataAttributes
+                    } catch (IllegalArgumentException |
+                             RepositoryException e) { // probably extend protectedMetadataAttributes
                         LOG.info("Could not copy to probably protected single attribute {} - {}", toname, e.toString());
                     }
                 }
@@ -167,8 +186,9 @@ public class NodeTreeSynchronizer {
      * TODO either extend or handle differently.
      */
     protected static final Collection<String> protectedMetadataAttributes =
-            Collections.unmodifiableSet(new HashSet<>(Arrays.asList("jcr:uuid", "jcr:lastModified",
-                    "jcr:lastModifiedBy", "jcr:created", "jcr:createdBy", "jcr:isCheckedOut", "jcr:baseVersion",
+            Collections.unmodifiableSet(new HashSet<>(Arrays.asList("jcr:uuid",
+                    // "jcr:lastModified", "jcr:lastModifiedBy", are transferred since used at sitemap.xml
+                    "jcr:created", "jcr:createdBy", "jcr:isCheckedOut", "jcr:baseVersion",
                     "jcr:versionHistory", "jcr:predecessors", "jcr:mergeFailed", "jcr:configuration",
                     JcrConstants.JCR_PRIMARYTYPE, JcrConstants.JCR_MIXINTYPES)));
 

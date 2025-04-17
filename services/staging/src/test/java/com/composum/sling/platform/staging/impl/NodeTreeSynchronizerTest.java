@@ -73,6 +73,17 @@ public class NodeTreeSynchronizerTest<T extends NodeTreeSynchronizer> {
         assertFalse(syncronizer.updateAttributes(ResourceHandle.use(fromResource), ResourceHandle.use(toResource), ImmutableBiMap.of()));
     }
 
+    @Test
+    public void updateArrayAttributes() throws RepositoryException, PersistenceException {
+        Resource fromResource = context.build().resource("/s/from",
+                PROP_PRIMARY_TYPE, TYPE_UNSTRUCTURED, "fromArray", array("a1", "a2"), "toArray", "a").commit().getCurrentParent();
+        Resource toResource = context.build().resource("/s/to", PROP_PRIMARY_TYPE, TYPE_SLING_FOLDER,
+                "fromArray", "a", "toArray", array("a1", "a2")).commit().getCurrentParent();
+
+        assertTrue(syncronizer.updateAttributes(ResourceHandle.use(fromResource), ResourceHandle.use(toResource), ImmutableBiMap.of()));
+        toResource.getResourceResolver().commit();
+        assertFalse(syncronizer.updateAttributes(ResourceHandle.use(fromResource), ResourceHandle.use(toResource), ImmutableBiMap.of()));
+    }
 
     @Test
     public void syncChildNodes() throws RepositoryException, PersistenceException {

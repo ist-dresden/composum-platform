@@ -60,7 +60,7 @@ public class SlingModelsFeaturesTest {
         assertEquals("hallo", model.titleAlias);
         assertEquals(17, model.theInt);
         assertEquals(21, model.avalue);
-        assertSame(resource, model.resource);
+        assertEquals(resource.getPath(), model.resource.getPath());
         assertNotNull(model.cfgResource);
 
         assertEquals("hallo", resource.adaptTo(FromRequestWithResourceInterface.ASlingModelInterface.class).getTitle());
@@ -68,7 +68,7 @@ public class SlingModelsFeaturesTest {
         assertEquals("hallo", modelFactory.createModel(resource, ASlingModel.class).title);
 
         ConstructorizedSlingModel cmodel = resource.adaptTo(ConstructorizedSlingModel.class);
-        assertSame(resource, cmodel.resource);
+        assertEquals(resource.getPath(), cmodel.resource.getPath());
     }
 
     @Test

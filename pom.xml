@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd ">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>com.composum.meta.ist</groupId>
         <artifactId>parent-2-public</artifactId>
-        <version>1.6</version>
-        <relativePath/>
+        <version>1.8.2</version>
+        <relativePath />
     </parent>
 
     <groupId>com.composum.platform</groupId>
     <artifactId>composum-platform</artifactId>
-    <version>1.6.0</version>
+    <version>1.7.2</version>
     <packaging>pom</packaging>
 
     <name>Composum Platform</name>
@@ -23,7 +22,7 @@
         <sling.upload.path>/libs/composum/platform/install</sling.upload.path>
         <package.group>com/composum/platform</package.group>
         <bundle.category>composum,platform</bundle.category>
-        <composum.nodes.version>3.4.0</composum.nodes.version>
+        <composum.nodes.version>4.3.5</composum.nodes.version>
         <release.repository.id>ossrh</release.repository.id>
         <release.repository.url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</release.repository.url>
     </properties>
@@ -32,17 +31,14 @@
         <connection>scm:git:https://github.com/ist-dresden/composum-platform.git</connection>
         <developerConnection>scm:git:https://github.com/ist-dresden/composum-platform.git</developerConnection>
         <url>https://github.com/ist-dresden/composum-platform.git</url>
-    </scm>
+      <tag>composum-platform-1.7.2</tag>
+  </scm>
 
     <distributionManagement>
         <repository>
             <id>${release.repository.id}</id>
             <url>${release.repository.url}</url>
         </repository>
-        <snapshotRepository>
-            <id>istrepo</id>
-            <url>https://repo.ist-software.com/repository/maven-snapshots</url>
-        </snapshotRepository>
     </distributionManagement>
 
     <modules>
