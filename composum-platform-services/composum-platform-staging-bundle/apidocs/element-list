@@ -1,0 +1,12 @@
+com.composum.sling.platform.staging
+com.composum.sling.platform.staging.impl
+com.composum.sling.platform.staging.model
+com.composum.sling.platform.staging.query
+com.composum.sling.platform.staging.query.impl
+com.composum.sling.platform.staging.replication
+com.composum.sling.platform.staging.replication.impl
+com.composum.sling.platform.staging.replication.inplace
+com.composum.sling.platform.staging.replication.json
+com.composum.sling.platform.staging.replication.postprocess
+com.composum.sling.platform.staging.search
+com.composum.sling.platform.staging.versions

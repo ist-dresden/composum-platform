@@ -1,0 +1,30 @@
+-classpath
+'/home/runner/.m2/repository/com/composum/nodes/composum-nodes-commons/4.3.5/composum-nodes-commons-4.3.5.jar:/home/runner/.m2/repository/com/yahoo/platform/yui/yuicompressor/2.4.8/yuicompressor-2.4.8.jar:/home/runner/.m2/repository/rhino/js/1.7R2/js-1.7R2.jar:/home/runner/.m2/repository/org/apache/commons/commons-collections4/4.2/commons-collections4-4.2.jar:/home/runner/.m2/repository/org/apache/sling/org.apache.sling.api/2.18.4/org.apache.sling.api-2.18.4.jar:/home/runner/.m2/repository/org/apache/sling/org.apache.sling.engine/2.6.14/org.apache.sling.engine-2.6.14.jar:/home/runner/.m2/repository/org/apache/sling/org.apache.sling.servlet-helpers/1.1.10/org.apache.sling.servlet-helpers-1.1.10.jar:/home/runner/.m2/repository/org/apache/sling/org.apache.sling.jcr.api/2.4.0/org.apache.sling.jcr.api-2.4.0.jar:/home/runner/.m2/repository/org/apache/sling/org.apache.sling.commons.osgi/2.4.0/org.apache.sling.commons.osgi-2.4.0.jar:/home/runner/.m2/repository/org/apache/sling/org.apache.sling.commons.threads/3.2.18/org.apache.sling.commons.threads-3.2.18.jar:/home/runner/.m2/repository/org/apache/jackrabbit/jackrabbit-jcr-commons/2.16.3/jackrabbit-jcr-commons-2.16.3.jar:/home/runner/.m2/repository/org/apache/jackrabbit/jackrabbit-api/2.16.3/jackrabbit-api-2.16.3.jar:/home/runner/.m2/repository/org/jetbrains/annotations/16.0.2/annotations-16.0.2.jar:/home/runner/.m2/repository/javax/jcr/jcr/2.0/jcr-2.0.jar:/home/runner/.m2/repository/org/apache/httpcomponents/httpclient-osgi/4.5.6/httpclient-osgi-4.5.6.jar:/home/runner/.m2/repository/org/apache/httpcomponents/httpclient/4.5.6/httpclient-4.5.6.jar:/home/runner/.m2/repository/commons-logging/commons-logging/1.2/commons-logging-1.2.jar:/home/runner/.m2/repository/commons-codec/commons-codec/1.11/commons-codec-1.11.jar:/home/runner/.m2/repository/org/apache/httpcomponents/httpmime/4.5.6/httpmime-4.5.6.jar:/home/runner/.m2/repository/org/apache/httpcomponents/httpclient-cache/4.5.6/httpclient-cache-4.5.6.jar:/home/runner/.m2/repository/org/apache/httpcomponents/fluent-hc/4.5.6/fluent-hc-4.5.6.jar:/home/runner/.m2/repository/org/apache/httpcomponents/httpcore-osgi/4.4.10/httpcore-osgi-4.4.10.jar:/home/runner/.m2/repository/org/apache/httpcomponents/httpcore/4.4.10/httpcore-4.4.10.jar:/home/runner/.m2/repository/org/apache/httpcomponents/httpcore-nio/4.4.10/httpcore-nio-4.4.10.jar:/home/runner/.m2/repository/org/apache/commons/commons-lang3/3.8.1/commons-lang3-3.8.1.jar:/home/runner/.m2/repository/commons-io/commons-io/2.6/commons-io-2.6.jar:/home/runner/.m2/repository/com/google/code/gson/gson/2.8.5/gson-2.8.5.jar:/home/runner/.m2/repository/org/osgi/org.osgi.core/6.0.0/org.osgi.core-6.0.0.jar:/home/runner/.m2/repository/org/osgi/osgi.cmpn/6.0.0/osgi.cmpn-6.0.0.jar:/home/runner/.m2/repository/javax/servlet/javax.servlet-api/3.1.0/javax.servlet-api-3.1.0.jar:/home/runner/.m2/repository/org/slf4j/slf4j-simple/1.7.25/slf4j-simple-1.7.25.jar:/home/runner/.m2/repository/org/slf4j/slf4j-api/1.7.25/slf4j-api-1.7.25.jar:/home/runner/.m2/repository/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar:/home/runner/.m2/repository/javax/mail/mail/1.5.0-b01/mail-1.5.0-b01.jar:/home/runner/.m2/repository/javax/activation/activation/1.1/activation-1.1.jar:/home/runner/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar:/home/runner/.m2/repository/org/hamcrest/hamcrest-core/2.2/hamcrest-core-2.2.jar:/home/runner/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar:/home/runner/work/composum-platform/composum-platform/testing/testutil/target/composum-platform-testing-testutil-1.7.2.jar:/home/runner/.m2/repository/org/hamcrest/hamcrest-library/2.2/hamcrest-library-2.2.jar:/home/runner/.m2/repository/org/mockito/mockito-core/4.11.0/mockito-core-4.11.0.jar:/home/runner/.m2/repository/net/bytebuddy/byte-buddy/1.12.19/byte-buddy-1.12.19.jar:/home/runner/.m2/repository/net/bytebuddy/byte-buddy-agent/1.12.19/byte-buddy-agent-1.12.19.jar:/home/runner/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar'
+-encoding
+'UTF-8'
+-protected
+-quiet
+-source
+'11'
+-sourcepath
+'/home/runner/work/composum-platform/composum-platform/commons/bundle/src/main/java:/home/runner/work/composum-platform/composum-platform/commons/bundle/target/generated-sources/annotations'
+-author
+-bottom
+'Copyright &#169; 2025. All rights reserved.'
+-charset
+'UTF-8'
+-d
+'/home/runner/work/composum-platform/composum-platform/commons/bundle/target/site/apidocs'
+-docencoding
+'UTF-8'
+-doctitle
+'Composum Platform Commons Bundle 1.7.2 API'
+-linkoffline
+'https://docs.oracle.com/en/java/javase/11/docs/api' '/home/runner/work/composum-platform/composum-platform/commons/bundle/target/javadoc-bundle-options'
+-linkoffline
+'https://github.com/ist-dresden/composum/composum-platform-testing/composum-platform-testing-testutil/apidocs' '/home/runner/work/composum-platform/composum-platform/testing/testutil/target/site/apidocs'
+-notimestamp
+-use
+-version
+-windowtitle
+'Composum Platform Commons Bundle 1.7.2 API'

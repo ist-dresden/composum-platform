@@ -1,0 +1,15 @@
+com.composum.platform.commons.content.service
+com.composum.platform.commons.credentials
+com.composum.platform.commons.credentials.impl
+com.composum.platform.commons.crypt
+com.composum.platform.commons.json
+com.composum.platform.commons.osgi
+com.composum.platform.commons.proxy
+com.composum.platform.commons.request
+com.composum.platform.commons.request.service
+com.composum.platform.commons.request.service.impl
+com.composum.platform.commons.request.wrapper
+com.composum.platform.commons.resource
+com.composum.platform.commons.response
+com.composum.platform.commons.storage
+com.composum.platform.commons.util
