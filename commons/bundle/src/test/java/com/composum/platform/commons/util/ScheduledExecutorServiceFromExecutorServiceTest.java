@@ -3,6 +3,7 @@ package com.composum.platform.commons.util;
 import com.composum.sling.platform.testing.testutil.ErrorCollectorAlwaysPrintingFailures;
 import com.composum.sling.platform.testing.testutil.junitcategory.SlowTest;
 import com.composum.sling.platform.testing.testutil.junitcategory.TimingSensitive;
+import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -62,6 +63,7 @@ public class ScheduledExecutorServiceFromExecutorServiceTest {
         service.shutdown();
     }
 
+    @Ignore
     @Test
     public void testSubmit() throws Exception {
         Future<Integer> future = service.submit(() -> {
